@@ -179,19 +179,17 @@ export function gerarDeck(data: DadosApres, meses: string[], secoes: Set<Secao>)
     .nav button{background:var(--card);border:1px solid var(--line);color:var(--txt);width:48px;height:48px;border-radius:50%;font-size:20px;cursor:pointer;display:grid;place-items:center}
     .nav button:hover{background:#1d1d1d;border-color:var(--accent)}
     .counter{color:#bbb;font-weight:700;font-size:15px;min-width:62px;text-align:center;background:rgba(0,0,0,.45);padding:5px 8px;border-radius:8px}
-    .hint{position:fixed;top:16px;right:20px;color:#bbb;font-size:12px;z-index:20;background:rgba(0,0,0,.45);padding:6px 12px;border-radius:99px}
-    .closebtn{position:fixed;top:14px;left:14px;z-index:30;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px}
+    .toolbar{position:fixed;bottom:18px;right:18px;z-index:30;display:flex;align-items:center;gap:10px}
+    .closebtn{background:var(--card);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px}
     .closebtn:hover{border-color:var(--accent);color:var(--accent)}
     .expbtn-big{margin-top:26px;background:var(--accent);color:#0A0A0A;border:0;padding:14px 28px;border-radius:99px;font-size:18px;font-weight:800;cursor:pointer}
-    .expbtn{position:fixed;bottom:18px;right:18px;z-index:25;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:9px 14px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer}
+    .expbtn{background:var(--card);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px}
     .expbtn:hover{border-color:var(--accent);color:var(--accent)}
-    @media(max-width:760px){.expbtn{bottom:76px;right:12px}.closebtn{padding:9px 13px;font-size:13px}}
-    @media print{@page{size:landscape;margin:0}html,body{height:auto;overflow:visible;background:#fff}#deck{position:static;overflow:visible}.stage{position:static;transform:none!important;width:100%;height:auto;box-shadow:none}.slide{position:static!important;visibility:visible!important;opacity:1!important;width:100%;height:auto;aspect-ratio:16/9;page-break-after:always;break-after:page}.nav,.hint,.closebtn,.expbtn,.expbtn-big{display:none!important}}`;
+    @media(max-width:760px){.toolbar{bottom:74px;right:12px;gap:8px}.expbtn,.closebtn{padding:9px 13px;font-size:13px}}
+    @media print{@page{size:landscape;margin:0}html,body{height:auto;overflow:visible;background:#fff}#deck{position:static;overflow:visible}.stage{position:static;transform:none!important;width:100%;height:auto;box-shadow:none}.slide{position:static!important;visibility:visible!important;opacity:1!important;width:100%;height:auto;aspect-ratio:16/9;page-break-after:always;break-after:page}.nav,.toolbar,.closebtn,.expbtn,.expbtn-big{display:none!important}}`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Apresentação · ${esc(brand.nome)} · ${ano}</title><style>${css}</style></head><body>
-<button class="closebtn" onclick="fecharApres()">✕ Fechar</button>
-<button class="expbtn" onclick="exportarPDF()">⬇ Baixar PDF</button>
-<div class="hint">← → navegar · F tela cheia</div>
+<div class="toolbar"><button class="expbtn" onclick="exportarPDF()">⬇ Baixar PDF</button><button class="closebtn" onclick="fecharApres()">✕ Fechar</button></div>
 <div id="deck"><div class="stage" id="stage">${slides.join("\n")}</div></div>
 <div class="nav"><button id="prev">&#8249;</button><span class="counter"><span id="cur">1</span> / ${total}</span><button id="next">&#8250;</button></div>
 <script>function fecharApres(){try{window.close()}catch(e){}setTimeout(function(){if(!window.closed){if(history.length>1){history.back()}else{document.documentElement.innerHTML='<div style=\\'display:grid;place-items:center;height:100vh;color:#888;font-family:sans-serif\\'>Pode fechar esta aba.</div>'}}},150)}
