@@ -119,7 +119,6 @@ export default function MarketingFull({ metrs, onEditar }: { metrs: Metrica[]; o
         sub="Visão de aquisição e canais"
         cor="#ff6b9d"
         ano={new Date().getFullYear()}
-        right={onEditar && <button className="btn ghost sm" onClick={onEditar}>✏️ Adicionar dados</button>}
       />
 
       {/* ---------- Seletores de painel (tabs) ---------- */}
@@ -175,6 +174,12 @@ export default function MarketingFull({ metrs, onEditar }: { metrs: Metrica[]; o
           );
         })}
       </div>
+
+      {onEditar && (
+        <div style={{ display: "flex", justifyContent: "flex-end", margin: "16px 0 2px" }}>
+          <button className="btn ghost sm" onClick={onEditar}>✏️ Adicionar dados deste mês</button>
+        </div>
+      )}
 
       {/* ---------- Conteúdo por painel ---------- */}
       {painel === "macro" && (
