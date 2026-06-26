@@ -60,6 +60,7 @@ export type Perfil = {
   nome: string | null;
   email: string | null;
   papel: string;
+  areas: string[] | null;
 };
 
 // Categorias sugeridas (free-text, mas com atalhos)
@@ -165,7 +166,7 @@ function seedDemo() {
 // ============================================================
 export async function getPerfil(): Promise<Perfil | null> {
   if (!supabaseReady || !supabase) {
-    return { id: "demo-user", empresa_id: DEMO_EMP, nome: "Você", email: null, papel: "dono" };
+    return { id: "demo-user", empresa_id: DEMO_EMP, nome: "Você", email: null, papel: "dono", areas: null };
   }
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) return null;
@@ -348,4 +349,38 @@ export async function cadastrar(email: string, senha: string, nome: string, empr
 
 export async function logout() {
   if (supabase) await supabase.auth.signOut();
+}
+
+// ============================================================
+// COLABORADORES (acesso à empresa) — via rota /api/colaboradores
+// ============================================================
+export type ColabPerfil = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null };
+
+async function authHeader(): Promise<Record<string, string>> {
+  if (!supabase) return {};
+  const { data } = await supabase.auth.getSession();
+  const t = data.session?.access_token;
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+export async function getColaboradores(): Promise<ColabPerfil[]> {
+  if (!supabaseReady) return [];
+  const res = await fetch("/api/colaboradores", { headers: await authHeader() });
+  if (!res.ok) return [];
+  const j = await res.json();
+  return (j.colaboradores ?? []) as ColabPerfil[];
+}
+
+export async function convidarColaborador(nome: string, email: string, senha: string, areas: string[]): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch("/api/colaboradores", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeader()) },
+    body: JSON.stringify({ nome, email, senha, areas }),
+  });
+  const j = await res.json().catch(() => ({}));
+  return res.ok ? { ok: true } : { ok: false, error: (j as { error?: string }).error || "Não consegui criar o acesso." };
+}
+
+export async function removerColaborador(id: string): Promise<void> {
+  await fetch(`/api/colaboradores?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: await authHeader() });
 }

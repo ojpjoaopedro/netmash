@@ -180,3 +180,24 @@ create policy df_all on despesas_fixas for all
   using (empresa_id = minha_empresa()) with check (empresa_id = minha_empresa());
 
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- CLIENTES (CRM) + Acesso de colaboradores  (aplicado 2026-06-26)
+-- ============================================================
+create table if not exists clientes (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id uuid not null references empresas(id) on delete cascade,
+  nome text not null, email text, telefone text, obs text,
+  criado_em timestamptz not null default now()
+);
+create index if not exists idx_cli_empresa on clientes(empresa_id);
+alter table lancamentos add column if not exists cliente_id uuid references clientes(id) on delete set null;
+alter table clientes enable row level security;
+drop policy if exists cli_all on clientes;
+create policy cli_all on clientes for all using (empresa_id = minha_empresa()) with check (empresa_id = minha_empresa());
+
+alter table perfis add column if not exists areas text[];
+drop policy if exists perf_sel on perfis;
+create policy perf_sel on perfis for select using (id = auth.uid() or empresa_id = minha_empresa());
+
+notify pgrst, 'reload schema';

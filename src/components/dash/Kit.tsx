@@ -3,13 +3,13 @@ import { motion } from "framer-motion";
 import {
   DollarSign, Activity, TrendingDown, TrendingUp, Wallet, Percent, BarChart3,
   Users, Smile, UserMinus, ShoppingCart, Share2, UserPlus, Zap, Award, Target,
-  Calendar, Megaphone, Globe, Sparkles, Scale, PiggyBank, ChevronRight, type LucideIcon,
+  Calendar, Megaphone, Globe, Sparkles, Scale, PiggyBank, ChevronRight, ShieldCheck, Building2, HeartPulse, type LucideIcon,
 } from "lucide-react";
 
 export const ICONS: Record<string, LucideIcon> = {
   DollarSign, Activity, TrendingDown, TrendingUp, Wallet, Percent, BarChart3,
   Users, Smile, UserMinus, ShoppingCart, Share2, UserPlus, Zap, Award, Target,
-  Calendar, Megaphone, Globe, Sparkles, Scale, PiggyBank,
+  Calendar, Megaphone, Globe, Sparkles, Scale, PiggyBank, ShieldCheck, Building2, HeartPulse,
 };
 
 export function Icon({ name, ...p }: { name: string; size?: number; color?: string; className?: string }) {

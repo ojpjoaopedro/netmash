@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact,
+  Menu, Presentation, Contact, ShieldCheck,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
@@ -26,6 +26,7 @@ import Apresentacao from "@/components/dash/Apresentacao";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
 import Custos from "@/components/dash/Custos";
 import Clientes from "@/components/dash/Clientes";
+import Acessos from "@/components/dash/Acessos";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -34,7 +35,7 @@ import Config from "@/components/Config";
 
 type View =
   | "dashboard" | "financas" | "saude" | "comercial" | "marketing"
-  | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "empresa";
+  | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
 
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -52,6 +53,7 @@ const OPERACOES = [
   { key: "ferramentas", label: "Ferramentas", Icon: Wrench },
   { key: "relatorios", label: "Relatórios / PDF", Icon: FileText },
   { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
+  { key: "acessos", label: "Equipe & Acessos", Icon: ShieldCheck },
   { key: "importar", label: "Importar planilha", Icon: Upload },
   { key: "empresa", label: "Empresa", Icon: Building2 },
 ] as const;
@@ -130,6 +132,20 @@ export default function Home() {
   const insights = gerarInsights(effMetrs, lancs, saldoInicial);
   const alertas = insights.filter((i) => i.tone === "bad" || i.tone === "warn");
 
+  // Controle de acesso: dono vê tudo; colaborador vê só as áreas liberadas.
+  const ehDono = !supabaseReady || (perfil?.papel ?? "dono") !== "colaborador";
+  const areasPerm = perfil?.areas ?? [];
+  const metricasVis = ehDono ? METRICAS.slice() : METRICAS.filter((m) => m.key === "dashboard" || areasPerm.includes(m.key));
+  const opsKeys: string[] = ehDono
+    ? OPERACOES.map((o) => o.key)
+    : (() => {
+        const ops = new Set<string>(["relatorios", "apresentacao"]);
+        if (areasPerm.includes("financas")) ["lancamentos", "custos", "contas", "ferramentas"].forEach((k) => ops.add(k));
+        if (areasPerm.includes("comercial")) ops.add("clientes");
+        return [...ops];
+      })();
+  const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key));
+
   const VIEW_SECAO: Partial<Record<View, Secao>> = {
     financas: "financeiro", saude: "cliente", comercial: "comercial", marketing: "marketing", equipe: "colaboradores",
   };
@@ -184,12 +200,12 @@ export default function Home() {
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
             <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
-              {METRICAS.map(({ key, label, Icon }) => (
+              {metricasVis.map(({ key, label, Icon }) => (
                 <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
               ))}
             </nav></div>
             <div className="navgroup"><div className="gl">Operações</div><nav className="nav">
-              {OPERACOES.map(({ key, label, Icon }) => (
+              {opsVis.map(({ key, label, Icon }) => (
                 <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
               ))}
             </nav></div>
@@ -212,7 +228,7 @@ export default function Home() {
         <div className="navgroup">
           <div className="gl">Métricas</div>
           <nav className="nav">
-            {METRICAS.map(({ key, label, Icon }) => (
+            {metricasVis.map(({ key, label, Icon }) => (
               <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
                 <Icon size={18} /> {label}
               </button>
@@ -223,7 +239,7 @@ export default function Home() {
         <div className="navgroup">
           <div className="gl">Operações</div>
           <nav className="nav">
-            {OPERACOES.map(({ key, label, Icon }) => (
+            {opsVis.map(({ key, label, Icon }) => (
               <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
                 <Icon size={18} /> {label}
               </button>
@@ -294,6 +310,7 @@ export default function Home() {
         {view === "custos" && <Custos lancs={lancs} funcs={funcs} reload={carregarDados} />}
         {view === "contas" && <Contas lancs={lancs} reload={carregarDados} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
+        {view === "acessos" && <Acessos />}
         {view === "importar" && <Importar reload={carregarDados} />}
         {view === "empresa" && <Config empresa={empresa} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
       </main>
@@ -317,7 +334,7 @@ export default function Home() {
 
       {/* Bottom nav (mobile) */}
       <nav className="bottomnav">
-        {METRICAS.map(({ key, label, Icon }) => (
+        {metricasVis.map(({ key, label, Icon }) => (
           <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
             <Icon size={20} />{label.split(" ")[0]}
           </button>
