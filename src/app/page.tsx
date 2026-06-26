@@ -249,6 +249,18 @@ export default function Home() {
 
       {/* Main */}
       <main className="main">
+        {view === "dashboard" && lancs.length === 0 && (
+          <div className="card" style={{ marginBottom: 16, borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
+            <h3 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>👋 Bem-vindo ao seu painel!</h3>
+            <p className="sub" style={{ marginBottom: 14 }}>Comece configurando sua empresa e lançando os primeiros dados — os gráficos e indicadores se montam sozinhos.</p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button className="btn" onClick={() => setView("empresa")}>🎨 Configurar empresa / logo</button>
+              <button className="btn ghost" onClick={() => setView("lancamentos")}>💸 Adicionar lançamento</button>
+              <button className="btn ghost" onClick={() => setView("custos")}>📌 Cadastrar custos</button>
+              <button className="btn ghost" onClick={() => setEditor("financeiro")}>📊 Editar indicadores</button>
+            </div>
+          </div>
+        )}
         {view === "dashboard" && <DashboardHub metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {AREAS[view] && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} />}
