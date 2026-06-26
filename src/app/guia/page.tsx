@@ -1,232 +1,210 @@
-import type { Metadata } from "next";
+"use client";
+import { useState, useEffect, useRef } from "react";
 import {
-  LayoutDashboard, ListChecks, Receipt, CalendarClock, Contact, TrendingUp,
-  Sparkles, Users, Upload, FileText, Building2, ShieldCheck, Smartphone, Monitor, Check, ArrowRight,
+  Building2, ListChecks, Sparkles, LayoutDashboard, Receipt, CalendarClock,
+  Contact, TrendingUp, Users, FileText, Smartphone, Monitor, ArrowRight, type LucideIcon,
 } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Seja bem-vindo — Como usar o Minha Empresa",
-  description: "Aprenda a usar o app: dashboards, lançamentos, clientes, projeção de caixa, assistente e mais. No celular e no computador.",
-};
+type Item = { icon: LucideIcon; cor: string; t: string; d: string };
+type Slide =
+  | { tipo: "intro" }
+  | { tipo: "passo"; n: number; icon: LucideIcon; cor: string; t: string; d: string }
+  | { tipo: "grupo"; titulo: string; itens: Item[] }
+  | { tipo: "device" }
+  | { tipo: "pwa" }
+  | { tipo: "final" };
 
-const APP_URL = "/login";
-
-const PASSOS = [
-  { n: "1", t: "Configure sua empresa", d: "Em Empresa, coloque o nome e a sua logo. O app fica com a sua identidade." },
-  { n: "2", t: "Lance ou importe seus dados", d: "Registre o que entra e o que sai (ou suba sua planilha). Os gráficos se montam sozinhos." },
-  { n: "3", t: "Acompanhe e decida", d: "Veja lucro, caixa e clientes todo dia, e use o Assistente pra saber o que priorizar." },
-];
-
-const SECOES = [
-  { Icon: LayoutDashboard, cor: "#1AADE2", t: "Dashboard", oque: "Sua visão geral: faturamento, lucro, caixa e clientes num lugar só.", como: "É a primeira tela. O 'Pulso do dia' mostra o que merece atenção agora." },
-  { Icon: ListChecks, cor: "#10B981", t: "Lançamentos", oque: "Onde você registra cada receita e despesa do dia a dia.", como: "Toque em 'Adicionar lançamento', informe valor, data e categoria. Pronto — entra nos gráficos." },
-  { Icon: Receipt, cor: "#F59E0B", t: "Custos & Despesas", oque: "Seus custos fixos e despesas recorrentes (aluguel, folha, fornecedores).", como: "Cadastre uma vez e gere as despesas do mês com um clique." },
-  { Icon: CalendarClock, cor: "#8b5cf6", t: "Contas a pagar/receber", oque: "Tudo que vence: o que você tem a pagar e a receber.", como: "Marque como pago quando entrar/sair do caixa. O app avisa o que está vencendo." },
-  { Icon: Contact, cor: "#1AADE2", t: "Clientes & Vendas", oque: "Cadastre clientes, registre vendas e veja quem comprou.", como: "Ao registrar uma venda, ela alimenta o financeiro e o comercial automaticamente." },
-  { Icon: TrendingUp, cor: "#10B981", t: "Projeção de caixa", oque: "Mostra para onde seu caixa vai nos próximos 6 meses.", como: "Aparece no Dashboard. Te avisa antes de o caixa ficar negativo." },
-  { Icon: Sparkles, cor: "#F59E0B", t: "Assistente", oque: "Converse com seus números: pergunte e tenha a resposta na hora.", como: "Toque em sugestões como 'Como está meu caixa?' ou 'O que fazer essa semana?'." },
-  { Icon: Users, cor: "#8b5cf6", t: "Equipe & folha", oque: "Controle de funcionários, salários e benefícios.", como: "Cadastre sua equipe e veja quanto a folha pesa no faturamento." },
-  { Icon: Upload, cor: "#1AADE2", t: "Importar planilha", oque: "Já tem dados numa planilha? Suba e comece com tudo preenchido.", como: "Em Importar, selecione o arquivo e confirme as colunas." },
-  { Icon: FileText, cor: "#ff6b9d", t: "Relatórios & Apresentação", oque: "Gere um relatório ou uma apresentação profissional da empresa.", como: "Toque em 'Apresentar' ou 'Relatórios / PDF' e baixe em PDF." },
-  { Icon: Building2, cor: "#10B981", t: "Empresa (sua marca)", oque: "Coloque nome, logo e o tamanho dela — o app fica com a sua cara.", como: "Em Empresa, faça o upload da logo e ajuste o que quiser." },
-  { Icon: ShieldCheck, cor: "#8b5cf6", t: "Equipe & Acessos", oque: "Dê acesso à sua equipe, com permissão por área.", como: "Em Acessos, convide um colaborador e escolha o que ele pode ver." },
+const SLIDES: Slide[] = [
+  { tipo: "intro" },
+  { tipo: "passo", n: 1, icon: Building2, cor: "#1AADE2", t: "Configure sua empresa", d: "Em “Empresa”, coloque o nome e a sua logo. O app fica com a sua identidade." },
+  { tipo: "passo", n: 2, icon: ListChecks, cor: "#10B981", t: "Lance ou importe seus dados", d: "Registre o que entra e o que sai — ou suba sua planilha. Os gráficos se montam sozinhos." },
+  { tipo: "passo", n: 3, icon: Sparkles, cor: "#F59E0B", t: "Acompanhe e decida", d: "Veja lucro, caixa e clientes todo dia, e use o Assistente pra saber o que priorizar." },
+  { tipo: "grupo", titulo: "Seu dinheiro no controle", itens: [
+    { icon: LayoutDashboard, cor: "#1AADE2", t: "Dashboard", d: "Sua visão geral: faturamento, lucro e caixa." },
+    { icon: ListChecks, cor: "#10B981", t: "Lançamentos", d: "Registre cada receita e despesa do dia a dia." },
+    { icon: Receipt, cor: "#F59E0B", t: "Custos & Despesas", d: "Custos fixos e folha, com um clique." },
+  ] },
+  { tipo: "grupo", titulo: "Clientes e o futuro do caixa", itens: [
+    { icon: CalendarClock, cor: "#8b5cf6", t: "Contas a pagar/receber", d: "Tudo que vence, com aviso na hora certa." },
+    { icon: Contact, cor: "#1AADE2", t: "Clientes & Vendas", d: "Cadastre clientes e registre vendas." },
+    { icon: TrendingUp, cor: "#10B981", t: "Projeção de caixa", d: "Pra onde seu caixa vai nos próximos 6 meses." },
+  ] },
+  { tipo: "grupo", titulo: "Inteligência, equipe e relatórios", itens: [
+    { icon: Sparkles, cor: "#F59E0B", t: "Assistente", d: "Pergunte e tenha a resposta na hora." },
+    { icon: Users, cor: "#8b5cf6", t: "Equipe & folha", d: "Funcionários, salários e custo da folha." },
+    { icon: FileText, cor: "#ff6b9d", t: "Relatórios & PDF", d: "Gere uma apresentação profissional." },
+  ] },
+  { tipo: "device" },
+  { tipo: "pwa" },
+  { tipo: "final" },
 ];
 
 export default function Guia() {
+  const N = SLIDES.length;
+  const [i, setI] = useState(0);
+  const clamp = (x: number) => Math.max(0, Math.min(N - 1, x));
+  const next = () => setI((v) => clamp(v + 1));
+  const prev = () => setI((v) => clamp(v - 1));
+  const sx = useRef(0);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") next();
+      else if (e.key === "ArrowLeft") prev();
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <main className="gu">
+    <div className="gu"
+      onTouchStart={(e) => { sx.current = e.changedTouches[0].clientX; }}
+      onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - sx.current; if (dx < -40) next(); else if (dx > 40) prev(); }}>
       <style>{CSS}</style>
 
-      <header className="gu-nav">
-        <div className="gu-wrap gu-navin">
-          <div className="gu-logo">Minha Empresa</div>
-          <a href={APP_URL} className="gu-cta sm">Entrar no painel</a>
-        </div>
-      </header>
+      <div className="gu-top">
+        <span className="gu-logo">Minha Empresa</span>
+        <a className="gu-skip" href="/">Pular ✕</a>
+      </div>
 
-      <section className="gu-hero">
-        <div className="gu-wrap">
-          <span className="gu-eyebrow">Seja bem-vindo 👋</span>
-          <h1>Vamos te mostrar <span className="gu-acc">como usar o app.</span></h1>
-          <p className="gu-lead">Em poucos minutos você organiza as finanças da sua empresa. Aqui embaixo, o que cada parte faz e como usar.</p>
-          <div className="gu-badges">
-            <span><Smartphone size={16} /> Funciona no celular</span>
-            <span><Monitor size={16} /> e no computador</span>
-            <span><Check size={16} /> Seus dados são só seus</span>
-          </div>
+      <div className="gu-viewport">
+        <div className="gu-track" style={{ transform: `translateX(-${i * 100}%)` }}>
+          {SLIDES.map((s, k) => <div className="gu-slide" key={k}><div className="gu-inner">{render(s)}</div></div>)}
         </div>
-      </section>
+      </div>
 
-      <section className="gu-sec">
-        <div className="gu-wrap">
-          <h2>Comece em 3 passos</h2>
-          <div className="gu-passos">
-            {PASSOS.map((p) => (
-              <div key={p.n} className="gu-passo">
-                <span className="gu-pn">{p.n}</span>
-                <b>{p.t}</b>
-                <p>{p.d}</p>
-              </div>
-            ))}
-          </div>
+      <div className="gu-nav">
+        {i > 0 ? <button className="gu-prev" onClick={prev}>‹ Voltar</button> : <span style={{ width: 90 }} />}
+        <div className="gu-dots">
+          {SLIDES.map((_, k) => <span key={k} className={"gu-dot" + (k === i ? " on" : "")} onClick={() => setI(k)} />)}
         </div>
-      </section>
+        {i < N - 1
+          ? <button className="gu-next" onClick={next}>Próximo →</button>
+          : <a className="gu-next" href="/">Entrar →</a>}
+      </div>
+    </div>
+  );
+}
 
-      <section className="gu-sec alt">
-        <div className="gu-wrap">
-          <h2>Conheça cada parte do app</h2>
-          <p className="gu-subt">Toque em cada uma no menu lateral (no computador) ou no menu ☰ (no celular).</p>
-          <div className="gu-cards">
-            {SECOES.map((s) => (
-              <div key={s.t} className="gu-card">
-                <span className="gu-ico" style={{ background: `${s.cor}22`, color: s.cor }}><s.Icon size={22} /></span>
-                <b>{s.t}</b>
-                <p className="gu-oque">{s.oque}</p>
-                <p className="gu-como"><b>Como usar:</b> {s.como}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="gu-sec">
-        <div className="gu-wrap gu-device">
-          <div>
-            <h2>No celular <span className="gu-acc">ou no computador</span></h2>
-            <p className="gu-lead">É o mesmo app nos dois. No computador, o menu fica à esquerda. No celular, toque no menu ☰ no topo, e as métricas principais ficam na barra de baixo. Tudo sincroniza sozinho.</p>
-            <ul className="gu-list">
-              <li><Check size={17} /> Lance pelo celular no balcão, confira o relatório no PC</li>
-              <li><Check size={17} /> Seus dados ficam salvos e protegidos por login</li>
-              <li><Check size={17} /> Dê acesso à sua equipe com permissões</li>
-            </ul>
-          </div>
-          <div className="gu-mock">
-            <div className="gu-mockbar"><i></i><i></i><i></i></div>
-            <div className="gu-mockbody">
-              <div className="gu-mockhi"><div><small>Bom dia</small><b>Visão geral</b></div><span className="gu-pill">Lucro ↑</span></div>
-              <div className="gu-mockk"><div className="gu-k"><small>Faturamento</small><b>R$ 48,2 mil</b></div><div className="gu-k"><small>Lucro</small><b className="gu-g">R$ 12,7 mil</b></div></div>
-              <div className="gu-chart">{[42, 58, 50, 66, 61, 78].map((h, i) => <span key={i} style={{ height: `${h}%` }}></span>)}</div>
+function render(s: Slide) {
+  if (s.tipo === "intro") return (
+    <>
+      <div className="gu-emoji">👋</div>
+      <h2>Seja bem-vindo!</h2>
+      <p>Vamos te mostrar como usar o app em poucos passos. É rápido e simples.</p>
+      <div className="gu-hint">Deslize pro lado pra continuar →</div>
+    </>
+  );
+  if (s.tipo === "passo") {
+    const Ic = s.icon;
+    return (
+      <>
+        <span className="gu-eyebrow">Passo {s.n} de 3</span>
+        <span className="gu-ico" style={{ background: `${s.cor}22`, color: s.cor }}><Ic size={40} /></span>
+        <h2>{s.t}</h2>
+        <p>{s.d}</p>
+      </>
+    );
+  }
+  if (s.tipo === "grupo") return (
+    <>
+      <span className="gu-eyebrow">O que você encontra</span>
+      <h2 style={{ marginBottom: 6 }}>{s.titulo}</h2>
+      <div style={{ marginTop: 18 }}>
+        {s.itens.map((it) => {
+          const Ic = it.icon;
+          return (
+            <div className="gu-mini" key={it.t}>
+              <span className="mi" style={{ background: `${it.cor}22`, color: it.cor }}><Ic size={22} /></span>
+              <div><b>{it.t}</b><small>{it.d}</small></div>
             </div>
-          </div>
+          );
+        })}
+      </div>
+    </>
+  );
+  if (s.tipo === "device") return (
+    <>
+      <div style={{ display: "flex", gap: 14, justifyContent: "center", marginBottom: 22 }}>
+        <span className="gu-ico" style={{ background: "#1AADE222", color: "#1AADE2", margin: 0 }}><Smartphone size={36} /></span>
+        <span className="gu-ico" style={{ background: "#10B98122", color: "#10B981", margin: 0 }}><Monitor size={36} /></span>
+      </div>
+      <h2>No celular ou no computador</h2>
+      <p>É o mesmo app nos dois. No computador, o menu fica à esquerda. No celular, toque no menu ☰ no topo — e as métricas ficam na barra de baixo. Tudo sincroniza sozinho.</p>
+      <p style={{ fontSize: 15, color: "#9aa0a6" }}>Lance pelo celular no balcão e confira o relatório no PC. Seus dados ficam salvos e protegidos.</p>
+    </>
+  );
+  if (s.tipo === "pwa") return (
+    <>
+      <div className="gu-emoji">📲</div>
+      <h2>Coloque o app na tela do celular</h2>
+      <p style={{ marginBottom: 8 }}>Vira um ícone e abre em tela cheia, igual a um aplicativo. Leva 10 segundos.</p>
+      <div className="gu-pwa2">
+        <div className="gu-pwacard">
+          <b> iPhone (Safari)</b>
+          <ol>
+            <li>Toque no botão <b>Compartilhar</b> (quadradinho com seta ⬆️, embaixo).</li>
+            <li>Escolha <b>“Adicionar à Tela de Início”</b>.</li>
+            <li>Toque em <b>Adicionar</b>. ✅</li>
+          </ol>
         </div>
-      </section>
-
-      <section className="gu-sec alt">
-        <div className="gu-wrap">
-          <h2>📲 Coloque o app na tela do seu celular</h2>
-          <p className="gu-subt">Vira um ícone e abre em tela cheia, igual a um aplicativo de loja. Leva 10 segundos.</p>
-          <div className="gu-pwa">
-            <div className="gu-pwacard">
-              <b> iPhone (Safari)</b>
-              <ol>
-                <li>Abra <b>netmash.vercel.app</b> no <b>Safari</b>.</li>
-                <li>Toque no botão <b>Compartilhar</b> (o quadradinho com uma seta pra cima ⬆️, embaixo).</li>
-                <li>Role e toque em <b>“Adicionar à Tela de Início”</b>.</li>
-                <li>Toque em <b>Adicionar</b>. Pronto — o ícone aparece na tela. ✅</li>
-              </ol>
-            </div>
-            <div className="gu-pwacard">
-              <b>🤖 Android (Chrome)</b>
-              <ol>
-                <li>Abra <b>netmash.vercel.app</b> no <b>Chrome</b>.</li>
-                <li>Toque no menu <b>⋮</b> (três pontinhos, canto superior direito).</li>
-                <li>Toque em <b>“Adicionar à tela inicial”</b> ou <b>“Instalar app”</b>.</li>
-                <li>Confirme em <b>Adicionar / Instalar</b>. Pronto! ✅</li>
-              </ol>
-            </div>
-          </div>
-          <p className="gu-subt" style={{ marginTop: 18 }}>Depois é só abrir pelo ícone — entra direto, sem digitar o endereço.</p>
+        <div className="gu-pwacard">
+          <b>🤖 Android (Chrome)</b>
+          <ol>
+            <li>Toque no menu <b>⋮</b> (canto superior direito).</li>
+            <li>Toque em <b>“Adicionar à tela inicial”</b> ou <b>“Instalar app”</b>.</li>
+            <li>Confirme. ✅</li>
+          </ol>
         </div>
-      </section>
-
-      <section className="gu-final">
-        <div className="gu-wrap">
-          <h2>Pronto pra começar?</h2>
-          <p>Entre no seu painel e configure sua empresa. Em poucos minutos você já vê o resultado do seu negócio.</p>
-          <a href={APP_URL} className="gu-cta big">Entrar no painel <ArrowRight size={18} /></a>
-        </div>
-      </section>
-
-      <footer className="gu-foot"><div className="gu-wrap">Minha Empresa · Guia de uso</div></footer>
-    </main>
+      </div>
+    </>
+  );
+  // final
+  return (
+    <>
+      <div className="gu-emoji">🚀</div>
+      <h2>Tudo pronto!</h2>
+      <p>Entre no seu painel e configure sua empresa. Em poucos minutos você já vê o resultado do seu negócio.</p>
+      <a className="gu-cta" href="/">Entrar no painel <ArrowRight size={18} /></a>
+    </>
   );
 }
 
 const CSS = `
-.gu{--bg:#0A0A0A;--card:#121212;--line:#222;--muted:#9aa0a6;--txt:#f4f5f7;--acc:#1AADE2;--green:#10B981;
-  background:var(--bg);color:var(--txt);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
-.gu a{color:inherit;text-decoration:none}
-.gu h1,.gu h2{font-weight:800;letter-spacing:-.02em;line-height:1.1}
-.gu .gu-acc{color:var(--acc)}
-.gu-wrap{width:100%;max-width:1100px;margin:0 auto;padding:0 22px}
-.gu-eyebrow{color:var(--acc);font-weight:700;text-transform:uppercase;letter-spacing:.14em;font-size:13px;display:block}
-.gu-cta{display:inline-flex;align-items:center;gap:8px;background:var(--acc);color:#06222e;font-weight:800;border-radius:99px;padding:11px 20px;font-size:15px;transition:.15s}
-.gu-cta:hover{filter:brightness(1.08);transform:translateY(-1px)}
-.gu-cta.sm{padding:8px 16px;font-size:14px}
-.gu-cta.big{padding:15px 28px;font-size:16.5px}
-
-.gu-nav{position:sticky;top:0;z-index:50;background:rgba(10,10,10,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.gu-navin{display:flex;align-items:center;justify-content:space-between;height:62px}
-.gu-logo{font-weight:800;font-size:21px;color:var(--acc);letter-spacing:-.02em}
-
-.gu-hero{padding:64px 0 40px;background:radial-gradient(800px 380px at 80% -10%,rgba(26,173,226,.14),transparent)}
-.gu-hero h1{font-size:clamp(32px,5vw,52px);margin:14px 0 16px}
-.gu-lead{color:var(--muted);font-size:18px;line-height:1.6;max-width:620px}
-.gu-badges{display:flex;gap:18px;flex-wrap:wrap;margin-top:26px;color:var(--muted);font-weight:600;font-size:14px}
-.gu-badges span{display:inline-flex;align-items:center;gap:7px}
-.gu-badges svg{color:var(--green)}
-
-.gu-sec{padding:54px 0}
-.gu-sec.alt{background:#0d0d0d;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.gu-sec h2{font-size:clamp(24px,3.4vw,34px)}
-.gu-subt{color:var(--muted);margin-top:8px;font-size:15px}
-
-.gu-passos{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}
-.gu-passo{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}
-.gu-pn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:#06222e;font-weight:800;font-size:18px;margin-bottom:14px}
-.gu-passo b{font-size:17px;display:block;margin-bottom:6px}
-.gu-passo p{color:var(--muted);line-height:1.55;font-size:14.5px}
-
-.gu-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
-.gu-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
-.gu-card:hover{border-color:rgba(26,173,226,.4)}
-.gu-ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;margin-bottom:14px}
-.gu-card b{font-size:16.5px;display:block;margin-bottom:8px}
-.gu-oque{color:#cfd3d8;line-height:1.5;font-size:14px}
-.gu-como{color:var(--muted);line-height:1.5;font-size:13.5px;margin-top:10px}
-.gu-como b{display:inline;color:var(--acc);font-size:13.5px}
-
-.gu-device{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
-.gu-list{list-style:none;margin:22px 0 0;display:grid;gap:12px}
-.gu-list li{display:flex;align-items:flex-start;gap:10px;font-size:15px;color:#cfd3d8}
-.gu-list svg{color:var(--green);flex-shrink:0;margin-top:2px}
-.gu-mock{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
-.gu-mockbar{display:flex;gap:7px;padding:13px 16px;border-bottom:1px solid var(--line)}
-.gu-mockbar i{width:11px;height:11px;border-radius:50%;background:#333}
-.gu-mockbody{padding:20px}
-.gu-mockhi{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.gu-mockhi small{color:var(--muted);font-size:12px;display:block}.gu-mockhi b{font-size:17px}
-.gu-pill{background:rgba(16,185,129,.15);color:var(--green);font-weight:700;font-size:12px;padding:5px 11px;border-radius:99px}
-.gu-mockk{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.gu-k{background:#0f0f0f;border:1px solid var(--line);border-radius:12px;padding:12px}
-.gu-k small{color:var(--muted);font-size:11px;display:block;margin-bottom:5px}.gu-k b{font-size:16px}.gu-k b.gu-g{color:var(--green)}
-.gu-chart{display:flex;align-items:flex-end;gap:10px;height:110px;padding:14px;background:#0f0f0f;border:1px solid var(--line);border-radius:12px}
-.gu-chart span{flex:1;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--acc),rgba(26,173,226,.25))}
-
-.gu-final{padding:64px 0;text-align:center;background:radial-gradient(600px 280px at 50% 120%,rgba(26,173,226,.16),transparent)}
-.gu-final h2{font-size:clamp(26px,4vw,38px)}
-.gu-final p{color:var(--muted);font-size:17px;max-width:520px;margin:14px auto 26px;line-height:1.6}
-.gu-foot{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-size:13.5px;text-align:center}
-
-.gu-pwa{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
-.gu-pwacard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}
-.gu-pwacard b{color:var(--txt)}
-.gu-pwacard>b{font-size:17px;display:block;margin-bottom:14px}
-.gu-pwacard ol{margin:0;padding-left:22px;display:grid;gap:11px}
-.gu-pwacard li{color:#cfd3d8;line-height:1.5;font-size:14.5px}
-.gu-pwacard li b{color:var(--acc);font-weight:700}
-@media(max-width:820px){
-  .gu-passos,.gu-cards,.gu-pwa{grid-template-columns:1fr}
-  .gu-device{grid-template-columns:1fr;gap:30px}
-}
+.gu{position:fixed;inset:0;background:radial-gradient(900px 520px at 80% -10%,rgba(26,173,226,.16),transparent),#0A0A0A;color:#f4f5f7;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+.gu *{box-sizing:border-box}
+.gu a{text-decoration:none;color:inherit}
+.gu-top{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;flex-shrink:0}
+.gu-logo{font-weight:800;color:#1AADE2;font-size:18px;letter-spacing:-.02em}
+.gu-skip{color:#9aa0a6;font-size:14px;font-weight:600}
+.gu-skip:hover{color:#f4f5f7}
+.gu-viewport{flex:1;overflow:hidden}
+.gu-track{display:flex;height:100%;transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.gu-slide{min-width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 28px;overflow-y:auto}
+.gu-inner{width:100%;max-width:520px;margin:auto}
+.gu-emoji{font-size:72px;line-height:1;margin-bottom:18px}
+.gu-eyebrow{color:#1AADE2;font-weight:700;text-transform:uppercase;letter-spacing:.14em;font-size:13px;display:block;margin-bottom:18px}
+.gu-ico{width:88px;height:88px;border-radius:24px;display:grid;place-items:center;margin:0 auto 24px}
+.gu h2{font-size:clamp(26px,6vw,34px);font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.gu p{color:#bfc4cb;font-size:17px;line-height:1.55;margin-top:14px}
+.gu-hint{color:#9aa0a6;font-size:14px;margin-top:34px}
+.gu-mini{background:#121212;border:1px solid #222;border-radius:14px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;text-align:left;margin-top:12px}
+.gu-mini .mi{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+.gu-mini b{font-size:16px}.gu-mini small{color:#9aa0a6;font-size:13.5px;display:block;margin-top:3px;line-height:1.45}
+.gu-pwa2{display:grid;gap:14px;margin-top:18px;text-align:left}
+.gu-pwacard{background:#121212;border:1px solid #222;border-radius:14px;padding:18px 20px}
+.gu-pwacard>b{font-size:15.5px;display:block}
+.gu-pwacard ol{margin:11px 0 0;padding-left:20px;display:grid;gap:9px}
+.gu-pwacard li{color:#bfc4cb;font-size:14px;line-height:1.45}
+.gu-pwacard li b{color:#1AADE2;font-weight:700}
+.gu-cta{display:inline-flex;align-items:center;gap:10px;background:#1AADE2;color:#06222e;font-weight:800;border-radius:99px;padding:15px 32px;font-size:17px;margin-top:28px}
+.gu-cta:hover{filter:brightness(1.08)}
+.gu-nav{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;gap:16px;flex-shrink:0}
+.gu-dots{display:flex;gap:7px;align-items:center}
+.gu-dot{width:8px;height:8px;border-radius:50%;background:#333;transition:.25s;cursor:pointer}
+.gu-dot.on{background:#1AADE2;width:24px;border-radius:99px}
+.gu-prev{background:none;border:0;color:#9aa0a6;font-size:15px;font-weight:700;cursor:pointer;width:90px;text-align:left;font-family:inherit}
+.gu-prev:hover{color:#f4f5f7}
+.gu-next{background:#1AADE2;color:#06222e;border:0;border-radius:99px;padding:12px 22px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;min-width:90px}
+.gu-next:hover{filter:brightness(1.08)}
 `;
