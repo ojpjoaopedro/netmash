@@ -9,9 +9,12 @@ export default function VideoPage() {
     if (!stage) return;
     const fit = () => {
       const k = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
-      stage.style.transform = `scale(${k})`;
+      if (!k || !isFinite(k)) return;
+      stage.style.transform = `translate(-50%,-50%) scale(${k})`;
     };
     fit();
+    requestAnimationFrame(fit);
+    setTimeout(fit, 200);
     window.addEventListener("resize", fit);
     window.addEventListener("orientationchange", fit);
     return () => { window.removeEventListener("resize", fit); window.removeEventListener("orientationchange", fit); };
@@ -84,8 +87,8 @@ export default function VideoPage() {
 const CSS = `
 .vid{position:fixed;inset:0;background:#000;overflow:hidden;font-family:Inter,Arial,sans-serif;z-index:9999;-webkit-font-smoothing:antialiased}
 .vid *{margin:0;padding:0;box-sizing:border-box}
-.v-wrap{position:absolute;inset:0;display:grid;place-items:center;background:#000}
-.v-stage{position:relative;width:1080px;height:1920px;background:radial-gradient(1000px 700px at 80% -8%,rgba(26,173,226,.22),transparent),#0A0A0A;color:#f4f5f7;overflow:hidden;transform-origin:center center}
+.v-wrap{position:absolute;inset:0;background:#000;overflow:hidden}
+.v-stage{position:absolute;top:50%;left:50%;width:1080px;height:1920px;background:radial-gradient(1000px 700px at 80% -8%,rgba(26,173,226,.22),transparent),#0A0A0A;color:#f4f5f7;overflow:hidden;transform-origin:center center;transform:translate(-50%,-50%) scale(.3)}
 .v-blob{position:absolute;width:760px;height:760px;border-radius:50%;background:radial-gradient(circle,rgba(26,173,226,.20),transparent 65%);left:-200px;bottom:-200px;animation:vdrift 22s ease-in-out infinite}
 @keyframes vdrift{0%,100%{transform:translate(0,0)}50%{transform:translate(120px,-120px)}}
 .v-scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 90px;opacity:0;animation-duration:22s;animation-timing-function:ease;animation-iteration-count:infinite}
