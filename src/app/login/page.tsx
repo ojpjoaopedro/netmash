@@ -42,7 +42,7 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-card card">
-        <div className="brand"><span className="fallback">Net<b>Mash</b></span></div>
+        <div className="brand"><span className="fallback">Minha <b>Empresa</b></span></div>
         <h1>{modo === "login" ? "Entrar" : "Criar conta"}</h1>
         <p className="muted">{modo === "login" ? "Acesse o painel da sua empresa" : "Comece a controlar suas finanças"}</p>
 

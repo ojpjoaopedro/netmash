@@ -282,7 +282,7 @@ export default function Relatorios({
             textAlign: "center",
           }}
         >
-          Gerado por NetMash · {dataHoje} · {funcs.filter((f) => f.ativo).length} colaboradores ativos
+          Gerado por {brand.nome} · {dataHoje} · {funcs.filter((f) => f.ativo).length} colaboradores ativos
         </div>
       </div>
     </div>

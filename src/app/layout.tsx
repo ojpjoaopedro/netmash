@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NetMash — Gestão para empresários",
+  title: "Minha Empresa — Gestão para empresários",
   description:
     "Plataforma de gestão para empresários: dashboards, finanças, saúde do cliente, comercial, marketing, indicadores e ferramentas.",
 };

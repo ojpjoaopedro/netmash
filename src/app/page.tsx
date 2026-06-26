@@ -109,7 +109,7 @@ export default function Home() {
     })();
   }, [router, carregarDados]);
 
-  const nomeMarca = brand.nome && brand.nome !== "Minha Empresa" ? brand.nome : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "NetMash");
+  const nomeMarca = brand.nome && brand.nome !== "Minha Empresa" ? brand.nome : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
   const saudacaoNome = (brand.saudacao || perfil?.nome || "").split(" ")[0];
 
   if (carregando) {
