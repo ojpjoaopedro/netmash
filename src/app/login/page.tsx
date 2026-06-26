@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { login, cadastrar, enviarReset, definirSenha } from "@/lib/db";
+import { login, cadastrarComCodigo, enviarReset, definirSenha } from "@/lib/db";
 import { supabaseReady } from "@/lib/supabase";
 
 type Modo = "login" | "cadastro" | "reset" | "novasenha";
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [senha2, setSenha2] = useState("");
   const [nome, setNome] = useState("");
   const [empresa, setEmpresa] = useState("");
+  const [codigo, setCodigo] = useState("");
   const [erro, setErro] = useState("");
   const [msg, setMsg] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -34,9 +35,9 @@ export default function LoginPage() {
         await login(email.trim(), senha);
         router.push("/");
       } else if (modo === "cadastro") {
-        await cadastrar(email.trim(), senha, nome.trim(), empresa.trim());
-        setMsg("✅ Conta criada! Se a confirmação por e-mail estiver ativa, confirme antes de entrar.");
-        setModo("login");
+        await cadastrarComCodigo(nome.trim(), empresa.trim(), email.trim(), senha, codigo.trim());
+        await login(email.trim(), senha);
+        router.push("/");
       } else if (modo === "reset") {
         await enviarReset(email.trim(), `${window.location.origin}/login?nova=1`);
         setMsg("✅ Enviamos um link para o seu e-mail. Abra-o para definir sua senha.");
@@ -63,7 +64,7 @@ export default function LoginPage() {
 
   const titulo = modo === "login" ? "Entrar" : modo === "cadastro" ? "Criar conta" : modo === "reset" ? "Recuperar acesso" : "Definir senha";
   const sub = modo === "login" ? "Acesse o painel da sua empresa"
-    : modo === "cadastro" ? "Comece a controlar suas finanças"
+    : modo === "cadastro" ? "Use o código que você recebeu na compra"
     : modo === "reset" ? "Digite seu e-mail e enviaremos um link"
     : "Crie a senha do seu primeiro acesso";
 
@@ -92,6 +93,10 @@ export default function LoginPage() {
 
           {(modo === "login" || modo === "cadastro") && (
             <div className="field"><label className="f">Senha</label><input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6} /></div>
+          )}
+
+          {modo === "cadastro" && (
+            <div className="field"><label className="f">Código de acesso</label><input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="O código que você recebeu na compra" required /></div>
           )}
 
           {modo === "novasenha" && (

@@ -351,6 +351,17 @@ export async function logout() {
   if (supabase) await supabase.auth.signOut();
 }
 
+/** Cadastro liberado por código de acesso (recebido na compra). Valida e cria a conta no servidor. */
+export async function cadastrarComCodigo(nome: string, empresa: string, email: string, senha: string, codigo: string): Promise<void> {
+  const res = await fetch("/api/cadastro", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nome, empresa, email, senha, codigo }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((j as { error?: string }).error || "Não consegui criar a conta.");
+}
+
 /** Envia e-mail para o cliente definir/redefinir a senha (1º acesso ou "esqueci"). */
 export async function enviarReset(email: string, redirectTo?: string) {
   if (!supabase) throw new Error("Supabase não configurado");
