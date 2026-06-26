@@ -4,14 +4,14 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation,
+  Menu, Presentation, Contact,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
-  getPerfil, getEmpresa, getLancamentos, getFuncionarios, logout,
-  Perfil, Empresa, Lancamento, Funcionario,
+  getPerfil, getEmpresa, getLancamentos, getFuncionarios, getClientes, logout,
+  Perfil, Empresa, Lancamento, Funcionario, Cliente,
 } from "@/lib/db";
-import { getIndicadores, mesclarFinanceiro, Metrica, Categoria } from "@/lib/indicadores";
+import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
 import { gerarInsights } from "@/lib/insights";
 import { gerarDeck, abrirHtml, slug, type Secao } from "@/lib/apresentacao";
 import { ultimosMeses } from "@/lib/format";
@@ -25,6 +25,7 @@ import Relatorios from "@/components/dash/Relatorios";
 import Apresentacao from "@/components/dash/Apresentacao";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
 import Custos from "@/components/dash/Custos";
+import Clientes from "@/components/dash/Clientes";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -33,7 +34,7 @@ import Config from "@/components/Config";
 
 type View =
   | "dashboard" | "financas" | "saude" | "comercial" | "marketing"
-  | "lancamentos" | "contas" | "custos" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "empresa";
+  | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "empresa";
 
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -44,6 +45,7 @@ const METRICAS = [
 ] as const;
 const OPERACOES = [
   { key: "lancamentos", label: "Lançamentos", Icon: ListChecks },
+  { key: "clientes", label: "Clientes & Vendas", Icon: Contact },
   { key: "custos", label: "Custos & Despesas", Icon: Receipt },
   { key: "contas", label: "Contas a pagar/receber", Icon: CalendarClock },
   { key: "equipe", label: "Equipe", Icon: Users },
@@ -88,6 +90,7 @@ export default function Home() {
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [lancs, setLancs] = useState<Lancamento[]>([]);
   const [funcs, setFuncs] = useState<Funcionario[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [metrs, setMetrs] = useState<Metrica[]>([]);
   const [view, setView] = useState<View>("dashboard");
   const [editor, setEditor] = useState<Categoria | null>(null);
@@ -96,8 +99,8 @@ export default function Home() {
   const [menuAberto, setMenuAberto] = useState(false);
 
   const carregarDados = useCallback(async () => {
-    const [e, l, f, m] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios(), getIndicadores()]);
-    setEmpresa(e); setLancs(l); setFuncs(f); setMetrs(m);
+    const [e, l, f, c, m] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios(), getClientes(), getIndicadores()]);
+    setEmpresa(e); setLancs(l); setFuncs(f); setClientes(c); setMetrs(m);
   }, []);
 
   useEffect(() => {
@@ -122,7 +125,7 @@ export default function Home() {
   }
 
   const saldoInicial = empresa?.saldo_inicial ?? 0;
-  const effMetrs = mesclarFinanceiro(metrs, lancs);
+  const effMetrs = aplicarReais(metrs, lancs, clientes);
   const brandObj = { nome: nomeMarca, logo: brand.logo };
   const insights = gerarInsights(effMetrs, lancs, saldoInicial);
   const alertas = insights.filter((i) => i.tone === "bad" || i.tone === "warn");
@@ -287,6 +290,7 @@ export default function Home() {
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "lancamentos" && <Lancamentos lancs={lancs} reload={carregarDados} />}
+        {view === "clientes" && <Clientes clientes={clientes} lancs={lancs} reload={carregarDados} />}
         {view === "custos" && <Custos lancs={lancs} funcs={funcs} reload={carregarDados} />}
         {view === "contas" && <Contas lancs={lancs} reload={carregarDados} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}

@@ -20,6 +20,17 @@ export type Lancamento = {
   forma: string | null;
   contato: string | null;
   origem: string;
+  cliente_id?: string | null;
+};
+
+export type Cliente = {
+  id: string;
+  empresa_id: string;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  obs: string | null;
+  criado_em: string;
 };
 
 export type Funcionario = {
@@ -67,6 +78,7 @@ const K = {
   emp: "fin_demo_empresa",
   lanc: "fin_demo_lancamentos",
   func: "fin_demo_funcionarios",
+  cli: "fin_demo_clientes",
   seed: "fin_demo_seeded",
 };
 
@@ -274,6 +286,46 @@ export async function delFuncionario(id: string): Promise<void> {
     return;
   }
   await supabase.from("funcionarios").delete().eq("id", id);
+}
+
+// ============================================================
+// CLIENTES
+// ============================================================
+export async function getClientes(): Promise<Cliente[]> {
+  if (!supabaseReady || !supabase) {
+    seedDemo();
+    return ls<Cliente[]>(K.cli, []);
+  }
+  const { data } = await supabase.from("clientes").select("*").order("nome");
+  return (data ?? []) as Cliente[];
+}
+
+export async function addCliente(c: { nome: string; email?: string | null; telefone?: string | null; obs?: string | null }): Promise<Cliente | null> {
+  if (!supabaseReady || !supabase) {
+    const arr = ls<Cliente[]>(K.cli, []);
+    const novo: Cliente = { id: uid(), empresa_id: DEMO_EMP, nome: c.nome, email: c.email ?? null, telefone: c.telefone ?? null, obs: c.obs ?? null, criado_em: new Date().toISOString() };
+    arr.push(novo); lsSet(K.cli, arr);
+    return novo;
+  }
+  const emp = await getEmpresa();
+  const { data } = await supabase.from("clientes").insert({ ...c, empresa_id: emp?.id }).select().single();
+  return (data as Cliente) ?? null;
+}
+
+export async function updateCliente(id: string, patch: Partial<Cliente>): Promise<void> {
+  if (!supabaseReady || !supabase) {
+    lsSet(K.cli, ls<Cliente[]>(K.cli, []).map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    return;
+  }
+  await supabase.from("clientes").update(patch).eq("id", id);
+}
+
+export async function delCliente(id: string): Promise<void> {
+  if (!supabaseReady || !supabase) {
+    lsSet(K.cli, ls<Cliente[]>(K.cli, []).filter((c) => c.id !== id));
+    return;
+  }
+  await supabase.from("clientes").delete().eq("id", id);
 }
 
 // ============================================================

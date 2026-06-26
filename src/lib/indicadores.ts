@@ -1,6 +1,6 @@
 import { uid, ultimosMeses, mesDe } from "./format";
 import { supabase, supabaseReady } from "./supabase";
-import { getEmpresa, type Lancamento } from "./db";
+import { getEmpresa, type Lancamento, type Cliente } from "./db";
 
 // ============================================================
 // INDICADORES (métricas estratégicas editáveis)
@@ -204,5 +204,60 @@ export function mesclarFinanceiro(metrs: Metrica[], lancs: Lancamento[]): Metric
       else out.push({ id: uid(), key, period, value, target: Math.round(d.metaAno / 12), unidade: d.unidade, categoria: d.categoria });
     }
   }
+  return out;
+}
+
+// ============================================================
+// RETROALIMENTAÇÃO: alimenta Comercial e Cliente a partir dos
+// lançamentos (vendas) e do cadastro de clientes.
+// ============================================================
+function setReal(metrs: Metrica[], key: string, valores: [string, number][]): Metrica[] {
+  const d = def(key);
+  if (!d) return metrs;
+  const out = metrs.map((m) => ({ ...m }));
+  for (const [period, value] of valores) {
+    const i = out.findIndex((m) => m.key === key && m.period === period);
+    if (i >= 0) out[i] = { ...out[i], value };
+    else out.push({
+      id: uid(), key, period, value,
+      target: Math.round(d.unidade === "%" || d.unidade === "score" ? d.metaAno : d.metaAno / 12),
+      unidade: d.unidade, categoria: d.categoria,
+    });
+  }
+  return out;
+}
+
+/** Sobrepõe indicadores com dados reais: Finanças (lançamentos), Comercial e Cliente. */
+export function aplicarReais(metrs: Metrica[], lancs: Lancamento[], clientes: Cliente[]): Metrica[] {
+  let out = mesclarFinanceiro(metrs, lancs);
+
+  // Comercial: nº de vendas (receitas) e ticket médio por mês
+  const porMes = new Map<string, { count: number; sum: number }>();
+  for (const l of lancs) {
+    if (l.tipo !== "receita") continue;
+    const m = mesDe(l.data_competencia);
+    const c = porMes.get(m) || { count: 0, sum: 0 };
+    c.count++; c.sum += l.valor; porMes.set(m, c);
+  }
+  if (porMes.size) {
+    out = setReal(out, "vendas", [...porMes].map(([p, v]) => [p, v.count]));
+    out = setReal(out, "ticket_medio", [...porMes].map(([p, v]) => [p, v.count ? Math.round(v.sum / v.count) : 0]));
+  }
+
+  // Cliente: novos por mês + ativos acumulado
+  if (clientes.length) {
+    const novosMes = new Map<string, number>();
+    for (const cl of clientes) {
+      const m = mesDe(cl.criado_em);
+      novosMes.set(m, (novosMes.get(m) || 0) + 1);
+    }
+    out = setReal(out, "novos_clientes", [...novosMes]);
+    const ativos: [string, number][] = ultimosMeses(12).map((m) => {
+      const fim = m + "-31";
+      return [m, clientes.filter((cl) => cl.criado_em.slice(0, 10) <= fim).length];
+    });
+    out = setReal(out, "clientes_ativos", ativos);
+  }
+
   return out;
 }
