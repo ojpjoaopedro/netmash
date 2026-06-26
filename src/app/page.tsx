@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck,
+  Menu, Presentation, Contact, ShieldCheck, Sparkles,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
@@ -26,6 +26,7 @@ import Custos from "@/components/dash/Custos";
 import Clientes from "@/components/dash/Clientes";
 import Acessos from "@/components/dash/Acessos";
 import ApresentarModal from "@/components/dash/ApresentarModal";
+import Assistente from "@/components/dash/Assistente";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -34,7 +35,7 @@ import Config from "@/components/Config";
 
 type View =
   | "dashboard" | "financas" | "saude" | "comercial" | "marketing"
-  | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
+  | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
 
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -44,6 +45,7 @@ const METRICAS = [
   { key: "marketing", label: "Marketing", Icon: Megaphone },
 ] as const;
 const OPERACOES = [
+  { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "lancamentos", label: "Lançamentos", Icon: ListChecks },
   { key: "clientes", label: "Clientes & Vendas", Icon: Contact },
   { key: "custos", label: "Custos & Despesas", Icon: Receipt },
@@ -139,7 +141,7 @@ export default function Home() {
   const opsKeys: string[] = ehDono
     ? OPERACOES.map((o) => o.key)
     : (() => {
-        const ops = new Set<string>(["relatorios", "apresentacao"]);
+        const ops = new Set<string>(["assistente", "relatorios", "apresentacao"]);
         if (areasPerm.includes("financas")) ["lancamentos", "custos", "contas", "ferramentas"].forEach((k) => ops.add(k));
         if (areasPerm.includes("comercial")) ops.add("clientes");
         return [...ops];
@@ -307,6 +309,7 @@ export default function Home() {
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
+        {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {view === "lancamentos" && <Lancamentos lancs={lancs} reload={carregarDados} />}
         {view === "clientes" && <Clientes clientes={clientes} lancs={lancs} reload={carregarDados} />}
         {view === "custos" && <Custos lancs={lancs} funcs={funcs} reload={carregarDados} />}
