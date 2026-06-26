@@ -8,9 +8,8 @@ import {
    TROQUE AQUI (sem mexer no resto do código):
    ============================================================ */
 const MARCA = "Sua Marca";                 // nome que aparece na página
-const PRECO = "97";                         // valor mensal, só o número (R$)
-const PRECO_ANUAL = "970";                  // valor à vista no plano anual (2 meses grátis)
-const CHECKOUT_URL = "https://pay.kiwify.com.br/YGB5rb9";  // link de venda Kiwify
+const PRECO = "29,99";                       // valor mensal, só o número (R$)
+const CHECKOUT_URL = "https://pay.kiwify.com.br/7MVeznN";  // link de venda Kiwify
 const ENTRAR_URL = "/login";               // login do app
 /* ============================================================ */
 
@@ -175,7 +174,7 @@ export default function Vendas() {
             <div className="lp-planohead">
               <span className="lp-planotag">Assinatura mensal</span>
               <div className="lp-preco"><small>R$</small><b>{PRECO}</b><span>/mês</span></div>
-              <p className="lp-planoanual">ou R$ {PRECO_ANUAL} no plano anual — <b>2 meses grátis</b></p>
+              <p className="lp-planoanual">Menos que um lanche por mês · cancele quando quiser</p>
             </div>
             <ul className="lp-planolist">
               {PLANO.map((item) => (
