@@ -13,6 +13,8 @@ import {
 } from "@/lib/db";
 import { getIndicadores, mesclarFinanceiro, Metrica, Categoria } from "@/lib/indicadores";
 import { gerarInsights } from "@/lib/insights";
+import { gerarDeck, abrirHtml, slug, type Secao } from "@/lib/apresentacao";
+import { ultimosMeses } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
 import DashboardHub from "@/components/dash/DashboardHub";
 import AreaOverview, { AreaConfig } from "@/components/dash/AreaOverview";
@@ -124,6 +126,18 @@ export default function Home() {
   const brandObj = { nome: nomeMarca, logo: brand.logo };
   const insights = gerarInsights(effMetrs, lancs, saldoInicial);
   const alertas = insights.filter((i) => i.tone === "bad" || i.tone === "warn");
+
+  const VIEW_SECAO: Partial<Record<View, Secao>> = {
+    financas: "financeiro", saude: "cliente", comercial: "comercial", marketing: "marketing", equipe: "colaboradores",
+  };
+  function apresentarArea(v: View) {
+    const sec = VIEW_SECAO[v];
+    if (!sec) return;
+    abrirHtml(
+      gerarDeck({ metrs: effMetrs, lancs, funcs, saldoInicial, brand: brandObj }, ultimosMeses(6), new Set<Secao>([sec])),
+      `apresentacao-${slug(nomeMarca)}.html`,
+    );
+  }
 
   const navClick = (k: View) => { setView(k); setMenuAberto(false); };
 
@@ -249,6 +263,11 @@ export default function Home() {
 
       {/* Main */}
       <main className="main">
+        {(["financas", "saude", "comercial", "marketing", "equipe"] as View[]).includes(view) && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+            <button className="btn ghost sm" onClick={() => apresentarArea(view)}><Play size={14} /> Apresentar esta área</button>
+          </div>
+        )}
         {view === "dashboard" && lancs.length === 0 && (
           <div className="card" style={{ marginBottom: 16, borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
             <h3 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>👋 Bem-vindo ao seu painel!</h3>

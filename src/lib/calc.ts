@@ -45,14 +45,14 @@ export function resumo(lancs: Lancamento[], meses: string[], saldoInicial: numbe
 
 export type PontoFluxo = { mes: string; entradas: number; saidas: number; saldo: number };
 
-/** Série mensal de entradas/saídas/saldo acumulado (por competência). */
-export function serieFluxo(lancs: Lancamento[], n: number, saldoInicial: number): PontoFluxo[] {
-  const meses = ultimosMeses(n);
-  // saldo acumulado começa do saldo anterior ao período
-  const antes = new Set(ultimosMeses(120).filter((m) => !meses.includes(m)));
+/** Série de entradas/saídas/saldo acumulado para uma lista explícita de meses. */
+export function serieFluxoMeses(lancs: Lancamento[], meses: string[], saldoInicial: number): PontoFluxo[] {
+  if (!meses.length) return [];
+  const first = meses[0];
+  // saldo acumulado começa do saldo anterior ao 1º mês do período
   let acc = saldoInicial;
   for (const l of lancs) {
-    if (antes.has(mesDe(l.data_competencia))) acc += l.tipo === "receita" ? l.valor : -l.valor;
+    if (mesDe(l.data_competencia) < first) acc += l.tipo === "receita" ? l.valor : -l.valor;
   }
   return meses.map((mes) => {
     const entradas = lancs.filter((l) => l.tipo === "receita" && mesDe(l.data_competencia) === mes).reduce((a, l) => a + l.valor, 0);
@@ -60,6 +60,11 @@ export function serieFluxo(lancs: Lancamento[], n: number, saldoInicial: number)
     acc += entradas - saidas;
     return { mes, entradas, saidas, saldo: acc };
   });
+}
+
+/** Série mensal dos últimos N meses (atalho). */
+export function serieFluxo(lancs: Lancamento[], n: number, saldoInicial: number): PontoFluxo[] {
+  return serieFluxoMeses(lancs, ultimosMeses(n), saldoInicial);
 }
 
 export type FatiaCategoria = { categoria: string; valor: number };
