@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import {
   LineChart, Wallet, Sparkles, Users, Megaphone, Contact, FileText, ShieldCheck,
   Upload, Check, ArrowRight, TrendingUp, Clock, Smartphone,
@@ -11,6 +12,7 @@ const MARCA = "Minha Empresa";             // nome que aparece na página
 const PRECO = "29,99";                       // valor mensal, só o número (R$)
 const CHECKOUT_URL = "https://pay.kiwify.com.br/7MVeznN";  // link de venda Kiwify
 const ENTRAR_URL = "/login";               // login do app
+const PIXEL_ID = "574774374290188";        // Pixel da Meta (Facebook/Instagram)
 /* ============================================================ */
 
 export const metadata: Metadata = {
@@ -60,6 +62,19 @@ export default function Vendas() {
   return (
     <main className="lp">
       <style>{CSS}</style>
+
+      {/* Meta Pixel: PageView + InitiateCheckout (clique em Assinar) */}
+      <Script id="meta-pixel" strategy="afterInteractive">{`
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,
+        'script','https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init','${PIXEL_ID}');fbq('track','PageView');
+        document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('a[href*="pay.kiwify.com.br"]');if(t&&window.fbq)fbq('track','InitiateCheckout');});
+      `}</Script>
+      <noscript><img height="1" width="1" style={{ display: "none" }} alt=""
+        src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`} /></noscript>
 
       {/* NAV */}
       <header className="lp-nav">
