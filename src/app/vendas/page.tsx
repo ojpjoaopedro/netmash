@@ -7,7 +7,7 @@ import {
 /* ============================================================
    TROQUE AQUI (sem mexer no resto do código):
    ============================================================ */
-const MARCA = "Sua Marca";                 // nome que aparece na página
+const MARCA = "Minha Empresa";             // nome que aparece na página
 const PRECO = "29,99";                       // valor mensal, só o número (R$)
 const CHECKOUT_URL = "https://pay.kiwify.com.br/7MVeznN";  // link de venda Kiwify
 const ENTRAR_URL = "/login";               // login do app
