@@ -215,7 +215,7 @@ export default function AreaOverview({ metrs, cfg, lancs = [], funcs = [], saldo
       </div>
 
       <SecHead icon="Calendar" titulo="Escolha o mês" sub={`Abra os detalhes de qualquer mês de ${ano}`} cor="#1AADE2" />
-      <div className="grid" style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
+      <div className="grid meses">
         {porMes.map((m) => (
           <MonthCard key={m.period} nome={m.nome} icon="Calendar" cor={cfg.cor}
             soon={m.value === null} valor={m.value !== null ? fmtCompact(m.value, dPrin.unidade) : undefined}

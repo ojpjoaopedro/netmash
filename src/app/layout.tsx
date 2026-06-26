@@ -1,10 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Minha Empresa — Gestão para empresários",
+  title: "NetMash — Gestão para empresários",
   description:
     "Plataforma de gestão para empresários: dashboards, finanças, saúde do cliente, comercial, marketing, indicadores e ferramentas.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "NetMash", statusBarStyle: "black-translucent" },
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0A0A0A",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({

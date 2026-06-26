@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
+  Menu, Presentation,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
@@ -20,6 +21,7 @@ import Ferramentas from "@/components/dash/Ferramentas";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
 import Relatorios from "@/components/dash/Relatorios";
 import Apresentacao from "@/components/dash/Apresentacao";
+import GerarApresentacao from "@/components/dash/GerarApresentacao";
 import Custos from "@/components/dash/Custos";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
@@ -29,7 +31,7 @@ import Config from "@/components/Config";
 
 type View =
   | "dashboard" | "financas" | "saude" | "comercial" | "marketing"
-  | "lancamentos" | "contas" | "custos" | "equipe" | "ferramentas" | "relatorios" | "importar" | "empresa";
+  | "lancamentos" | "contas" | "custos" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "empresa";
 
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -45,6 +47,7 @@ const OPERACOES = [
   { key: "equipe", label: "Equipe", Icon: Users },
   { key: "ferramentas", label: "Ferramentas", Icon: Wrench },
   { key: "relatorios", label: "Relatórios / PDF", Icon: FileText },
+  { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
   { key: "importar", label: "Importar planilha", Icon: Upload },
   { key: "empresa", label: "Empresa", Icon: Building2 },
 ] as const;
@@ -88,6 +91,7 @@ export default function Home() {
   const [editor, setEditor] = useState<Categoria | null>(null);
   const [apresentando, setApresentando] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
 
   const carregarDados = useCallback(async () => {
     const [e, l, f, m] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios(), getIndicadores()]);
@@ -121,8 +125,65 @@ export default function Home() {
   const insights = gerarInsights(effMetrs, lancs, saldoInicial);
   const alertas = insights.filter((i) => i.tone === "bad" || i.tone === "warn");
 
+  const navClick = (k: View) => { setView(k); setMenuAberto(false); };
+
   return (
     <div className="app">
+      {/* Top bar (mobile) */}
+      <header className="mobiletop">
+        <div className="brand">
+          {brand.logo ? <img src={brand.logo} alt={nomeMarca} /> : <span className="fallback">{nomeMarca}</span>}
+        </div>
+        <div className="mt-actions">
+          <button className="iconbtn" style={{ position: "relative" }} onClick={() => setNotifOpen((v) => !v)} title="Notificações">
+            <Bell size={18} />
+            {alertas.length > 0 && <span style={{ position: "absolute", top: 0, right: 0, minWidth: 14, height: 14, padding: "0 3px", borderRadius: 99, background: "var(--red)", color: "#fff", fontSize: 9, fontWeight: 800, display: "grid", placeItems: "center" }}>{alertas.length}</span>}
+          </button>
+          <button className="iconbtn" onClick={toggleTheme} title="Tema">{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button>
+          <button className="iconbtn" onClick={() => setMenuAberto(true)} title="Menu"><Menu size={22} /></button>
+        </div>
+        {notifOpen && (
+          <div style={{ position: "fixed", top: 54, right: 8, left: 8, maxWidth: 360, marginLeft: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, padding: 12, boxShadow: "0 16px 40px -12px rgba(0,0,0,.6)", zIndex: 60 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <b style={{ fontSize: 13 }}>Notificações</b>
+              <button className="iconbtn" onClick={() => setNotifOpen(false)}><X size={14} /></button>
+            </div>
+            {insights.length === 0 ? <p className="sub">Tudo tranquilo ✅</p> : insights.map((ins, i) => (
+              <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : undefined }}>
+                <b style={{ fontSize: 12.5, color: ins.tone === "bad" ? "var(--red)" : ins.tone === "warn" ? "var(--amber)" : "var(--txt)" }}>{ins.titulo}</b>
+                <div className="sub" style={{ fontSize: 11.5, marginTop: 2 }}>{ins.texto}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </header>
+
+      {/* Drawer (mobile) */}
+      {menuAberto && (
+        <div className="drawer-overlay" onClick={() => setMenuAberto(false)}>
+          <div className="drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="brand" style={{ justifyContent: "space-between" }}>
+              {brand.logo ? <img src={brand.logo} alt={nomeMarca} /> : <span className="fallback">{nomeMarca}</span>}
+              <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
+            </div>
+            <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
+              {METRICAS.map(({ key, label, Icon }) => (
+                <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
+              ))}
+            </nav></div>
+            <div className="navgroup"><div className="gl">Operações</div><nav className="nav">
+              {OPERACOES.map(({ key, label, Icon }) => (
+                <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
+              ))}
+            </nav></div>
+            <div className="navgroup"><nav className="nav">
+              <button onClick={() => { setApresentando(true); setMenuAberto(false); }}><Play size={18} /> Apresentar (slideshow)</button>
+              <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
+            </nav></div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside className="side">
         <div className="brand">
@@ -193,6 +254,7 @@ export default function Home() {
         {view === "marketing" && <MarketingFull metrs={effMetrs} />}
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
+        {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "lancamentos" && <Lancamentos lancs={lancs} reload={carregarDados} />}
         {view === "custos" && <Custos lancs={lancs} funcs={funcs} reload={carregarDados} />}
         {view === "contas" && <Contas lancs={lancs} reload={carregarDados} />}

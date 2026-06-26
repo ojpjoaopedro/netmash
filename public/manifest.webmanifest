@@ -1,0 +1,13 @@
+{
+  "name": "NetMash — Gestão da sua empresa",
+  "short_name": "NetMash",
+  "description": "Dashboards, finanças, indicadores e ferramentas para empresários.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
