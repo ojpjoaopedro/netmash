@@ -10,7 +10,7 @@ import {
 const MARCA = "Sua Marca";                 // nome que aparece na página
 const PRECO = "97";                         // valor mensal, só o número (R$)
 const PRECO_ANUAL = "970";                  // valor à vista no plano anual (2 meses grátis)
-const CHECKOUT_URL = "#";                   // cole o link do produto na Kiwify
+const CHECKOUT_URL = "https://pay.kiwify.com.br/YGB5rb9";  // link de venda Kiwify
 const ENTRAR_URL = "/login";               // login do app
 /* ============================================================ */
 
