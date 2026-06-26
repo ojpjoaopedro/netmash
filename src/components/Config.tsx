@@ -62,6 +62,13 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
               {brand.logo && <button className="btn ghost sm" onClick={() => saveBrand({ logo: null })}>Remover</button>}
             </div>
           </div>
+          {brand.logo && (
+            <div className="field">
+              <label className="f">Tamanho da logo ({brand.logoTamanho || 40}px)</label>
+              <input type="range" min={24} max={110} value={brand.logoTamanho || 40} onChange={(e) => saveBrand({ logoTamanho: Number(e.target.value) })} style={{ padding: 0 }} />
+              <p className="sub" style={{ marginTop: 4 }}>Arraste para aumentar ou diminuir a logo na barra lateral (atualiza na hora).</p>
+            </div>
+          )}
           <div className="field">
             <label className="f">Cor de destaque (accent)</label>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

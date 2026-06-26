@@ -7,15 +7,16 @@ import { useEffect, useState, useCallback } from "react";
  */
 export type Brand = {
   nome: string;
-  logo: string | null; // data URL ou URL
-  cor: string;         // accent (hex)
-  saudacao: string;    // ex: "Time Dynamis" / nome do dono
+  logo: string | null;   // data URL ou URL
+  cor: string;           // accent (hex)
+  saudacao: string;      // ex: "Time Dynamis" / nome do dono
+  logoTamanho: number;   // altura da logo na barra lateral (px)
 };
 
 const KEY = "fin_brand";
 const KEY_THEME = "fin_theme";
 
-const DEFAULT: Brand = { nome: "Minha Empresa", logo: null, cor: "#1AADE2", saudacao: "" };
+const DEFAULT: Brand = { nome: "Minha Empresa", logo: null, cor: "#1AADE2", saudacao: "", logoTamanho: 40 };
 
 function read(): Brand {
   if (typeof window === "undefined") return DEFAULT;

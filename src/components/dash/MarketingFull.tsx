@@ -123,7 +123,7 @@ export default function MarketingFull({ metrs, onEditar }: { metrs: Metrica[]; o
       />
 
       {/* ---------- Seletores de painel (tabs) ---------- */}
-      <div className="grid" style={{ gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+      <div className="grid paineis" style={{ gap: 12 }}>
         {PAINEIS.map((p) => {
           const sel = p.id === painel;
           return (
@@ -267,13 +267,16 @@ export default function MarketingFull({ metrs, onEditar }: { metrs: Metrica[]; o
       {painel === "influencers" && (
         <>
           <BlocoTitulo cor={ativo.cor}>Influencers</BlocoTitulo>
-          <div className="card">
+          <div className="grid two">
+            <KpiFromKey metrs={metrs} mkey="seguidores" />
+            <ResultCard icon="TrendingUp" label="ROI" valor={fmt(roi.value, "%")} cor="#10B981" />
+          </div>
+          <div className="card" style={{ marginTop: 14 }}>
             <div className="empty">
               <div className="big">⭐</div>
-              <b style={{ display: "block", fontSize: 16, color: "var(--txt)", marginBottom: 6 }}>
-                Nenhum influenciador cadastrado
-              </b>
-              Cadastre seus influenciadores para acompanhar alcance, parcerias e conversões por aqui.
+              <b style={{ display: "block", fontSize: 16, color: "var(--txt)", marginBottom: 6 }}>Acompanhe suas parcerias com influenciadores</b>
+              Lance o investimento em influencers (em Custos & Despesas) e os resultados de seguidores/leads aqui em “Adicionar dados”.
+              {onEditar && <div style={{ marginTop: 14 }}><button className="btn" onClick={onEditar}>✏️ Adicionar dados de marketing</button></div>}
             </div>
           </div>
         </>

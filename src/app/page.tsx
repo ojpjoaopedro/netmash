@@ -120,6 +120,7 @@ export default function Home() {
 
   const nomeMarca = brand.nome && brand.nome !== "Minha Empresa" ? brand.nome : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
   const saudacaoNome = (brand.saudacao || perfil?.nome || "").split(" ")[0];
+  const logoH = brand.logoTamanho || 40;
 
   if (carregando) {
     return <div className="app"><div className="main"><div className="spin" /></div></div>;
@@ -164,7 +165,7 @@ export default function Home() {
       {/* Top bar (mobile) */}
       <header className="mobiletop">
         <div className="brand">
-          {brand.logo ? <img src={brand.logo} alt={nomeMarca} /> : <span className="fallback">{nomeMarca}</span>}
+          {brand.logo ? <img src={brand.logo} alt={nomeMarca} style={{ maxHeight: logoH, maxWidth: logoH * 5 }} /> : <span className="fallback">{nomeMarca}</span>}
         </div>
         <div className="mt-actions">
           <button className="iconbtn" style={{ position: "relative" }} onClick={() => setNotifOpen((v) => !v)} title="Notificações">
@@ -195,7 +196,7 @@ export default function Home() {
         <div className="drawer-overlay" onClick={() => setMenuAberto(false)}>
           <div className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="brand" style={{ justifyContent: "space-between" }}>
-              {brand.logo ? <img src={brand.logo} alt={nomeMarca} /> : <span className="fallback">{nomeMarca}</span>}
+              {brand.logo ? <img src={brand.logo} alt={nomeMarca} style={{ maxHeight: logoH, maxWidth: logoH * 5 }} /> : <span className="fallback">{nomeMarca}</span>}
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
             <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
@@ -220,7 +221,7 @@ export default function Home() {
       <aside className="side">
         <div className="brand">
           {brand.logo
-            ? <img src={brand.logo} alt={nomeMarca} />
+            ? <img src={brand.logo} alt={nomeMarca} style={{ maxHeight: logoH, maxWidth: logoH * 5 }} />
             : <span className="fallback">{nomeMarca}</span>}
         </div>
 
