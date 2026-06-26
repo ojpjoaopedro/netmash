@@ -13,8 +13,7 @@ import {
 } from "@/lib/db";
 import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
 import { gerarInsights } from "@/lib/insights";
-import { gerarDeck, abrirHtml, slug, type Secao } from "@/lib/apresentacao";
-import { ultimosMeses } from "@/lib/format";
+import { gerarDeck, gerarRelatorio, abrirHtml, slug, type Secao } from "@/lib/apresentacao";
 import { useBrand } from "@/lib/brand";
 import DashboardHub from "@/components/dash/DashboardHub";
 import AreaOverview, { AreaConfig } from "@/components/dash/AreaOverview";
@@ -26,6 +25,7 @@ import GerarApresentacao from "@/components/dash/GerarApresentacao";
 import Custos from "@/components/dash/Custos";
 import Clientes from "@/components/dash/Clientes";
 import Acessos from "@/components/dash/Acessos";
+import ApresentarModal from "@/components/dash/ApresentarModal";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -97,7 +97,7 @@ export default function Home() {
   const [editor, setEditor] = useState<Categoria | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
-  const [apresMeses, setApresMeses] = useState(6);
+  const [apresOpen, setApresOpen] = useState(false);
 
   const carregarDados = useCallback(async () => {
     const [e, l, f, c, m] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios(), getClientes(), getIndicadores()]);
@@ -149,14 +149,15 @@ export default function Home() {
   const VIEW_SECAO: Partial<Record<View, Secao>> = {
     financas: "financeiro", saude: "cliente", comercial: "comercial", marketing: "marketing", equipe: "colaboradores",
   };
-  function apresentar(meses: number) {
+  function gerarApres(meses: string[], tipo: "deck" | "relatorio") {
     const sec = view === "dashboard" ? null : VIEW_SECAO[view];
     const secoes = sec ? new Set<Secao>([sec]) : new Set<Secao>(["financeiro", "cliente", "comercial", "marketing", "colaboradores"]);
-    abrirHtml(
-      gerarDeck({ metrs: effMetrs, lancs, funcs, saldoInicial, brand: brandObj }, ultimosMeses(meses), secoes),
-      `apresentacao-${slug(nomeMarca)}.html`,
-    );
+    const data = { metrs: effMetrs, lancs, funcs, saldoInicial, brand: brandObj };
+    const html = tipo === "deck" ? gerarDeck(data, meses, secoes) : gerarRelatorio(data, meses, secoes);
+    abrirHtml(html, `apresentacao-${slug(nomeMarca)}.html`);
+    setApresOpen(false);
   }
+  const apresTitulo = view === "dashboard" || !VIEW_SECAO[view] ? "Visão geral (tudo)" : "Esta área";
 
   const navClick = (k: View) => { setView(k); setMenuAberto(false); };
 
@@ -210,7 +211,7 @@ export default function Home() {
               ))}
             </nav></div>
             <div className="navgroup"><nav className="nav">
-              <button onClick={() => { apresentar(apresMeses); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>
+              <button onClick={() => { setApresOpen(true); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
             </nav></div>
           </div>
@@ -283,12 +284,7 @@ export default function Home() {
       {/* Main */}
       <main className="main">
         <div className="topctrls">
-          <div className="period">
-            {[3, 6, 12].map((n) => (
-              <button key={n} className={apresMeses === n ? "active" : ""} onClick={() => setApresMeses(n)}>{n}m</button>
-            ))}
-          </div>
-          <button className="btn sm" onClick={() => apresentar(apresMeses)}><Play size={14} /> Apresentar</button>
+          <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
         </div>
         {view === "dashboard" && lancs.length === 0 && (
@@ -322,6 +318,10 @@ export default function Home() {
       {editor && (
         <IndicatorEditor categoria={editor} onClose={() => setEditor(null)}
           onSaved={async () => { setMetrs(await getIndicadores()); setEditor(null); }} />
+      )}
+
+      {apresOpen && (
+        <ApresentarModal titulo={apresTitulo} onClose={() => setApresOpen(false)} onGerar={gerarApres} />
       )}
 
       {/* Bottom nav (mobile) */}
