@@ -5,8 +5,10 @@ import { TrendingUp, TrendingDown, AlertTriangle, CalendarClock, Wallet, Percent
 import { Metrica, valorMes, ytd, def, statusMeta } from "@/lib/indicadores";
 import { Lancamento } from "@/lib/db";
 import { gerarInsights } from "@/lib/insights";
-import { ultimosMeses } from "@/lib/format";
+import { projecaoCaixa } from "@/lib/calc";
+import { ultimosMeses, brl, rotuloMes } from "@/lib/format";
 import { SecHead, MiniKpi, KpiRing, fmt, fmtCompact, Icon } from "./Kit";
+import { LinhaSaldo } from "../Charts";
 
 const INS_ICON: Record<string, LucideIcon> = { TrendingUp, TrendingDown, AlertTriangle, CalendarClock, Wallet, Percent };
 const INS_COR = { good: "#10B981", warn: "#F59E0B", bad: "#EF4444", info: "#1AADE2" } as const;
@@ -49,6 +51,9 @@ export default function DashboardHub({ metrs, lancs, saldoInicial, nome }: { met
   }), [metrs]);
 
   const ano = new Date().getFullYear();
+  const proj = useMemo(() => projecaoCaixa(lancs, saldoInicial, 6), [lancs, saldoInicial]);
+  const menorSaldo = proj.length ? Math.min(...proj.map((p) => p.saldo)) : 0;
+  const mesNegativo = proj.find((p) => p.saldo < 0);
 
   return (
     <>
@@ -93,6 +98,39 @@ export default function DashboardHub({ metrs, lancs, saldoInicial, nome }: { met
       <SecHead icon="Target" titulo="Indicadores-chave" sub={`Visão do ano até agora · ${ano}`} cor="#1AADE2" />
       <div className="grid three">
         {kpis.map((k, i) => <KpiRing key={k.label} {...k} delay={i * 0.05} />)}
+      </div>
+
+      {/* PROJEÇÃO DE CAIXA */}
+      <div style={{ marginTop: 22 }}>
+        <SecHead icon="Wallet" titulo="Projeção de caixa" sub="Para onde seu caixa vai nos próximos 6 meses" cor="#10B981" />
+        {mesNegativo && (
+          <div className="err" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            ⚠️ No ritmo atual, seu caixa fica <b>negativo</b> em <b>{rotuloMes(mesNegativo.mes)}</b> ({brl(mesNegativo.saldo)}). Antecipe recebimentos ou segure despesas.
+          </div>
+        )}
+        <div className="grid two">
+          <div className="card">
+            <h3>Saldo projetado</h3>
+            <p className="sub" style={{ marginBottom: 6 }}>Menor saldo no período: <b style={{ color: menorSaldo >= 0 ? "var(--green)" : "var(--red)" }}>{brl(menorSaldo)}</b></p>
+            <LinhaSaldo data={proj} />
+          </div>
+          <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+            <table className="table">
+              <thead><tr><th>Mês</th><th className="num">Entradas</th><th className="num">Saídas</th><th className="num">Saldo</th></tr></thead>
+              <tbody>
+                {proj.map((p) => (
+                  <tr key={p.mes}>
+                    <td className="mono">{rotuloMes(p.mes)}</td>
+                    <td className="num" style={{ color: "var(--green)" }}>{brl(p.entradas)}</td>
+                    <td className="num" style={{ color: "var(--red)" }}>{brl(p.saidas)}</td>
+                    <td className="num" style={{ color: p.saldo >= 0 ? "var(--txt)" : "var(--red)" }}>{brl(p.saldo)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p className="sub" style={{ marginTop: 8 }}>Estimativa pela média dos últimos 3 meses + contas já agendadas. Lance suas receitas/despesas e gere as despesas do mês (em Custos) para ficar mais precisa.</p>
       </div>
 
       <div style={{ marginTop: 22 }}>

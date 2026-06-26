@@ -1,5 +1,5 @@
 import { Lancamento, Funcionario } from "./db";
-import { mesDe, ultimosMeses } from "./format";
+import { mesDe, ultimosMeses, mesesFrente } from "./format";
 
 /** Saldo atual em caixa = saldo inicial + recebidos - pagos (tudo que está "pago"). */
 export function saldoCaixa(lancs: Lancamento[], saldoInicial: number): number {
@@ -104,4 +104,28 @@ export function custoFolha(funcs: Funcionario[]): { total: number; salarios: num
   const salarios = ativos.reduce((a, f) => a + (f.salario || 0), 0);
   const beneficios = ativos.reduce((a, f) => a + (f.beneficios || 0), 0);
   return { total: salarios + beneficios, salarios, beneficios, ativos: ativos.length };
+}
+
+/**
+ * Projeção de fluxo de caixa para os próximos N meses.
+ * Base = média mensal de entradas/saídas REALIZADAS (pagas) dos últimos 3 meses
+ * + contas em aberto (a receber/a pagar) somadas pelo mês do vencimento.
+ */
+export function projecaoCaixa(lancs: Lancamento[], saldoInicial: number, nMeses = 6): PontoFluxo[] {
+  const trail = new Set(ultimosMeses(3));
+  const pagos = lancs.filter((l) => l.pago && l.data_pagamento);
+  const recTrail = pagos.filter((l) => l.tipo === "receita" && trail.has(mesDe(l.data_pagamento as string)));
+  const desTrail = pagos.filter((l) => l.tipo === "despesa" && trail.has(mesDe(l.data_pagamento as string)));
+  const baseEnt = recTrail.reduce((a, l) => a + l.valor, 0) / 3;
+  const baseSai = desTrail.reduce((a, l) => a + l.valor, 0) / 3;
+
+  let saldo = saldoCaixa(lancs, saldoInicial);
+  return mesesFrente(nMeses).map((mes) => {
+    const abertasRec = lancs.filter((l) => l.tipo === "receita" && !l.pago && l.vencimento && mesDe(l.vencimento) === mes).reduce((a, l) => a + l.valor, 0);
+    const abertasDes = lancs.filter((l) => l.tipo === "despesa" && !l.pago && l.vencimento && mesDe(l.vencimento) === mes).reduce((a, l) => a + l.valor, 0);
+    const entradas = Math.round(baseEnt + abertasRec);
+    const saidas = Math.round(baseSai + abertasDes);
+    saldo += entradas - saidas;
+    return { mes, entradas, saidas, saldo: Math.round(saldo) };
+  });
 }

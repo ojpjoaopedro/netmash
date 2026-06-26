@@ -56,6 +56,17 @@ export function mesesEntre(de: string, ate: string): string[] {
   return out;
 }
 
+/** Lista de N meses a partir do mês atual (inclusive) para frente. */
+export function mesesFrente(n: number): string[] {
+  const out: string[] = [];
+  const d = new Date();
+  for (let i = 0; i < n; i++) {
+    const x = new Date(d.getFullYear(), d.getMonth() + i, 1);
+    out.push(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return out;
+}
+
 /** Lista dos últimos N meses como ["2026-01", ...] terminando no mês atual */
 export function ultimosMeses(n: number): string[] {
   const out: string[] = [];
