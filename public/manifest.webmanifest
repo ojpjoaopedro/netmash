@@ -1,7 +1,7 @@
 {
-  "name": "NetMash — Gestão da sua empresa",
-  "short_name": "NetMash",
-  "description": "Dashboards, finanças, indicadores e ferramentas para empresários.",
+  "name": "Minha Empresa — Gestão financeira",
+  "short_name": "Minha Empresa",
+  "description": "Dashboards, fluxo de caixa, projeção, clientes e equipe — a gestão da sua empresa num app.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

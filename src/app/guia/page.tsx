@@ -111,6 +111,34 @@ export default function Guia() {
         </div>
       </section>
 
+      <section className="gu-sec alt">
+        <div className="gu-wrap">
+          <h2>📲 Coloque o app na tela do seu celular</h2>
+          <p className="gu-subt">Vira um ícone e abre em tela cheia, igual a um aplicativo de loja. Leva 10 segundos.</p>
+          <div className="gu-pwa">
+            <div className="gu-pwacard">
+              <b> iPhone (Safari)</b>
+              <ol>
+                <li>Abra <b>netmash.vercel.app</b> no <b>Safari</b>.</li>
+                <li>Toque no botão <b>Compartilhar</b> (o quadradinho com uma seta pra cima ⬆️, embaixo).</li>
+                <li>Role e toque em <b>“Adicionar à Tela de Início”</b>.</li>
+                <li>Toque em <b>Adicionar</b>. Pronto — o ícone aparece na tela. ✅</li>
+              </ol>
+            </div>
+            <div className="gu-pwacard">
+              <b>🤖 Android (Chrome)</b>
+              <ol>
+                <li>Abra <b>netmash.vercel.app</b> no <b>Chrome</b>.</li>
+                <li>Toque no menu <b>⋮</b> (três pontinhos, canto superior direito).</li>
+                <li>Toque em <b>“Adicionar à tela inicial”</b> ou <b>“Instalar app”</b>.</li>
+                <li>Confirme em <b>Adicionar / Instalar</b>. Pronto! ✅</li>
+              </ol>
+            </div>
+          </div>
+          <p className="gu-subt" style={{ marginTop: 18 }}>Depois é só abrir pelo ícone — entra direto, sem digitar o endereço.</p>
+        </div>
+      </section>
+
       <section className="gu-final">
         <div className="gu-wrap">
           <h2>Pronto pra começar?</h2>
@@ -190,8 +218,15 @@ const CSS = `
 .gu-final p{color:var(--muted);font-size:17px;max-width:520px;margin:14px auto 26px;line-height:1.6}
 .gu-foot{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-size:13.5px;text-align:center}
 
+.gu-pwa{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+.gu-pwacard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}
+.gu-pwacard b{color:var(--txt)}
+.gu-pwacard>b{font-size:17px;display:block;margin-bottom:14px}
+.gu-pwacard ol{margin:0;padding-left:22px;display:grid;gap:11px}
+.gu-pwacard li{color:#cfd3d8;line-height:1.5;font-size:14.5px}
+.gu-pwacard li b{color:var(--acc);font-weight:700}
 @media(max-width:820px){
-  .gu-passos,.gu-cards{grid-template-columns:1fr}
+  .gu-passos,.gu-cards,.gu-pwa{grid-template-columns:1fr}
   .gu-device{grid-template-columns:1fr;gap:30px}
 }
 `;

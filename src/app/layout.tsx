@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NetMash — Gestão para empresários",
+  title: "Minha Empresa — Gestão financeira",
   description:
-    "Plataforma de gestão para empresários: dashboards, finanças, saúde do cliente, comercial, marketing, indicadores e ferramentas.",
+    "A gestão da sua empresa num app: dashboards, fluxo de caixa, projeção, clientes, equipe e relatórios.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "NetMash", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Minha Empresa", statusBarStyle: "black-translucent" },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
 

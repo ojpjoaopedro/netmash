@@ -43,7 +43,7 @@ export default function LoginPage() {
       } else if (modo === "cadastro") {
         await cadastrarComCodigo(nome.trim(), empresa.trim(), email.trim(), senha, codigo.trim());
         await login(email.trim(), senha);
-        router.push("/");
+        router.push("/guia?novo=1");
       } else if (modo === "reset") {
         await enviarReset(email.trim(), `${window.location.origin}/login?nova=1`);
         setMsg("✅ Enviamos um link para o seu e-mail. Abra-o para definir sua senha.");
