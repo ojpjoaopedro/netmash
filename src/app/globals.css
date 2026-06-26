@@ -58,7 +58,7 @@ button{font-family:inherit}
 .side{width:248px;background:var(--sidebar);border-right:1px solid var(--line);
   padding:18px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;flex-shrink:0}
 .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 14px;min-height:48px}
-.brand img{max-height:34px;max-width:170px;object-fit:contain}
+.brand img{object-fit:contain;max-width:100%}
 .brand .fallback{font-weight:800;font-size:18px;color:#fff;letter-spacing:-.3px}
 .brand .fallback b{color:var(--brand)}
 .navgroup{margin-top:14px}
@@ -282,7 +282,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand)}
     height:52px;padding:0 12px;background:rgba(13,13,13,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
   body.theme-light .mobiletop{background:rgba(255,255,255,.92)}
   .mobiletop .brand{padding:0;min-height:auto;gap:8px}
-  .mobiletop .brand img{max-height:30px!important;max-width:140px!important}
+  .mobiletop .brand img{max-width:62vw}
   .mobiletop .brand .fallback{font-size:16px}
   .mobiletop .mt-actions{display:flex;align-items:center;gap:2px}
   .bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:40;justify-content:space-around;

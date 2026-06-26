@@ -100,6 +100,7 @@ export default function Home() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [apresOpen, setApresOpen] = useState(false);
+  const [bemVindoFechado, setBemVindoFechado] = useState(false);
 
   const carregarDados = useCallback(async () => {
     const [e, l, f, c, m] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios(), getClientes(), getIndicadores()]);
@@ -119,6 +120,10 @@ export default function Home() {
       setCarregando(false);
     })();
   }, [router, carregarDados]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
+  }, []);
 
   const nomeMarca = brand.nome && brand.nome !== "Minha Empresa" ? brand.nome : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
   const saudacaoNome = (brand.saudacao || perfil?.nome || "").split(" ")[0];
@@ -170,7 +175,7 @@ export default function Home() {
       {/* Top bar (mobile) */}
       <header className="mobiletop">
         <div className="brand">
-          {brand.logo ? <img src={brand.logo} alt={nomeMarca} style={{ maxHeight: logoH, maxWidth: logoH * 5 }} /> : <span className="fallback">{nomeMarca}</span>}
+          {brand.logo ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} /> : <span className="fallback">{nomeMarca}</span>}
         </div>
         <div className="mt-actions">
           <button className="iconbtn" style={{ position: "relative" }} onClick={() => setNotifOpen((v) => !v)} title="Notificações">
@@ -201,7 +206,7 @@ export default function Home() {
         <div className="drawer-overlay" onClick={() => setMenuAberto(false)}>
           <div className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="brand" style={{ justifyContent: "space-between" }}>
-              {brand.logo ? <img src={brand.logo} alt={nomeMarca} style={{ maxHeight: logoH, maxWidth: logoH * 5 }} /> : <span className="fallback">{nomeMarca}</span>}
+              {brand.logo ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} /> : <span className="fallback">{nomeMarca}</span>}
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
             <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
@@ -226,7 +231,7 @@ export default function Home() {
       <aside className="side">
         <div className="brand">
           {brand.logo
-            ? <img src={brand.logo} alt={nomeMarca} style={{ maxHeight: logoH, maxWidth: logoH * 5 }} />
+            ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
             : <span className="fallback">{nomeMarca}</span>}
         </div>
 
@@ -291,9 +296,12 @@ export default function Home() {
           {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
         </div>
-        {view === "dashboard" && lancs.length === 0 && (
+        {view === "dashboard" && lancs.length === 0 && !bemVindoFechado && (
           <div className="card" style={{ marginBottom: 16, borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
-            <h3 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>👋 Bem-vindo ao seu painel!</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>👋 Bem-vindo ao seu painel!</h3>
+              <button className="iconbtn" title="Fechar" onClick={() => { setBemVindoFechado(true); if (typeof window !== "undefined") localStorage.setItem("me_bemvindo_fechado", "1"); }}>✕</button>
+            </div>
             <p className="sub" style={{ marginBottom: 14 }}>Comece configurando sua empresa e lançando os primeiros dados — os gráficos e indicadores se montam sozinhos.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <a className="btn" href="/guia" target="_blank" rel="noopener">📖 Como usar o app</a>
