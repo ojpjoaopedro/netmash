@@ -162,13 +162,17 @@ export function gerarDeck(data: DadosApres, meses: string[], secoes: Set<Secao>)
     .nav button:hover{background:#1d1d1d;border-color:var(--accent)}
     .counter{color:var(--muted);font-weight:700;font-size:15px;min-width:64px;text-align:center}
     .hint{position:fixed;top:18px;right:22px;color:var(--muted);font-size:12px;z-index:20;background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:99px}
-    @media(max-width:760px){.slide{padding:7vh 6vw;justify-content:flex-start;overflow-y:auto}.slide-inner{margin-top:6vh}.slide h2{font-size:26px}.nav{bottom:16px;gap:14px}.nav button{width:54px;height:54px;font-size:24px}.hint{display:none}.chart{min-height:220px}}`;
+    .closebtn{position:fixed;top:14px;left:14px;z-index:30;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px}
+    .closebtn:hover{border-color:var(--accent);color:var(--accent)}
+    @media(max-width:760px){.slide{padding:8vh 6vw 7vh;justify-content:flex-start;overflow-y:auto}.slide-inner{margin-top:5vh}.slide h2{font-size:26px}.nav{bottom:16px;gap:14px}.nav button{width:54px;height:54px;font-size:24px}.hint{display:none}.chart{min-height:220px}.closebtn{top:12px;left:12px;padding:11px 18px;font-size:15px}}`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Apresentação · ${esc(brand.nome)} · ${ano}</title><style>${css}</style></head><body>
+<button class="closebtn" onclick="fecharApres()">✕ Fechar</button>
 <div class="hint">← → navegar · F tela cheia</div>
 <div id="deck">${slides.join("\n")}</div>
 <div class="nav"><button id="prev">&#8249;</button><span class="counter"><span id="cur">1</span> / ${total}</span><button id="next">&#8250;</button></div>
-<script>(function(){var s=[].slice.call(document.querySelectorAll('.slide')),t=s.length,i=0,c=document.getElementById('cur');function show(n){i=Math.max(0,Math.min(n,t-1));s.forEach(function(x,k){x.classList.toggle('active',k===i)});c.textContent=i+1}function fs(){if(!document.fullscreenElement){(document.documentElement.requestFullscreen||function(){})()}else{(document.exitFullscreen||function(){})()}}document.getElementById('next').onclick=function(){show(i+1)};document.getElementById('prev').onclick=function(){show(i-1)};document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();show(i+1)}else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1)}else if(e.key==='Home'){show(0)}else if(e.key==='End'){show(t-1)}else if(e.key==='f'||e.key==='F'){fs()}});var sx=0;document.addEventListener('touchstart',function(e){sx=e.changedTouches[0].clientX},{passive:true});document.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45){show(dx<0?i+1:i-1)}},{passive:true});show(0)})();</script>
+<script>function fecharApres(){try{window.close()}catch(e){}setTimeout(function(){if(!window.closed){if(history.length>1){history.back()}else{document.documentElement.innerHTML='<div style=\\'display:grid;place-items:center;height:100vh;color:#888;font-family:sans-serif\\'>Pode fechar esta aba.</div>'}}},150)}
+(function(){var s=[].slice.call(document.querySelectorAll('.slide')),t=s.length,i=0,c=document.getElementById('cur');function show(n){i=Math.max(0,Math.min(n,t-1));s.forEach(function(x,k){x.classList.toggle('active',k===i)});c.textContent=i+1}function fs(){if(!document.fullscreenElement){(document.documentElement.requestFullscreen||function(){})()}else{(document.exitFullscreen||function(){})()}}document.getElementById('next').onclick=function(){show(i+1)};document.getElementById('prev').onclick=function(){show(i-1)};document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();show(i+1)}else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1)}else if(e.key==='Home'){show(0)}else if(e.key==='End'){show(t-1)}else if(e.key==='f'||e.key==='F'){fs()}});var sx=0;document.addEventListener('touchstart',function(e){sx=e.changedTouches[0].clientX},{passive:true});document.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45){show(dx<0?i+1:i-1)}},{passive:true});show(0)})();</script>
 </body></html>`;
 }
 
@@ -184,9 +188,12 @@ export function gerarRelatorio(data: DadosApres, meses: string[], secoes: Set<Se
     header.rel .logo{max-height:64px;margin:0}header.rel .logo-nome{font-size:30px}header.rel h1{font-size:26px;margin-top:4px}header.rel .muted{font-size:13px;margin-top:4px}
     h3.sec{font-size:20px;margin:38px 0 16px}.card-valor{font-size:30px}
     footer.rel{margin-top:44px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13px;text-align:center}
-    @media print{body{padding:0}}`;
+    .closebtn{position:fixed;top:14px;right:14px;z-index:30;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:700;cursor:pointer}
+    .closebtn:hover{border-color:var(--accent);color:var(--accent)}
+    @media print{body{padding:0}.closebtn{display:none}}`;
   const body = conteudo.map((s) => `<h3 class="sec">${esc(s.titulo)}</h3>${s.html}`).join("");
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Relatório · ${esc(brand.nome)} · ${ano}</title><style>${css}</style></head><body>
+<button class="closebtn" onclick="(function(){try{window.close()}catch(e){}if(!window.closed&&history.length>1)history.back()})()">✕ Fechar</button>
 <header class="rel"><div>${logoOuNome(brand)}<h1>Relatório de Resultados <span class="accent">${ano}</span></h1></div><div style="text-align:right"><div class="muted">${esc(ptxt)}</div><div class="muted">Gerado em ${esc(dataBR(hoje()))}</div></div></header>
 ${body}
 <footer class="rel">${esc(brand.nome)} · ${esc(ptxt)}</footer></body></html>`;

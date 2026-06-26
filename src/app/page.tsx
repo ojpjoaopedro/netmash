@@ -22,7 +22,6 @@ import MarketingFull from "@/components/dash/MarketingFull";
 import Ferramentas from "@/components/dash/Ferramentas";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
 import Relatorios from "@/components/dash/Relatorios";
-import Apresentacao from "@/components/dash/Apresentacao";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
 import Custos from "@/components/dash/Custos";
 import Clientes from "@/components/dash/Clientes";
@@ -96,9 +95,9 @@ export default function Home() {
   const [metrs, setMetrs] = useState<Metrica[]>([]);
   const [view, setView] = useState<View>("dashboard");
   const [editor, setEditor] = useState<Categoria | null>(null);
-  const [apresentando, setApresentando] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [apresMeses, setApresMeses] = useState(6);
 
   const carregarDados = useCallback(async () => {
     const [e, l, f, c, m] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios(), getClientes(), getIndicadores()]);
@@ -149,11 +148,11 @@ export default function Home() {
   const VIEW_SECAO: Partial<Record<View, Secao>> = {
     financas: "financeiro", saude: "cliente", comercial: "comercial", marketing: "marketing", equipe: "colaboradores",
   };
-  function apresentarArea(v: View) {
-    const sec = VIEW_SECAO[v];
-    if (!sec) return;
+  function apresentar(meses: number) {
+    const sec = view === "dashboard" ? null : VIEW_SECAO[view];
+    const secoes = sec ? new Set<Secao>([sec]) : new Set<Secao>(["financeiro", "cliente", "comercial", "marketing", "colaboradores"]);
     abrirHtml(
-      gerarDeck({ metrs: effMetrs, lancs, funcs, saldoInicial, brand: brandObj }, ultimosMeses(6), new Set<Secao>([sec])),
+      gerarDeck({ metrs: effMetrs, lancs, funcs, saldoInicial, brand: brandObj }, ultimosMeses(meses), secoes),
       `apresentacao-${slug(nomeMarca)}.html`,
     );
   }
@@ -210,7 +209,7 @@ export default function Home() {
               ))}
             </nav></div>
             <div className="navgroup"><nav className="nav">
-              <button onClick={() => { setApresentando(true); setMenuAberto(false); }}><Play size={18} /> Apresentar (slideshow)</button>
+              <button onClick={() => { apresentar(apresMeses); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
             </nav></div>
           </div>
@@ -282,11 +281,15 @@ export default function Home() {
 
       {/* Main */}
       <main className="main">
-        {(["financas", "saude", "comercial", "marketing", "equipe"] as View[]).includes(view) && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
-            <button className="btn ghost sm" onClick={() => apresentarArea(view)}><Play size={14} /> Apresentar esta área</button>
+        <div className="topctrls">
+          <div className="period">
+            {[3, 6, 12].map((n) => (
+              <button key={n} className={apresMeses === n ? "active" : ""} onClick={() => setApresMeses(n)}>{n}m</button>
+            ))}
           </div>
-        )}
+          <button className="btn sm" onClick={() => apresentar(apresMeses)}><Play size={14} /> Apresentar</button>
+          <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
+        </div>
         {view === "dashboard" && lancs.length === 0 && (
           <div className="card" style={{ marginBottom: 16, borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
             <h3 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>👋 Bem-vindo ao seu painel!</h3>
@@ -301,7 +304,7 @@ export default function Home() {
         )}
         {view === "dashboard" && <DashboardHub metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {AREAS[view] && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
-        {view === "marketing" && <MarketingFull metrs={effMetrs} />}
+        {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
@@ -318,18 +321,6 @@ export default function Home() {
       {editor && (
         <IndicatorEditor categoria={editor} onClose={() => setEditor(null)}
           onSaved={async () => { setMetrs(await getIndicadores()); setEditor(null); }} />
-      )}
-
-      {/* FABs */}
-      <div className="fab-row">
-        <button className="fab" onClick={() => setApresentando(true)}><Play size={15} /> Apresentar</button>
-        <button className="fab" onClick={toggleTheme}>
-          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}
-        </button>
-      </div>
-
-      {apresentando && (
-        <Apresentacao metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} brand={brandObj} onClose={() => setApresentando(false)} />
       )}
 
       {/* Bottom nav (mobile) */}

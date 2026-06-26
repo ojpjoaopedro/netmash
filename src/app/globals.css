@@ -245,6 +245,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand)}
   box-shadow:0 8px 22px -10px rgba(0,0,0,.6)}
 .fab:hover{color:var(--txt);border-color:var(--line-2)}
 
+/* ===== Barra de controles no topo (período + apresentar + tema) ===== */
+.topctrls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.topctrls .period button{padding:6px 12px;font-size:12.5px}
+.desk-only{display:inline-flex}
+@media(max-width:900px){.desk-only{display:none}}
+
 /* ===== Mobile: top bar + drawer + bottom nav ===== */
 .mobiletop{display:none}
 .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:55}

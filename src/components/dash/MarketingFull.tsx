@@ -100,7 +100,7 @@ function KpiFromKey({ metrs, mkey }: { metrs: Metrica[]; mkey: string }) {
   );
 }
 
-export default function MarketingFull({ metrs }: { metrs: Metrica[] }) {
+export default function MarketingFull({ metrs, onEditar }: { metrs: Metrica[]; onEditar?: () => void }) {
   const [painel, setPainel] = useState<PainelId>("macro");
   const ativo = PAINEIS.find((p) => p.id === painel) ?? PAINEIS[0];
 
@@ -119,6 +119,7 @@ export default function MarketingFull({ metrs }: { metrs: Metrica[] }) {
         sub="Visão de aquisição e canais"
         cor="#ff6b9d"
         ano={new Date().getFullYear()}
+        right={onEditar && <button className="btn ghost sm" onClick={onEditar}>✏️ Adicionar dados</button>}
       />
 
       {/* ---------- Seletores de painel (tabs) ---------- */}
