@@ -150,35 +150,39 @@ export function gerarDeck(data: DadosApres, meses: string[], secoes: Set<Secao>)
 
   const total = slides.length;
   const css = `${baseCss()}
-    html,body{height:100%;overflow:hidden}
-    #deck{height:100vh;width:100vw;position:relative}
-    .slide{position:absolute;inset:0;height:100vh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6vh 7vw;opacity:0;visibility:hidden;transition:opacity .35s ease;text-align:center}
+    html,body{height:100%;overflow:hidden;background:#000}
+    #deck{position:fixed;inset:0;overflow:hidden}
+    /* Palco 16:9 (1280x720) escalado para caber em qualquer tela */
+    .stage{position:absolute;top:50%;left:50%;width:1280px;height:720px;background:var(--bg);overflow:hidden;
+      transform:translate(-50%,-50%) scale(1);transform-origin:center center;box-shadow:0 0 70px rgba(0,0,0,.7)}
+    .slide{position:absolute;inset:0;width:1280px;height:720px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 84px;opacity:0;visibility:hidden;transition:opacity .35s ease;text-align:center}
     .slide.active{opacity:1;visibility:visible}
-    .slide-inner{width:100%;max-width:1180px;text-align:left}
-    .slide h2{font-size:clamp(30px,4.4vw,52px);margin-top:6px}
-    .capa h1{font-size:clamp(38px,7vw,86px);margin-top:18px}.capa-sub{font-size:clamp(18px,2.4vw,28px);color:var(--accent);font-weight:700;margin-top:18px}.capa-data{margin-top:14px;font-size:15px}.encerra h1{font-size:clamp(48px,9vw,110px)}
-    .nav{position:fixed;left:0;right:0;bottom:22px;display:flex;align-items:center;justify-content:center;gap:18px;z-index:20}
-    .nav button{background:var(--card);border:1px solid var(--line);color:var(--txt);width:46px;height:46px;border-radius:50%;font-size:20px;cursor:pointer;display:grid;place-items:center}
+    .slide-inner{width:100%;max-width:1120px;text-align:left}
+    .slide h2{font-size:46px;margin-top:6px}
+    .capa h1{font-size:78px;margin-top:18px}.capa-sub{font-size:26px;color:var(--accent);font-weight:700;margin-top:18px}.capa-data{margin-top:14px;font-size:16px}.encerra h1{font-size:104px}
+    .logo{max-height:150px}.logo-nome{font-size:66px}
+    .card-valor{font-size:36px}.card{padding:22px 26px}.grid{gap:20px}
+    .nav{position:fixed;left:0;right:0;bottom:18px;display:flex;align-items:center;justify-content:center;gap:18px;z-index:20}
+    .nav button{background:var(--card);border:1px solid var(--line);color:var(--txt);width:48px;height:48px;border-radius:50%;font-size:20px;cursor:pointer;display:grid;place-items:center}
     .nav button:hover{background:#1d1d1d;border-color:var(--accent)}
-    .counter{color:var(--muted);font-weight:700;font-size:15px;min-width:64px;text-align:center}
-    .hint{position:fixed;top:18px;right:22px;color:var(--muted);font-size:12px;z-index:20;background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:99px}
+    .counter{color:#bbb;font-weight:700;font-size:15px;min-width:62px;text-align:center;background:rgba(0,0,0,.45);padding:5px 8px;border-radius:8px}
+    .hint{position:fixed;top:16px;right:20px;color:#bbb;font-size:12px;z-index:20;background:rgba(0,0,0,.45);padding:6px 12px;border-radius:99px}
     .closebtn{position:fixed;top:14px;left:14px;z-index:30;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px}
     .closebtn:hover{border-color:var(--accent);color:var(--accent)}
-    @media(max-width:760px){.slide{padding:8vh 6vw 7vh;justify-content:flex-start;overflow-y:auto}.slide-inner{margin-top:5vh}.slide h2{font-size:26px}.nav{bottom:16px;gap:14px}.nav button{width:54px;height:54px;font-size:24px}.hint{display:none}.chart{min-height:220px}.closebtn{top:12px;left:12px;padding:11px 18px;font-size:15px}}
-    .expbtn-big{margin-top:26px;background:var(--accent);color:#0A0A0A;border:0;padding:14px 26px;border-radius:99px;font-size:16px;font-weight:800;cursor:pointer}
-    .expbtn{position:fixed;bottom:20px;right:18px;z-index:25;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:9px 14px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer}
+    .expbtn-big{margin-top:26px;background:var(--accent);color:#0A0A0A;border:0;padding:14px 28px;border-radius:99px;font-size:18px;font-weight:800;cursor:pointer}
+    .expbtn{position:fixed;bottom:18px;right:18px;z-index:25;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:9px 14px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer}
     .expbtn:hover{border-color:var(--accent);color:var(--accent)}
-    @media(max-width:760px){.expbtn{bottom:84px;right:12px}}
-    @media print{html,body{height:auto;overflow:visible}#deck{height:auto}.slide{position:static!important;visibility:visible!important;opacity:1!important;height:auto;min-height:95vh;page-break-after:always;break-after:page;padding:8vh 6vw}.nav,.hint,.closebtn,.expbtn,.expbtn-big{display:none!important}}`;
+    @media(max-width:760px){.expbtn{bottom:76px;right:12px}.closebtn{padding:9px 13px;font-size:13px}}
+    @media print{@page{size:landscape;margin:0}html,body{height:auto;overflow:visible;background:#fff}#deck{position:static;overflow:visible}.stage{position:static;transform:none!important;width:100%;height:auto;box-shadow:none}.slide{position:static!important;visibility:visible!important;opacity:1!important;width:100%;height:auto;aspect-ratio:16/9;page-break-after:always;break-after:page}.nav,.hint,.closebtn,.expbtn,.expbtn-big{display:none!important}}`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Apresentação · ${esc(brand.nome)} · ${ano}</title><style>${css}</style></head><body>
 <button class="closebtn" onclick="fecharApres()">✕ Fechar</button>
 <button class="expbtn" onclick="window.print()">⬇ Exportar PDF</button>
 <div class="hint">← → navegar · F tela cheia</div>
-<div id="deck">${slides.join("\n")}</div>
+<div id="deck"><div class="stage" id="stage">${slides.join("\n")}</div></div>
 <div class="nav"><button id="prev">&#8249;</button><span class="counter"><span id="cur">1</span> / ${total}</span><button id="next">&#8250;</button></div>
 <script>function fecharApres(){try{window.close()}catch(e){}setTimeout(function(){if(!window.closed){if(history.length>1){history.back()}else{document.documentElement.innerHTML='<div style=\\'display:grid;place-items:center;height:100vh;color:#888;font-family:sans-serif\\'>Pode fechar esta aba.</div>'}}},150)}
-(function(){var s=[].slice.call(document.querySelectorAll('.slide')),t=s.length,i=0,c=document.getElementById('cur');function show(n){i=Math.max(0,Math.min(n,t-1));s.forEach(function(x,k){x.classList.toggle('active',k===i)});c.textContent=i+1}function fs(){if(!document.fullscreenElement){(document.documentElement.requestFullscreen||function(){})()}else{(document.exitFullscreen||function(){})()}}document.getElementById('next').onclick=function(){show(i+1)};document.getElementById('prev').onclick=function(){show(i-1)};document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();show(i+1)}else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1)}else if(e.key==='Home'){show(0)}else if(e.key==='End'){show(t-1)}else if(e.key==='f'||e.key==='F'){fs()}});var sx=0;document.addEventListener('touchstart',function(e){sx=e.changedTouches[0].clientX},{passive:true});document.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45){show(dx<0?i+1:i-1)}},{passive:true});show(0)})();</script>
+(function(){var s=[].slice.call(document.querySelectorAll('.slide')),t=s.length,i=0,c=document.getElementById('cur');var stage=document.getElementById('stage');function fit(){var k=Math.min(window.innerWidth/1280,window.innerHeight/720);stage.style.transform='translate(-50%,-50%) scale('+k+')'}window.addEventListener('resize',fit);window.addEventListener('orientationchange',fit);fit();function show(n){i=Math.max(0,Math.min(n,t-1));s.forEach(function(x,k){x.classList.toggle('active',k===i)});c.textContent=i+1}function fs(){if(!document.fullscreenElement){(document.documentElement.requestFullscreen||function(){})()}else{(document.exitFullscreen||function(){})()}}document.getElementById('next').onclick=function(){show(i+1)};document.getElementById('prev').onclick=function(){show(i-1)};document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();show(i+1)}else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1)}else if(e.key==='Home'){show(0)}else if(e.key==='End'){show(t-1)}else if(e.key==='f'||e.key==='F'){fs()}});var sx=0;document.addEventListener('touchstart',function(e){sx=e.changedTouches[0].clientX},{passive:true});document.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45){show(dx<0?i+1:i-1)}},{passive:true});show(0)})();</script>
 </body></html>`;
 }
 
