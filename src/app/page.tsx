@@ -296,7 +296,8 @@ export default function Home() {
             <h3 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>👋 Bem-vindo ao seu painel!</h3>
             <p className="sub" style={{ marginBottom: 14 }}>Comece configurando sua empresa e lançando os primeiros dados — os gráficos e indicadores se montam sozinhos.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button className="btn" onClick={() => setView("empresa")}>🎨 Configurar empresa / logo</button>
+              <a className="btn" href="/guia" target="_blank" rel="noopener">📖 Como usar o app</a>
+              <button className="btn ghost" onClick={() => setView("empresa")}>🎨 Configurar empresa / logo</button>
               <button className="btn ghost" onClick={() => setView("lancamentos")}>💸 Adicionar lançamento</button>
               <button className="btn ghost" onClick={() => setView("custos")}>📌 Cadastrar custos</button>
               <button className="btn ghost" onClick={() => setEditor("financeiro")}>📊 Editar indicadores</button>
