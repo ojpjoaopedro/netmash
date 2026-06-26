@@ -146,7 +146,7 @@ export function gerarDeck(data: DadosApres, meses: string[], secoes: Set<Secao>)
   const slides: string[] = [];
   slides.push(`<section class="slide capa">${logoOuNome(brand)}<h1>Relatório de Resultados <span class="accent">${ano}</span></h1><p class="capa-sub">${esc(ptxt)}</p><p class="muted capa-data">Gerado em ${esc(dataBR(hoje()))} · ${esc(brand.nome)}</p></section>`);
   conteudo.forEach((s) => slides.push(`<section class="slide"><div class="slide-inner"><p class="eyebrow">Visão geral</p><h2>${esc(s.titulo)}</h2>${s.html}</div></section>`));
-  slides.push(`<section class="slide capa encerra"><h1>Obrigado<span class="accent">.</span></h1><p class="capa-sub">${esc(brand.nome)}</p><div class="card" style="margin-top:24px;min-width:300px;text-align:center"><div class="card-label">Lucro do período</div><div class="card-valor" style="color:${r.lucro >= 0 ? "#10B981" : "#EF4444"}">${esc(brl(r.lucro))}</div><div class="card-nota">${esc(ptxt)}</div></div></section>`);
+  slides.push(`<section class="slide capa encerra"><h1>Obrigado<span class="accent">.</span></h1><p class="capa-sub">${esc(brand.nome)}</p><div class="card" style="margin-top:24px;min-width:300px;text-align:center"><div class="card-label">Lucro do período</div><div class="card-valor" style="color:${r.lucro >= 0 ? "#10B981" : "#EF4444"}">${esc(brl(r.lucro))}</div><div class="card-nota">${esc(ptxt)}</div></div><button class="expbtn-big" onclick="window.print()">⬇ Exportar em PDF</button></section>`);
 
   const total = slides.length;
   const css = `${baseCss()}
@@ -164,10 +164,16 @@ export function gerarDeck(data: DadosApres, meses: string[], secoes: Set<Secao>)
     .hint{position:fixed;top:18px;right:22px;color:var(--muted);font-size:12px;z-index:20;background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:99px}
     .closebtn{position:fixed;top:14px;left:14px;z-index:30;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px}
     .closebtn:hover{border-color:var(--accent);color:var(--accent)}
-    @media(max-width:760px){.slide{padding:8vh 6vw 7vh;justify-content:flex-start;overflow-y:auto}.slide-inner{margin-top:5vh}.slide h2{font-size:26px}.nav{bottom:16px;gap:14px}.nav button{width:54px;height:54px;font-size:24px}.hint{display:none}.chart{min-height:220px}.closebtn{top:12px;left:12px;padding:11px 18px;font-size:15px}}`;
+    @media(max-width:760px){.slide{padding:8vh 6vw 7vh;justify-content:flex-start;overflow-y:auto}.slide-inner{margin-top:5vh}.slide h2{font-size:26px}.nav{bottom:16px;gap:14px}.nav button{width:54px;height:54px;font-size:24px}.hint{display:none}.chart{min-height:220px}.closebtn{top:12px;left:12px;padding:11px 18px;font-size:15px}}
+    .expbtn-big{margin-top:26px;background:var(--accent);color:#0A0A0A;border:0;padding:14px 26px;border-radius:99px;font-size:16px;font-weight:800;cursor:pointer}
+    .expbtn{position:fixed;bottom:20px;right:18px;z-index:25;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:9px 14px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer}
+    .expbtn:hover{border-color:var(--accent);color:var(--accent)}
+    @media(max-width:760px){.expbtn{bottom:84px;right:12px}}
+    @media print{html,body{height:auto;overflow:visible}#deck{height:auto}.slide{position:static!important;visibility:visible!important;opacity:1!important;height:auto;min-height:95vh;page-break-after:always;break-after:page;padding:8vh 6vw}.nav,.hint,.closebtn,.expbtn,.expbtn-big{display:none!important}}`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Apresentação · ${esc(brand.nome)} · ${ano}</title><style>${css}</style></head><body>
 <button class="closebtn" onclick="fecharApres()">✕ Fechar</button>
+<button class="expbtn" onclick="window.print()">⬇ Exportar PDF</button>
 <div class="hint">← → navegar · F tela cheia</div>
 <div id="deck">${slides.join("\n")}</div>
 <div class="nav"><button id="prev">&#8249;</button><span class="counter"><span id="cur">1</span> / ${total}</span><button id="next">&#8250;</button></div>
@@ -190,10 +196,12 @@ export function gerarRelatorio(data: DadosApres, meses: string[], secoes: Set<Se
     footer.rel{margin-top:44px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13px;text-align:center}
     .closebtn{position:fixed;top:14px;right:14px;z-index:30;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:700;cursor:pointer}
     .closebtn:hover{border-color:var(--accent);color:var(--accent)}
-    @media print{body{padding:0}.closebtn{display:none}}`;
+    .expbtn{position:fixed;top:60px;right:14px;z-index:30;background:var(--accent);color:#0A0A0A;border:0;padding:9px 16px;border-radius:99px;font-size:13px;font-weight:800;cursor:pointer}
+    @media print{body{padding:0}.closebtn,.expbtn{display:none}}`;
   const body = conteudo.map((s) => `<h3 class="sec">${esc(s.titulo)}</h3>${s.html}`).join("");
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Relatório · ${esc(brand.nome)} · ${ano}</title><style>${css}</style></head><body>
 <button class="closebtn" onclick="(function(){try{window.close()}catch(e){}if(!window.closed&&history.length>1)history.back()})()">✕ Fechar</button>
+<button class="expbtn" onclick="window.print()">⬇ Exportar PDF</button>
 <header class="rel"><div>${logoOuNome(brand)}<h1>Relatório de Resultados <span class="accent">${ano}</span></h1></div><div style="text-align:right"><div class="muted">${esc(ptxt)}</div><div class="muted">Gerado em ${esc(dataBR(hoje()))}</div></div></header>
 ${body}
 <footer class="rel">${esc(brand.nome)} · ${esc(ptxt)}</footer></body></html>`;
