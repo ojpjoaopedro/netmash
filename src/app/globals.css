@@ -96,7 +96,13 @@ button{font-family:inherit}
 .grid.four{grid-template-columns:repeat(4,1fr)}
 .grid.paineis{grid-template-columns:repeat(5,1fr)}
 @media(max-width:1100px){.grid.paineis{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:700px){.grid.paineis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){
+  /* carrossel horizontal: desliza pro lado, próximo card aparece */
+  .grid.paineis{display:flex;grid-template-columns:none;overflow-x:auto;gap:10px;padding:2px 2px 8px;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .grid.paineis::-webkit-scrollbar{display:none}
+  .grid.paineis > *{min-width:150px;flex:0 0 auto;scroll-snap-align:start}
+}
 .grid.meses{grid-template-columns:repeat(6,1fr)}
 @media(max-width:1100px){.grid.four{grid-template-columns:repeat(2,1fr)}.grid.three{grid-template-columns:1fr}.grid.meses{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:820px){.grid.two{grid-template-columns:1fr}}
