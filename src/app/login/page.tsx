@@ -24,7 +24,13 @@ export default function LoginPage() {
     if (typeof window === "undefined") return;
     const hash = window.location.hash || "";
     const q = new URLSearchParams(window.location.search);
-    if (hash.includes("type=recovery") || q.get("nova") === "1") setModo("novasenha");
+    if (hash.includes("type=recovery") || q.get("nova") === "1") { setModo("novasenha"); return; }
+    // Veio da página de obrigado da Kiwify (?cadastro=1&codigo=...): já abre no cadastro com o código preenchido.
+    const c = q.get("codigo");
+    if (c || q.get("cadastro") === "1") {
+      setModo("cadastro");
+      if (c) setCodigo(c);
+    }
   }, []);
 
   async function enviar(e: React.FormEvent) {
