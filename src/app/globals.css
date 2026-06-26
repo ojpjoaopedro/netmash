@@ -274,8 +274,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand)}
   .hero{padding:20px}
   .fab-row{display:none}
   .sechead{margin:20px 0 14px}
+  .sechead{flex-wrap:wrap}
   .sechead .badge{width:46px;height:46px;border-radius:13px}
   .sechead h2{font-size:19px}
+  .sechead > :last-child:not(div){margin-left:auto;margin-top:4px}
   .mobiletop{display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:45;
     height:52px;padding:0 12px;background:rgba(13,13,13,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
   body.theme-light .mobiletop{background:rgba(255,255,255,.92)}

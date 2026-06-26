@@ -174,8 +174,12 @@ export default function AreaOverview({ metrs, cfg, lancs = [], funcs = [], saldo
   // ---------- VISÃO GERAL ----------
   return (
     <>
-      <SecHead icon={cfg.icon} titulo={cfg.titulo} sub="Visão geral do ano — escolha um mês para abrir os detalhes" cor={cfg.cor} ano={ano}
-        right={onEditar && <button className="btn ghost sm" onClick={() => onEditar(cfg.categoria)}><Pencil size={14} /> Editar dados</button>} />
+      <SecHead icon={cfg.icon} titulo={cfg.titulo} sub="Visão geral do ano — escolha um mês para abrir os detalhes" cor={cfg.cor} ano={ano} />
+      {onEditar && (
+        <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 12px" }}>
+          <button className="btn ghost sm" onClick={() => onEditar(cfg.categoria)}><Pencil size={14} /> Editar dados</button>
+        </div>
+      )}
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         style={{ borderRadius: 20, padding: "22px 24px", display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center",
