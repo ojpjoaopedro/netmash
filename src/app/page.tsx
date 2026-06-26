@@ -90,9 +90,8 @@ export default function Home() {
   const [notifOpen, setNotifOpen] = useState(false);
 
   const carregarDados = useCallback(async () => {
-    const [e, l, f] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios()]);
-    setEmpresa(e); setLancs(l); setFuncs(f);
-    setMetrs(getIndicadores());
+    const [e, l, f, m] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios(), getIndicadores()]);
+    setEmpresa(e); setLancs(l); setFuncs(f); setMetrs(m);
   }, []);
 
   useEffect(() => {
@@ -204,7 +203,7 @@ export default function Home() {
 
       {editor && (
         <IndicatorEditor categoria={editor} onClose={() => setEditor(null)}
-          onSaved={() => { setMetrs(getIndicadores()); setEditor(null); }} />
+          onSaved={async () => { setMetrs(await getIndicadores()); setEditor(null); }} />
       )}
 
       {/* FABs */}

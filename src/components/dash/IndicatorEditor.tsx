@@ -54,17 +54,19 @@ export default function IndicatorEditor({
 
   // Recarrega valores ao trocar o mês (ou na montagem).
   useEffect(() => {
-    const metrs = getIndicadores();
-    const next: Record<string, Linha> = {};
-    for (const d of indicadores) {
-      const m = valorMes(metrs, d.key, period);
-      next[d.key] = {
-        valor: m ? String(m.value) : "",
-        meta: m ? String(m.target) : "",
-      };
-    }
-    setLinhas(next);
-    setSalvo(false);
+    let vivo = true;
+    (async () => {
+      const metrs = await getIndicadores();
+      if (!vivo) return;
+      const next: Record<string, Linha> = {};
+      for (const d of indicadores) {
+        const m = valorMes(metrs, d.key, period);
+        next[d.key] = { valor: m ? String(m.value) : "", meta: m ? String(m.target) : "" };
+      }
+      setLinhas(next);
+      setSalvo(false);
+    })();
+    return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, categoria]);
 
@@ -75,15 +77,19 @@ export default function IndicatorEditor({
     }));
   }
 
-  function salvar() {
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar() {
+    setSalvando(true);
     for (const d of indicadores) {
       const linha = linhas[d.key];
       if (!linha) continue;
       const value = parseNum(linha.valor);
       if (value === null) continue; // só salva linhas com valor preenchido
       const meta = parseNum(linha.meta);
-      setIndicador(d.key, period, value, meta ?? metaSugerida(d.key));
+      await setIndicador(d.key, period, value, meta ?? metaSugerida(d.key));
     }
+    setSalvando(false);
     setSalvo(true);
     onSaved();
   }
@@ -165,8 +171,8 @@ export default function IndicatorEditor({
           <button className="btn ghost" type="button" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn" type="button" onClick={salvar}>
-            Salvar
+          <button className="btn" type="button" onClick={salvar} disabled={salvando}>
+            {salvando ? "Salvando…" : "Salvar"}
           </button>
         </div>
       </div>

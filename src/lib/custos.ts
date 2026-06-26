@@ -1,4 +1,6 @@
 import { uid } from "./format";
+import { supabase, supabaseReady } from "./supabase";
+import { getEmpresa } from "./db";
 
 // ============================================================
 // DESPESAS FIXAS (recorrentes) — aluguel, internet, software, etc.
@@ -38,22 +40,43 @@ function seed() {
   localStorage.setItem(SEED, "1");
 }
 
-export function getDespesasFixas(): DespesaFixa[] {
+type RowDF = { id: string; nome: string; categoria: string | null; valor: number; dia_venc: number; ativo: boolean };
+
+export async function getDespesasFixas(): Promise<DespesaFixa[]> {
+  if (supabaseReady && supabase) {
+    const { data } = await supabase.from("despesas_fixas").select("*").order("nome");
+    return (data ?? []).map((r: RowDF) => ({
+      id: r.id, nome: r.nome, categoria: r.categoria ?? "", valor: Number(r.valor), dia_venc: r.dia_venc, ativo: r.ativo,
+    }));
+  }
   seed();
   return lsGet();
 }
 
-export function addDespesaFixa(d: Omit<DespesaFixa, "id">) {
+export async function addDespesaFixa(d: Omit<DespesaFixa, "id">): Promise<void> {
+  if (supabaseReady && supabase) {
+    const emp = await getEmpresa();
+    await supabase.from("despesas_fixas").insert({ ...d, empresa_id: emp?.id });
+    return;
+  }
   const arr = lsGet();
   arr.push({ ...d, id: uid() });
   lsSet(arr);
 }
 
-export function updateDespesaFixa(id: string, patch: Partial<DespesaFixa>) {
+export async function updateDespesaFixa(id: string, patch: Partial<DespesaFixa>): Promise<void> {
+  if (supabaseReady && supabase) {
+    await supabase.from("despesas_fixas").update(patch).eq("id", id);
+    return;
+  }
   lsSet(lsGet().map((d) => (d.id === id ? { ...d, ...patch } : d)));
 }
 
-export function delDespesaFixa(id: string) {
+export async function delDespesaFixa(id: string): Promise<void> {
+  if (supabaseReady && supabase) {
+    await supabase.from("despesas_fixas").delete().eq("id", id);
+    return;
+  }
   lsSet(lsGet().filter((d) => d.id !== id));
 }
 

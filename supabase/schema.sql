@@ -130,3 +130,53 @@ create policy func_all on funcionarios for all
   with check (empresa_id = minha_empresa());
 
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- INDICADORES (métricas estratégicas por empresa)
+-- ============================================================
+create table if not exists indicadores (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id uuid not null references empresas(id) on delete cascade,
+  key text not null,
+  period text not null,            -- "YYYY-MM"
+  value numeric(16,2) not null default 0,
+  target numeric(16,2) not null default 0,
+  unidade text not null,           -- BRL | % | count | score
+  categoria text not null,         -- financeiro | cliente | comercial | marketing
+  criado_em timestamptz not null default now(),
+  unique (empresa_id, key, period)
+);
+create index if not exists idx_ind_empresa on indicadores(empresa_id);
+
+-- ============================================================
+-- DESPESAS FIXAS (recorrentes por empresa)
+-- ============================================================
+create table if not exists despesas_fixas (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id uuid not null references empresas(id) on delete cascade,
+  nome text not null,
+  categoria text,
+  valor numeric(14,2) not null default 0,
+  dia_venc int not null default 5,
+  ativo boolean not null default true,
+  criado_em timestamptz not null default now()
+);
+create index if not exists idx_df_empresa on despesas_fixas(empresa_id);
+
+-- Marca/white-label na própria empresa
+alter table empresas add column if not exists cor text;
+alter table empresas add column if not exists logo_url text;
+
+-- RLS
+alter table indicadores enable row level security;
+alter table despesas_fixas enable row level security;
+
+drop policy if exists ind_all on indicadores;
+create policy ind_all on indicadores for all
+  using (empresa_id = minha_empresa()) with check (empresa_id = minha_empresa());
+
+drop policy if exists df_all on despesas_fixas;
+create policy df_all on despesas_fixas for all
+  using (empresa_id = minha_empresa()) with check (empresa_id = minha_empresa());
+
+notify pgrst, 'reload schema';

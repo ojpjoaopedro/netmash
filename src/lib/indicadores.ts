@@ -1,5 +1,6 @@
 import { uid, ultimosMeses, mesDe } from "./format";
-import type { Lancamento } from "./db";
+import { supabase, supabaseReady } from "./supabase";
+import { getEmpresa, type Lancamento } from "./db";
 
 // ============================================================
 // INDICADORES (métricas estratégicas editáveis)
@@ -108,15 +109,32 @@ export function seedDemoIndicadores() {
   localStorage.setItem(SEEDED, "1");
 }
 
-export function getIndicadores(): Metrica[] {
+export async function getIndicadores(): Promise<Metrica[]> {
+  if (supabaseReady && supabase) {
+    const { data } = await supabase.from("indicadores").select("*");
+    return (data ?? []).map((r) => ({
+      id: r.id as string, key: r.key as string, period: r.period as string,
+      value: Number(r.value), target: Number(r.target),
+      unidade: r.unidade as Unidade, categoria: r.categoria as Categoria,
+    }));
+  }
   seedDemoIndicadores();
   return lsGet();
 }
 
-export function setIndicador(key: string, period: string, value: number, target: number) {
-  const arr = lsGet();
+export async function setIndicador(key: string, period: string, value: number, target: number): Promise<void> {
   const d = def(key);
   if (!d) return;
+  if (supabaseReady && supabase) {
+    const emp = await getEmpresa();
+    if (!emp) return;
+    await supabase.from("indicadores").upsert(
+      { empresa_id: emp.id, key, period, value, target, unidade: d.unidade, categoria: d.categoria },
+      { onConflict: "empresa_id,key,period" },
+    );
+    return;
+  }
+  const arr = lsGet();
   const i = arr.findIndex((m) => m.key === key && m.period === period);
   if (i >= 0) { arr[i] = { ...arr[i], value, target }; }
   else arr.push({ id: uid(), key, period, value, target, unidade: d.unidade, categoria: d.categoria });

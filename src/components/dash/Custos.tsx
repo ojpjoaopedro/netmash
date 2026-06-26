@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Wand2, RefreshCw, Trash2, Pencil } from "lucide-react";
 import {
   DespesaFixa, getDespesasFixas, addDespesaFixa, updateDespesaFixa, delDespesaFixa, totalFixasAtivas, ORIGEM_RECORRENTE,
@@ -19,10 +19,10 @@ function FixaModal({ edit, onClose, onSaved }: { edit: DespesaFixa | null; onClo
   const [dia, setDia] = useState(edit ? String(edit.dia_venc) : "5");
   const [ativo, setAtivo] = useState(edit ? edit.ativo : true);
 
-  function salvar() {
+  async function salvar() {
     if (!nome.trim() || !num(valor)) return;
     const dados = { nome: nome.trim(), categoria, valor: num(valor), dia_venc: Math.min(28, Math.max(1, Number(dia) || 1)), ativo };
-    if (edit) updateDespesaFixa(edit.id, dados); else addDespesaFixa(dados);
+    if (edit) await updateDespesaFixa(edit.id, dados); else await addDespesaFixa(dados);
     onSaved();
   }
   return (
@@ -58,7 +58,7 @@ function FixaModal({ edit, onClose, onSaved }: { edit: DespesaFixa | null; onClo
 }
 
 export default function Custos({ lancs, funcs, reload }: { lancs: Lancamento[]; funcs: Funcionario[]; reload: () => void }) {
-  const [fixas, setFixas] = useState<DespesaFixa[]>(() => getDespesasFixas());
+  const [fixas, setFixas] = useState<DespesaFixa[]>([]);
   const [selMes, setSelMes] = useState(ultimosMeses(1)[0]);
   const [incluirFolha, setIncluirFolha] = useState(true);
   const [modal, setModal] = useState(false);
@@ -66,7 +66,8 @@ export default function Custos({ lancs, funcs, reload }: { lancs: Lancamento[]; 
   const [custoAvulso, setCustoAvulso] = useState(false);
   const [msg, setMsg] = useState("");
 
-  const recarregarFixas = () => setFixas(getDespesasFixas());
+  const recarregarFixas = async () => setFixas(await getDespesasFixas());
+  useEffect(() => { recarregarFixas(); }, []);
   const folha = custoFolha(funcs);
   const totalFixas = totalFixasAtivas(fixas);
   const totalMes = totalFixas + (incluirFolha ? folha.total : 0);
@@ -152,7 +153,7 @@ export default function Custos({ lancs, funcs, reload }: { lancs: Lancamento[]; 
                   <td className="num" style={{ color: "var(--red)" }}>{brl(d.valor)}</td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     <button className="btn ghost sm" onClick={() => { setEdit(d); setModal(true); }}><Pencil size={13} /></button>{" "}
-                    <button className="btn ghost sm" onClick={() => { if (confirm("Remover despesa fixa?")) { delDespesaFixa(d.id); recarregarFixas(); } }}><Trash2 size={13} /></button>
+                    <button className="btn ghost sm" onClick={async () => { if (confirm("Remover despesa fixa?")) { await delDespesaFixa(d.id); recarregarFixas(); } }}><Trash2 size={13} /></button>
                   </td>
                 </tr>
               ))}
