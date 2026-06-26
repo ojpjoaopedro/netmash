@@ -351,6 +351,20 @@ export async function logout() {
   if (supabase) await supabase.auth.signOut();
 }
 
+/** Envia e-mail para o cliente definir/redefinir a senha (1º acesso ou "esqueci"). */
+export async function enviarReset(email: string, redirectTo?: string) {
+  if (!supabase) throw new Error("Supabase não configurado");
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), redirectTo ? { redirectTo } : undefined);
+  if (error) throw error;
+}
+
+/** Define a nova senha (após clicar no link do e-mail, com sessão de recuperação ativa). */
+export async function definirSenha(senha: string) {
+  if (!supabase) throw new Error("Supabase não configurado");
+  const { error } = await supabase.auth.updateUser({ password: senha });
+  if (error) throw error;
+}
+
 // ============================================================
 // COLABORADORES (acesso à empresa) — via rota /api/colaboradores
 // ============================================================
