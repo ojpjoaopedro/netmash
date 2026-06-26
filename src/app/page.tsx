@@ -158,6 +158,8 @@ export default function Home() {
     setApresOpen(false);
   }
   const apresTitulo = view === "dashboard" || !VIEW_SECAO[view] ? "Visão geral (tudo)" : "Esta área";
+  // "Apresentar" só faz sentido nos painéis de métrica (Dashboard + 5 áreas). Nas telas operacionais (Clientes, Custos, Lançamentos…) o botão some.
+  const podeApresentar = METRICAS.some((m) => m.key === view);
 
   const navClick = (k: View) => { setView(k); setMenuAberto(false); };
 
@@ -211,7 +213,7 @@ export default function Home() {
               ))}
             </nav></div>
             <div className="navgroup"><nav className="nav">
-              <button onClick={() => { setApresOpen(true); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>
+              {podeApresentar && <button onClick={() => { setApresOpen(true); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>}
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
             </nav></div>
           </div>
@@ -284,7 +286,7 @@ export default function Home() {
       {/* Main */}
       <main className="main">
         <div className="topctrls">
-          <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>
+          {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
         </div>
         {view === "dashboard" && lancs.length === 0 && (
