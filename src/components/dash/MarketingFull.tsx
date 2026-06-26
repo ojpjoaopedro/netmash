@@ -188,7 +188,7 @@ export default function MarketingFull({ metrs }: { metrs: Metrica[] }) {
           <BlocoTitulo cor={ativo.cor}>Origem dos leads</BlocoTitulo>
           <div className="card">
             <h3>Origem dos Leads — Distribuição por canal</h3>
-            <DonutCategorias data={ORIGEM_LEADS} />
+            <DonutCategorias data={ORIGEM_LEADS} formato="pct" />
           </div>
 
           <BlocoTitulo cor={ativo.cor}>Aquisição</BlocoTitulo>
@@ -213,7 +213,7 @@ export default function MarketingFull({ metrs }: { metrs: Metrica[] }) {
           <BlocoTitulo cor={ativo.cor}>Origem dos leads</BlocoTitulo>
           <div className="card">
             <h3>Origem dos Leads — Distribuição por canal</h3>
-            <DonutCategorias data={ORIGEM_LEADS} />
+            <DonutCategorias data={ORIGEM_LEADS} formato="pct" />
           </div>
 
           <BlocoTitulo cor={ativo.cor}>Resultado da mídia</BlocoTitulo>
@@ -258,7 +258,7 @@ export default function MarketingFull({ metrs }: { metrs: Metrica[] }) {
           <BlocoTitulo cor={ativo.cor}>Contribuição em leads</BlocoTitulo>
           <div className="card">
             <h3>Origem dos Leads — Distribuição por canal</h3>
-            <DonutCategorias data={ORIGEM_LEADS} />
+            <DonutCategorias data={ORIGEM_LEADS} formato="pct" />
           </div>
         </>
       )}

@@ -78,11 +78,13 @@ export function LinhaSaldo({ data, height = 200 }: { data: PontoFluxo[]; height?
   );
 }
 
-/** Donut de despesas por categoria + legenda. */
-export function DonutCategorias({ data }: { data: FatiaCategoria[] }) {
+/** Donut por categoria + legenda. formato: "brl" (dinheiro) ou "pct" (porcentagem). */
+export function DonutCategorias({ data, formato = "brl" }: { data: FatiaCategoria[]; formato?: "brl" | "pct" }) {
   const total = data.reduce((a, d) => a + d.valor, 0);
   const size = 180, r = 70, cx = size / 2, cy = size / 2, sw = 26;
-  if (!total) return <div className="empty"><div className="big">📊</div>Sem despesas no período.</div>;
+  if (!total) return <div className="empty"><div className="big">📊</div>Sem dados no período.</div>;
+  const fmtV = (v: number) => (formato === "pct" ? `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : brl(v));
+  const fmtTotal = formato === "pct" ? "100%" : brlCompact(total);
   let acc = 0;
   const circ = 2 * Math.PI * r;
   return (
@@ -104,7 +106,7 @@ export function DonutCategorias({ data }: { data: FatiaCategoria[] }) {
           );
         })}
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="13" fill={C.muted} fontWeight="700">Total</text>
-        <text x={cx} y={cy + 16} textAnchor="middle" fontSize="15" fill="#eaf6ff" fontWeight="800">{brlCompact(total)}</text>
+        <text x={cx} y={cy + 16} textAnchor="middle" fontSize="15" fill="#eaf6ff" fontWeight="800">{fmtTotal}</text>
       </svg>
       <div style={{ flex: 1, minWidth: 180 }}>
         {data.slice(0, 8).map((d, i) => (
@@ -113,7 +115,7 @@ export function DonutCategorias({ data }: { data: FatiaCategoria[] }) {
               <i style={{ width: 11, height: 11, borderRadius: 3, background: PALETTE[i % PALETTE.length], display: "inline-block" }} />
               {d.categoria}
             </span>
-            <b className="mono">{brl(d.valor)}</b>
+            <b className="mono">{fmtV(d.valor)}</b>
           </div>
         ))}
       </div>
