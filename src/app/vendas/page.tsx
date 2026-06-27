@@ -9,8 +9,8 @@ import {
    TROQUE AQUI (sem mexer no resto do código):
    ============================================================ */
 const MARCA = "Minha Empresa";             // nome que aparece na página
-const PRECO = "29,99";                       // valor mensal, só o número (R$)
-const CHECKOUT_URL = "https://pay.kiwify.com.br/7MVeznN";  // link de venda Kiwify
+const PRECO = "19,99";                       // valor (R$), pagamento único
+const CHECKOUT_URL = "https://pay.kiwify.com.br/ATeuhH5";  // link de venda Kiwify (único R$19,99)
 const ENTRAR_URL = "/login";               // login do app
 const PIXEL_ID = "574774374290188";        // Pixel da Meta (Facebook/Instagram)
 /* ============================================================ */
@@ -45,7 +45,7 @@ const PLANO = [
 ];
 
 const PASSOS = [
-  { n: "1", t: "Crie sua conta", d: "Assine e entre. Coloque o nome e a logo da sua empresa." },
+  { n: "1", t: "Crie sua conta", d: "Compre, crie seu acesso e coloque o nome e a logo da sua empresa." },
   { n: "2", t: "Lance ou importe", d: "Adicione seus números ou suba sua planilha — os gráficos se montam sozinhos." },
   { n: "3", t: "Decida com clareza", d: "Acompanhe lucro, caixa e clientes todo dia e saiba o próximo passo." },
 ];
@@ -55,7 +55,7 @@ const FAQ = [
   { q: "Serve pro meu tipo de negócio?", a: "Sim. Funciona para comércio, serviços, prestadores e pequenas empresas em geral — tudo é editável e se adapta ao seu segmento." },
   { q: "Meus dados ficam seguros?", a: "Cada empresa tem seu espaço isolado. Seus dados são só seus e ficam protegidos por login." },
   { q: "Posso usar no celular?", a: "Sim, funciona no celular e no computador. Você acompanha de qualquer lugar." },
-  { q: "Tem fidelidade?", a: "Não. É assinatura mensal e você cancela quando quiser, direto pelo painel." },
+  { q: "É mensalidade?", a: "Não! É um pagamento único de R$ 19,99. Você paga uma vez e tem acesso ao app — sem cobrança recorrente." },
 ];
 
 export default function Vendas() {
@@ -84,7 +84,7 @@ export default function Vendas() {
             <a href="#recursos">Recursos</a>
             <a href="#planos">Planos</a>
             <a href={ENTRAR_URL} className="lp-ghost">Entrar</a>
-            <a href={CHECKOUT_URL} className="lp-cta sm">Assinar</a>
+            <a href={CHECKOUT_URL} className="lp-cta sm">Quero o app</a>
           </nav>
         </div>
       </header>
@@ -104,7 +104,7 @@ export default function Vendas() {
               <a href="#recursos" className="lp-ghost big">Ver recursos</a>
             </div>
             <div className="lp-trust">
-              <span><Check size={15} /> Cancele quando quiser</span>
+              <span><Check size={15} /> Pagamento único</span>
               <span><Check size={15} /> Garantia de 7 dias</span>
               <span><Smartphone size={15} /> No celular e no PC</span>
             </div>
@@ -187,17 +187,18 @@ export default function Vendas() {
           <h2 className="center">Comece hoje a enxergar seu lucro</h2>
           <div className="lp-plano">
             <div className="lp-planohead">
-              <span className="lp-planotag">Assinatura mensal</span>
-              <div className="lp-preco"><small>R$</small><b>{PRECO}</b><span>/mês</span></div>
-              <p className="lp-planoanual">Menos que um lanche por mês · cancele quando quiser</p>
+              <span className="lp-planotag">🔥 Oferta de lançamento</span>
+              <div className="lp-anchor">de <s>R$ 29,99/mês</s> por apenas</div>
+              <div className="lp-preco"><small>R$</small><b>{PRECO}</b><span>única vez</span></div>
+              <p className="lp-planoanual">Pague uma vez · acesso imediato ao app</p>
             </div>
             <ul className="lp-planolist">
               {PLANO.map((item) => (
                 <li key={item}><Check size={17} /> {item}</li>
               ))}
             </ul>
-            <a href={CHECKOUT_URL} className="lp-cta big full">Assinar agora <ArrowRight size={18} /></a>
-            <p className="lp-planofoot"><ShieldCheck size={15} /> Garantia de 7 dias — não gostou, devolvemos. Cancele quando quiser.</p>
+            <a href={CHECKOUT_URL} className="lp-cta big full">Garantir meu acesso <ArrowRight size={18} /></a>
+            <p className="lp-planofoot"><ShieldCheck size={15} /> Garantia de 7 dias — não gostou, devolvemos o seu dinheiro.</p>
           </div>
         </div>
       </section>
@@ -330,6 +331,7 @@ const CSS = `
 .lp-preco b{font-size:62px;font-weight:800;letter-spacing:-.03em;line-height:1}
 .lp-preco span{font-size:18px;color:var(--muted);font-weight:600}
 .lp-planoanual{color:var(--muted);font-size:14px;margin-top:10px}
+.lp-anchor{color:var(--muted);font-size:16px;margin-bottom:2px}.lp-anchor s{color:#e08a8a;font-weight:600}
 .lp-planolist{list-style:none;padding:0;margin:0 0 24px;display:grid;gap:12px}
 .lp-planolist li{display:flex;align-items:flex-start;gap:10px;font-size:15px;line-height:1.45}
 .lp-planolist svg{color:var(--green);flex-shrink:0;margin-top:2px}
