@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Settings, Crown, User,
+  LayoutDashboard, KeyRound, Settings, Crown, User, Pencil,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, brl } from "@/lib/format";
@@ -15,7 +15,12 @@ type Empresa = {
   nLanc: number; nCli: number; nFunc: number;
 };
 type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number } };
-type Form = { nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
+type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
+
+function seatsDePlano(plano: string | null): { qs: number; qa: number } {
+  const m = (plano || "").match(/(\d+)\s*Super Admin.*?(\d+)\s*Acesso/i);
+  return { qs: m ? Number(m[1]) : 1, qa: m ? Number(m[2]) : 0 };
+}
 type Aba = "visao" | "empresas" | "permissoes" | "config";
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
@@ -52,18 +57,24 @@ export default function Admin() {
     setBusy(null);
     await carregar();
   }
-  function abrirCadastro() { setErroForm(""); setForm({ nomeEmpresa: "", responsavel: "", email: "", senha: "", cnpj: "", qtdSuperadmins: "1", qtdAcessos: "0", logo: "", slug: "" }); }
+  function abrirCadastro() { setErroForm(""); setForm({ editId: null, nomeEmpresa: "", responsavel: "", email: "", senha: "", cnpj: "", qtdSuperadmins: "1", qtdAcessos: "0", logo: "", slug: "" }); }
+  function abrirEdicao(e: Empresa) {
+    setErroForm("");
+    const { qs, qa } = seatsDePlano(e.plano);
+    setForm({ editId: e.id, nomeEmpresa: e.nome, responsavel: e.dono?.nome || "", email: e.dono?.email || "", senha: "", cnpj: e.cnpj || "", qtdSuperadmins: String(qs), qtdAcessos: String(qa), logo: "", slug: e.slug || "" });
+  }
   function onLogo(file: File) { const r = new FileReader(); r.onload = () => setForm((f) => (f ? { ...f, logo: String(r.result) } : f)); r.readAsDataURL(file); }
-  async function criarCliente(e: React.FormEvent) {
+  async function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!form || !supabase) return;
     setSalvando(true); setErroForm("");
     const { data: sess } = await supabase.auth.getSession();
-    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "criar", ...form }) });
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: form.editId ? "editar" : "criar", empresaId: form.editId || undefined, ...form }) });
     const j = await res.json().catch(() => ({}));
     setSalvando(false);
-    if (!res.ok) { setErroForm(j.error || "Não consegui cadastrar."); return; }
-    setForm(null); setAba("empresas"); await carregar();
+    if (!res.ok) { setErroForm(j.error || "Não consegui salvar."); return; }
+    const novo = !form.editId;
+    setForm(null); if (novo) setAba("empresas"); await carregar();
   }
   async function entrarComOutra() { if (supabase) await supabase.auth.signOut(); router.push("/login"); }
 
@@ -146,6 +157,7 @@ export default function Admin() {
                         <td>{e.acessoCortado ? <span className="adm-badge cortado">Cortado</span> : <span className="adm-badge ativo">Ativo</span>}</td>
                         <td>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <button className="adm-btn sm ghost" onClick={() => abrirEdicao(e)}><Pencil size={13} /> Editar</button>
                             {e.dono_id && (e.acessoCortado
                               ? <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => acao("restaurar", { userId: e.dono_id! })}><RotateCcw size={13} /> Restaurar</button>
                               : <button className="adm-btn sm warn" disabled={!!busy} onClick={() => acao("cortar", { userId: e.dono_id! }, `Cortar o acesso de "${e.nome}"?`)}><Ban size={13} /> Cortar</button>)}
@@ -193,24 +205,24 @@ export default function Admin() {
 
       {form && (
         <div className="adm-modalbg" onClick={() => !salvando && setForm(null)}>
-          <form className="adm-modal" onClick={(ev) => ev.stopPropagation()} onSubmit={criarCliente}>
-            <div className="adm-mhead"><h3>Cadastrar novo cliente</h3><button type="button" onClick={() => setForm(null)}><X size={18} /></button></div>
+          <form className="adm-modal" onClick={(ev) => ev.stopPropagation()} onSubmit={salvar}>
+            <div className="adm-mhead"><h3>{form.editId ? "Editar empresa" : "Cadastrar novo cliente"}</h3><button type="button" onClick={() => setForm(null)}><X size={18} /></button></div>
             {erroForm && <div className="adm-erro">{erroForm}</div>}
             <div className="adm-grid2">
               <L label="Nome da empresa"><input value={form.nomeEmpresa} onChange={(ev) => setForm({ ...form, nomeEmpresa: ev.target.value })} required /></L>
               <L label="CNPJ (opcional)"><input value={form.cnpj} onChange={(ev) => setForm({ ...form, cnpj: ev.target.value })} /></L>
               <L label="Responsável"><input value={form.responsavel} onChange={(ev) => setForm({ ...form, responsavel: ev.target.value })} /></L>
               <L label="E-mail do responsável"><input type="email" value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} required /></L>
-              <L label="Senha de acesso"><input type="text" value={form.senha} onChange={(ev) => setForm({ ...form, senha: ev.target.value })} required minLength={6} placeholder="mín. 6 caracteres" /></L>
+              <L label={form.editId ? "Nova senha (em branco = manter)" : "Senha de acesso"}><input type="text" value={form.senha} onChange={(ev) => setForm({ ...form, senha: ev.target.value })} required={!form.editId} minLength={6} placeholder={form.editId ? "deixe em branco p/ manter" : "mín. 6 caracteres"} /></L>
               <L label="Nº de Super Admins (administradores)"><input type="number" min="1" value={form.qtdSuperadmins} onChange={(ev) => setForm({ ...form, qtdSuperadmins: ev.target.value })} /></L>
               <L label="Nº de Acessos (funcionários)"><input type="number" min="0" value={form.qtdAcessos} onChange={(ev) => setForm({ ...form, qtdAcessos: ev.target.value })} /></L>
               <L label="Endereço da página (slug)"><input value={form.slug} onChange={(ev) => setForm({ ...form, slug: ev.target.value })} placeholder="auto pelo nome" /></L>
             </div>
             <div className="adm-valor">Plano: <b>{brl((Number(form.qtdSuperadmins) || 0) * PRECO_SUPERADMIN + (Number(form.qtdAcessos) || 0) * PRECO_ACESSO)}/mês</b> <span>(Super Admin R$ {PRECO_SUPERADMIN.toFixed(2).replace(".", ",")} · Acesso R$ {PRECO_ACESSO.toFixed(2).replace(".", ",")} cada)</span></div>
-            <L label="Logo da empresa"><input type="file" accept="image/*" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) onLogo(f); }} /></L>
+            <L label={form.editId ? "Logo (envie só p/ trocar)" : "Logo da empresa"}><input type="file" accept="image/*" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) onLogo(f); }} /></L>
             {form.logo && <img src={form.logo} alt="" style={{ maxHeight: 48, marginTop: 8, objectFit: "contain" }} />}
-            <button className="adm-btn" type="submit" disabled={salvando} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvando ? "Cadastrando…" : "Cadastrar cliente"}</button>
-            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>O responsável é o 1º <b>Super Admin</b>. Os <b>Acessos</b> são adicionados depois em “Acessos”, com permissões por área. Cria também a página <b>minhasmetricas.com/{form.slug || "(nome)"}</b>.</p>
+            <button className="adm-btn" type="submit" disabled={salvando} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvando ? "Salvando…" : form.editId ? "Salvar alterações" : "Cadastrar cliente"}</button>
+            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>{form.editId ? <>Página em <b>minhasmetricas.com/{form.slug || "(nome)"}</b>. As permissões dos funcionários são editadas dentro da empresa, em “Acessos”.</> : <>O responsável é o 1º <b>Super Admin</b>. Os <b>Acessos</b> são adicionados depois em “Acessos”. Cria também a página <b>minhasmetricas.com/{form.slug || "(nome)"}</b>.</>}</p>
           </form>
         </div>
       )}

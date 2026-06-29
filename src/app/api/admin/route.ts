@@ -139,6 +139,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, slug: slugFinal });
   }
 
+  // Editar dados de uma empresa existente + do responsável (dono).
+  if (action === "editar" && empresaId) {
+    const nomeEmpresa = (body.nomeEmpresa || "").trim();
+    if (!nomeEmpresa) return NextResponse.json({ error: "Informe o nome da empresa." }, { status: 400 });
+    const slugFinal = slugify(body.slug || nomeEmpresa);
+    const { data: conflito } = await s.from("empresas").select("id").eq("slug", slugFinal).neq("id", empresaId).maybeSingle();
+    if (conflito) return NextResponse.json({ error: `Já existe outra empresa com o endereço "/${slugFinal}".` }, { status: 400 });
+    const qs = Math.max(1, Math.floor(Number(body.qtdSuperadmins) || 1));
+    const qa = Math.max(0, Math.floor(Number(body.qtdAcessos) || 0));
+    const valor = qs * 79.9 + qa * 39.9;
+    const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
+    const patch: Record<string, unknown> = { nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null };
+    if (body.logo) patch.logo_url = body.logo;
+    await s.from("empresas").update(patch).eq("id", empresaId);
+    const { data: e } = await s.from("empresas").select("dono_id").eq("id", empresaId).single();
+    const donoId = (e as { dono_id?: string } | null)?.dono_id;
+    if (donoId) {
+      const email = (body.email || "").trim().toLowerCase();
+      await s.from("perfis").update({ nome: body.responsavel || null, ...(email ? { email } : {}) }).eq("id", donoId);
+      const upd: { email?: string; password?: string; email_confirm?: boolean } = {};
+      if (email) { upd.email = email; upd.email_confirm = true; }
+      if (body.senha && body.senha.length >= 6) upd.password = body.senha;
+      if (Object.keys(upd).length) { try { await s.auth.admin.updateUserById(donoId, upd); } catch { /* e-mail já em uso, etc. */ } }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   if (action === "cortar" && userId) {
     await s.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
     return NextResponse.json({ ok: true });
