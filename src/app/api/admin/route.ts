@@ -41,13 +41,13 @@ export async function GET(req: NextRequest) {
   if (!su) return NextResponse.json({ error: "Acesso restrito (Super Admin)." }, { status: 403 });
 
   const [emp, per, lan, cli, fun] = await Promise.all([
-    s.from("empresas").select("id,nome,segmento,criado_em,saldo_inicial,dono_id"),
+    s.from("empresas").select("*"),
     s.from("perfis").select("id,empresa_id,nome,email,papel"),
     s.from("lancamentos").select("empresa_id"),
     s.from("clientes").select("empresa_id"),
     s.from("funcionarios").select("empresa_id"),
   ]);
-  const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null }[];
+  const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; logo_url?: string | null }[];
   const perfis = (per.data ?? []) as { id: string; empresa_id: string; nome: string | null; email: string | null; papel: string }[];
 
   // Status de acesso (banido = acesso cortado)

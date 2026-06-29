@@ -46,10 +46,15 @@ export default function Admin() {
     await carregar();
   }
 
+  async function entrarComOutra() {
+    if (supabase) await supabase.auth.signOut();
+    router.push("/login");
+  }
+
   if (estado === "carregando") return <Casca><div className="spin" /></Casca>;
-  if (estado === "semlogin") return <Casca><Aviso titulo="Faça login" texto="Entre com sua conta de Super Admin para acessar o painel." botao={() => router.push("/login")} botaoTxt="Ir para o login" /></Casca>;
-  if (estado === "negado") return <Casca><Aviso titulo="Acesso restrito 🔒" texto="Esta área é só para Super Admin. Sua conta não tem permissão." botao={() => router.push("/")} botaoTxt="Voltar ao painel" /></Casca>;
-  if (estado === "erro") return <Casca><Aviso titulo="Ops" texto="Não consegui carregar. Verifique se a variável SUPER_ADMINS está configurada no servidor." botao={carregar} botaoTxt="Tentar de novo" /></Casca>;
+  if (estado === "semlogin") return <Casca><Aviso titulo="Faça login" texto="Entre com a conta de Super Admin para acessar o painel." botao={() => router.push("/login")} botaoTxt="Ir para o login" /></Casca>;
+  if (estado === "negado") return <Casca><Aviso titulo="Acesso restrito 🔒" texto="Você está logado, mas esta área é só para Super Admin. Entre com a conta de Super Admin." botao={entrarComOutra} botaoTxt="Entrar com outra conta" botao2={() => router.push("/")} botao2Txt="Voltar ao painel" /></Casca>;
+  if (estado === "erro") return <Casca><Aviso titulo="Ops" texto="Não consegui carregar. Tente novamente em instantes." botao={carregar} botaoTxt="Tentar de novo" botao2={entrarComOutra} botao2Txt="Entrar com outra conta" /></Casca>;
 
   const t = data?.totais;
   return (
@@ -105,12 +110,15 @@ export default function Admin() {
 function Casca({ children }: { children: React.ReactNode }) {
   return <div className="adm"><style>{CSS}</style><div className="adm-wrap">{children}</div></div>;
 }
-function Aviso({ titulo, texto, botao, botaoTxt }: { titulo: string; texto: string; botao: () => void; botaoTxt: string }) {
+function Aviso({ titulo, texto, botao, botaoTxt, botao2, botao2Txt }: { titulo: string; texto: string; botao: () => void; botaoTxt: string; botao2?: () => void; botao2Txt?: string }) {
   return (
     <div className="adm-aviso">
       <h2>{titulo}</h2>
       <p>{texto}</p>
-      <button className="adm-btn" onClick={botao}>{botaoTxt}</button>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+        <button className="adm-btn" onClick={botao}>{botaoTxt}</button>
+        {botao2 && <button className="adm-btn ghost" onClick={botao2}>{botao2Txt}</button>}
+      </div>
     </div>
   );
 }
