@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, Plus, X, DollarSign,
+  ShieldCheck, Building2, Users, Ban, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Settings, Pencil, Eye, Send,
   ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText,
 } from "lucide-react";
@@ -291,7 +291,6 @@ export default function Admin() {
           ) : (
           <>
           {demo && <div className="adm-demo"><Eye size={14} /> Modo demonstração — dados de exemplo (no site no ar aparecem os clientes reais).</div>}
-          <div className="adm-eyebrow"><ShieldCheck size={15} /> Painel Super Admin · Minhas Métricas</div>
 
           {aba === "visao" && (
             <>
@@ -352,12 +351,7 @@ export default function Admin() {
                         </td>
                         <td>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            <button className="adm-btn sm ghost" onClick={() => abrirEdicao(e)}><Pencil size={13} /> Editar</button>
                             <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => reenviarAcesso(e)}><Send size={13} /> Reenviar acesso</button>
-                            {e.dono_id && (e.acessoCortado
-                              ? <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => acao("restaurar", { userId: e.dono_id! })}><RotateCcw size={13} /> Restaurar</button>
-                              : <button className="adm-btn sm warn" disabled={!!busy} onClick={() => acao("cortar", { userId: e.dono_id! }, `Cortar o acesso de "${e.nome}"?`)}><Ban size={13} /> Cortar</button>)}
-                            <button className="adm-btn sm danger" disabled={!!busy} onClick={() => acao("excluir", { empresaId: e.id }, `EXCLUIR a empresa "${e.nome}" e TODOS os dados? Não pode ser desfeito.`)}><Trash2 size={13} /> Excluir</button>
                           </div>
                         </td>
                       </tr>
