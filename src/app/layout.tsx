@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Minha Empresa — Gestão financeira",
+  title: "Minhas Métricas — Gestão financeira",
   description:
     "A gestão da sua empresa num app: dashboards, fluxo de caixa, projeção, clientes, equipe e relatórios.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Minha Empresa", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Minhas Métricas", statusBarStyle: "black-translucent" },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
 

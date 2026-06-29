@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
+  ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Settings, Pencil, Eye, Send,
   ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText,
 } from "lucide-react";
@@ -281,8 +281,6 @@ export default function Admin() {
             <button onClick={() => window.open("/gerarproposta", "_blank", "noopener")}><FileText size={18} /> Gerar proposta</button>
           </nav>
           <div className="adm-side-foot">
-            <button onClick={() => router.push("/minhasmetricas")}><LayoutDashboard size={15} /> Meu painel</button>
-            <button onClick={carregar}><RefreshCw size={15} /> Atualizar</button>
             <button onClick={entrarComOutra}><LogOut size={15} /> Sair</button>
           </div>
         </aside>
