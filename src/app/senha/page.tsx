@@ -46,7 +46,8 @@ export default function SenhaPage() {
     setCarregando(true);
     try {
       const { error } = await supabase!.auth.updateUser({ password: senha });
-      if (error) throw error;
+      // Permite manter a mesma senha (o Supabase bloqueia por padrão) — tratamos como sucesso.
+      if (error && !/same.?password|different from the old/i.test(`${error.code || ""} ${error.message || ""}`)) throw error;
       setMsg("✅ Senha criada! Redirecionando para o login…");
       await supabase!.auth.signOut();
       setTimeout(() => router.push(slug ? `/${slug}/login` : "/login"), 1500);
