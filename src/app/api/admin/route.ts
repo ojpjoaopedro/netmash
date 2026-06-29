@@ -5,8 +5,12 @@ export const runtime = "nodejs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_KEY;
-// E-mails dos super admins (separados por vírgula). Ex.: SUPER_ADMINS="voce@email.com,socio@email.com"
-const SUPERS = (process.env.SUPER_ADMINS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+// Super admin embutido + extras via env SUPER_ADMINS="email1,email2"
+const SUPERS_PADRAO = ["minhasmetricas@gmail.com"];
+const SUPERS = [...new Set([
+  ...SUPERS_PADRAO,
+  ...(process.env.SUPER_ADMINS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
+])];
 
 function svc(): SupabaseClient | null {
   if (!url || !serviceKey) return null;
