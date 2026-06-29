@@ -2,9 +2,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
+  ShieldCheck, Building2, Users, Ban, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Settings, Crown, User, Pencil, Eye,
-  ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette,
+  ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette, Send, FileText,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, brl } from "@/lib/format";
@@ -164,6 +164,29 @@ export default function Admin() {
     await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "empresa-cor", empresaId, cor }) });
     setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === empresaId ? { ...emp, cor } : emp) } : d);
   }
+  async function salvarDados(empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; responsavel?: string; email?: string; logo?: string }) {
+    const aplicar = (emp: Empresa): Empresa => ({
+      ...emp,
+      ...(patch.nomeEmpresa !== undefined ? { nome: patch.nomeEmpresa } : {}),
+      ...(patch.cnpj !== undefined ? { cnpj: patch.cnpj || null } : {}),
+      ...(patch.segmento !== undefined ? { segmento: patch.segmento || null } : {}),
+      ...(patch.logo ? { logo_url: patch.logo } : {}),
+      dono: emp.dono ? { ...emp.dono, ...(patch.responsavel !== undefined ? { nome: patch.responsavel || null } : {}), ...(patch.email ? { email: patch.email } : {}) } : emp.dono,
+    });
+    if (!demo && supabase) {
+      await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "empresa-dados", empresaId, ...patch }) });
+    }
+    setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === empresaId ? aplicar(emp) : emp) } : d);
+  }
+  async function reenviarAcesso(e: Empresa) {
+    if (!e.dono?.email) { window.alert("Essa empresa ainda não tem e-mail de responsável."); return; }
+    const linkSlug = e.slug ? ` e o link minhasmetricas.com/${e.slug}` : "";
+    if (demo) { window.alert(`(Demonstração) E-mail de acesso reenviado para ${e.dono.email}${linkSlug}.`); return; }
+    setBusy("reenviar-" + e.id);
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "reenviar", empresaId: e.id }) });
+    setBusy(null);
+    window.alert(res.ok ? `Acesso reenviado para ${e.dono.email}.` : "Não consegui reenviar o acesso agora.");
+  }
   async function entrarComOutra() { if (supabase) await supabase.auth.signOut(); router.push("/login"); }
 
   async function tokenH() { const { data: sess } = await supabase!.auth.getSession(); return { Authorization: `Bearer ${sess.session?.access_token}` }; }
@@ -201,7 +224,7 @@ export default function Admin() {
 
   if (estado === "carregando") return <Casca><div className="spin" /></Casca>;
   if (estado === "semlogin") return <Casca><Aviso titulo="Faça login" texto="Entre com a conta de Super Admin para acessar o painel." botao={() => router.push("/login")} botaoTxt="Ir para o login" /></Casca>;
-  if (estado === "negado") return <Casca><Aviso titulo="Acesso restrito 🔒" texto="Você está logado, mas esta área é só para Super Admin. Entre com a conta de Super Admin." botao={entrarComOutra} botaoTxt="Entrar com outra conta" botao2={() => router.push("/")} botao2Txt="Voltar ao painel" /></Casca>;
+  if (estado === "negado") return <Casca><Aviso titulo="Acesso restrito 🔒" texto="Você está logado, mas esta área é só para Super Admin. Entre com a conta de Super Admin." botao={entrarComOutra} botaoTxt="Entrar com outra conta" botao2={() => router.push("/minhasmetricas")} botao2Txt="Voltar ao painel" /></Casca>;
   if (estado === "erro") return <Casca><Aviso titulo="Ops" texto="Não consegui carregar. Tente novamente em instantes." botao={carregar} botaoTxt="Tentar de novo" botao2={entrarComOutra} botao2Txt="Entrar com outra conta" /></Casca>;
 
   const t = data?.totais;
@@ -233,9 +256,10 @@ export default function Admin() {
             {NAV.map(({ k, label, Icon }) => (
               <button key={k} className={aba === k ? "on" : ""} onClick={() => setAba(k)}><Icon size={18} /> {label}</button>
             ))}
+            <button onClick={() => window.open("/gerarproposta", "_blank", "noopener")}><FileText size={18} /> Gerar proposta</button>
           </nav>
           <div className="adm-side-foot">
-            <button onClick={() => router.push("/")}><LayoutDashboard size={15} /> Meu painel</button>
+            <button onClick={() => router.push("/minhasmetricas")}><LayoutDashboard size={15} /> Meu painel</button>
             <button onClick={carregar}><RefreshCw size={15} /> Atualizar</button>
             <button onClick={entrarComOutra}><LogOut size={15} /> Sair</button>
           </div>
@@ -243,7 +267,7 @@ export default function Admin() {
 
         <main className="adm-main">
           {detalhe ? (
-            <DetalheEmpresa e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onAcao={acao} onSalvarCor={salvarCor} busy={busy} />
+            <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onSalvarCor={salvarCor} onSalvarDados={salvarDados} />
           ) : (
           <>
           {demo && <div className="adm-demo"><Eye size={14} /> Modo demonstração — dados de exemplo (no site no ar aparecem os clientes reais).</div>}
@@ -281,30 +305,40 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>Dono</th><th>Plano</th><th>Criada</th><th className="num">Lanç.</th><th className="num">Clientes</th><th className="num">Equipe</th><th>Acesso</th><th>Ações</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th className="num">Equipe</th><th style={{ textAlign: "center" }}>Acesso</th><th>Ações</th></tr></thead>
                   <tbody>
                     {data?.empresas.map((e) => (
                       <tr key={e.id}>
-                        <td><b className="adm-link" onClick={() => setDetalheId(e.id)} title="Ver detalhes">{e.nome}</b>{e.slug ? <div className="adm-sub"><a href={`/${e.slug}`} target="_blank" rel="noopener" style={{ color: "#1AADE2" }}>/{e.slug}</a></div> : (e.segmento && <div className="adm-sub">{e.segmento}</div>)}</td>
+                        <td>
+                          <div className="adm-emp">
+                            <div className="adm-emp-logo">{e.logo_url ? <img src={e.logo_url} alt="" /> : <span>{(e.nome || "?").trim().charAt(0).toUpperCase()}</span>}</div>
+                            <b className="adm-link" onClick={() => setDetalheId(e.id)} title="Ver detalhes">{e.nome}</b>
+                          </div>
+                        </td>
                         <td>{e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}</td>
                         <td>{e.plano ? <><div>{e.plano}</div>{e.valor > 0 && <div className="adm-sub">{brl(e.valor)}</div>}</> : <span className="adm-sub">—</span>}</td>
                         <td className="adm-sub">{dataBR(e.criado_em)}</td>
-                        <td className="num">{e.nLanc}</td>
-                        <td className="num">{e.nCli}</td>
                         <td className="num">{e.nFunc}</td>
-                        <td>{e.acessoCortado ? <span className="adm-badge cortado">Cortado</span> : <span className="adm-badge ativo">Ativo</span>}</td>
+                        <td style={{ textAlign: "center" }}>
+                          <button
+                            type="button"
+                            className={"adm-switch" + (e.acessoCortado ? "" : " on")}
+                            disabled={!e.dono_id || !!busy}
+                            title={e.acessoCortado ? "Ativar acesso" : "Desativar acesso"}
+                            onClick={() => e.dono_id && acao(e.acessoCortado ? "restaurar" : "cortar", { userId: e.dono_id })}
+                          >
+                            <span className="adm-switch-knob" />
+                          </button>
+                        </td>
                         <td>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            <button className="adm-btn sm ghost" onClick={() => abrirEdicao(e)}><Pencil size={13} /> Editar</button>
-                            {e.dono_id && (e.acessoCortado
-                              ? <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => acao("restaurar", { userId: e.dono_id! })}><RotateCcw size={13} /> Restaurar</button>
-                              : <button className="adm-btn sm warn" disabled={!!busy} onClick={() => acao("cortar", { userId: e.dono_id! }, `Cortar o acesso de "${e.nome}"?`)}><Ban size={13} /> Cortar</button>)}
+                            <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => reenviarAcesso(e)}><Send size={13} /> Reenviar acesso</button>
                             <button className="adm-btn sm danger" disabled={!!busy} onClick={() => acao("excluir", { empresaId: e.id }, `EXCLUIR a empresa "${e.nome}" e TODOS os dados? Não pode ser desfeito.`)}><Trash2 size={13} /> Excluir</button>
                           </div>
                         </td>
                       </tr>
                     ))}
-                    {!data?.empresas.length && <tr><td colSpan={9} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={7} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -458,13 +492,12 @@ function Aviso({ titulo, texto, botao, botaoTxt, botao2, botao2Txt }: { titulo: 
 
 const COR_PRESETS = ["#1AADE2", "#E11D48", "#16A34A", "#7C3AED", "#F59E0B", "#0EA5E9", "#EC4899", "#0F172A"];
 
-function DetalheEmpresa({ e, onBack, onEditar, onAcao, onSalvarCor, busy }: {
+function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados }: {
   e: Empresa;
   onBack: () => void;
   onEditar: (e: Empresa) => void;
-  onAcao: (action: string, body: Record<string, string>, confirmar?: string) => void;
   onSalvarCor: (empresaId: string, cor: string) => Promise<void> | void;
-  busy: string | null;
+  onSalvarDados: (empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; responsavel?: string; email?: string; logo?: string }) => Promise<void> | void;
 }) {
   const inicial = (e.nome || "?").trim().charAt(0).toUpperCase();
   const criado = e.criado_em ? new Date(e.criado_em) : null;
@@ -475,6 +508,21 @@ function DetalheEmpresa({ e, onBack, onEditar, onAcao, onSalvarCor, busy }: {
   const [corSalva, setCorSalva] = useState(false);
   const mudarCor = (c: string) => { setCor(c.toUpperCase()); setCorSalva(false); };
   async function salvarCorClick() { setSalvandoCor(true); await onSalvarCor(e.id, cor); setSalvandoCor(false); setCorSalva(true); }
+
+  // Edição inline dos dados cadastrais.
+  const [dados, setDados] = useState({ nome: e.nome, cnpj: e.cnpj || "", segmento: e.segmento || "", responsavel: e.dono?.nome || "", email: e.dono?.email || "" });
+  const [salvandoDados, setSalvandoDados] = useState(false);
+  const [dadosSalvos, setDadosSalvos] = useState(false);
+  const setD = (k: keyof typeof dados, v: string) => { setDados((d) => ({ ...d, [k]: v })); setDadosSalvos(false); };
+  const dirty = dados.nome !== e.nome || dados.cnpj !== (e.cnpj || "") || dados.segmento !== (e.segmento || "") || dados.responsavel !== (e.dono?.nome || "") || dados.email !== (e.dono?.email || "");
+  async function salvarDadosClick() {
+    setSalvandoDados(true);
+    await onSalvarDados(e.id, { nomeEmpresa: dados.nome, cnpj: dados.cnpj, segmento: dados.segmento, responsavel: dados.responsavel, email: dados.email });
+    setSalvandoDados(false); setDadosSalvos(true);
+  }
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  function escolherLogo(file: File) { const r = new FileReader(); r.onload = () => { const url = String(r.result); setLogoPreview(url); onSalvarDados(e.id, { logo: url }); }; r.readAsDataURL(file); }
+  const logoMostrar = logoPreview || e.logo_url;
   return (
     <div className="adm-det">
       <button className="adm-det-back" onClick={onBack}><ArrowLeft size={16} /> Voltar para a lista</button>
@@ -488,26 +536,22 @@ function DetalheEmpresa({ e, onBack, onEditar, onAcao, onSalvarCor, busy }: {
             {e.slug && <a href={`/${e.slug}`} target="_blank" rel="noopener" className="adm-det-slug"><ExternalLink size={13} /> minhasmetricas.com/{e.slug}</a>}
           </div>
         </div>
-        <div className="adm-det-actions">
-          <button className="adm-btn sm ghost" onClick={() => onEditar(e)}><Pencil size={14} /> Editar dados</button>
-          {e.dono_id && (e.acessoCortado
-            ? <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => onAcao("restaurar", { userId: e.dono_id! })}><RotateCcw size={14} /> Restaurar</button>
-            : <button className="adm-btn sm warn" disabled={!!busy} onClick={() => onAcao("cortar", { userId: e.dono_id! }, `Bloquear o acesso de "${e.nome}"?`)}><Ban size={14} /> Bloquear acesso</button>)}
-          <button className="adm-btn sm danger" disabled={!!busy} onClick={() => onAcao("excluir", { empresaId: e.id }, `EXCLUIR a empresa "${e.nome}" e TODOS os dados? Não pode ser desfeito.`)}><Trash2 size={14} /> Excluir</button>
-        </div>
       </div>
 
       <div className="adm-det-grid">
         <div className="adm-det-card">
           <h4><Building2 size={15} /> Dados cadastrais</h4>
-          <dl>
-            <div><dt>Nome da empresa</dt><dd>{e.nome}</dd></div>
-            <div><dt>CNPJ</dt><dd>{e.cnpj || "—"}</dd></div>
-            <div><dt>Segmento</dt><dd>{e.segmento || "—"}</dd></div>
-            <div><dt>Responsável</dt><dd>{e.dono?.nome || "—"}</dd></div>
-            <div><dt>E-mail</dt><dd>{e.dono?.email || "—"}</dd></div>
-            <div><dt>Cadastrado em</dt><dd>{dataBR(e.criado_em)}</dd></div>
-          </dl>
+          <div className="adm-det-form">
+            <label className="adm-det-f"><span>Nome da empresa</span><input value={dados.nome} onChange={(ev) => setD("nome", ev.target.value)} /></label>
+            <label className="adm-det-f"><span>CNPJ</span><input value={dados.cnpj} onChange={(ev) => setD("cnpj", mascaraCnpj(ev.target.value))} placeholder="00.000.000/0000-00" inputMode="numeric" /></label>
+            <label className="adm-det-f"><span>Segmento</span><input value={dados.segmento} onChange={(ev) => setD("segmento", ev.target.value)} placeholder="Ex: Educação" /></label>
+            <label className="adm-det-f"><span>Responsável</span><input value={dados.responsavel} onChange={(ev) => setD("responsavel", ev.target.value)} /></label>
+            <label className="adm-det-f"><span>E-mail</span><input type="email" value={dados.email} onChange={(ev) => setD("email", ev.target.value)} /></label>
+            <div className="adm-det-f"><span>Cadastrado em</span><div className="adm-det-ro">{dataBR(e.criado_em)}</div></div>
+          </div>
+          <button className="adm-btn sm" style={{ marginTop: 16 }} disabled={!dirty || salvandoDados} onClick={salvarDadosClick}>
+            {salvandoDados ? "Salvando…" : dadosSalvos && !dirty ? "✓ Salvo" : "Salvar alterações"}
+          </button>
         </div>
 
         <div className="adm-det-card">
@@ -518,6 +562,7 @@ function DetalheEmpresa({ e, onBack, onEditar, onAcao, onSalvarCor, busy }: {
             <div><dt>Cliente há</dt><dd>{desde}</dd></div>
             <div><dt><Receipt size={13} style={{ verticalAlign: "-2px", marginRight: 5 }} />Pagamentos efetuados</dt><dd className="adm-sub">em breve</dd></div>
           </dl>
+          <button className="adm-btn sm ghost" style={{ marginTop: 16 }} onClick={() => onEditar(e)}><Pencil size={13} /> Editar plano</button>
         </div>
 
         <div className="adm-det-card">
@@ -545,9 +590,12 @@ function DetalheEmpresa({ e, onBack, onEditar, onAcao, onSalvarCor, busy }: {
         <div className="adm-det-card">
           <h4><ImageIcon size={15} /> Logomarca</h4>
           <div className="adm-det-logobox">
-            {e.logo_url ? <img src={e.logo_url} alt="Logo da empresa" /> : <span className="adm-sub">Nenhuma logo enviada ainda</span>}
+            {logoMostrar ? <img src={logoMostrar} alt="Logo da empresa" /> : <span className="adm-sub">Nenhuma logo enviada ainda</span>}
           </div>
-          <button className="adm-btn sm ghost" style={{ marginTop: 12 }} onClick={() => onEditar(e)}><Pencil size={13} /> {e.logo_url ? "Trocar logo" : "Enviar logo"}</button>
+          <label className="adm-btn sm ghost" style={{ marginTop: 12, cursor: "pointer" }}>
+            <ImageIcon size={13} /> {logoMostrar ? "Trocar logo" : "Enviar logo"}
+            <input type="file" accept="image/*" style={{ display: "none" }} onChange={(ev) => { const f = ev.target.files?.[0]; if (f) escolherLogo(f); }} />
+          </label>
         </div>
       </div>
     </div>
@@ -655,6 +703,21 @@ const CSS = `
 .adm-theme-fab:active{transform:translateY(0)}
 @media(max-width:820px){.adm-theme-fab{top:10px;right:12px;width:34px;height:34px}}
 
+/* ===== Logo + nome na tabela de empresas ===== */
+.adm-emp{display:flex;align-items:center;gap:11px}
+.adm-emp-logo{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;overflow:hidden;
+  background:#16242b;border:1px solid #233a44;color:#1AADE2;font-weight:800;font-size:15px}
+.adm-emp-logo img{width:100%;height:100%;object-fit:contain;background:#fff}
+
+/* ===== Botão deslizante (liga/desliga acesso) — estilo celular ===== */
+.adm-switch{position:relative;display:inline-block;width:46px;height:26px;border-radius:99px;background:#3a3a3a;border:0;
+  cursor:pointer;transition:background .18s;flex-shrink:0;padding:0;vertical-align:middle}
+.adm-switch.on{background:#10B981}
+.adm-switch:disabled{opacity:.5;cursor:not-allowed}
+.adm-switch-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;
+  transition:left .18s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.adm-switch.on .adm-switch-knob{left:23px}
+
 /* ===== Linhas clicáveis + banner de demo ===== */
 .adm-clickrow{cursor:pointer;transition:background .12s}
 .adm-clickrow:hover td{background:#161616}
@@ -694,6 +757,12 @@ const CSS = `
 .adm-det-stats span{font-size:11.5px;color:#9aa0a6}
 .adm-det-logobox{min-height:84px;border:1px dashed #2a2a2a;border-radius:12px;display:grid;place-items:center;padding:14px;background:#0f0f0f}
 .adm-det-logobox img{max-height:72px;max-width:100%;object-fit:contain}
+.adm-det-form{display:flex;flex-direction:column;gap:11px}
+.adm-det-f{display:flex;flex-direction:column;gap:5px}
+.adm-det-f span{font-size:12px;color:#9aa0a6;font-weight:600}
+.adm-det-f input{background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit}
+.adm-det-f input:focus{outline:0;border-color:#1AADE2}
+.adm-det-ro{font-size:14px;font-weight:600;padding:9px 0;color:#cfd3d8}
 .adm-cor-row{display:flex;gap:10px;align-items:center}
 .adm-cor-pick{width:48px;height:42px;padding:3px;border:1px solid #2a2a2a;border-radius:10px;background:#0f0f0f;cursor:pointer;flex-shrink:0}
 .adm-cor-pick::-webkit-color-swatch{border:0;border-radius:6px}
@@ -721,6 +790,11 @@ body.theme-light .adm-det-logo{background:linear-gradient(135deg,#e8f6fc,#f4fbfe
 body.theme-light .adm-cor-pick,
 body.theme-light .adm-cor-hex,
 body.theme-light .adm-cor-prev{background:#fafafa;border-color:rgba(0,0,0,.14);color:#18181b}
+body.theme-light .adm-det-f input{background:#fff;border-color:rgba(0,0,0,.14);color:#18181b}
+body.theme-light .adm-det-ro{color:#27272a}
+body.theme-light .adm-emp-logo{background:#e8f6fc;border-color:rgba(26,173,226,.22)}
+body.theme-light .adm-switch{background:#cbd5e1}
+body.theme-light .adm-switch.on{background:#10B981}
 body.theme-light .adm-theme-fab{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.10);
   color:#52525b;box-shadow:0 6px 16px -8px rgba(15,23,42,.18)}
 body.theme-light .adm-theme-fab:hover{color:#1AADE2;border-color:#1AADE2}

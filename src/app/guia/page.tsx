@@ -64,7 +64,7 @@ export default function Guia() {
 
       <div className="gu-top">
         <span className="gu-logo">Minha Empresa</span>
-        <a className="gu-skip" href="/">Pular ✕</a>
+        <a className="gu-skip" href="/minhasmetricas">Pular ✕</a>
       </div>
 
       <div className="gu-viewport">
@@ -80,7 +80,7 @@ export default function Guia() {
         </div>
         {i < N - 1
           ? <button className="gu-next" onClick={next}>Próximo →</button>
-          : <a className="gu-next" href="/">Entrar →</a>}
+          : <a className="gu-next" href="/minhasmetricas">Entrar →</a>}
       </div>
     </div>
   );
@@ -165,7 +165,7 @@ function render(s: Slide) {
       <div className="gu-emoji">🚀</div>
       <h2>Tudo pronto!</h2>
       <p>Entre no seu painel e configure sua empresa. Em poucos minutos você já vê o resultado do seu negócio.</p>
-      <a className="gu-cta" href="/">Entrar no painel <ArrowRight size={18} /></a>
+      <a className="gu-cta" href="/minhasmetricas">Entrar no painel <ArrowRight size={18} /></a>
     </>
   );
 }
