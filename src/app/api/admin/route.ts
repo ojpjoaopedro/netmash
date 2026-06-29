@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     action?: string; userId?: string; empresaId?: string;
     nomeEmpresa?: string; responsavel?: string; email?: string; senha?: string;
     cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string;
-    nome?: string; areas?: string[];
+    nome?: string; areas?: string[]; segmento?: string; saldoInicial?: number | string;
   };
   const { action, userId, empresaId } = body;
 
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
       await s.from("empresas").update({
         nome: nomeEmpresa, cnpj: body.cnpj || null, plano,
         valor, slug: slugFinal, responsavel: body.responsavel || null,
-        logo_url: body.logo || null,
+        logo_url: body.logo || null, segmento: body.segmento || null, saldo_inicial: Number(body.saldoInicial) || 0,
       }).eq("id", emp.id);
     }
     return NextResponse.json({ ok: true, slug: slugFinal });
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     const qa = Math.max(0, Math.floor(Number(body.qtdAcessos) || 0));
     const valor = qs * 79.9 + qa * 39.9;
     const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
-    const patch: Record<string, unknown> = { nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null };
+    const patch: Record<string, unknown> = { nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null, segmento: body.segmento || null, saldo_inicial: Number(body.saldoInicial) || 0 };
     if (body.logo) patch.logo_url = body.logo;
     await s.from("empresas").update(patch).eq("id", empresaId);
     const { data: e } = await s.from("empresas").select("dono_id").eq("id", empresaId).single();

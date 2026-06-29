@@ -15,7 +15,7 @@ type Empresa = {
   nLanc: number; nCli: number; nFunc: number;
 };
 type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number } };
-type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
+type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 function seatsDePlano(plano: string | null): { qs: number; qa: number } {
   const m = (plano || "").match(/(\d+)\s*Super Admin.*?(\d+)\s*Acesso/i);
@@ -64,11 +64,11 @@ export default function Admin() {
     setBusy(null);
     await carregar();
   }
-  function abrirCadastro() { setErroForm(""); setForm({ editId: null, nomeEmpresa: "", responsavel: "", email: "", senha: "", cnpj: "", qtdSuperadmins: "1", qtdAcessos: "0", logo: "", slug: "" }); }
+  function abrirCadastro() { setErroForm(""); setForm({ editId: null, nomeEmpresa: "", responsavel: "", email: "", senha: "", cnpj: "", segmento: "", saldoInicial: "0", qtdSuperadmins: "1", qtdAcessos: "0", logo: "", slug: "" }); }
   function abrirEdicao(e: Empresa) {
     setErroForm("");
     const { qs, qa } = seatsDePlano(e.plano);
-    setForm({ editId: e.id, nomeEmpresa: e.nome, responsavel: e.dono?.nome || "", email: e.dono?.email || "", senha: "", cnpj: e.cnpj || "", qtdSuperadmins: String(qs), qtdAcessos: String(qa), logo: "", slug: e.slug || "" });
+    setForm({ editId: e.id, nomeEmpresa: e.nome, responsavel: e.dono?.nome || "", email: e.dono?.email || "", senha: "", cnpj: e.cnpj || "", segmento: e.segmento || "", saldoInicial: String(e.saldo_inicial ?? 0), qtdSuperadmins: String(qs), qtdAcessos: String(qa), logo: "", slug: e.slug || "" });
   }
   function onLogo(file: File) { const r = new FileReader(); r.onload = () => setForm((f) => (f ? { ...f, logo: String(r.result) } : f)); r.readAsDataURL(file); }
   async function salvar(e: React.FormEvent) {
@@ -281,6 +281,8 @@ export default function Admin() {
             <div className="adm-grid2">
               <L label="Nome da empresa"><input value={form.nomeEmpresa} onChange={(ev) => setForm({ ...form, nomeEmpresa: ev.target.value })} required /></L>
               <L label="CNPJ (opcional)"><input value={form.cnpj} onChange={(ev) => setForm({ ...form, cnpj: ev.target.value })} /></L>
+              <L label="Segmento (opcional)"><input value={form.segmento} onChange={(ev) => setForm({ ...form, segmento: ev.target.value })} placeholder="Ex: Comércio" /></L>
+              <L label="Saldo inicial em caixa (R$)"><input type="number" step="0.01" value={form.saldoInicial} onChange={(ev) => setForm({ ...form, saldoInicial: ev.target.value })} /></L>
               <L label="Responsável"><input value={form.responsavel} onChange={(ev) => setForm({ ...form, responsavel: ev.target.value })} /></L>
               <L label="E-mail do responsável"><input type="email" value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} required /></L>
               <L label={form.editId ? "Nova senha (em branco = manter)" : "Senha de acesso"}><input type="text" value={form.senha} onChange={(ev) => setForm({ ...form, senha: ev.target.value })} required={!form.editId} minLength={6} placeholder={form.editId ? "deixe em branco p/ manter" : "mín. 6 caracteres"} /></L>
