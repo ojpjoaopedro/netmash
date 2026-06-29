@@ -69,6 +69,7 @@ export default function Admin() {
   const [novoAcesso, setNovoAcesso] = useState<{ nome: string; email: string; senha: string; areas: string[] }>({ nome: "", email: "", senha: "", areas: [] });
   const [salvAcesso, setSalvAcesso] = useState(false);
   const [erroAcesso, setErroAcesso] = useState("");
+  const [okAcesso, setOkAcesso] = useState("");
   const [precoForm, setPrecoForm] = useState<{ sa: string; ac: string } | null>(null);
   const [salvPreco, setSalvPreco] = useState(false);
   const [novo, setNovo] = useState<NovoCliente | null>(null);
@@ -185,12 +186,14 @@ export default function Admin() {
   }
   async function criarAcesso() {
     if (!supabase || !permEmpresa) return;
-    if (!novoAcesso.email || novoAcesso.senha.length < 6) { setErroAcesso("Informe e-mail e senha (mín. 6)."); return; }
-    setSalvAcesso(true); setErroAcesso("");
-    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-criar", empresaId: permEmpresa, ...novoAcesso }) });
+    if (!novoAcesso.email.includes("@")) { setErroAcesso("Informe o e-mail do colaborador."); return; }
+    setSalvAcesso(true); setErroAcesso(""); setOkAcesso("");
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-criar", empresaId: permEmpresa, nome: novoAcesso.nome, email: novoAcesso.email, areas: novoAcesso.areas }) });
     const j = await res.json().catch(() => ({}));
     setSalvAcesso(false);
     if (!res.ok) { setErroAcesso(j.error || "Não consegui criar."); return; }
+    setOkAcesso(`✅ Acesso criado! Enviamos um e-mail para ${novoAcesso.email} criar a senha.`);
+    setNovoAcesso({ nome: "", email: "", senha: "", areas: [] });
     await selecionarEmpresa(permEmpresa);
   }
   async function removerAcesso(userId: string) {
@@ -338,18 +341,16 @@ export default function Admin() {
                   <div className="adm-acbox">
                     <h3 style={{ marginTop: 0, marginBottom: 4, fontSize: 15.5, fontWeight: 700 }}>Dar acesso a um colaborador</h3>
                     {erroAcesso && <div className="adm-erro">{erroAcesso}</div>}
+                    {okAcesso && <div className="adm-ok">{okAcesso}</div>}
                     <L label="Nome"><input value={novoAcesso.nome} onChange={(ev) => setNovoAcesso({ ...novoAcesso, nome: ev.target.value })} placeholder="Nome do colaborador" /></L>
-                    <div className="adm-grid2">
-                      <L label="E-mail (login)"><input type="email" value={novoAcesso.email} onChange={(ev) => setNovoAcesso({ ...novoAcesso, email: ev.target.value })} placeholder="email@empresa.com" /></L>
-                      <L label="Senha"><input type="text" value={novoAcesso.senha} onChange={(ev) => setNovoAcesso({ ...novoAcesso, senha: ev.target.value })} placeholder="mín. 6 caracteres" /></L>
-                    </div>
+                    <L label="E-mail (login)"><input type="email" value={novoAcesso.email} onChange={(ev) => setNovoAcesso({ ...novoAcesso, email: ev.target.value })} placeholder="email@empresa.com" /></L>
                     <div className="adm-f"><span>O que ele pode acessar</span>
                       <div className="adm-areas">
                         {AREAS.map((a) => <button type="button" key={a.k} className={"adm-area" + (novoAcesso.areas.includes(a.k) ? " on" : "")} onClick={() => toggleArea(a.k)}>{novoAcesso.areas.includes(a.k) ? "✓ " : ""}{a.l}</button>)}
                       </div>
                     </div>
-                    <button className="adm-btn" style={{ marginTop: 14 }} disabled={salvAcesso} onClick={criarAcesso}>{salvAcesso ? "Criando…" : "Criar acesso"}</button>
-                    <p className="adm-sub" style={{ marginTop: 10 }}>O colaborador entra com esse e-mail e senha e vê só o que você marcar. O Dashboard fica visível para todos.</p>
+                    <button className="adm-btn" style={{ marginTop: 14 }} disabled={salvAcesso} onClick={criarAcesso}><Send size={14} /> {salvAcesso ? "Enviando…" : "Criar e enviar acesso"}</button>
+                    <p className="adm-sub" style={{ marginTop: 10 }}>O colaborador recebe um e-mail para <b>criar a própria senha</b> e vê só o que você marcar. O Dashboard fica visível para todos.</p>
                   </div>
 
                   <div className="adm-acbox">
@@ -637,6 +638,7 @@ const CSS = `
 .adm-f input{background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit}
 .adm-f input:focus{outline:0;border-color:#1AADE2}
 .adm-erro{background:#2a1212;border:1px solid #6b1f1f;color:#EF4444;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:6px}
+.adm-ok{background:#10331f;border:1px solid #1d5b32;color:#9bf0bd;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:6px}
 .adm-valor{margin-top:14px;background:#0f1a14;border:1px solid #1f3a2c;color:#10B981;border-radius:10px;padding:11px 14px;font-size:15px;font-weight:700}
 .adm-valor span{color:#9aa0a6;font-size:12px;font-weight:500}
 .adm-funhead{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
