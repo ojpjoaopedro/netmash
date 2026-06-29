@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Settings, Crown, User, Pencil, Sun, Moon,
+  LayoutDashboard, KeyRound, Settings, Crown, User, Pencil, Eye,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, brl } from "@/lib/format";
@@ -166,6 +166,14 @@ export default function Admin() {
   return (
     <div className="adm">
       <style>{CSS}</style>
+      <button
+        className="adm-theme-fab"
+        onClick={toggleTheme}
+        title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+        aria-label="Alternar tema claro/escuro"
+      >
+        <Eye size={17} />
+      </button>
       <div className="adm-shell">
         <aside className="adm-side">
           <div className="adm-brand"><ShieldCheck size={18} /> Super Admin</div>
@@ -175,7 +183,6 @@ export default function Admin() {
             ))}
           </nav>
           <div className="adm-side-foot">
-            <button onClick={toggleTheme}>{theme === "dark" ? <Sun size={15} /> : <Moon size={15} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
             <button onClick={() => router.push("/")}><LayoutDashboard size={15} /> Meu painel</button>
             <button onClick={carregar}><RefreshCw size={15} /> Atualizar</button>
             <button onClick={entrarComOutra}><LogOut size={15} /> Sair</button>
@@ -483,8 +490,19 @@ const CSS = `
   .adm-acgrid{grid-template-columns:1fr}
 }
 
+/* ===== Botão flutuante de tema (olho) no canto superior direito ===== */
+.adm-theme-fab{position:fixed;top:16px;right:20px;z-index:60;width:38px;height:38px;border-radius:11px;
+  display:grid;place-items:center;cursor:pointer;background:rgba(22,22,22,.85);backdrop-filter:blur(8px);
+  border:1px solid #2a2a2a;color:#cfd3d8;transition:.18s ease;box-shadow:0 6px 18px -8px rgba(0,0,0,.55)}
+.adm-theme-fab:hover{color:#1AADE2;border-color:#1AADE2;transform:translateY(-1px)}
+.adm-theme-fab:active{transform:translateY(0)}
+@media(max-width:820px){.adm-theme-fab{top:10px;right:12px;width:34px;height:34px}}
+
 /* ===== TEMA CLARO (a barra lateral continua escura, igual ao Hub) ===== */
 body.theme-light .adm{background:#FAFAFA;color:#18181b}
+body.theme-light .adm-theme-fab{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.10);
+  color:#52525b;box-shadow:0 6px 16px -8px rgba(15,23,42,.18)}
+body.theme-light .adm-theme-fab:hover{color:#1AADE2;border-color:#1AADE2}
 body.theme-light .adm-main h1{color:#18181b}
 body.theme-light .adm-card{background:#fff;border-color:rgba(0,0,0,.08)}
 body.theme-light .adm-card small,
