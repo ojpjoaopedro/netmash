@@ -12,7 +12,10 @@ type Empresa = {
   nLanc: number; nCli: number; nFunc: number;
 };
 type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number } };
-type Form = { nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; plano: string; valor: string; logo: string; slug: string };
+type Form = { nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
+
+const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
+const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
 type Estado = "carregando" | "semlogin" | "negado" | "ok" | "erro";
 
 export default function Admin() {
@@ -53,7 +56,7 @@ export default function Admin() {
 
   function abrirCadastro() {
     setErroForm("");
-    setForm({ nomeEmpresa: "", responsavel: "", email: "", senha: "", cnpj: "", plano: "Mensal", valor: "", logo: "", slug: "" });
+    setForm({ nomeEmpresa: "", responsavel: "", email: "", senha: "", cnpj: "", qtdSuperadmins: "1", qtdAcessos: "0", logo: "", slug: "" });
   }
   function onLogo(file: File) {
     const r = new FileReader();
@@ -149,14 +152,15 @@ export default function Admin() {
               <L label="Responsável"><input value={form.responsavel} onChange={(ev) => setForm({ ...form, responsavel: ev.target.value })} /></L>
               <L label="E-mail do responsável"><input type="email" value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} required /></L>
               <L label="Senha de acesso"><input type="text" value={form.senha} onChange={(ev) => setForm({ ...form, senha: ev.target.value })} required minLength={6} placeholder="mín. 6 caracteres" /></L>
-              <L label="Plano"><input value={form.plano} onChange={(ev) => setForm({ ...form, plano: ev.target.value })} placeholder="Mensal / Anual / Único" /></L>
-              <L label="Valor (R$)"><input type="number" step="0.01" value={form.valor} onChange={(ev) => setForm({ ...form, valor: ev.target.value })} placeholder="0,00" /></L>
+              <L label="Nº de Super Admins (administradores)"><input type="number" min="1" value={form.qtdSuperadmins} onChange={(ev) => setForm({ ...form, qtdSuperadmins: ev.target.value })} /></L>
+              <L label="Nº de Acessos (funcionários)"><input type="number" min="0" value={form.qtdAcessos} onChange={(ev) => setForm({ ...form, qtdAcessos: ev.target.value })} /></L>
               <L label="Endereço da página (slug)"><input value={form.slug} onChange={(ev) => setForm({ ...form, slug: ev.target.value })} placeholder="auto pelo nome" /></L>
             </div>
+            <div className="adm-valor">Plano: <b>{brl((Number(form.qtdSuperadmins) || 0) * PRECO_SUPERADMIN + (Number(form.qtdAcessos) || 0) * PRECO_ACESSO)}/mês</b> <span>(Super Admin R$ {PRECO_SUPERADMIN.toFixed(2).replace(".", ",")} · Acesso R$ {PRECO_ACESSO.toFixed(2).replace(".", ",")} cada)</span></div>
             <L label="Logo da empresa"><input type="file" accept="image/*" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) onLogo(f); }} /></L>
             {form.logo && <img src={form.logo} alt="" style={{ maxHeight: 48, marginTop: 8, objectFit: "contain" }} />}
             <button className="adm-btn" type="submit" disabled={salvando} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvando ? "Cadastrando…" : "Cadastrar cliente"}</button>
-            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>Cria a empresa + o acesso do responsável + a página <b>minhasmetricas.com/{form.slug || "(nome)"}</b>.</p>
+            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>O responsável é o 1º <b>Super Admin</b>. Os <b>Acessos</b> (funcionários) são adicionados depois em “Acessos”, com permissões por área. Cria também a página <b>minhasmetricas.com/{form.slug || "(nome)"}</b>.</p>
           </form>
         </div>
       )}
@@ -229,5 +233,7 @@ const CSS = `
 .adm-f input{background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit}
 .adm-f input:focus{outline:0;border-color:#1AADE2}
 .adm-erro{background:#2a1212;border:1px solid #6b1f1f;color:#EF4444;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:6px}
+.adm-valor{margin-top:14px;background:#0f1a14;border:1px solid #1f3a2c;color:#10B981;border-radius:10px;padding:11px 14px;font-size:15px;font-weight:700}
+.adm-valor span{color:#9aa0a6;font-size:12px;font-weight:500}
 @media(max-width:760px){.adm-kpis{grid-template-columns:repeat(2,1fr)}.adm-grid2{grid-template-columns:1fr}}
 `;

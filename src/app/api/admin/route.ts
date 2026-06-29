@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as {
     action?: string; userId?: string; empresaId?: string;
     nomeEmpresa?: string; responsavel?: string; email?: string; senha?: string;
-    cnpj?: string; plano?: string; valor?: number | string; logo?: string; slug?: string;
+    cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string;
   };
   const { action, userId, empresaId } = body;
 
@@ -124,11 +124,15 @@ export async function POST(req: NextRequest) {
       const msg = /already.*registered|exists/i.test(error?.message || "") ? "Este e-mail já tem conta." : (error?.message || "Não consegui criar o acesso.");
       return NextResponse.json({ error: msg }, { status: 400 });
     }
+    const qs = Math.max(1, Math.floor(Number(body.qtdSuperadmins) || 1));
+    const qa = Math.max(0, Math.floor(Number(body.qtdAcessos) || 0));
+    const valor = qs * 79.9 + qa * 39.9;
+    const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
     const { data: emp } = await s.from("empresas").select("id").eq("dono_id", novo.user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
     if (emp?.id) {
       await s.from("empresas").update({
-        nome: nomeEmpresa, cnpj: body.cnpj || null, plano: body.plano || null,
-        valor: Number(body.valor) || 0, slug: slugFinal, responsavel: body.responsavel || null,
+        nome: nomeEmpresa, cnpj: body.cnpj || null, plano,
+        valor, slug: slugFinal, responsavel: body.responsavel || null,
         logo_url: body.logo || null,
       }).eq("id", emp.id);
     }
