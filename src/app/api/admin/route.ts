@@ -45,6 +45,13 @@ export async function GET(req: NextRequest) {
   const su = await superDoCaller(req, s);
   if (!su) return NextResponse.json({ error: "Acesso restrito (Super Admin)." }, { status: 403 });
 
+  // Lista os acessos (equipe) de uma empresa específica.
+  const empresaIdQ = new URL(req.url).searchParams.get("empresaId");
+  if (empresaIdQ) {
+    const { data } = await s.from("perfis").select("id,nome,email,papel,areas").eq("empresa_id", empresaIdQ).order("papel");
+    return NextResponse.json({ acessos: data ?? [] });
+  }
+
   const [emp, per, lan, cli, fun] = await Promise.all([
     s.from("empresas").select("*"),
     s.from("perfis").select("id,empresa_id,nome,email,papel"),
@@ -104,6 +111,7 @@ export async function POST(req: NextRequest) {
     action?: string; userId?: string; empresaId?: string;
     nomeEmpresa?: string; responsavel?: string; email?: string; senha?: string;
     cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string;
+    nome?: string; areas?: string[];
   };
   const { action, userId, empresaId } = body;
 
@@ -163,6 +171,30 @@ export async function POST(req: NextRequest) {
       if (body.senha && body.senha.length >= 6) upd.password = body.senha;
       if (Object.keys(upd).length) { try { await s.auth.admin.updateUserById(donoId, upd); } catch { /* e-mail já em uso, etc. */ } }
     }
+    return NextResponse.json({ ok: true });
+  }
+
+  // Criar acesso (colaborador) numa empresa selecionada — feito pelo super admin.
+  if (action === "acesso-criar" && empresaId) {
+    const email = (body.email || "").trim().toLowerCase();
+    const senha = body.senha || "";
+    if (!email || senha.length < 6) return NextResponse.json({ error: "Informe e-mail e senha (mín. 6)." }, { status: 400 });
+    const { data: created, error } = await s.auth.admin.createUser({ email, password: senha, email_confirm: true, user_metadata: { nome: body.nome || email, empresa: "" } });
+    if (error || !created?.user) {
+      const msg = /already.*registered|exists/i.test(error?.message || "") ? "Este e-mail já tem conta." : (error?.message || "Não consegui criar o acesso.");
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+    const novoId = created.user.id;
+    await s.from("perfis").update({ empresa_id: empresaId, papel: "colaborador", areas: Array.isArray(body.areas) ? body.areas : [], nome: body.nome || email }).eq("id", novoId);
+    await s.from("empresas").delete().eq("dono_id", novoId); // remove a empresa órfã criada pelo gatilho
+    return NextResponse.json({ ok: true });
+  }
+  if (action === "acesso-areas" && userId) {
+    await s.from("perfis").update({ areas: Array.isArray(body.areas) ? body.areas : [] }).eq("id", userId);
+    return NextResponse.json({ ok: true });
+  }
+  if (action === "acesso-remover" && userId) {
+    await s.auth.admin.deleteUser(userId);
     return NextResponse.json({ ok: true });
   }
 

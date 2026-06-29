@@ -25,6 +25,8 @@ type Aba = "visao" | "empresas" | "permissoes" | "config";
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
+const AREAS = [{ k: "financas", l: "Finanças" }, { k: "saude", l: "Saúde do Cliente" }, { k: "comercial", l: "Comercial" }, { k: "marketing", l: "Marketing" }];
+type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null };
 
 export default function Admin() {
   const router = useRouter();
@@ -35,6 +37,11 @@ export default function Admin() {
   const [salvando, setSalvando] = useState(false);
   const [erroForm, setErroForm] = useState("");
   const [aba, setAba] = useState<Aba>("visao");
+  const [permEmpresa, setPermEmpresa] = useState("");
+  const [acessos, setAcessos] = useState<Acesso[] | null>(null);
+  const [novoAcesso, setNovoAcesso] = useState<{ nome: string; email: string; senha: string; areas: string[] }>({ nome: "", email: "", senha: "", areas: [] });
+  const [salvAcesso, setSalvAcesso] = useState(false);
+  const [erroAcesso, setErroAcesso] = useState("");
 
   const carregar = useCallback(async () => {
     if (!supabaseReady || !supabase) { setEstado("semlogin"); return; }
@@ -78,6 +85,32 @@ export default function Admin() {
   }
   async function entrarComOutra() { if (supabase) await supabase.auth.signOut(); router.push("/login"); }
 
+  async function tokenH() { const { data: sess } = await supabase!.auth.getSession(); return { Authorization: `Bearer ${sess.session?.access_token}` }; }
+  async function selecionarEmpresa(id: string) {
+    setPermEmpresa(id); setErroAcesso(""); setNovoAcesso({ nome: "", email: "", senha: "", areas: [] }); setAcessos(null);
+    if (!id || !supabase) return;
+    const res = await fetch(`/api/admin?empresaId=${id}`, { headers: await tokenH() });
+    setAcessos(res.ok ? (await res.json()).acessos : []);
+  }
+  async function criarAcesso() {
+    if (!supabase || !permEmpresa) return;
+    if (!novoAcesso.email || novoAcesso.senha.length < 6) { setErroAcesso("Informe e-mail e senha (mín. 6)."); return; }
+    setSalvAcesso(true); setErroAcesso("");
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-criar", empresaId: permEmpresa, ...novoAcesso }) });
+    const j = await res.json().catch(() => ({}));
+    setSalvAcesso(false);
+    if (!res.ok) { setErroAcesso(j.error || "Não consegui criar."); return; }
+    await selecionarEmpresa(permEmpresa);
+  }
+  async function removerAcesso(userId: string) {
+    if (!supabase || !window.confirm("Remover este acesso?")) return;
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-remover", userId }) });
+    await selecionarEmpresa(permEmpresa);
+  }
+  function toggleArea(k: string) {
+    setNovoAcesso((n) => ({ ...n, areas: n.areas.includes(k) ? n.areas.filter((x) => x !== k) : [...n.areas, k] }));
+  }
+
   if (estado === "carregando") return <Casca><div className="spin" /></Casca>;
   if (estado === "semlogin") return <Casca><Aviso titulo="Faça login" texto="Entre com a conta de Super Admin para acessar o painel." botao={() => router.push("/login")} botaoTxt="Ir para o login" /></Casca>;
   if (estado === "negado") return <Casca><Aviso titulo="Acesso restrito 🔒" texto="Você está logado, mas esta área é só para Super Admin. Entre com a conta de Super Admin." botao={entrarComOutra} botaoTxt="Entrar com outra conta" botao2={() => router.push("/")} botao2Txt="Voltar ao painel" /></Casca>;
@@ -87,7 +120,7 @@ export default function Admin() {
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "empresas", label: "Empresas", Icon: Building2 },
-    { k: "permissoes", label: "Permissões", Icon: KeyRound },
+    { k: "permissoes", label: "Equipe & Acessos", Icon: KeyRound },
     { k: "config", label: "Configurações", Icon: Settings },
   ];
 
@@ -175,16 +208,53 @@ export default function Admin() {
 
           {aba === "permissoes" && (
             <>
-              <h1>Permissões</h1>
-              <p className="adm-sub" style={{ marginTop: 6, maxWidth: 620 }}>Os níveis de acesso do sistema. As permissões por área de cada funcionário são definidas pelo administrador <b>dentro de cada empresa</b>, na seção “Acessos”.</p>
+              <h1>Equipe & Acessos</h1>
+              <p className="adm-sub" style={{ marginTop: 6, maxWidth: 640 }}>Como administrador geral, escolha a empresa e crie os logins da equipe, definindo o que cada um pode ver. O Dashboard fica visível para todos.</p>
+              <L label="Empresa">
+                <select className="adm-sel" value={permEmpresa} onChange={(ev) => selecionarEmpresa(ev.target.value)}>
+                  <option value="">— escolha a empresa —</option>
+                  {data?.empresas.map((e) => <option key={e.id} value={e.id}>{e.nome}{e.dono?.email ? ` (${e.dono.email})` : ""}</option>)}
+                </select>
+              </L>
+
+              {permEmpresa && (
+                <div className="adm-acgrid">
+                  <div className="adm-acbox">
+                    <h3 style={{ marginTop: 0, marginBottom: 4, fontSize: 15.5, fontWeight: 700 }}>Dar acesso a um colaborador</h3>
+                    {erroAcesso && <div className="adm-erro">{erroAcesso}</div>}
+                    <L label="Nome"><input value={novoAcesso.nome} onChange={(ev) => setNovoAcesso({ ...novoAcesso, nome: ev.target.value })} placeholder="Nome do colaborador" /></L>
+                    <div className="adm-grid2">
+                      <L label="E-mail (login)"><input type="email" value={novoAcesso.email} onChange={(ev) => setNovoAcesso({ ...novoAcesso, email: ev.target.value })} placeholder="email@empresa.com" /></L>
+                      <L label="Senha"><input type="text" value={novoAcesso.senha} onChange={(ev) => setNovoAcesso({ ...novoAcesso, senha: ev.target.value })} placeholder="mín. 6 caracteres" /></L>
+                    </div>
+                    <div className="adm-f"><span>O que ele pode acessar</span>
+                      <div className="adm-areas">
+                        {AREAS.map((a) => <button type="button" key={a.k} className={"adm-area" + (novoAcesso.areas.includes(a.k) ? " on" : "")} onClick={() => toggleArea(a.k)}>{novoAcesso.areas.includes(a.k) ? "✓ " : ""}{a.l}</button>)}
+                      </div>
+                    </div>
+                    <button className="adm-btn" style={{ marginTop: 14 }} disabled={salvAcesso} onClick={criarAcesso}>{salvAcesso ? "Criando…" : "Criar acesso"}</button>
+                    <p className="adm-sub" style={{ marginTop: 10 }}>O colaborador entra com esse e-mail e senha e vê só o que você marcar. O Dashboard fica visível para todos.</p>
+                  </div>
+
+                  <div className="adm-acbox">
+                    <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 15.5, fontWeight: 700 }}>Quem tem acesso</h3>
+                    {acessos === null ? <p className="adm-sub">Carregando…</p> : acessos.length === 0 ? <p className="adm-sub">Ninguém ainda.</p> : acessos.map((p) => (
+                      <div key={p.id} className="adm-acrow">
+                        <div><b>{p.nome || "—"}</b><div className="adm-sub">{p.email}</div></div>
+                        {p.papel === "dono"
+                          ? <span className="adm-badge ativo">Dono (tudo)</span>
+                          : <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="adm-sub">{p.areas && p.areas.length ? p.areas.map((k) => AREAS.find((a) => a.k === k)?.l || k).join(", ") : "só dashboard"}</span><button className="adm-btn sm danger" onClick={() => removerAcesso(p.id)}><Trash2 size={13} /></button></div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <h3 className="adm-h3">Níveis do sistema</h3>
               <div className="adm-perms">
-                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><ShieldCheck size={20} /></span><div><b>Super Admin (Minhas Métricas)</b><p>Você. Gerencia todas as empresas clientes aqui no /admin, cria contas, corta acesso, vê o faturamento.</p></div></div>
-                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(245,158,11,.16)", color: "#F59E0B" }}><Crown size={20} /></span><div><b>Super Admin da empresa (responsável)</b><p>O administrador de uma empresa cliente. Vê tudo da própria empresa, cadastra funcionários e define o que cada um pode acessar.</p></div></div>
-                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(139,92,246,.16)", color: "#8b5cf6" }}><User size={20} /></span><div><b>Admin / Acesso (funcionário)</b><p>Acessa só as áreas que o Super Admin da empresa liberou para ele.</p></div></div>
-              </div>
-              <h3 className="adm-h3">Áreas que podem ser liberadas por funcionário</h3>
-              <div className="adm-chips">
-                {["Dashboard", "Finanças", "Saúde do Cliente", "Comercial", "Marketing"].map((a) => <span key={a} className="adm-chip">{a}</span>)}
+                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><ShieldCheck size={20} /></span><div><b>Super Admin (Minhas Métricas)</b><p>Você — administrador geral. Gerencia todas as empresas e os acessos aqui.</p></div></div>
+                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(245,158,11,.16)", color: "#F59E0B" }}><Crown size={20} /></span><div><b>Super Admin da empresa (responsável)</b><p>Administra a própria empresa.</p></div></div>
+                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(139,92,246,.16)", color: "#8b5cf6" }}><User size={20} /></span><div><b>Admin / Acesso (funcionário)</b><p>Vê só as áreas liberadas acima.</p></div></div>
               </div>
             </>
           )}
@@ -294,6 +364,15 @@ const CSS = `
 .adm-perm{display:flex;gap:14px;background:#121212;border:1px solid #222;border-radius:14px;padding:18px}
 .adm-pico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
 .adm-perm b{font-size:15.5px}.adm-perm p{color:#9aa0a6;font-size:13.5px;line-height:1.5;margin-top:4px}
+.adm-sel{background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;width:100%;max-width:480px}
+.adm-sel:focus{outline:0;border-color:#1AADE2}
+.adm-acgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.adm-acbox{background:#121212;border:1px solid #222;border-radius:16px;padding:20px}
+.adm-areas{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.adm-area{background:#161616;border:1px solid #2a2a2a;color:#cfd3d8;border-radius:99px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.adm-area.on{background:#16242b;border-color:#1AADE2;color:#1AADE2}
+.adm-acrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #1d1d1d}
+.adm-acrow:last-child{border-bottom:0}
 .adm-chips{display:flex;gap:8px;flex-wrap:wrap}
 .adm-chip{background:#161616;border:1px solid #2a2a2a;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:#cfd3d8}
 .adm-aviso{background:#121212;border:1px solid #222;border-radius:16px;padding:40px;text-align:center;max-width:460px;margin:60px auto}
@@ -324,5 +403,6 @@ const CSS = `
   .adm-main{padding:20px 16px 50px}
   .adm-kpis{grid-template-columns:repeat(2,1fr)}
   .adm-grid2{grid-template-columns:1fr}
+  .adm-acgrid{grid-template-columns:1fr}
 }
 `;
