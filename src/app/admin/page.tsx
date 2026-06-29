@@ -3,10 +3,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Settings, Crown, User, Pencil,
+  LayoutDashboard, KeyRound, Settings, Crown, User, Pencil, Sun, Moon,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, brl } from "@/lib/format";
+import { useBrand } from "@/lib/brand";
 
 type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
@@ -39,6 +40,7 @@ type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; ema
 
 export default function Admin() {
   const router = useRouter();
+  const { theme, toggleTheme } = useBrand();
   const [estado, setEstado] = useState<"carregando" | "semlogin" | "negado" | "ok" | "erro">("carregando");
   const [data, setData] = useState<Resp | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -173,6 +175,7 @@ export default function Admin() {
             ))}
           </nav>
           <div className="adm-side-foot">
+            <button onClick={toggleTheme}>{theme === "dark" ? <Sun size={15} /> : <Moon size={15} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
             <button onClick={() => router.push("/")}><LayoutDashboard size={15} /> Meu painel</button>
             <button onClick={carregar}><RefreshCw size={15} /> Atualizar</button>
             <button onClick={entrarComOutra}><LogOut size={15} /> Sair</button>
@@ -479,4 +482,32 @@ const CSS = `
   .adm-grid2{grid-template-columns:1fr}
   .adm-acgrid{grid-template-columns:1fr}
 }
+
+/* ===== TEMA CLARO (a barra lateral continua escura, igual ao Hub) ===== */
+body.theme-light .adm{background:#FAFAFA;color:#18181b}
+body.theme-light .adm-main h1{color:#18181b}
+body.theme-light .adm-card{background:#fff;border-color:rgba(0,0,0,.08)}
+body.theme-light .adm-card small,
+body.theme-light .adm-sub,
+body.theme-light .adm-table th{color:#52525b}
+body.theme-light .adm-tablewrap{background:#fff;border-color:rgba(0,0,0,.08)}
+body.theme-light .adm-table th{border-bottom-color:rgba(0,0,0,.10)}
+body.theme-light .adm-table td{border-bottom-color:rgba(0,0,0,.07)}
+body.theme-light .adm-table tr:hover td{background:rgba(0,0,0,.025)}
+body.theme-light .adm-perm,
+body.theme-light .adm-acbox,
+body.theme-light .adm-aviso,
+body.theme-light .adm-modal{background:#fff;border-color:rgba(0,0,0,.08)}
+body.theme-light .adm-perm p,
+body.theme-light .adm-aviso p,
+body.theme-light .adm-f span,
+body.theme-light .adm-funhead span,
+body.theme-light .adm-mhead button{color:#52525b}
+body.theme-light .adm-sel,
+body.theme-light .adm-f input,
+body.theme-light .adm-funrow input{background:#fff;border-color:rgba(0,0,0,.14);color:#18181b}
+body.theme-light .adm-area,
+body.theme-light .adm-chip,
+body.theme-light .adm-btn.ghost{background:#f1f1f3;border-color:rgba(0,0,0,.12);color:#27272a}
+body.theme-light .adm-area.on{background:#16242b;border-color:#1AADE2;color:#1AADE2}
 `;
