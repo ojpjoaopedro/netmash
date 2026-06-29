@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
     if (anonKey && url) {
       const origin = new URL(req.url).origin;
       const pub = createClient(url, anonKey, { auth: { persistSession: false } });
-      for (const e of emails) { try { await pub.auth.resetPasswordForEmail(e, { redirectTo: `${origin}/login?nova=1` }); } catch { /* ignora */ } }
+      await Promise.allSettled(emails.map((e) => pub.auth.resetPasswordForEmail(e, { redirectTo: `${origin}/login?nova=1` })));
     }
     return NextResponse.json({ ok: true, slug: slugFinal });
   }
