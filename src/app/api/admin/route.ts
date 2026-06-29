@@ -38,6 +38,14 @@ function contar<T extends Record<string, unknown>>(arr: T[] | null, key: keyof T
   return m;
 }
 
+async function getPrecos(s: SupabaseClient): Promise<{ superadmin: number; acesso: number }> {
+  try {
+    const { data } = await s.from("config_app").select("chave,valor");
+    const m = new Map((data ?? []).map((r: { chave: string; valor: number }) => [r.chave, Number(r.valor)]));
+    return { superadmin: m.get("preco_superadmin") ?? 79.9, acesso: m.get("preco_acesso") ?? 39.9 };
+  } catch { return { superadmin: 79.9, acesso: 39.9 }; }
+}
+
 export async function GET(req: NextRequest) {
   const s = svc();
   if (!s) return NextResponse.json({ error: "Servidor sem chave (SUPABASE_SERVICE_KEY)." }, { status: 500 });
@@ -97,7 +105,8 @@ export async function GET(req: NextRequest) {
 
   const faturamento = lista.reduce((acc, e) => acc + (e.valor || 0), 0);
   const ativos = lista.filter((e) => !e.acessoCortado).length;
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos } });
+  const precos = await getPrecos(s);
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos });
 }
 
 export async function POST(req: NextRequest) {
@@ -112,6 +121,7 @@ export async function POST(req: NextRequest) {
     nomeEmpresa?: string; responsavel?: string; email?: string; senha?: string;
     cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string;
     nome?: string; areas?: string[]; segmento?: string; saldoInicial?: number | string;
+    precoSuperadmin?: number | string; precoAcesso?: number | string;
   };
   const { action, userId, empresaId } = body;
 
@@ -134,7 +144,8 @@ export async function POST(req: NextRequest) {
     }
     const qs = Math.max(1, Math.floor(Number(body.qtdSuperadmins) || 1));
     const qa = Math.max(0, Math.floor(Number(body.qtdAcessos) || 0));
-    const valor = qs * 79.9 + qa * 39.9;
+    const pr = await getPrecos(s);
+    const valor = qs * pr.superadmin + qa * pr.acesso;
     const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
     const { data: emp } = await s.from("empresas").select("id").eq("dono_id", novo.user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
     if (emp?.id) {
@@ -156,7 +167,8 @@ export async function POST(req: NextRequest) {
     if (conflito) return NextResponse.json({ error: `Já existe outra empresa com o endereço "/${slugFinal}".` }, { status: 400 });
     const qs = Math.max(1, Math.floor(Number(body.qtdSuperadmins) || 1));
     const qa = Math.max(0, Math.floor(Number(body.qtdAcessos) || 0));
-    const valor = qs * 79.9 + qa * 39.9;
+    const pr = await getPrecos(s);
+    const valor = qs * pr.superadmin + qa * pr.acesso;
     const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
     const patch: Record<string, unknown> = { nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null, segmento: body.segmento || null, saldo_inicial: Number(body.saldoInicial) || 0 };
     if (body.logo) patch.logo_url = body.logo;
@@ -195,6 +207,13 @@ export async function POST(req: NextRequest) {
   }
   if (action === "acesso-remover" && userId) {
     await s.auth.admin.deleteUser(userId);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "config-precos") {
+    const ps = Number(body.precoSuperadmin); const pa = Number(body.precoAcesso);
+    if (!(ps >= 0) || !(pa >= 0)) return NextResponse.json({ error: "Preços inválidos." }, { status: 400 });
+    await s.from("config_app").upsert([{ chave: "preco_superadmin", valor: ps }, { chave: "preco_acesso", valor: pa }]);
     return NextResponse.json({ ok: true });
   }
 

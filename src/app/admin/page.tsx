@@ -14,7 +14,7 @@ type Empresa = {
   acessoCortado: boolean; plano: string | null; valor: number; slug: string | null; cnpj: string | null;
   nLanc: number; nCli: number; nFunc: number;
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number } };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number } };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 function seatsDePlano(plano: string | null): { qs: number; qa: number } {
@@ -42,6 +42,8 @@ export default function Admin() {
   const [novoAcesso, setNovoAcesso] = useState<{ nome: string; email: string; senha: string; areas: string[] }>({ nome: "", email: "", senha: "", areas: [] });
   const [salvAcesso, setSalvAcesso] = useState(false);
   const [erroAcesso, setErroAcesso] = useState("");
+  const [precoForm, setPrecoForm] = useState<{ sa: string; ac: string } | null>(null);
+  const [salvPreco, setSalvPreco] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!supabaseReady || !supabase) { setEstado("semlogin"); return; }
@@ -54,6 +56,7 @@ export default function Admin() {
     setData(await res.json()); setEstado("ok");
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
+  useEffect(() => { if (data?.precos) setPrecoForm({ sa: String(data.precos.superadmin), ac: String(data.precos.acesso) }); }, [data]);
 
   async function acao(action: string, body: Record<string, string>, confirmar?: string) {
     if (confirmar && !window.confirm(confirmar)) return;
@@ -110,6 +113,13 @@ export default function Admin() {
   function toggleArea(k: string) {
     setNovoAcesso((n) => ({ ...n, areas: n.areas.includes(k) ? n.areas.filter((x) => x !== k) : [...n.areas, k] }));
   }
+  async function salvarPrecos() {
+    if (!precoForm || !supabase) return;
+    setSalvPreco(true);
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "config-precos", precoSuperadmin: Number(precoForm.sa), precoAcesso: Number(precoForm.ac) }) });
+    setSalvPreco(false);
+    await carregar();
+  }
 
   if (estado === "carregando") return <Casca><div className="spin" /></Casca>;
   if (estado === "semlogin") return <Casca><Aviso titulo="Faça login" texto="Entre com a conta de Super Admin para acessar o painel." botao={() => router.push("/login")} botaoTxt="Ir para o login" /></Casca>;
@@ -117,6 +127,7 @@ export default function Admin() {
   if (estado === "erro") return <Casca><Aviso titulo="Ops" texto="Não consegui carregar. Tente novamente em instantes." botao={carregar} botaoTxt="Tentar de novo" botao2={entrarComOutra} botao2Txt="Entrar com outra conta" /></Casca>;
 
   const t = data?.totais;
+  const precos = data?.precos ?? { superadmin: PRECO_SUPERADMIN, acesso: PRECO_ACESSO };
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "empresas", label: "Empresas", Icon: Building2 },
@@ -263,11 +274,12 @@ export default function Admin() {
             <>
               <h1>Configurações</h1>
               <h3 className="adm-h3">Preços do plano (por assento / mês)</h3>
-              <div className="adm-kpis" style={{ gridTemplateColumns: "repeat(2,1fr)", maxWidth: 520 }}>
-                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><Crown size={20} /></span><div><b>{brl(PRECO_SUPERADMIN)}</b><small>por Super Admin</small></div></div>
-                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(139,92,246,.16)", color: "#8b5cf6" }}><User size={20} /></span><div><b>{brl(PRECO_ACESSO)}</b><small>por Acesso (funcionário)</small></div></div>
+              <div className="adm-grid2" style={{ maxWidth: 520 }}>
+                <L label="Por Super Admin (R$)"><input type="number" step="0.01" value={precoForm?.sa ?? ""} onChange={(ev) => setPrecoForm({ sa: ev.target.value, ac: precoForm?.ac ?? "" })} /></L>
+                <L label="Por Acesso / funcionário (R$)"><input type="number" step="0.01" value={precoForm?.ac ?? ""} onChange={(ev) => setPrecoForm({ sa: precoForm?.sa ?? "", ac: ev.target.value })} /></L>
               </div>
-              <p className="adm-sub" style={{ marginTop: 16, maxWidth: 560 }}>Esses preços são usados no cálculo automático do plano ao cadastrar um cliente. Se quiser deixá-los <b>editáveis aqui na tela</b> (sem mexer no código), me avisa que eu ligo.</p>
+              <button className="adm-btn" style={{ marginTop: 16 }} disabled={salvPreco} onClick={salvarPrecos}>{salvPreco ? "Salvando…" : "Salvar preços"}</button>
+              <p className="adm-sub" style={{ marginTop: 12, maxWidth: 560 }}>Esses preços são usados no cálculo automático do plano ao cadastrar ou editar um cliente.</p>
             </>
           )}
         </main>
@@ -290,7 +302,7 @@ export default function Admin() {
               <L label="Nº de Acessos (funcionários)"><input type="number" min="0" value={form.qtdAcessos} onChange={(ev) => setForm({ ...form, qtdAcessos: ev.target.value })} /></L>
               <L label="Endereço da página (slug)"><input value={form.slug} onChange={(ev) => setForm({ ...form, slug: ev.target.value })} placeholder="auto pelo nome" /></L>
             </div>
-            <div className="adm-valor">Plano: <b>{brl((Number(form.qtdSuperadmins) || 0) * PRECO_SUPERADMIN + (Number(form.qtdAcessos) || 0) * PRECO_ACESSO)}/mês</b> <span>(Super Admin R$ {PRECO_SUPERADMIN.toFixed(2).replace(".", ",")} · Acesso R$ {PRECO_ACESSO.toFixed(2).replace(".", ",")} cada)</span></div>
+            <div className="adm-valor">Plano: <b>{brl((Number(form.qtdSuperadmins) || 0) * precos.superadmin + (Number(form.qtdAcessos) || 0) * precos.acesso)}/mês</b> <span>(Super Admin R$ {precos.superadmin.toFixed(2).replace(".", ",")} · Acesso R$ {precos.acesso.toFixed(2).replace(".", ",")} cada)</span></div>
             <L label={form.editId ? "Logo (envie só p/ trocar)" : "Logo da empresa"}><input type="file" accept="image/*" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) onLogo(f); }} /></L>
             {form.logo && <img src={form.logo} alt="" style={{ maxHeight: 48, marginTop: 8, objectFit: "contain" }} />}
             <button className="adm-btn" type="submit" disabled={salvando} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvando ? "Salvando…" : form.editId ? "Salvar alterações" : "Cadastrar cliente"}</button>
