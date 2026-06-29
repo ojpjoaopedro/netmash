@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     s.from("clientes").select("empresa_id"),
     s.from("funcionarios").select("empresa_id"),
   ]);
-  const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; logo_url?: string | null }[];
+  const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; logo_url?: string | null; cor?: string | null }[];
   const perfis = (per.data ?? []) as { id: string; empresa_id: string; nome: string | null; email: string | null; papel: string }[];
 
   // Status de acesso (banido = acesso cortado)
@@ -100,6 +100,8 @@ export async function GET(req: NextRequest) {
       valor: Number(e.valor ?? 0),
       slug: e.slug ?? null,
       cnpj: (e as { cnpj?: string | null }).cnpj ?? null,
+      logo_url: e.logo_url ?? null,
+      cor: e.cor ?? null,
       nLanc: (cLan.get(e.id) as number) ?? 0,
       nCli: (cCli.get(e.id) as number) ?? 0,
       nFunc: (cFun.get(e.id) as number) ?? 0,
@@ -122,7 +124,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as {
     action?: string; userId?: string; empresaId?: string;
     nomeEmpresa?: string; responsavel?: string; email?: string; senha?: string;
-    cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string;
+    cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string; cor?: string;
     nome?: string; areas?: string[]; segmento?: string; saldoInicial?: number | string;
     precoSuperadmin?: number | string; precoAcesso?: number | string;
     emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
@@ -217,6 +219,14 @@ export async function POST(req: NextRequest) {
   }
   if (action === "acesso-remover" && userId) {
     await s.auth.admin.deleteUser(userId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Salvar a cor principal da empresa (usada na página pública /slug).
+  if (action === "empresa-cor" && empresaId) {
+    const cor = (body.cor || "").trim();
+    if (cor && !/^#[0-9a-fA-F]{6}$/.test(cor)) return NextResponse.json({ error: "Cor inválida." }, { status: 400 });
+    await s.from("empresas").update({ cor: cor || null }).eq("id", empresaId);
     return NextResponse.json({ ok: true });
   }
 

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Settings, Crown, User, Pencil, Eye,
+  ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, brl } from "@/lib/format";
@@ -13,7 +14,7 @@ type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
   dono_id: string | null; dono: { id: string; nome: string | null; email: string | null } | null;
   acessoCortado: boolean; plano: string | null; valor: number; slug: string | null; cnpj: string | null;
-  nLanc: number; nCli: number; nFunc: number;
+  logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
 };
 type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number } };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
@@ -38,9 +39,24 @@ const AREAS = [{ k: "financas", l: "Finanças" }, { k: "saude", l: "Saúde do Cl
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null };
 type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[] };
 
+// Dados de demonstração — usados quando o Supabase não está configurado (localhost),
+// pra você visualizar/ajustar a tela sem precisar de login.
+const DEMO_RESP: Resp = {
+  empresas: [
+    { id: "demo-araguaia", nome: "Colégio Araguaia", segmento: "Educação", criado_em: "2026-06-29T12:00:00Z", saldo_inicial: 0, dono_id: "d1", dono: { id: "d1", nome: "Secretaria Araguaia", email: "secretaria@colegioaraguaia.com.br" }, acessoCortado: false, plano: "1 Super Admin + 1 Acesso", valor: 119.8, slug: "colegioaraguaia", cnpj: "33.364.563/0001-18", logo_url: null, cor: "#E11D48", nLanc: 24, nCli: 8, nFunc: 3 },
+    { id: "demo-metricas", nome: "Metricas", segmento: null, criado_em: "2026-06-29T09:00:00Z", saldo_inicial: 0, dono_id: "d2", dono: { id: "d2", nome: "Minhas Métricas", email: "minhasmetricas@gmail.com" }, acessoCortado: false, plano: null, valor: 0, slug: "metricas", cnpj: null, logo_url: null, cor: null, nLanc: 0, nCli: 0, nFunc: 0 },
+    { id: "demo-jp", nome: "JP Contabilidade", segmento: "Serviços", criado_em: "2026-06-20T10:00:00Z", saldo_inicial: 0, dono_id: "d3", dono: { id: "d3", nome: "João Pedro", email: "jp@gmail.com" }, acessoCortado: false, plano: "1 Super Admin + 2 Acessos", valor: 199.6, slug: "jp", cnpj: "12.345.678/0001-90", logo_url: null, cor: "#16A34A", nLanc: 51, nCli: 14, nFunc: 5 },
+    { id: "demo-walk", nome: "Walk Store", segmento: "Comércio", criado_em: "2026-05-26T08:00:00Z", saldo_inicial: 0, dono_id: "d4", dono: { id: "d4", nome: "Pedro Walk", email: "pedro@gmail.com" }, acessoCortado: true, plano: "1 Super Admin", valor: 79.9, slug: "walk", cnpj: null, logo_url: null, cor: null, nLanc: 9, nCli: 3, nFunc: 1 },
+  ],
+  totais: { empresas: 4, usuarios: 11, faturamento: 399.3, ativos: 3 },
+  precos: { superadmin: 79.9, acesso: 39.9 },
+};
+
 export default function Admin() {
   const router = useRouter();
   const { theme, toggleTheme } = useBrand();
+  const [demo, setDemo] = useState(false);
+  const [detalheId, setDetalheId] = useState<string | null>(null);
   const [estado, setEstado] = useState<"carregando" | "semlogin" | "negado" | "ok" | "erro">("carregando");
   const [data, setData] = useState<Resp | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -60,7 +76,7 @@ export default function Admin() {
   const [erroNovo, setErroNovo] = useState("");
 
   const carregar = useCallback(async () => {
-    if (!supabaseReady || !supabase) { setEstado("semlogin"); return; }
+    if (!supabaseReady || !supabase) { setData(DEMO_RESP); setDemo(true); setEstado("ok"); return; }
     const { data: sess } = await supabase.auth.getSession();
     const token = sess.session?.access_token;
     if (!token) { setEstado("semlogin"); return; }
@@ -74,6 +90,18 @@ export default function Admin() {
 
   async function acao(action: string, body: Record<string, string>, confirmar?: string) {
     if (confirmar && !window.confirm(confirmar)) return;
+    if (demo) {
+      setData((d) => {
+        if (!d) return d;
+        let empresas = d.empresas;
+        if (action === "excluir") empresas = empresas.filter((e) => e.id !== body.empresaId);
+        if (action === "cortar") empresas = empresas.map((e) => (e.dono_id === body.userId ? { ...e, acessoCortado: true } : e));
+        if (action === "restaurar") empresas = empresas.map((e) => (e.dono_id === body.userId ? { ...e, acessoCortado: false } : e));
+        return { ...d, empresas, totais: { ...d.totais, empresas: empresas.length, ativos: empresas.filter((e) => !e.acessoCortado).length } };
+      });
+      if (action === "excluir") setDetalheId(null);
+      return;
+    }
     if (!supabase) return;
     setBusy(JSON.stringify(body));
     const { data: sess } = await supabase.auth.getSession();
@@ -104,7 +132,20 @@ export default function Admin() {
   function onLogo(file: File) { const r = new FileReader(); r.onload = () => setForm((f) => (f ? { ...f, logo: String(r.result) } : f)); r.readAsDataURL(file); }
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
-    if (!form || !supabase) return;
+    if (!form) return;
+    if (demo) {
+      const valor = (Number(form.qtdSuperadmins) || 0) * precos.superadmin + (Number(form.qtdAcessos) || 0) * precos.acesso;
+      const qs = Math.max(1, Number(form.qtdSuperadmins) || 1), qa = Math.max(0, Number(form.qtdAcessos) || 0);
+      const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
+      setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === form.editId ? {
+        ...emp, nome: form.nomeEmpresa, cnpj: form.cnpj || null, segmento: form.segmento || null,
+        slug: form.slug || emp.slug, valor, plano, logo_url: form.logo || emp.logo_url,
+        dono: emp.dono ? { ...emp.dono, nome: form.responsavel || emp.dono.nome, email: form.email || emp.dono.email } : emp.dono,
+      } : emp) } : d);
+      setForm(null);
+      return;
+    }
+    if (!supabase) return;
     setSalvando(true); setErroForm("");
     const { data: sess } = await supabase.auth.getSession();
     const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: form.editId ? "editar" : "criar", empresaId: form.editId || undefined, ...form }) });
@@ -113,6 +154,15 @@ export default function Admin() {
     if (!res.ok) { setErroForm(j.error || "Não consegui salvar."); return; }
     const novo = !form.editId;
     setForm(null); if (novo) setAba("empresas"); await carregar();
+  }
+  async function salvarCor(empresaId: string, cor: string) {
+    if (demo) {
+      setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === empresaId ? { ...emp, cor } : emp) } : d);
+      return;
+    }
+    if (!supabase) return;
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "empresa-cor", empresaId, cor }) });
+    setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === empresaId ? { ...emp, cor } : emp) } : d);
   }
   async function entrarComOutra() { if (supabase) await supabase.auth.signOut(); router.push("/login"); }
 
@@ -163,6 +213,8 @@ export default function Admin() {
     { k: "config", label: "Configurações", Icon: Settings },
   ];
 
+  const detalhe = detalheId ? (data?.empresas.find((e) => e.id === detalheId) ?? null) : null;
+
   return (
     <div className="adm">
       <style>{CSS}</style>
@@ -190,6 +242,11 @@ export default function Admin() {
         </aside>
 
         <main className="adm-main">
+          {detalhe ? (
+            <DetalheEmpresa e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onAcao={acao} onSalvarCor={salvarCor} busy={busy} />
+          ) : (
+          <>
+          {demo && <div className="adm-demo"><Eye size={14} /> Modo demonstração — dados de exemplo (no site no ar aparecem os clientes reais).</div>}
           <div className="adm-eyebrow"><ShieldCheck size={15} /> Painel Super Admin · Minhas Métricas</div>
 
           {aba === "visao" && (
@@ -207,7 +264,7 @@ export default function Admin() {
                   <thead><tr><th>Empresa</th><th>Dono</th><th>Plano</th><th>Criada</th></tr></thead>
                   <tbody>
                     {data?.empresas.slice(0, 6).map((e) => (
-                      <tr key={e.id}><td><b>{e.nome}</b></td><td className="adm-sub">{e.dono?.email || "—"}</td><td>{e.plano || "—"}</td><td className="adm-sub">{dataBR(e.criado_em)}</td></tr>
+                      <tr key={e.id} className="adm-clickrow" onClick={() => setDetalheId(e.id)} title="Ver detalhes"><td><b>{e.nome}</b></td><td className="adm-sub">{e.dono?.email || "—"}</td><td>{e.plano || "—"}</td><td className="adm-sub">{dataBR(e.criado_em)}</td></tr>
                     ))}
                     {!data?.empresas.length && <tr><td colSpan={4} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
                   </tbody>
@@ -228,7 +285,7 @@ export default function Admin() {
                   <tbody>
                     {data?.empresas.map((e) => (
                       <tr key={e.id}>
-                        <td><b>{e.nome}</b>{e.slug ? <div className="adm-sub"><a href={`/${e.slug}`} target="_blank" rel="noopener" style={{ color: "#1AADE2" }}>/{e.slug}</a></div> : (e.segmento && <div className="adm-sub">{e.segmento}</div>)}</td>
+                        <td><b className="adm-link" onClick={() => setDetalheId(e.id)} title="Ver detalhes">{e.nome}</b>{e.slug ? <div className="adm-sub"><a href={`/${e.slug}`} target="_blank" rel="noopener" style={{ color: "#1AADE2" }}>/{e.slug}</a></div> : (e.segmento && <div className="adm-sub">{e.segmento}</div>)}</td>
                         <td>{e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}</td>
                         <td>{e.plano ? <><div>{e.plano}</div>{e.valor > 0 && <div className="adm-sub">{brl(e.valor)}</div>}</> : <span className="adm-sub">—</span>}</td>
                         <td className="adm-sub">{dataBR(e.criado_em)}</td>
@@ -319,6 +376,8 @@ export default function Admin() {
               <p className="adm-sub" style={{ marginTop: 12, maxWidth: 560 }}>Esses preços são usados no cálculo automático do plano ao cadastrar ou editar um cliente.</p>
             </>
           )}
+          </>
+          )}
         </main>
       </div>
 
@@ -392,6 +451,104 @@ function Aviso({ titulo, texto, botao, botaoTxt, botao2, botao2Txt }: { titulo: 
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
         <button className="adm-btn" onClick={botao}>{botaoTxt}</button>
         {botao2 && <button className="adm-btn ghost" onClick={botao2}>{botao2Txt}</button>}
+      </div>
+    </div>
+  );
+}
+
+const COR_PRESETS = ["#1AADE2", "#E11D48", "#16A34A", "#7C3AED", "#F59E0B", "#0EA5E9", "#EC4899", "#0F172A"];
+
+function DetalheEmpresa({ e, onBack, onEditar, onAcao, onSalvarCor, busy }: {
+  e: Empresa;
+  onBack: () => void;
+  onEditar: (e: Empresa) => void;
+  onAcao: (action: string, body: Record<string, string>, confirmar?: string) => void;
+  onSalvarCor: (empresaId: string, cor: string) => Promise<void> | void;
+  busy: string | null;
+}) {
+  const inicial = (e.nome || "?").trim().charAt(0).toUpperCase();
+  const criado = e.criado_em ? new Date(e.criado_em) : null;
+  const meses = criado ? Math.max(0, Math.round((Date.now() - criado.getTime()) / (1000 * 60 * 60 * 24 * 30))) : 0;
+  const desde = meses < 1 ? "menos de 1 mês" : meses === 1 ? "1 mês" : `${meses} meses`;
+  const [cor, setCor] = useState((e.cor || "#1AADE2").toUpperCase());
+  const [salvandoCor, setSalvandoCor] = useState(false);
+  const [corSalva, setCorSalva] = useState(false);
+  const mudarCor = (c: string) => { setCor(c.toUpperCase()); setCorSalva(false); };
+  async function salvarCorClick() { setSalvandoCor(true); await onSalvarCor(e.id, cor); setSalvandoCor(false); setCorSalva(true); }
+  return (
+    <div className="adm-det">
+      <button className="adm-det-back" onClick={onBack}><ArrowLeft size={16} /> Voltar para a lista</button>
+
+      <div className="adm-det-head">
+        <div className="adm-det-logo">{e.logo_url ? <img src={e.logo_url} alt="Logo" /> : <span>{inicial}</span>}</div>
+        <div className="adm-det-htxt">
+          <h1>{e.nome}</h1>
+          <div className="adm-det-meta">
+            {e.acessoCortado ? <span className="adm-badge cortado">Acesso cortado</span> : <span className="adm-badge ativo">Ativo</span>}
+            {e.slug && <a href={`/${e.slug}`} target="_blank" rel="noopener" className="adm-det-slug"><ExternalLink size={13} /> minhasmetricas.com/{e.slug}</a>}
+          </div>
+        </div>
+        <div className="adm-det-actions">
+          <button className="adm-btn sm ghost" onClick={() => onEditar(e)}><Pencil size={14} /> Editar dados</button>
+          {e.dono_id && (e.acessoCortado
+            ? <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => onAcao("restaurar", { userId: e.dono_id! })}><RotateCcw size={14} /> Restaurar</button>
+            : <button className="adm-btn sm warn" disabled={!!busy} onClick={() => onAcao("cortar", { userId: e.dono_id! }, `Bloquear o acesso de "${e.nome}"?`)}><Ban size={14} /> Bloquear acesso</button>)}
+          <button className="adm-btn sm danger" disabled={!!busy} onClick={() => onAcao("excluir", { empresaId: e.id }, `EXCLUIR a empresa "${e.nome}" e TODOS os dados? Não pode ser desfeito.`)}><Trash2 size={14} /> Excluir</button>
+        </div>
+      </div>
+
+      <div className="adm-det-grid">
+        <div className="adm-det-card">
+          <h4><Building2 size={15} /> Dados cadastrais</h4>
+          <dl>
+            <div><dt>Nome da empresa</dt><dd>{e.nome}</dd></div>
+            <div><dt>CNPJ</dt><dd>{e.cnpj || "—"}</dd></div>
+            <div><dt>Segmento</dt><dd>{e.segmento || "—"}</dd></div>
+            <div><dt>Responsável</dt><dd>{e.dono?.nome || "—"}</dd></div>
+            <div><dt>E-mail</dt><dd>{e.dono?.email || "—"}</dd></div>
+            <div><dt>Cadastrado em</dt><dd>{dataBR(e.criado_em)}</dd></div>
+          </dl>
+        </div>
+
+        <div className="adm-det-card">
+          <h4><CreditCard size={15} /> Plano &amp; cobrança</h4>
+          <dl>
+            <div><dt>Plano</dt><dd>{e.plano || "—"}</dd></div>
+            <div><dt>Mensalidade</dt><dd className="adm-det-strong">{e.valor > 0 ? brl(e.valor) : "—"}</dd></div>
+            <div><dt>Cliente há</dt><dd>{desde}</dd></div>
+            <div><dt><Receipt size={13} style={{ verticalAlign: "-2px", marginRight: 5 }} />Pagamentos efetuados</dt><dd className="adm-sub">em breve</dd></div>
+          </dl>
+        </div>
+
+        <div className="adm-det-card">
+          <h4><Palette size={15} /> Cor principal</h4>
+          <p className="adm-sub" style={{ margin: "0 0 14px" }}>Essa cor vira o destaque da página pública da empresa{e.slug ? <> (minhasmetricas.com/{e.slug})</> : null}.</p>
+          <div className="adm-cor-row">
+            <input type="color" className="adm-cor-pick" value={cor} onChange={(ev) => mudarCor(ev.target.value)} />
+            <input type="text" className="adm-cor-hex" value={cor} onChange={(ev) => mudarCor(ev.target.value)} maxLength={7} />
+          </div>
+          <div className="adm-cor-presets">
+            {COR_PRESETS.map((c) => (
+              <button key={c} type="button" className={"adm-cor-sw" + (cor === c ? " on" : "")} style={{ background: c }} onClick={() => mudarCor(c)} title={c} />
+            ))}
+          </div>
+          <div className="adm-cor-prev" style={{ borderColor: cor }}>
+            <span className="adm-cor-dot" style={{ background: cor }} />
+            <span style={{ color: cor, fontWeight: 800 }}>Prévia do destaque</span>
+            <span className="adm-cor-btn" style={{ background: cor }}>Entrar no painel →</span>
+          </div>
+          <button className="adm-btn sm" style={{ marginTop: 14 }} disabled={salvandoCor} onClick={salvarCorClick}>
+            {salvandoCor ? "Salvando…" : corSalva ? "✓ Cor salva" : "Salvar cor"}
+          </button>
+        </div>
+
+        <div className="adm-det-card">
+          <h4><ImageIcon size={15} /> Logomarca</h4>
+          <div className="adm-det-logobox">
+            {e.logo_url ? <img src={e.logo_url} alt="Logo da empresa" /> : <span className="adm-sub">Nenhuma logo enviada ainda</span>}
+          </div>
+          <button className="adm-btn sm ghost" style={{ marginTop: 12 }} onClick={() => onEditar(e)}><Pencil size={13} /> {e.logo_url ? "Trocar logo" : "Enviar logo"}</button>
+        </div>
       </div>
     </div>
   );
@@ -498,8 +655,72 @@ const CSS = `
 .adm-theme-fab:active{transform:translateY(0)}
 @media(max-width:820px){.adm-theme-fab{top:10px;right:12px;width:34px;height:34px}}
 
+/* ===== Linhas clicáveis + banner de demo ===== */
+.adm-clickrow{cursor:pointer;transition:background .12s}
+.adm-clickrow:hover td{background:#161616}
+.adm-link{cursor:pointer;transition:color .15s}
+.adm-link:hover{color:#1AADE2}
+.adm-demo{display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);
+  color:#F59E0B;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:10px;margin-bottom:14px}
+
+/* ===== Tela de detalhe do cliente ===== */
+.adm-det-back{display:inline-flex;align-items:center;gap:7px;background:none;border:0;color:#9aa0a6;font-weight:600;
+  font-size:13.5px;cursor:pointer;font-family:inherit;padding:4px 0;margin-bottom:18px}
+.adm-det-back:hover{color:#1AADE2}
+.adm-det-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:24px}
+.adm-det-logo{width:64px;height:64px;border-radius:16px;flex-shrink:0;display:grid;place-items:center;overflow:hidden;
+  background:linear-gradient(135deg,#16242b,#0f1a1f);border:1px solid #233a44;color:#1AADE2;font-size:26px;font-weight:800}
+.adm-det-logo img{width:100%;height:100%;object-fit:contain;background:#fff}
+.adm-det-htxt{flex:1;min-width:200px}
+.adm-det-htxt h1{font-size:25px;font-weight:800;letter-spacing:-.02em;margin:0}
+.adm-det-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:9px}
+.adm-det-slug{display:inline-flex;align-items:center;gap:6px;color:#1AADE2;font-size:13px;font-weight:600}
+.adm-det-slug:hover{text-decoration:underline}
+.adm-det-actions{display:flex;gap:8px;flex-wrap:wrap}
+.adm-det-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:760px){.adm-det-grid{grid-template-columns:1fr}.adm-det-actions{width:100%}}
+.adm-det-card{background:#121212;border:1px solid #222;border-radius:16px;padding:20px}
+.adm-det-card h4{display:flex;align-items:center;gap:8px;margin:0 0 16px;font-size:12.5px;font-weight:700;color:#cfd3d8;
+  text-transform:uppercase;letter-spacing:.05em}
+.adm-det-card h4 svg{color:#1AADE2}
+.adm-det-card dl{margin:0;display:flex;flex-direction:column;gap:12px}
+.adm-det-card dl > div{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+.adm-det-card dt{color:#9aa0a6;font-size:13px;flex-shrink:0}
+.adm-det-card dd{margin:0;font-size:14px;font-weight:600;text-align:right;word-break:break-word}
+.adm-det-strong{color:#10B981!important;font-size:16px!important;font-weight:800!important}
+.adm-det-stats{display:flex;gap:10px}
+.adm-det-stats > div{flex:1;background:#0f0f0f;border:1px solid #222;border-radius:12px;padding:14px;text-align:center}
+.adm-det-stats b{display:block;font-size:24px;font-weight:800;line-height:1;margin-bottom:4px}
+.adm-det-stats span{font-size:11.5px;color:#9aa0a6}
+.adm-det-logobox{min-height:84px;border:1px dashed #2a2a2a;border-radius:12px;display:grid;place-items:center;padding:14px;background:#0f0f0f}
+.adm-det-logobox img{max-height:72px;max-width:100%;object-fit:contain}
+.adm-cor-row{display:flex;gap:10px;align-items:center}
+.adm-cor-pick{width:48px;height:42px;padding:3px;border:1px solid #2a2a2a;border-radius:10px;background:#0f0f0f;cursor:pointer;flex-shrink:0}
+.adm-cor-pick::-webkit-color-swatch{border:0;border-radius:6px}
+.adm-cor-pick::-webkit-color-swatch-wrapper{padding:0}
+.adm-cor-hex{flex:1;min-width:0;background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;text-transform:uppercase}
+.adm-cor-hex:focus{outline:0;border-color:#1AADE2}
+.adm-cor-presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.adm-cor-sw{width:30px;height:30px;border-radius:8px;border:2px solid transparent;cursor:pointer;transition:.12s;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
+.adm-cor-sw:hover{transform:scale(1.08)}
+.adm-cor-sw.on{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.adm-cor-prev{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;padding:14px;border:1.5px solid;border-radius:12px;background:#0f0f0f}
+.adm-cor-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.adm-cor-btn{margin-left:auto;color:#fff;font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:99px}
+
 /* ===== TEMA CLARO (a barra lateral continua escura, igual ao Hub) ===== */
 body.theme-light .adm{background:#FAFAFA;color:#18181b}
+body.theme-light .adm-clickrow:hover td{background:rgba(0,0,0,.025)}
+body.theme-light .adm-det-card,
+body.theme-light .adm-det-stats > div{background:#fff;border-color:rgba(0,0,0,.08)}
+body.theme-light .adm-det-card h4{color:#3f3f46}
+body.theme-light .adm-det-card dt,
+body.theme-light .adm-det-stats span{color:#52525b}
+body.theme-light .adm-det-logobox{background:#fafafa;border-color:rgba(0,0,0,.14)}
+body.theme-light .adm-det-logo{background:linear-gradient(135deg,#e8f6fc,#f4fbfe);border-color:rgba(26,173,226,.22)}
+body.theme-light .adm-cor-pick,
+body.theme-light .adm-cor-hex,
+body.theme-light .adm-cor-prev{background:#fafafa;border-color:rgba(0,0,0,.14);color:#18181b}
 body.theme-light .adm-theme-fab{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.10);
   color:#52525b;box-shadow:0 6px 16px -8px rgba(15,23,42,.18)}
 body.theme-light .adm-theme-fab:hover{color:#1AADE2;border-color:#1AADE2}
