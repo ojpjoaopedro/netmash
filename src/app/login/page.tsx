@@ -45,7 +45,7 @@ export default function LoginPage() {
         await login(email.trim(), senha);
         router.push("/guia?novo=1");
       } else if (modo === "reset") {
-        await enviarReset(email.trim(), `${window.location.origin}/login?nova=1`);
+        await enviarReset(email.trim(), `${window.location.origin}/senha`);
         setMsg("✅ Enviamos um link para o seu e-mail. Abra-o para definir sua senha.");
         setModo("login");
       } else {

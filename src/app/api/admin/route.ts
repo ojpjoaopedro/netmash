@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
     if (anonKey && url) {
       const origin = new URL(req.url).origin;
       const pub = createClient(url, anonKey, { auth: { persistSession: false } });
-      await Promise.allSettled(emails.map((e) => pub.auth.resetPasswordForEmail(e, { redirectTo: `${origin}/login?nova=1` })));
+      await Promise.allSettled(emails.map((e) => pub.auth.resetPasswordForEmail(e, { redirectTo: `${origin}/senha` })));
     }
     return NextResponse.json({ ok: true, slug: slugFinal });
   }

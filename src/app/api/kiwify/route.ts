@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       if (anonKey && url) {
         const origin = new URL(req.url).origin;
         const pub = createClient(url, anonKey, { auth: { persistSession: false } });
-        await pub.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/login?nova=1` });
+        await pub.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/senha` });
       }
       return NextResponse.json({ ok: true, acao: "conta_criada" });
     }
