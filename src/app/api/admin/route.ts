@@ -27,6 +27,11 @@ async function superDoCaller(req: NextRequest, s: SupabaseClient): Promise<{ ema
   return { email };
 }
 
+function slugify(s: string): string {
+  return (s || "empresa").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "empresa";
+}
+
 function contar<T extends Record<string, unknown>>(arr: T[] | null, key: keyof T): Map<unknown, number> {
   const m = new Map<unknown, number>();
   (arr ?? []).forEach((r) => m.set(r[key], (m.get(r[key]) ?? 0) + 1));
@@ -73,13 +78,19 @@ export async function GET(req: NextRequest) {
       dono_id: e.dono_id,
       dono: dono ? { id: dono.id, nome: dono.nome, email: dono.email } : null,
       acessoCortado: e.dono_id ? (banido.get(e.dono_id) ?? false) : false,
+      plano: e.plano ?? null,
+      valor: Number(e.valor ?? 0),
+      slug: e.slug ?? null,
+      cnpj: (e as { cnpj?: string | null }).cnpj ?? null,
       nLanc: (cLan.get(e.id) as number) ?? 0,
       nCli: (cCli.get(e.id) as number) ?? 0,
       nFunc: (cFun.get(e.id) as number) ?? 0,
     };
   }).sort((a, b) => (b.criado_em || "").localeCompare(a.criado_em || ""));
 
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length } });
+  const faturamento = lista.reduce((acc, e) => acc + (e.valor || 0), 0);
+  const ativos = lista.filter((e) => !e.acessoCortado).length;
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos } });
 }
 
 export async function POST(req: NextRequest) {
@@ -89,7 +100,40 @@ export async function POST(req: NextRequest) {
   const su = await superDoCaller(req, s);
   if (!su) return NextResponse.json({ error: "Acesso restrito (Super Admin)." }, { status: 403 });
 
-  const { action, userId, empresaId } = (await req.json()) as { action?: string; userId?: string; empresaId?: string };
+  const body = (await req.json()) as {
+    action?: string; userId?: string; empresaId?: string;
+    nomeEmpresa?: string; responsavel?: string; email?: string; senha?: string;
+    cnpj?: string; plano?: string; valor?: number | string; logo?: string; slug?: string;
+  };
+  const { action, userId, empresaId } = body;
+
+  // Cadastrar novo cliente (empresa B2B): cria o acesso do responsável + a empresa com a marca dele.
+  if (action === "criar") {
+    const email = (body.email || "").trim().toLowerCase();
+    const senha = body.senha || "";
+    const nomeEmpresa = (body.nomeEmpresa || "").trim();
+    if (!email || senha.length < 6 || !nomeEmpresa) return NextResponse.json({ error: "Informe empresa, e-mail e senha (mín. 6)." }, { status: 400 });
+    const slugFinal = slugify(body.slug || nomeEmpresa);
+    const { data: existe } = await s.from("empresas").select("id").eq("slug", slugFinal).maybeSingle();
+    if (existe) return NextResponse.json({ error: `Já existe uma empresa com o endereço "/${slugFinal}". Escolha outro.` }, { status: 400 });
+    const { data: novo, error } = await s.auth.admin.createUser({
+      email, password: senha, email_confirm: true,
+      user_metadata: { nome: body.responsavel || email, empresa: nomeEmpresa },
+    });
+    if (error || !novo?.user) {
+      const msg = /already.*registered|exists/i.test(error?.message || "") ? "Este e-mail já tem conta." : (error?.message || "Não consegui criar o acesso.");
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+    const { data: emp } = await s.from("empresas").select("id").eq("dono_id", novo.user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
+    if (emp?.id) {
+      await s.from("empresas").update({
+        nome: nomeEmpresa, cnpj: body.cnpj || null, plano: body.plano || null,
+        valor: Number(body.valor) || 0, slug: slugFinal, responsavel: body.responsavel || null,
+        logo_url: body.logo || null,
+      }).eq("id", emp.id);
+    }
+    return NextResponse.json({ ok: true, slug: slugFinal });
+  }
 
   if (action === "cortar" && userId) {
     await s.auth.admin.updateUserById(userId, { ban_duration: "876000h" });

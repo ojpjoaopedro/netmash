@@ -1,16 +1,18 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw } from "lucide-react";
+import { ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
-import { dataBR } from "@/lib/format";
+import { dataBR, brl } from "@/lib/format";
 
 type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
   dono_id: string | null; dono: { id: string; nome: string | null; email: string | null } | null;
-  acessoCortado: boolean; nLanc: number; nCli: number; nFunc: number;
+  acessoCortado: boolean; plano: string | null; valor: number; slug: string | null; cnpj: string | null;
+  nLanc: number; nCli: number; nFunc: number;
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number } };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number } };
+type Form = { nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; plano: string; valor: string; logo: string; slug: string };
 type Estado = "carregando" | "semlogin" | "negado" | "ok" | "erro";
 
 export default function Admin() {
@@ -18,6 +20,9 @@ export default function Admin() {
   const [estado, setEstado] = useState<Estado>("carregando");
   const [data, setData] = useState<Resp | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [form, setForm] = useState<Form | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [erroForm, setErroForm] = useState("");
 
   const carregar = useCallback(async () => {
     if (!supabaseReady || !supabase) { setEstado("semlogin"); return; }
@@ -46,6 +51,32 @@ export default function Admin() {
     await carregar();
   }
 
+  function abrirCadastro() {
+    setErroForm("");
+    setForm({ nomeEmpresa: "", responsavel: "", email: "", senha: "", cnpj: "", plano: "Mensal", valor: "", logo: "", slug: "" });
+  }
+  function onLogo(file: File) {
+    const r = new FileReader();
+    r.onload = () => setForm((f) => (f ? { ...f, logo: String(r.result) } : f));
+    r.readAsDataURL(file);
+  }
+  async function criarCliente(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form || !supabase) return;
+    setSalvando(true); setErroForm("");
+    const { data: sess } = await supabase.auth.getSession();
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` },
+      body: JSON.stringify({ action: "criar", ...form }),
+    });
+    const j = await res.json().catch(() => ({}));
+    setSalvando(false);
+    if (!res.ok) { setErroForm(j.error || "Não consegui cadastrar."); return; }
+    setForm(null);
+    await carregar();
+  }
+
   async function entrarComOutra() {
     if (supabase) await supabase.auth.signOut();
     router.push("/login");
@@ -64,26 +95,29 @@ export default function Admin() {
           <div className="adm-eyebrow"><ShieldCheck size={15} /> Painel Super Admin</div>
           <h1>Minhas Métricas — Empresas</h1>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button className="adm-btn" onClick={abrirCadastro}><Plus size={15} /> Cadastrar cliente</button>
           <button className="adm-btn ghost" onClick={carregar}><RefreshCw size={15} /> Atualizar</button>
-          <button className="adm-btn ghost" onClick={() => router.push("/")}><LogOut size={15} /> Sair do admin</button>
+          <button className="adm-btn ghost" onClick={() => router.push("/")}><LogOut size={15} /> Sair</button>
         </div>
       </div>
 
       <div className="adm-kpis">
-        <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><Building2 size={20} /></span><div><b>{t?.empresas ?? 0}</b><small>Empresas</small></div></div>
-        <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(16,185,129,.16)", color: "#10B981" }}><Users size={20} /></span><div><b>{t?.usuarios ?? 0}</b><small>Usuários</small></div></div>
-        <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(239,68,68,.16)", color: "#EF4444" }}><Ban size={20} /></span><div><b>{data?.empresas.filter((e) => e.acessoCortado).length ?? 0}</b><small>Acessos cortados</small></div></div>
+        <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(16,185,129,.16)", color: "#10B981" }}><DollarSign size={20} /></span><div><b>{brl(t?.faturamento ?? 0)}</b><small>Faturamento (planos)</small></div></div>
+        <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><Building2 size={20} /></span><div><b>{t?.empresas ?? 0}</b><small>Clientes</small></div></div>
+        <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(139,92,246,.16)", color: "#8b5cf6" }}><Users size={20} /></span><div><b>{t?.ativos ?? 0}</b><small>Acessos ativos</small></div></div>
+        <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(239,68,68,.16)", color: "#EF4444" }}><Ban size={20} /></span><div><b>{data?.empresas.filter((e) => e.acessoCortado).length ?? 0}</b><small>Cortados</small></div></div>
       </div>
 
       <div className="adm-tablewrap">
         <table className="adm-table">
-          <thead><tr><th>Empresa</th><th>Dono</th><th>Criada</th><th className="num">Lanç.</th><th className="num">Clientes</th><th className="num">Equipe</th><th>Acesso</th><th>Ações</th></tr></thead>
+          <thead><tr><th>Empresa</th><th>Dono</th><th>Plano</th><th>Criada</th><th className="num">Lanç.</th><th className="num">Clientes</th><th className="num">Equipe</th><th>Acesso</th><th>Ações</th></tr></thead>
           <tbody>
             {data?.empresas.map((e) => (
               <tr key={e.id}>
-                <td><b>{e.nome}</b>{e.segmento && <div className="adm-sub">{e.segmento}</div>}</td>
+                <td><b>{e.nome}</b>{e.slug ? <div className="adm-sub"><a href={`/${e.slug}`} target="_blank" rel="noopener" style={{ color: "#1AADE2" }}>/{e.slug}</a></div> : (e.segmento && <div className="adm-sub">{e.segmento}</div>)}</td>
                 <td>{e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}</td>
+                <td>{e.plano ? <><div>{e.plano}</div>{e.valor > 0 && <div className="adm-sub">{brl(e.valor)}</div>}</> : <span className="adm-sub">—</span>}</td>
                 <td className="adm-sub">{dataBR(e.criado_em)}</td>
                 <td className="num">{e.nLanc}</td>
                 <td className="num">{e.nCli}</td>
@@ -99,12 +133,39 @@ export default function Admin() {
                 </td>
               </tr>
             ))}
-            {!data?.empresas.length && <tr><td colSpan={8} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
+            {!data?.empresas.length && <tr><td colSpan={9} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
           </tbody>
         </table>
       </div>
+
+      {form && (
+        <div className="adm-modalbg" onClick={() => !salvando && setForm(null)}>
+          <form className="adm-modal" onClick={(ev) => ev.stopPropagation()} onSubmit={criarCliente}>
+            <div className="adm-mhead"><h3>Cadastrar novo cliente</h3><button type="button" onClick={() => setForm(null)}><X size={18} /></button></div>
+            {erroForm && <div className="adm-erro">{erroForm}</div>}
+            <div className="adm-grid2">
+              <L label="Nome da empresa"><input value={form.nomeEmpresa} onChange={(ev) => setForm({ ...form, nomeEmpresa: ev.target.value })} required /></L>
+              <L label="CNPJ (opcional)"><input value={form.cnpj} onChange={(ev) => setForm({ ...form, cnpj: ev.target.value })} /></L>
+              <L label="Responsável"><input value={form.responsavel} onChange={(ev) => setForm({ ...form, responsavel: ev.target.value })} /></L>
+              <L label="E-mail do responsável"><input type="email" value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} required /></L>
+              <L label="Senha de acesso"><input type="text" value={form.senha} onChange={(ev) => setForm({ ...form, senha: ev.target.value })} required minLength={6} placeholder="mín. 6 caracteres" /></L>
+              <L label="Plano"><input value={form.plano} onChange={(ev) => setForm({ ...form, plano: ev.target.value })} placeholder="Mensal / Anual / Único" /></L>
+              <L label="Valor (R$)"><input type="number" step="0.01" value={form.valor} onChange={(ev) => setForm({ ...form, valor: ev.target.value })} placeholder="0,00" /></L>
+              <L label="Endereço da página (slug)"><input value={form.slug} onChange={(ev) => setForm({ ...form, slug: ev.target.value })} placeholder="auto pelo nome" /></L>
+            </div>
+            <L label="Logo da empresa"><input type="file" accept="image/*" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) onLogo(f); }} /></L>
+            {form.logo && <img src={form.logo} alt="" style={{ maxHeight: 48, marginTop: 8, objectFit: "contain" }} />}
+            <button className="adm-btn" type="submit" disabled={salvando} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvando ? "Cadastrando…" : "Cadastrar cliente"}</button>
+            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>Cria a empresa + o acesso do responsável + a página <b>minhasmetricas.com/{form.slug || "(nome)"}</b>.</p>
+          </form>
+        </div>
+      )}
     </Casca>
   );
+}
+
+function L({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="adm-f"><span>{label}</span>{children}</label>;
 }
 
 function Casca({ children }: { children: React.ReactNode }) {
@@ -129,7 +190,7 @@ const CSS = `
 .adm-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px}
 .adm-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#1AADE2;font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:12px}
 .adm-head h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:6px}
-.adm-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.adm-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
 .adm-card{background:#121212;border:1px solid #222;border-radius:16px;padding:18px;display:flex;align-items:center;gap:14px}
 .adm-ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
 .adm-card b{font-size:26px;font-weight:800;display:block;line-height:1}
@@ -157,5 +218,16 @@ const CSS = `
 .adm-aviso p{color:#9aa0a6;line-height:1.6;margin-bottom:22px}
 .spin{width:34px;height:34px;border:3px solid #222;border-top-color:#1AADE2;border-radius:50%;animation:admspin .8s linear infinite;margin:80px auto}
 @keyframes admspin{to{transform:rotate(360deg)}}
-@media(max-width:760px){.adm-kpis{grid-template-columns:1fr}}
+.adm-modalbg{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px;z-index:60}
+.adm-modal{background:#121212;border:1px solid #2a2a2a;border-radius:18px;padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+.adm-mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.adm-mhead h3{font-size:18px;font-weight:800}
+.adm-mhead button{background:none;border:0;color:#9aa0a6;cursor:pointer}
+.adm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.adm-f{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.adm-f span{font-size:12.5px;color:#9aa0a6;font-weight:600}
+.adm-f input{background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit}
+.adm-f input:focus{outline:0;border-color:#1AADE2}
+.adm-erro{background:#2a1212;border:1px solid #6b1f1f;color:#EF4444;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:6px}
+@media(max-width:760px){.adm-kpis{grid-template-columns:repeat(2,1fr)}.adm-grid2{grid-template-columns:1fr}}
 `;
