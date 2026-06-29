@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Settings, Crown, User, Pencil, Eye, Send,
+  LayoutDashboard, KeyRound, Settings, Pencil, Eye, Send,
   ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -88,6 +88,8 @@ export default function Admin() {
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
   useEffect(() => { if (data?.precos) setPrecoForm({ sa: String(data.precos.superadmin), ac: String(data.precos.acesso) }); }, [data]);
+  // Ao abrir o detalhe de uma empresa, já carrega a equipe dela.
+  useEffect(() => { if (detalheId) selecionarEmpresa(detalheId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [detalheId]);
 
   async function acao(action: string, body: Record<string, string>, confirmar?: string) {
     if (confirmar && !window.confirm(confirmar)) return;
@@ -192,14 +194,30 @@ export default function Admin() {
 
   async function tokenH() { const { data: sess } = await supabase!.auth.getSession(); return { Authorization: `Bearer ${sess.session?.access_token}` }; }
   async function selecionarEmpresa(id: string) {
-    setPermEmpresa(id); setErroAcesso(""); setNovoAcesso({ nome: "", email: "", senha: "", areas: [] }); setAcessos(null);
-    if (!id || !supabase) return;
+    setPermEmpresa(id); setErroAcesso(""); setOkAcesso(""); setNovoAcesso({ nome: "", email: "", senha: "", areas: [] }); setAcessos(null);
+    if (!id) return;
+    if (demo) {
+      const emp = data?.empresas.find((e) => e.id === id);
+      setAcessos(emp?.dono ? [
+        { id: emp.dono.id, nome: emp.dono.nome, email: emp.dono.email, papel: "dono", areas: null },
+        { id: "demo-colab-" + id, nome: "Colaborador Exemplo", email: "colaborador@empresa.com", papel: "colaborador", areas: ["financas", "comercial"] },
+      ] : []);
+      return;
+    }
+    if (!supabase) return;
     const res = await fetch(`/api/admin?empresaId=${id}`, { headers: await tokenH() });
     setAcessos(res.ok ? (await res.json()).acessos : []);
   }
   async function criarAcesso() {
-    if (!supabase || !permEmpresa) return;
+    if (!permEmpresa) return;
     if (!novoAcesso.email.includes("@")) { setErroAcesso("Informe o e-mail do colaborador."); return; }
+    if (demo) {
+      setAcessos((a) => [...(a ?? []), { id: "demo-novo-" + Date.now(), nome: novoAcesso.nome || novoAcesso.email, email: novoAcesso.email, papel: "colaborador", areas: novoAcesso.areas }]);
+      setOkAcesso(`✅ (Demonstração) Acesso criado para ${novoAcesso.email}.`);
+      setNovoAcesso({ nome: "", email: "", senha: "", areas: [] });
+      return;
+    }
+    if (!supabase) return;
     setSalvAcesso(true); setErroAcesso(""); setOkAcesso("");
     const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-criar", empresaId: permEmpresa, nome: novoAcesso.nome, email: novoAcesso.email, areas: novoAcesso.areas }) });
     const j = await res.json().catch(() => ({}));
@@ -210,7 +228,9 @@ export default function Admin() {
     await selecionarEmpresa(permEmpresa);
   }
   async function removerAcesso(userId: string) {
-    if (!supabase || !window.confirm("Remover este acesso?")) return;
+    if (!window.confirm("Remover este acesso?")) return;
+    if (demo) { setAcessos((a) => (a ?? []).filter((x) => x.id !== userId)); return; }
+    if (!supabase) return;
     await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-remover", userId }) });
     await selecionarEmpresa(permEmpresa);
   }
@@ -235,7 +255,6 @@ export default function Admin() {
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "empresas", label: "Empresas", Icon: Building2 },
-    { k: "permissoes", label: "Equipe & Acessos", Icon: KeyRound },
     { k: "config", label: "Configurações", Icon: Settings },
   ];
 
@@ -270,7 +289,7 @@ export default function Admin() {
 
         <main className="adm-main">
           {detalhe ? (
-            <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onSalvarCor={salvarCor} onSalvarDados={salvarDados} />
+            <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onSalvarCor={salvarCor} onSalvarDados={salvarDados} equipe={{ acessos, novoAcesso, setNovoAcesso, criar: criarAcesso, remover: removerAcesso, toggleArea, salvando: salvAcesso, erro: erroAcesso, ok: okAcesso }} />
           ) : (
           <>
           {demo && <div className="adm-demo"><Eye size={14} /> Modo demonstração — dados de exemplo (no site no ar aparecem os clientes reais).</div>}
@@ -348,57 +367,6 @@ export default function Admin() {
                     {!data?.empresas.length && <tr><td colSpan={7} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
-              </div>
-            </>
-          )}
-
-          {aba === "permissoes" && (
-            <>
-              <h1>Equipe & Acessos</h1>
-              <p className="adm-sub" style={{ marginTop: 6, maxWidth: 640 }}>Como administrador geral, escolha a empresa e crie os logins da equipe, definindo o que cada um pode ver. O Dashboard fica visível para todos.</p>
-              <L label="Empresa">
-                <select className="adm-sel" value={permEmpresa} onChange={(ev) => selecionarEmpresa(ev.target.value)}>
-                  <option value="">— escolha a empresa —</option>
-                  {data?.empresas.map((e) => <option key={e.id} value={e.id}>{e.nome}{e.dono?.email ? ` (${e.dono.email})` : ""}</option>)}
-                </select>
-              </L>
-
-              {permEmpresa && (
-                <div className="adm-acgrid">
-                  <div className="adm-acbox">
-                    <h3 style={{ marginTop: 0, marginBottom: 4, fontSize: 15.5, fontWeight: 700 }}>Dar acesso a um colaborador</h3>
-                    {erroAcesso && <div className="adm-erro">{erroAcesso}</div>}
-                    {okAcesso && <div className="adm-ok">{okAcesso}</div>}
-                    <L label="Nome"><input value={novoAcesso.nome} onChange={(ev) => setNovoAcesso({ ...novoAcesso, nome: ev.target.value })} placeholder="Nome do colaborador" /></L>
-                    <L label="E-mail (login)"><input type="email" value={novoAcesso.email} onChange={(ev) => setNovoAcesso({ ...novoAcesso, email: ev.target.value })} placeholder="email@empresa.com" /></L>
-                    <div className="adm-f"><span>O que ele pode acessar</span>
-                      <div className="adm-areas">
-                        {AREAS.map((a) => <button type="button" key={a.k} className={"adm-area" + (novoAcesso.areas.includes(a.k) ? " on" : "")} onClick={() => toggleArea(a.k)}>{novoAcesso.areas.includes(a.k) ? "✓ " : ""}{a.l}</button>)}
-                      </div>
-                    </div>
-                    <button className="adm-btn" style={{ marginTop: 14 }} disabled={salvAcesso} onClick={criarAcesso}><Send size={14} /> {salvAcesso ? "Enviando…" : "Criar e enviar acesso"}</button>
-                    <p className="adm-sub" style={{ marginTop: 10 }}>O colaborador recebe um e-mail para <b>criar a própria senha</b> e vê só o que você marcar. O Dashboard fica visível para todos.</p>
-                  </div>
-
-                  <div className="adm-acbox">
-                    <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 15.5, fontWeight: 700 }}>Quem tem acesso</h3>
-                    {acessos === null ? <p className="adm-sub">Carregando…</p> : acessos.length === 0 ? <p className="adm-sub">Ninguém ainda.</p> : acessos.map((p) => (
-                      <div key={p.id} className="adm-acrow">
-                        <div><b>{p.nome || "—"}</b><div className="adm-sub">{p.email}</div></div>
-                        {p.papel === "dono"
-                          ? <span className="adm-badge ativo">Dono (tudo)</span>
-                          : <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="adm-sub">{p.areas && p.areas.length ? p.areas.map((k) => AREAS.find((a) => a.k === k)?.l || k).join(", ") : "só dashboard"}</span><button className="adm-btn sm danger" onClick={() => removerAcesso(p.id)}><Trash2 size={13} /></button></div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <h3 className="adm-h3">Níveis do sistema</h3>
-              <div className="adm-perms">
-                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><ShieldCheck size={20} /></span><div><b>Super Admin (Minhas Métricas)</b><p>Você — administrador geral. Gerencia todas as empresas e os acessos aqui.</p></div></div>
-                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(245,158,11,.16)", color: "#F59E0B" }}><Crown size={20} /></span><div><b>Super Admin da empresa (responsável)</b><p>Administra a própria empresa.</p></div></div>
-                <div className="adm-perm"><span className="adm-pico" style={{ background: "rgba(139,92,246,.16)", color: "#8b5cf6" }}><User size={20} /></span><div><b>Admin / Acesso (funcionário)</b><p>Vê só as áreas liberadas acima.</p></div></div>
               </div>
             </>
           )}
@@ -497,12 +465,23 @@ function Aviso({ titulo, texto, botao, botaoTxt, botao2, botao2Txt }: { titulo: 
 
 const COR_PRESETS = ["#1AADE2", "#E11D48", "#16A34A", "#7C3AED", "#F59E0B", "#0EA5E9", "#EC4899", "#0F172A"];
 
-function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados }: {
+function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados, equipe }: {
   e: Empresa;
   onBack: () => void;
   onEditar: (e: Empresa) => void;
   onSalvarCor: (empresaId: string, cor: string) => Promise<void> | void;
   onSalvarDados: (empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; responsavel?: string; email?: string; logo?: string }) => Promise<void> | void;
+  equipe: {
+    acessos: Acesso[] | null;
+    novoAcesso: { nome: string; email: string; senha: string; areas: string[] };
+    setNovoAcesso: (v: { nome: string; email: string; senha: string; areas: string[] }) => void;
+    criar: () => void;
+    remover: (userId: string) => void;
+    toggleArea: (k: string) => void;
+    salvando: boolean;
+    erro: string;
+    ok: string;
+  };
 }) {
   const inicial = (e.nome || "?").trim().charAt(0).toUpperCase();
   const criado = e.criado_em ? new Date(e.criado_em) : null;
@@ -601,6 +580,37 @@ function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados }: {
             <ImageIcon size={13} /> {logoMostrar ? "Trocar logo" : "Enviar logo"}
             <input type="file" accept="image/*" style={{ display: "none" }} onChange={(ev) => { const f = ev.target.files?.[0]; if (f) escolherLogo(f); }} />
           </label>
+        </div>
+
+        <div className="adm-det-card adm-det-wide">
+          <h4><KeyRound size={15} /> Equipe &amp; Acessos</h4>
+          <p className="adm-sub" style={{ margin: "0 0 16px" }}>Crie logins para a equipe dessa empresa e defina o que cada um vê. O Dashboard fica visível para todos.</p>
+          <div className="adm-eqp-grid">
+            <div>
+              <h5 className="adm-det-h5">Dar acesso a um colaborador</h5>
+              {equipe.erro && <div className="adm-erro">{equipe.erro}</div>}
+              {equipe.ok && <div className="adm-ok">{equipe.ok}</div>}
+              <label className="adm-det-f"><span>Nome</span><input value={equipe.novoAcesso.nome} onChange={(ev) => equipe.setNovoAcesso({ ...equipe.novoAcesso, nome: ev.target.value })} placeholder="Nome do colaborador" /></label>
+              <label className="adm-det-f" style={{ marginTop: 11 }}><span>E-mail (login)</span><input type="email" value={equipe.novoAcesso.email} onChange={(ev) => equipe.setNovoAcesso({ ...equipe.novoAcesso, email: ev.target.value })} placeholder="email@empresa.com" /></label>
+              <div className="adm-det-f" style={{ marginTop: 11 }}><span>O que ele pode acessar</span>
+                <div className="adm-areas">
+                  {AREAS.map((a) => <button type="button" key={a.k} className={"adm-area" + (equipe.novoAcesso.areas.includes(a.k) ? " on" : "")} onClick={() => equipe.toggleArea(a.k)}>{equipe.novoAcesso.areas.includes(a.k) ? "✓ " : ""}{a.l}</button>)}
+                </div>
+              </div>
+              <button className="adm-btn sm" style={{ marginTop: 14 }} disabled={equipe.salvando} onClick={equipe.criar}><Send size={13} /> {equipe.salvando ? "Enviando…" : "Criar e enviar acesso"}</button>
+            </div>
+            <div>
+              <h5 className="adm-det-h5">Quem tem acesso</h5>
+              {equipe.acessos === null ? <p className="adm-sub">Carregando…</p> : equipe.acessos.length === 0 ? <p className="adm-sub">Ninguém ainda.</p> : equipe.acessos.map((p) => (
+                <div key={p.id} className="adm-acrow">
+                  <div><b>{p.nome || "—"}</b><div className="adm-sub">{p.email}</div></div>
+                  {p.papel === "dono"
+                    ? <span className="adm-badge ativo">Dono (tudo)</span>
+                    : <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="adm-sub">{p.areas && p.areas.length ? p.areas.map((k) => AREAS.find((a) => a.k === k)?.l || k).join(", ") : "só dashboard"}</span><button className="adm-btn sm danger" onClick={() => equipe.remover(p.id)}><Trash2 size={13} /></button></div>}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -769,6 +779,10 @@ const CSS = `
 .adm-det-f input{background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit}
 .adm-det-f input:focus{outline:0;border-color:#1AADE2}
 .adm-det-ro{font-size:14px;font-weight:600;padding:9px 0;color:#cfd3d8}
+.adm-det-wide{grid-column:1 / -1}
+.adm-det-h5{margin:0 0 12px;font-size:14px;font-weight:700}
+.adm-eqp-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+@media(max-width:760px){.adm-eqp-grid{grid-template-columns:1fr}}
 .adm-cor-row{display:flex;gap:10px;align-items:center}
 .adm-cor-pick{width:48px;height:42px;padding:3px;border:1px solid #2a2a2a;border-radius:10px;background:#0f0f0f;cursor:pointer;flex-shrink:0}
 .adm-cor-pick::-webkit-color-swatch{border:0;border-radius:6px}
