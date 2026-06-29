@@ -77,7 +77,10 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-card card">
-        <div className="brand"><span className="fallback">Minha <b>Empresa</b></span></div>
+        <div className="brand">
+          <img src="/icon.svg" alt="Minhas Métricas" style={{ height: 40, width: 40, borderRadius: 10 }} />
+          <span className="fallback">Minhas <b>Métricas</b></span>
+        </div>
         <h1>{titulo}</h1>
         <p className="muted">{sub}</p>
 
