@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, RotateCcw, Trash2, LogOut, RefreshCw, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Settings, Crown, User, Pencil, Eye,
+  LayoutDashboard, KeyRound, Settings, Crown, User, Pencil, Eye, Send,
   ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -108,6 +108,16 @@ export default function Admin() {
     await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action, ...body }) });
     setBusy(null);
     await carregar();
+  }
+  async function reenviarAcesso(e: Empresa) {
+    if (!supabase) return;
+    if (!window.confirm(`Reenviar o e-mail de "criar senha" para o responsável e a equipe de "${e.nome}"?`)) return;
+    setBusy("reenviar:" + e.id);
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "reenviar", empresaId: e.id }) });
+    const j = await res.json().catch(() => ({}));
+    setBusy(null);
+    if (res.ok) window.alert(`✅ E-mail de acesso reenviado para ${j.enviados || 0} endereço(s) de "${e.nome}".`);
+    else window.alert(j.error || "Não consegui reenviar o e-mail.");
   }
   function abrirCadastro() { setErroNovo(""); setNovo({ nomeEmpresa: "", cnpj: "", responsavel: "", emailResp: "", funcionarios: [] }); }
   function addFunc() { setNovo((n) => (n ? { ...n, funcionarios: [...n.funcionarios, { nome: "", email: "" }] } : n)); }
@@ -296,6 +306,7 @@ export default function Admin() {
                         <td>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             <button className="adm-btn sm ghost" onClick={() => abrirEdicao(e)}><Pencil size={13} /> Editar</button>
+                            <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => reenviarAcesso(e)}><Send size={13} /> Reenviar acesso</button>
                             {e.dono_id && (e.acessoCortado
                               ? <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => acao("restaurar", { userId: e.dono_id! })}><RotateCcw size={13} /> Restaurar</button>
                               : <button className="adm-btn sm warn" disabled={!!busy} onClick={() => acao("cortar", { userId: e.dono_id! }, `Cortar o acesso de "${e.nome}"?`)}><Ban size={13} /> Cortar</button>)}

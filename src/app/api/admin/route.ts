@@ -237,6 +237,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // Reenviar o e-mail de "criar senha" para o responsável + equipe da empresa.
+  if (action === "reenviar" && empresaId) {
+    if (!anonKey || !url) return NextResponse.json({ error: "Servidor sem chave pública (NEXT_PUBLIC_SUPABASE_ANON_KEY)." }, { status: 500 });
+    const emails = new Set<string>();
+    const { data: perfis } = await s.from("perfis").select("email").eq("empresa_id", empresaId);
+    (perfis ?? []).forEach((p: { email: string | null }) => { if (p.email) emails.add(p.email.trim().toLowerCase()); });
+    const { data: e } = await s.from("empresas").select("dono_id").eq("id", empresaId).maybeSingle();
+    const donoId = (e as { dono_id?: string } | null)?.dono_id;
+    if (donoId) {
+      const { data: dp } = await s.from("perfis").select("email").eq("id", donoId).maybeSingle();
+      const em = (dp as { email?: string } | null)?.email;
+      if (em) emails.add(em.trim().toLowerCase());
+    }
+    const lista = [...emails].filter((x) => x.includes("@"));
+    if (!lista.length) return NextResponse.json({ error: "Nenhum e-mail encontrado para esta empresa." }, { status: 400 });
+    const origin = new URL(req.url).origin;
+    const pub = createClient(url, anonKey, { auth: { persistSession: false } });
+    await Promise.allSettled(lista.map((em) => pub.auth.resetPasswordForEmail(em, { redirectTo: `${origin}/senha` })));
+    return NextResponse.json({ ok: true, enviados: lista.length });
+  }
+
   if (action === "cortar" && userId) {
     await s.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
     return NextResponse.json({ ok: true });
