@@ -127,6 +127,8 @@ export default function Home() {
 
   // Interliga a identidade: aplica logo/cor da empresa logada (banco) na marca do painel.
   useEffect(() => {
+    // Na conta da plataforma (Super Admin) mantemos a marca Minhas Métricas — não aplica logo de cliente.
+    if (["minhasmetricas@gmail.com"].includes((perfil?.email || "").toLowerCase())) return;
     const eb = empresa as (Empresa & { logo_url?: string | null; cor?: string | null }) | null;
     if (!eb) return;
     const patch: { logo?: string; cor?: string; nome?: string } = {};
@@ -155,6 +157,17 @@ export default function Home() {
   const ehDono = !supabaseReady || (perfil?.papel ?? "dono") !== "colaborador";
   const areasPerm = perfil?.areas ?? [];
   const ehSuper = ["minhasmetricas@gmail.com"].includes((perfil?.email || "").toLowerCase());
+  // Marca exibida na barra lateral. Super Admin (plataforma) = Minhas Métricas; clientes = sua própria logo.
+  const marcaInterna = ehSuper ? (
+    <>
+      <img src="/icon.svg" alt="Minhas Métricas" style={{ height: logoH, width: logoH, borderRadius: 9, flexShrink: 0 }} />
+      <span className="fallback">Minhas <b>Métricas</b></span>
+    </>
+  ) : (
+    brand.logo
+      ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
+      : <span className="fallback">{nomeMarca}</span>
+  );
   const metricasVis = (ehDono ? METRICAS.slice() : METRICAS.filter((m) => m.key === "dashboard" || areasPerm.includes(m.key))).filter((m) => !ehSuper || m.key !== "marketing");
   const opsKeys: string[] = ehDono
     ? OPERACOES.map((o) => o.key)
@@ -188,7 +201,7 @@ export default function Home() {
       {/* Top bar (mobile) */}
       <header className="mobiletop">
         <div className="brand">
-          {brand.logo ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} /> : <span className="fallback">{nomeMarca}</span>}
+          {marcaInterna}
         </div>
         <div className="mt-actions">
           <button className="iconbtn" style={{ position: "relative" }} onClick={() => setNotifOpen((v) => !v)} title="Notificações">
@@ -219,7 +232,7 @@ export default function Home() {
         <div className="drawer-overlay" onClick={() => setMenuAberto(false)}>
           <div className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="brand" style={{ justifyContent: "space-between" }}>
-              {brand.logo ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} /> : <span className="fallback">{nomeMarca}</span>}
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{marcaInterna}</span>
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
             <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
@@ -243,9 +256,7 @@ export default function Home() {
       {/* Sidebar */}
       <aside className="side">
         <div className="brand">
-          {brand.logo
-            ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
-            : <span className="fallback">{nomeMarca}</span>}
+          {marcaInterna}
         </div>
 
         <div className="navgroup">
