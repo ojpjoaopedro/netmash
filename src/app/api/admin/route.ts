@@ -231,6 +231,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // Reenviar acesso ao responsável: e-mail com link pra criar/redefinir a senha,
+  // redirecionando para a página da própria empresa (/slug).
+  if (action === "reenviar" && empresaId) {
+    const { data: e } = await s.from("empresas").select("dono_id,slug").eq("id", empresaId).single();
+    const donoId = (e as { dono_id?: string } | null)?.dono_id;
+    if (!donoId) return NextResponse.json({ error: "Empresa sem responsável." }, { status: 400 });
+    const { data: prof } = await s.from("perfis").select("email").eq("id", donoId).single();
+    const email = (prof as { email?: string } | null)?.email;
+    if (!email) return NextResponse.json({ error: "Responsável sem e-mail." }, { status: 400 });
+    if (!anonKey || !url) return NextResponse.json({ error: "E-mail não configurado no servidor." }, { status: 500 });
+    const slug = (e as { slug?: string } | null)?.slug;
+    const origin = new URL(req.url).origin;
+    const redirect = slug ? `${origin}/${slug}` : `${origin}/login?nova=1`;
+    const pub = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error } = await pub.auth.resetPasswordForEmail(email, { redirectTo: redirect });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Editar inline os dados cadastrais (sem mexer no plano/slug).
+  if (action === "empresa-dados" && empresaId) {
+    const patch: Record<string, unknown> = {};
+    if (typeof body.nomeEmpresa === "string" && body.nomeEmpresa.trim()) patch.nome = body.nomeEmpresa.trim();
+    if (body.cnpj !== undefined) patch.cnpj = body.cnpj || null;
+    if (body.segmento !== undefined) patch.segmento = body.segmento || null;
+    if (body.logo) patch.logo_url = body.logo;
+    if (Object.keys(patch).length) await s.from("empresas").update(patch).eq("id", empresaId);
+    const { data: emp } = await s.from("empresas").select("dono_id").eq("id", empresaId).single();
+    const donoId = (emp as { dono_id?: string } | null)?.dono_id;
+    if (donoId && (body.responsavel !== undefined || body.email)) {
+      const email = (body.email || "").trim().toLowerCase();
+      await s.from("perfis").update({ ...(body.responsavel !== undefined ? { nome: body.responsavel || null } : {}), ...(email ? { email } : {}) }).eq("id", donoId);
+      if (email) { try { await s.auth.admin.updateUserById(donoId, { email, email_confirm: true }); } catch { /* e-mail já em uso */ } }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   // Salvar a cor principal da empresa (usada na página pública /slug).
   if (action === "empresa-cor" && empresaId) {
     const cor = (body.cor || "").trim();

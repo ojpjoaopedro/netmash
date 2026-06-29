@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamis — Hub para Empresas (Proposta)</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --accent:#1AADE2;
+    --excel:#1AADE2;
+    --excel-soft:#e6f4fb;
+    --grid:#d9dee5;
+    --ink:#1f2a37;
+    --muted:#64748b;
+    --total:#fff7d6;
+    --total-border:#e9c84a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(26,173,226,0.10), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(33,115,70,0.08), transparent 42%),
+      linear-gradient(180deg,#eef2f7 0%, #f7f9fc 100%);
+    min-height:100vh;
+  }
+
+  /* ===== Modal ===== */
+  .prop-overlay{ position:fixed; inset:0; background:rgba(10,16,28,0.6); backdrop-filter:blur(3px); display:flex; align-items:flex-start; justify-content:center; padding:32px 16px; overflow:auto; z-index:1000; }
+  .prop-overlay[hidden]{ display:none; }
+  .prop-modal{ position:relative; background:#fff; border-radius:16px; width:100%; max-width:700px; padding:30px; box-shadow:0 40px 80px -20px rgba(0,0,0,0.4); animation:propIn .3s ease both; }
+  @keyframes propIn{ from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:translateY(0)} }
+  .prop-close{ position:absolute; top:14px; right:16px; width:34px; height:34px; border:none; background:#f1f4f8; border-radius:50%; font-size:22px; line-height:1; color:#64748b; cursor:pointer; }
+  .prop-close:hover{ background:#e2e8f1; }
+  .prop-h{ font-size:21px; font-weight:900; color:var(--ink); }
+  .prop-p{ font-size:13.5px; color:var(--muted); margin:4px 0 18px; }
+  .prop-field{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .prop-field label{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .prop-field input[type=text], .prop-field input[type=number]{ padding:12px 14px; border:1.5px solid var(--grid); border-radius:10px; font-family:'Inter',sans-serif; font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .prop-field input:focus{ outline:none; border-color:var(--accent); }
+  .prop-row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .prop-row2 .prop-field{ margin-bottom:14px; }
+  .prop-row3{ display:grid; grid-template-columns:minmax(0,5fr) minmax(0,4fr) minmax(0,1fr); gap:12px; }
+  .prop-row3 .prop-field{ margin-bottom:14px; min-width:0; }
+  .prop-row3 input{ text-align:left; }
+  .prop-hint{ font-size:11.5px; font-weight:600; color:var(--muted); text-transform:none; letter-spacing:0; }
+  .prop-radios{ display:flex; flex-direction:column; gap:8px; }
+  .prop-radio{ display:flex; align-items:center; gap:10px; padding:12px 14px; border:1.5px solid var(--grid); border-radius:10px; font-size:14px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .prop-radio input{ width:18px; height:18px; accent-color:var(--accent); }
+  .prop-radio:has(input:checked){ border-color:var(--accent); background:rgba(26,173,226,0.06); }
+  .prop-radio .rp{ flex:1; }
+  .prop-radio .rv{ font-weight:800; color:var(--excel); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .prop-total{ margin-top:4px; display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--excel-soft); border:1px solid rgba(26,173,226,0.3); border-radius:12px; padding:15px 18px; }
+  .prop-total .pt-l{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+  .prop-total .pt-v{ font-size:26px; font-weight:900; color:var(--excel); letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+  .prop-total .pt-v small{ font-size:13px; font-weight:600; color:var(--muted); letter-spacing:0; }
+  .prop-err{ color:#dc2626; font-size:13px; font-weight:600; margin:14px 0 0; }
+  .prop-actions{ display:flex; gap:12px; margin-top:18px; }
+  .prop-back{ flex-shrink:0; padding:14px 20px; border:1.5px solid var(--grid); background:#fff; border-radius:12px; font-family:'Inter',sans-serif; font-weight:700; color:var(--muted); cursor:pointer; }
+  .gen-btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px 24px; border:none; border-radius:12px; background:linear-gradient(135deg,#1AADE2,#0c7cab); color:#fff; font-family:'Inter',sans-serif; font-size:16px; font-weight:800; letter-spacing:.3px; cursor:pointer; box-shadow:0 16px 36px -14px rgba(26,173,226,0.6); transition:transform .2s ease, box-shadow .2s ease; margin-top:18px; }
+  .gen-btn:hover{ transform:translateY(-2px); box-shadow:0 20px 44px -14px rgba(26,173,226,0.7); }
+  .prop-actions .gen-btn{ flex:1; margin-top:0; }
+  .prop-two{ display:flex; gap:12px; margin-top:18px; }
+  .prop-two .gen-btn{ flex:1; margin-top:0; }
+  .gen-ghost{ background:#fff; color:var(--accent); border:1.5px solid var(--accent); box-shadow:none; }
+  .gen-ghost:hover{ background:rgba(26,173,226,0.06); box-shadow:none; transform:translateY(-1px); }
+  .prop-back-full{ width:100%; margin-top:10px; }
+  @media (max-width:560px){ .prop-two{ flex-direction:column; } }
+
+  /* Tela de conferência (double-check) */
+  .ck-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+  .ck-box{ background:#f4f8fb; border:1px solid var(--grid); border-radius:10px; padding:13px 9px; text-align:center; }
+  .ck-box.ck-accent{ background:var(--accent); border-color:var(--accent); }
+  .ck-box span{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:#64748b; font-weight:700; }
+  .ck-box.ck-accent span{ color:rgba(255,255,255,.85); }
+  .ck-box b{ display:block; font-size:16px; font-weight:900; margin-top:4px; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .ck-box.ck-accent b{ color:#fff; }
+  .ck-label{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); margin:6px 0 8px; }
+  .ck-list{ display:flex; flex-direction:column; gap:8px; }
+  .ck-item{ display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid var(--grid); border-radius:10px; cursor:pointer; font-size:13.5px; }
+  .ck-item.on{ border-color:var(--accent); background:rgba(26,173,226,0.05); }
+  .ck-item input{ width:18px; height:18px; accent-color:var(--excel); flex-shrink:0; cursor:pointer; }
+  .ck-name{ flex:1; font-weight:700; color:var(--ink); line-height:1.3; }
+  .ck-price{ font-weight:800; color:var(--excel); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  @media (max-width:560px){ .ck-grid{ grid-template-columns:1fr 1fr; } .prop-row2{ grid-template-columns:1fr; } }
+
+  /* ===== Documento da Proposta (multi-página) ===== */
+  #proposalDoc{ display:none; margin-top:8px; color:#1f2a37; font-size:14px; line-height:1.5; }
+  #proposalDoc *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  #proposalDoc .deliv, #proposalDoc .cond, #proposalDoc .valid, #proposalDoc .inv-table, #proposalDoc .inv-cards{ break-inside:avoid; page-break-inside:avoid; }
+  .pg{ background:#fff; border:1px solid var(--grid); border-radius:12px; padding:32px 34px; margin-bottom:16px; }
+  .pg:last-child{ margin-bottom:0; }
+
+  .pg-cover{ border:none; padding:0; border-radius:14px; overflow:hidden; background:linear-gradient(150deg,#0a1730 0%,#0c3a59 55%,#1AADE2 145%); color:#fff; min-height:540px; display:flex; }
+  .cv-pad{ padding:42px 40px; display:flex; flex-direction:column; flex:1; }
+  .cv-logo{ display:block; width:100%; max-width:520px; height:auto; margin:10px auto 0; }
+  .cv-mid{ margin-top:auto; }
+  .cv-kicker{ display:inline-block; background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.28); padding:6px 14px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+  .cv-title{ font-size:30px; font-weight:900; line-height:1.18; letter-spacing:-1px; margin:16px 0 8px; }
+  .cv-title span{ color:#67e8f9; }
+  .cv-subtitle{ font-size:15px; opacity:.9; }
+  .cv-meta{ margin-top:32px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px 24px; border-top:1px solid rgba(255,255,255,0.22); padding-top:22px; }
+  .cv-meta span{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.6px; opacity:.75; font-weight:700; }
+  .cv-meta b{ font-size:14px; }
+
+  .sec-h{ display:flex; align-items:center; gap:12px; font-size:19px; font-weight:900; color:#0a1730; margin:4px 0 14px; }
+  .sec-h .sec-n{ display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:var(--accent); color:#fff; font-size:14px; }
+  .sec-h.gold .sec-n{ background:#c48a57; }
+  .pg .sec-h:not(:first-of-type){ margin-top:26px; }
+  .sec-p{ color:#475569; font-size:13.5px; line-height:1.6; margin-bottom:16px; }
+  .sec-p b{ color:#0a1730; }
+
+  .deliv{ display:flex; gap:14px; border:1px solid var(--grid); border-left:4px solid var(--accent); border-radius:10px; padding:15px 18px; margin-bottom:12px; }
+  .deliv-ic{ flex-shrink:0; width:42px; height:42px; border-radius:11px; background:rgba(26,173,226,0.12); display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .deliv-b{ flex:1; }
+  .deliv-top{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .deliv-top h4{ font-size:15px; font-weight:800; color:#0a1730; }
+  .deliv-val{ font-weight:900; color:var(--excel); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .deliv-b p{ font-size:12.5px; color:#475569; line-height:1.55; margin-top:5px; }
+
+  .inv-table{ width:100%; border-collapse:collapse; font-size:13px; margin:4px 0 16px; }
+  .inv-table th,.inv-table td{ border:1px solid var(--grid); padding:9px 12px; text-align:left; }
+  .inv-table th:last-child,.inv-table td:last-child{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .inv-table thead th{ background:#0a1730; color:#fff; font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
+  .inv-table tfoot td{ background:var(--total); font-weight:900; }
+  .inv-cards{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .ic{ background:#f4f8fb; border:1px solid var(--grid); border-radius:10px; padding:13px; text-align:center; }
+  .ic.accent{ background:var(--accent); border-color:var(--accent); }
+  .ic span{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:#64748b; font-weight:700; }
+  .ic.accent span{ color:rgba(255,255,255,0.85); }
+  .ic b{ display:block; font-size:18px; font-weight:900; margin-top:4px; color:#0a1730; font-variant-numeric:tabular-nums; }
+  .ic.accent b{ color:#fff; }
+
+  .cond{ background:#f8fafc; border:1px solid var(--grid); border-radius:12px; padding:18px 20px; font-size:13.5px; line-height:1.65; }
+  .cond-t{ display:block; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--accent); font-weight:800; margin-bottom:8px; }
+  .cond b{ color:#0a1730; }
+
+  .valid{ display:flex; gap:16px; align-items:center; background:#fff7ed; border:1px solid #f0c64a; border-radius:12px; padding:18px 20px; margin-bottom:20px; font-size:13.5px; line-height:1.55; }
+  .valid .v-ic{ font-size:28px; }
+  .valid b{ color:#0a1730; }
+  .doc-foot{ margin-top:24px; padding-top:14px; border-top:1px solid var(--grid); font-size:11.5px; color:#94a3b8; text-align:center; }
+
+  /* Contrato */
+  .ct-head{ text-align:center; border-bottom:2px solid #0a1730; padding-bottom:18px; margin-bottom:22px; }
+  .ct-logo{ width:190px !important; max-width:190px !important; height:auto; margin:0 auto 14px !important; }
+  .ct-brand{ font-size:24px; font-weight:900; letter-spacing:.5px; color:#0a1730; margin-bottom:14px; }
+  .ct-title{ font-size:19px; font-weight:900; color:#0a1730; line-height:1.3; letter-spacing:-.3px; }
+  .ct-subtitle{ font-size:12.5px; color:var(--muted); margin-top:6px; }
+  .ct-p{ font-size:13px; color:#1f2a37; line-height:1.7; margin-bottom:12px; text-align:justify; }
+  .ct-clause{ margin-top:16px; }
+  .ct-clause h4{ font-size:13.5px; font-weight:800; color:#0a1730; margin-bottom:6px; }
+  .ct-clause p{ font-size:13px; color:#334155; line-height:1.7; margin-bottom:8px; text-align:justify; }
+  .ct-sign{ display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:46px; }
+  .ct-sign > div{ text-align:center; }
+  .ct-line{ display:block; border-top:1.4px solid #0a1730; margin-bottom:8px; }
+  .ct-sign b{ display:block; font-size:13px; font-weight:800; color:#0a1730; }
+  .ct-sign small{ display:block; font-size:11.5px; color:var(--muted); margin-top:3px; }
+  .ct-wit{ margin-top:42px; }
+
+  @media (max-width:560px){
+    .prop-overlay{ padding:14px 10px; }
+    .prop-modal{ padding:20px 16px; border-radius:14px; }
+    .prop-h{ font-size:19px; }
+    /* CNPJ ocupa a linha toda; Cidade + UF na linha de baixo */
+    .prop-row3{ grid-template-columns:minmax(0,3fr) minmax(0,1fr); }
+    .prop-row3 .prop-field:first-child{ grid-column:1 / -1; }
+    .prop-radio{ font-size:13.5px; padding:13px 14px; }
+    .prop-total{ flex-direction:column; align-items:flex-start; gap:4px; }
+    .prop-total .pt-v{ font-size:24px; }
+    .inv-cards{ grid-template-columns:1fr 1fr; }
+    .cv-meta{ grid-template-columns:1fr 1fr; }
+    .cv-title{ font-size:24px; }
+  }
+  @media (max-width:380px){
+    .prop-row3{ grid-template-columns:1fr 1fr; }
+    .prop-field input[type=text], .prop-field input[type=number]{ font-size:16px; } /* evita zoom no iOS */
+  }
+
+  /* Impressão: só a proposta */
+  @media print{
+    @page{ margin:0; }
+    body{ background:#fff !important; padding:0 !important; }
+    body > *{ display:none !important; }
+    .prop-overlay{ display:block !important; position:static !important; background:none !important; backdrop-filter:none !important; padding:0 !important; overflow:visible !important; }
+    .prop-modal{ box-shadow:none !important; max-width:100% !important; padding:0 !important; animation:none !important; }
+    .prop-close, .prop-actions, #propStep1, #propStep2, .prop-h, .prop-p{ display:none !important; }
+    #proposalDoc{ display:block !important; margin:0 !important; }
+    .pg{ border:none !important; border-radius:0 !important; margin:0 !important; padding:40px 44px !important; break-before:page; }
+    #proposalDoc > .pg:first-child{ break-before:auto; }
+    .pg-cover{ padding:0 !important; min-height:100vh; border-radius:0 !important; }
+    .pg-cover .cv-pad{ padding:48px 50px !important; }
+    #proposalDoc > .pg:not(.pg-cover){ padding:46px 50px !important; }
+    .deliv,.cond,.valid,.ic,.inv-table{ break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="prop-overlay" id="propModal">
+    <div class="prop-modal">
+      <button class="prop-close" id="propClose" aria-label="Fechar">×</button>
+      <div id="propStep1">
+        <h3 class="prop-h">Gerar proposta</h3>
+        <p class="prop-p">Monte o plano do Hub</p>
+
+        <div class="prop-field"><label for="fEmpresa">Empresa</label><input type="text" id="fEmpresa"></div>
+        <div class="prop-field"><label for="fResp">Responsável</label><input type="text" id="fResp"></div>
+        <div class="prop-row3">
+          <div class="prop-field"><label for="fCnpj">CNPJ</label><input type="text" id="fCnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18"></div>
+          <div class="prop-field"><label for="fCidade">Cidade</label><input type="text" id="fCidade"></div>
+          <div class="prop-field"><label for="fEstado">UF</label><input type="text" id="fEstado" maxlength="2" style="text-transform:uppercase"></div>
+        </div>
+
+        <div class="prop-row2">
+          <div class="prop-field"><label for="fSupers">Nº de superadmins <span class="prop-hint">(R$ 79,90 cada)</span></label><input type="number" id="fSupers" value="1" min="0" step="1"></div>
+          <div class="prop-field"><label for="fAcessos">Nº de acessos <span class="prop-hint">(R$ 39,90 cada)</span></label><input type="number" id="fAcessos" value="0" min="0" step="1"></div>
+        </div>
+
+        <div class="prop-field">
+          <label>Ferramentas adicionais</label>
+          <div class="prop-radios">
+            <label class="prop-radio"><input type="checkbox" id="fPlan"> <span class="rp">Planejamento Estratégico</span><span class="rv">R$ 39,90/mês</span></label>
+            <label class="prop-radio"><input type="checkbox" id="fApp"> <span class="rp">Acesso pelo Aplicativo</span><span class="rv">R$ 29,90/mês</span></label>
+          </div>
+        </div>
+
+        <div class="prop-field">
+          <label>Forma de pagamento</label>
+          <div class="prop-radios">
+            <label class="prop-radio"><input type="radio" name="payopt" value="pix" checked> <span class="rp">Pix</span></label>
+            <label class="prop-radio"><input type="radio" name="payopt" value="cartao"> <span class="rp">Cartão de crédito</span></label>
+          </div>
+        </div>
+
+        <div class="prop-total">
+          <span class="pt-l">Investimento total</span>
+          <span class="pt-v" id="popTotal">R$ 0,00 <small>/ mês</small></span>
+        </div>
+
+        <div class="prop-err" id="propErr"></div>
+        <button class="gen-btn" id="propNext">Continuar →</button>
+      </div>
+
+      <div id="propStep2" hidden>
+        <h3 class="prop-h">Confira os dados</h3>
+        <p class="prop-p">Dê um double-check</p>
+        <div id="checkBody"></div>
+        <div class="prop-two">
+          <button class="gen-btn gen-ghost" id="propConfirm">📄 Gerar contrato</button>
+          <button class="gen-btn" id="propBuy">✓ Finalizar a compra</button>
+        </div>
+        <button class="prop-back prop-back-full" id="propBack">← Voltar</button>
+      </div>
+
+      <div id="proposalDoc"></div>
+    </div>
+  </div>
+
+<script>
+  const BRL = v => v.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+  const fAcessos = document.getElementById('fAcessos');
+  const fSupers = document.getElementById('fSupers');
+  const fPlan = document.getElementById('fPlan');
+  const fApp = document.getElementById('fApp');
+  const PRECO = { acesso:39.90, superadmin:79.90, planejamento:39.90, app:29.90 };
+
+  function getState(){
+    const acessos = Math.max(0, Math.floor(Number(fAcessos.value) || 0));
+    const supers  = Math.max(0, Math.floor(Number(fSupers.value) || 0));
+    const plan = fPlan.checked, app = fApp.checked;
+    const subAcesso = acessos * PRECO.acesso;
+    const subSuper  = supers * PRECO.superadmin;
+    const subPlan = plan ? PRECO.planejamento : 0;
+    const subApp  = app ? PRECO.app : 0;
+    const total = subAcesso + subSuper + subPlan + subApp;
+    return { acessos, supers, plan, app, subAcesso, subSuper, subPlan, subApp, total };
+  }
+  // Máscara de CNPJ: 00.000.000/0000-00 enquanto digita
+  const fCnpj = document.getElementById('fCnpj');
+  fCnpj.addEventListener('input', () => {
+    const v = fCnpj.value.replace(/\D/g, '').slice(0, 14);
+    let out = v;
+    if (v.length > 12) out = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, '$1.$2.$3/$4-$5');
+    else if (v.length > 8) out = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/, '$1.$2.$3/$4');
+    else if (v.length > 5) out = v.replace(/^(\d{2})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
+    else if (v.length > 2) out = v.replace(/^(\d{2})(\d{0,3}).*/, '$1.$2');
+    fCnpj.value = out;
+  });
+
+  function recalc(){ document.getElementById('popTotal').innerHTML = BRL(getState().total) + ' <small>/ mês</small>'; }
+  [fAcessos, fSupers, fPlan, fApp].forEach(el => el.addEventListener('input', recalc));
+  fAcessos.addEventListener('change', () => { if (Number(fAcessos.value) < 0 || fAcessos.value === '') fAcessos.value = 0; recalc(); });
+  fSupers.addEventListener('change', () => { if (!fSupers.value || Number(fSupers.value) < 0) fSupers.value = 0; recalc(); });
+  recalc();
+
+  // ===== Modal: abre direto, fundo limpo, sem poder sair =====
+  const propModal = document.getElementById('propModal');
+  const propStep1 = document.getElementById('propStep1');
+  const propStep2 = document.getElementById('propStep2');
+  const propErr = document.getElementById('propErr');
+  let closeLocked = true;
+
+  function closeModal(){ if (closeLocked) return; propModal.hidden = true; }
+  function esc(s){ return String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+
+  // Não pode sair: esconde o "X" e bloqueia fechar (inclusive clicando fora)
+  document.getElementById('propClose').style.display = 'none';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('propClose').addEventListener('click', closeModal);
+  propModal.addEventListener('click', e => { if (e.target === propModal) closeModal(); });
+  document.getElementById('propBack').addEventListener('click', () => { propStep2.hidden = true; propStep1.hidden = false; });
+  document.getElementById('propBuy').addEventListener('click', () => { window.open('https://stripe.com/br', '_blank', 'noopener'); });
+
+  document.getElementById('propNext').addEventListener('click', () => {
+    propErr.textContent = '';
+    renderCheck();
+    propStep1.hidden = true; propStep2.hidden = false;
+  });
+
+  function buildCheck(){
+    const s = getState();
+    const modulo = (on, nome, valor) =>
+      '<label class="ck-item' + (on ? ' on' : '') + '">'
+      + '<input type="checkbox" data-mod="' + nome + '"' + (on ? ' checked' : '') + '>'
+      + '<span class="ck-name">' + nome + '</span>'
+      + '<span class="ck-price">' + BRL(valor) + ' / mês</span></label>';
+    return '<div class="ck-grid">'
+      + '<div class="ck-box"><span>Nº de superadmins</span><b>' + s.supers + '</b></div>'
+      + '<div class="ck-box"><span>Nº de acessos</span><b>' + s.acessos + '</b></div>'
+      + '<div class="ck-box ck-accent"><span>Total / mês</span><b id="ckTotal">' + BRL(s.total) + '</b></div>'
+      + '</div>'
+      + '<div class="ck-label">Ferramentas adicionais</div>'
+      + '<div class="ck-list">'
+      + modulo(fPlan.checked, 'Planejamento Estratégico', PRECO.planejamento)
+      + modulo(fApp.checked, 'Acesso pelo Aplicativo', PRECO.app)
+      + '</div>';
+  }
+  function renderCheck(){ document.getElementById('checkBody').innerHTML = buildCheck(); }
+
+  document.getElementById('checkBody').addEventListener('change', e => {
+    const cb = e.target;
+    if (!cb.dataset || !cb.dataset.mod) return;
+    if (cb.dataset.mod === 'Planejamento Estratégico') fPlan.checked = cb.checked;
+    if (cb.dataset.mod === 'Acesso pelo Aplicativo') fApp.checked = cb.checked;
+    recalc();
+    const lab = cb.closest('.ck-item'); if (lab) lab.classList.toggle('on', cb.checked);
+    const t = document.getElementById('ckTotal'); if (t) t.textContent = BRL(getState().total);
+  });
+
+  document.getElementById('propConfirm').addEventListener('click', () => {
+    const empresa = document.getElementById('fEmpresa').value.trim();
+    const resp = document.getElementById('fResp').value.trim();
+    const cnpj = document.getElementById('fCnpj').value.trim();
+    const cidade = document.getElementById('fCidade').value.trim();
+    const estado = document.getElementById('fEstado').value.trim().toUpperCase();
+    document.getElementById('proposalDoc').innerHTML = buildContractHTML(empresa, resp, cnpj, cidade, estado);
+    const img = document.querySelector('#proposalDoc .cv-logo');
+    const go = () => window.print();
+    if (img && img.decode) img.decode().then(go).catch(go);
+    else if (img && !img.complete){ img.addEventListener('load', go, { once: true }); img.addEventListener('error', go, { once: true }); }
+    else go();
+  });
+
+  // ===== Dados da CONTRATADA (Falange Empresarial) =====
+  const DYNAMIS = {
+    razao: 'Falange Empresarial',
+    nome: 'FALANGE EMPRESARIAL',
+    cnpj: '49.302.479/0001-00',
+    sede: 'Goiânia/GO',
+    foro: 'Goiânia, Estado de Goiás',
+    site: 'barge.io',
+  };
+
+  function buildContractHTML(empresa, resp, cnpj, cidade, estado){
+    const now = new Date();
+    const dataExt = now.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+    const s = getState();
+    const opt = (document.querySelector('input[name="payopt"]:checked') || {}).value || 'pix';
+    const formaPg = opt === 'pix'
+      ? 'PIX recorrente, com cobrança automática mensal'
+      : 'cartão de crédito, em assinatura recorrente com renovação automática mensal';
+    const empresaNome = esc(empresa || '_________________________________');
+    const respNome = esc(resp || '_________________________________');
+    const cnpjTxt = cnpj ? esc(cnpj) : '____________________';
+    const sedeCt = (cidade || estado) ? esc([cidade, estado].filter(Boolean).join('/')) : '____________________________________';
+
+    // Itens contratados (tabela)
+    const itens = [
+      { show:s.acessos > 0, t:'Acesso ao Hub', det:s.acessos + ' acesso(s) × R$ 39,90', val:s.subAcesso },
+      { show:s.supers > 0, t:'Superadmin', det:s.supers + ' superadmin(s) × R$ 79,90', val:s.subSuper },
+      { show:s.plan, t:'Planejamento Estratégico', det:'Valor fixo / mês', val:s.subPlan },
+      { show:s.app, t:'Acesso pelo Aplicativo', det:'Valor fixo / mês', val:s.subApp },
+    ];
+    let linhas = '';
+    itens.forEach(it => { if (it.show) linhas += '<tr><td>' + esc(it.t) + '</td><td>' + esc(it.det) + '</td><td>' + BRL(it.val) + '</td></tr>'; });
+
+    const clausula = (n, titulo, corpo) =>
+      '<div class="ct-clause"><h4>' + n + '. ' + titulo + '</h4>' + corpo + '</div>';
+
+    return ''
+      // ── Página 1: cabeçalho, partes e objeto
+      + '<section class="pg">'
+      +   '<div class="ct-head">'
+      +     '<div class="ct-brand">' + esc(DYNAMIS.nome) + '</div>'
+      +     '<div class="ct-title">Contrato de Assinatura e Licença de Uso da Plataforma Hub</div>'
+      +     '<div class="ct-subtitle">Instrumento particular de prestação de serviços de software como serviço (SaaS)</div>'
+      +   '</div>'
+      +   '<p class="ct-p">Pelo presente instrumento particular, as partes a seguir qualificadas:</p>'
+      +   '<p class="ct-p"><b>CONTRATADA:</b> ' + esc(DYNAMIS.razao) + ', inscrita no CNPJ sob o nº ' + esc(DYNAMIS.cnpj) + ', com sede em ' + esc(DYNAMIS.sede) + ', doravante denominada simplesmente <b>“' + esc(DYNAMIS.nome) + '”</b>.</p>'
+      +   '<p class="ct-p"><b>CONTRATANTE:</b> ' + empresaNome + ', inscrita no CNPJ sob o nº ' + cnpjTxt + ', com sede em ' + sedeCt + ', neste ato representada por <b>' + respNome + '</b>, doravante denominada simplesmente <b>“CONTRATANTE”</b>.</p>'
+      +   '<p class="ct-p">têm entre si, justo e contratado, o presente Contrato, que se regerá pelas cláusulas e condições a seguir:</p>'
+      +   clausula('1', 'DO OBJETO',
+            '<p>O presente Contrato tem por objeto a concessão, pela ' + DYNAMIS.nome + ' à CONTRATANTE, de licença de uso, não exclusiva e intransferível, da plataforma <b>Hub</b>, disponibilizada em ambiente de nuvem (modelo SaaS), que reúne painéis de <b>métricas, finanças, saúde do cliente, comercial e marketing</b>, conforme o plano contratado descrito na Cláusula 3.</p>')
+      +   clausula('2', 'DA FORMA DE ACESSO',
+            '<p>O acesso à plataforma se dá por meio de credenciais individuais. A CONTRATANTE contrata <b>' + s.acessos + ' (' + s.acessos + ') acesso(s)</b> de usuário e <b>' + s.supers + ' (' + s.supers + ') acesso(s) de Superadmin</b> (perfil com permissões totais de gestão), além dos módulos adicionais assinalados na Cláusula 3. As credenciais são pessoais e intransferíveis, sendo vedado o compartilhamento.</p>')
+      + '</section>'
+      // ── Página 2: preço, prazo, obrigações
+      + '<section class="pg">'
+      +   clausula('3', 'DO PLANO, PREÇO E REAJUSTE',
+            '<p>A CONTRATANTE pagará à ' + DYNAMIS.nome + ' o valor mensal total de <b>' + BRL(s.total) + '</b>, referente aos itens abaixo:</p>'
+          + '<table class="inv-table"><thead><tr><th>Item</th><th>Detalhe</th><th>Valor / mês</th></tr></thead><tbody>' + linhas + '</tbody><tfoot><tr><td colspan="2">Total mensal</td><td>' + BRL(s.total) + '</td></tr></tfoot></table>'
+          + '<p>Os valores serão reajustados anualmente pela variação do <b>IPCA/IBGE</b> ou índice que o substitua.</p>')
+      +   clausula('4', 'DA FORMA DE PAGAMENTO',
+            '<p>O pagamento será realizado mensalmente via <b>' + formaPg + '</b>. O atraso superior a 10 (dez) dias poderá ensejar a suspensão do acesso, sem prejuízo da cobrança dos valores devidos, acrescidos de multa de 2% e juros de 1% ao mês.</p>')
+      +   clausula('5', 'DA VIGÊNCIA',
+            '<p>Este Contrato vigora por prazo indeterminado, com início na data de sua assinatura, renovando-se automaticamente a cada mês. <b>Não há fidelidade</b>: qualquer das partes poderá rescindi-lo mediante comunicação prévia de 30 (trinta) dias, sem multa.</p>')
+      +   clausula('6', 'DAS OBRIGAÇÕES DA ' + DYNAMIS.nome,
+            '<p>Disponibilizar a plataforma em funcionamento, prestar suporte técnico em horário comercial, fornecer as atualizações e correções do sistema e zelar pela segurança e confidencialidade dos dados, observando a legislação aplicável.</p>')
+      +   clausula('7', 'DAS OBRIGAÇÕES DA CONTRATANTE',
+            '<p>Efetuar os pagamentos nas datas devidas; utilizar a plataforma conforme sua finalidade e a legislação vigente; manter a guarda e o sigilo das credenciais de acesso; e não ceder, sublicenciar ou comercializar o acesso a terceiros.</p>')
+      + '</section>'
+      // ── Página 3: LGPD, PI, rescisão, foro e assinaturas
+      + '<section class="pg">'
+      +   clausula('8', 'DA PROTEÇÃO DE DADOS (LGPD)',
+            '<p>As partes obrigam-se a tratar os dados pessoais a que tiverem acesso em conformidade com a <b>Lei nº 13.709/2018 (LGPD)</b>, utilizando-os exclusivamente para a execução deste Contrato e adotando medidas de segurança adequadas.</p>')
+      +   clausula('9', 'DA PROPRIEDADE INTELECTUAL',
+            '<p>A plataforma Hub, seu código, marca, identidade visual e conteúdos são de propriedade exclusiva da ' + DYNAMIS.nome + ' ou de seus licenciadores. O presente Contrato concede apenas o direito de uso durante sua vigência, não transferindo qualquer direito de propriedade intelectual à CONTRATANTE.</p>')
+      +   clausula('10', 'DA RESCISÃO',
+            '<p>O Contrato poderá ser rescindido: (i) por qualquer das partes, mediante aviso prévio de 30 dias; (ii) por descumprimento de qualquer cláusula não sanado em 10 dias após notificação. Rescindido o Contrato, o acesso à plataforma será encerrado.</p>')
+      +   clausula('11', 'DO FORO',
+            '<p>Fica eleito o foro da Comarca de <b>' + esc(DYNAMIS.foro) + '</b> para dirimir quaisquer dúvidas oriundas deste Contrato, com renúncia a qualquer outro, por mais privilegiado que seja.</p>')
+      +   '<p class="ct-p">E, por estarem assim justas e contratadas, as partes firmam o presente em duas vias de igual teor, na presença das testemunhas abaixo.</p>'
+      +   '<p class="ct-p" style="text-align:right">' + esc(DYNAMIS.sede) + ', ' + dataExt + '.</p>'
+      +   '<div class="ct-sign">'
+      +     '<div><span class="ct-line"></span><b>' + empresaNome + '</b><small>CONTRATANTE · ' + respNome + '</small></div>'
+      +     '<div><span class="ct-line"></span><b>' + esc(DYNAMIS.razao) + '</b><small>CONTRATADA</small></div>'
+      +   '</div>'
+      +   '<div class="ct-sign ct-wit">'
+      +     '<div><span class="ct-line"></span><small>Testemunha 1 · CPF</small></div>'
+      +     '<div><span class="ct-line"></span><small>Testemunha 2 · CPF</small></div>'
+      +   '</div>'
+      +   '<div class="doc-foot">' + esc(DYNAMIS.razao) + ' — Contrato gerado em ' + now.toLocaleDateString('pt-BR') + '</div>'
+      + '</section>';
+  }
+</script>
+</body>
+</html>
