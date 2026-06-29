@@ -43,7 +43,7 @@ export default function EmpresaSlug() {
               : <div className="es-nome" style={{ color: acc }}>{marca.nome}</div>}
             <h1>Painel de <span style={{ color: acc }}>{marca.nome}</span></h1>
             <p>Acompanhe as métricas e finanças da sua empresa.</p>
-            <button className="es-btn" style={{ background: acc }} onClick={() => router.push("/login")}>Entrar no painel →</button>
+            <button className="es-btn" style={{ background: acc }} onClick={() => router.push(`/${slug}/login`)}>Entrar no painel →</button>
             <div className="es-foot">Powered by Minhas Métricas</div>
           </>
         )}

@@ -7,6 +7,7 @@ export default function SenhaPage() {
   const router = useRouter();
   const [pronto, setPronto] = useState(false);       // sessão do link de e-mail detectada
   const [verificando, setVerificando] = useState(true);
+  const [slug, setSlug] = useState("");              // slug da empresa do usuário (p/ voltar ao login dela)
   const [email, setEmail] = useState("");            // e-mail que cadastramos (vem do link)
   const [emailReenvio, setEmailReenvio] = useState("");
   const [senha, setSenha] = useState("");
@@ -23,6 +24,9 @@ export default function SenhaPage() {
     const marcar = (em?: string | null) => {
       if (done) return; done = true;
       setEmail(em ?? ""); setPronto(true); setVerificando(false);
+      // Descobre o slug da empresa do usuário, para voltar ao login dela.
+      supabase!.from("empresas").select("slug").maybeSingle()
+        .then(({ data }) => { const sl = (data as { slug?: string } | null)?.slug; if (sl) setSlug(sl); });
     };
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || session?.user) marcar(session?.user?.email);
@@ -42,10 +46,11 @@ export default function SenhaPage() {
     setCarregando(true);
     try {
       const { error } = await supabase!.auth.updateUser({ password: senha });
-      if (error) throw error;
+      // Permite manter a mesma senha (o Supabase bloqueia por padrão) — tratamos como sucesso.
+      if (error && !/same.?password|different from the old/i.test(`${error.code || ""} ${error.message || ""}`)) throw error;
       setMsg("✅ Senha criada! Redirecionando para o login…");
       await supabase!.auth.signOut();
-      setTimeout(() => router.push("/login"), 1500);
+      setTimeout(() => router.push(slug ? `/${slug}/login` : "/login"), 1500);
     } catch (err) {
       const m = err instanceof Error ? err.message : "Erro";
       setErro(/session|recovery|expired|token|jwt/i.test(m)

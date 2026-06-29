@@ -369,11 +369,17 @@ export async function enviarReset(email: string, redirectTo?: string) {
   if (error) throw error;
 }
 
+/** Repetir a senha atual? O Supabase bloqueia por padrão ("same_password"); tratamos como sucesso. */
+function senhaIgualOk(error: { message?: string; code?: string } | null): boolean {
+  if (!error) return true;
+  return /same.?password|different from the old/i.test(`${error.code || ""} ${error.message || ""}`);
+}
+
 /** Define a nova senha (após clicar no link do e-mail, com sessão de recuperação ativa). */
 export async function definirSenha(senha: string) {
   if (!supabase) throw new Error("Supabase não configurado");
   const { error } = await supabase.auth.updateUser({ password: senha });
-  if (error) throw error;
+  if (!senhaIgualOk(error)) throw error;
 }
 
 // ============================================================

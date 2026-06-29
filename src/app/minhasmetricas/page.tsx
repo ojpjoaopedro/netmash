@@ -125,6 +125,18 @@ export default function Home() {
     if (typeof window !== "undefined") setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
   }, []);
 
+  // Interliga a identidade: aplica logo/cor da empresa logada (banco) na marca do painel.
+  useEffect(() => {
+    const eb = empresa as (Empresa & { logo_url?: string | null; cor?: string | null }) | null;
+    if (!eb) return;
+    const patch: { logo?: string; cor?: string; nome?: string } = {};
+    if (eb.logo_url && eb.logo_url !== brand.logo) patch.logo = eb.logo_url;
+    if (eb.cor && eb.cor !== brand.cor) patch.cor = eb.cor;
+    if (eb.nome && eb.nome !== "Minha Empresa" && (!brand.nome || brand.nome === "Minha Empresa")) patch.nome = eb.nome;
+    if (Object.keys(patch).length) saveBrand(patch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa]);
+
   const nomeMarca = brand.nome && brand.nome !== "Minha Empresa" ? brand.nome : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
   const saudacaoNome = (brand.saudacao || perfil?.nome || "").split(" ")[0];
   const logoH = brand.logoTamanho || 40;

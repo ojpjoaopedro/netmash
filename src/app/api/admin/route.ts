@@ -199,10 +199,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Criar acesso (colaborador) numa empresa selecionada — feito pelo super admin.
+  // A senha NÃO é definida aqui: o colaborador recebe um e-mail para criar a própria senha.
   if (action === "acesso-criar" && empresaId) {
     const email = (body.email || "").trim().toLowerCase();
-    const senha = body.senha || "";
-    if (!email || senha.length < 6) return NextResponse.json({ error: "Informe e-mail e senha (mín. 6)." }, { status: 400 });
+    if (!email.includes("@")) return NextResponse.json({ error: "Informe um e-mail válido." }, { status: 400 });
+    const senha = body.senha && body.senha.length >= 6 ? body.senha : crypto.randomBytes(9).toString("base64url");
     const { data: created, error } = await s.auth.admin.createUser({ email, password: senha, email_confirm: true, user_metadata: { nome: body.nome || email, empresa: "" } });
     if (error || !created?.user) {
       const msg = /already.*registered|exists/i.test(error?.message || "") ? "Este e-mail já tem conta." : (error?.message || "Não consegui criar o acesso.");
@@ -211,6 +212,14 @@ export async function POST(req: NextRequest) {
     const novoId = created.user.id;
     await s.from("perfis").update({ empresa_id: empresaId, papel: "colaborador", areas: Array.isArray(body.areas) ? body.areas : [], nome: body.nome || email }).eq("id", novoId);
     await s.from("empresas").delete().eq("dono_id", novoId); // remove a empresa órfã criada pelo gatilho
+    // E-mail para o colaborador criar a própria senha (best-effort).
+    if (anonKey && url) {
+      try {
+        const origin = new URL(req.url).origin;
+        const pub = createClient(url, anonKey, { auth: { persistSession: false } });
+        await pub.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/senha` });
+      } catch { /* segue mesmo se o e-mail falhar */ }
+    }
     return NextResponse.json({ ok: true });
   }
   if (action === "acesso-areas" && userId) {
@@ -235,6 +244,27 @@ export async function POST(req: NextRequest) {
     if (!(ps >= 0) || !(pa >= 0)) return NextResponse.json({ error: "Preços inválidos." }, { status: 400 });
     await s.from("config_app").upsert([{ chave: "preco_superadmin", valor: ps }, { chave: "preco_acesso", valor: pa }]);
     return NextResponse.json({ ok: true });
+  }
+
+  // Reenviar o e-mail de "criar senha" para o responsável + equipe da empresa.
+  if (action === "reenviar" && empresaId) {
+    if (!anonKey || !url) return NextResponse.json({ error: "Servidor sem chave pública (NEXT_PUBLIC_SUPABASE_ANON_KEY)." }, { status: 500 });
+    const emails = new Set<string>();
+    const { data: perfis } = await s.from("perfis").select("email").eq("empresa_id", empresaId);
+    (perfis ?? []).forEach((p: { email: string | null }) => { if (p.email) emails.add(p.email.trim().toLowerCase()); });
+    const { data: e } = await s.from("empresas").select("dono_id").eq("id", empresaId).maybeSingle();
+    const donoId = (e as { dono_id?: string } | null)?.dono_id;
+    if (donoId) {
+      const { data: dp } = await s.from("perfis").select("email").eq("id", donoId).maybeSingle();
+      const em = (dp as { email?: string } | null)?.email;
+      if (em) emails.add(em.trim().toLowerCase());
+    }
+    const lista = [...emails].filter((x) => x.includes("@"));
+    if (!lista.length) return NextResponse.json({ error: "Nenhum e-mail encontrado para esta empresa." }, { status: 400 });
+    const origin = new URL(req.url).origin;
+    const pub = createClient(url, anonKey, { auth: { persistSession: false } });
+    await Promise.allSettled(lista.map((em) => pub.auth.resetPasswordForEmail(em, { redirectTo: `${origin}/senha` })));
+    return NextResponse.json({ ok: true, enviados: lista.length });
   }
 
   if (action === "cortar" && userId) {
