@@ -35,6 +35,7 @@ const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
 const AREAS = [{ k: "financas", l: "Finanças" }, { k: "saude", l: "Saúde do Cliente" }, { k: "comercial", l: "Comercial" }, { k: "marketing", l: "Marketing" }];
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null };
+type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[] };
 
 export default function Admin() {
   const router = useRouter();
@@ -52,6 +53,9 @@ export default function Admin() {
   const [erroAcesso, setErroAcesso] = useState("");
   const [precoForm, setPrecoForm] = useState<{ sa: string; ac: string } | null>(null);
   const [salvPreco, setSalvPreco] = useState(false);
+  const [novo, setNovo] = useState<NovoCliente | null>(null);
+  const [salvNovo, setSalvNovo] = useState(false);
+  const [erroNovo, setErroNovo] = useState("");
 
   const carregar = useCallback(async () => {
     if (!supabaseReady || !supabase) { setEstado("semlogin"); return; }
@@ -75,7 +79,21 @@ export default function Admin() {
     setBusy(null);
     await carregar();
   }
-  function abrirCadastro() { setErroForm(""); setForm({ editId: null, nomeEmpresa: "", responsavel: "", email: "", senha: "", cnpj: "", segmento: "", saldoInicial: "0", qtdSuperadmins: "1", qtdAcessos: "0", logo: "", slug: "" }); }
+  function abrirCadastro() { setErroNovo(""); setNovo({ nomeEmpresa: "", cnpj: "", responsavel: "", emailResp: "", funcionarios: [] }); }
+  function addFunc() { setNovo((n) => (n ? { ...n, funcionarios: [...n.funcionarios, { nome: "", email: "" }] } : n)); }
+  function setFunc(i: number, campo: "nome" | "email", v: string) { setNovo((n) => { if (!n) return n; const fs = n.funcionarios.slice(); fs[i] = { ...fs[i], [campo]: v }; return { ...n, funcionarios: fs }; }); }
+  function rmFunc(i: number) { setNovo((n) => (n ? { ...n, funcionarios: n.funcionarios.filter((_, k) => k !== i) } : n)); }
+  async function criarNovo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!novo || !supabase) return;
+    if (!novo.nomeEmpresa.trim() || !novo.emailResp.includes("@")) { setErroNovo("Informe o nome da empresa e o e-mail do responsável."); return; }
+    setSalvNovo(true); setErroNovo("");
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "criar", nomeEmpresa: novo.nomeEmpresa, cnpj: novo.cnpj, responsavel: novo.responsavel, emailResp: novo.emailResp, funcionarios: novo.funcionarios }) });
+    const j = await res.json().catch(() => ({}));
+    setSalvNovo(false);
+    if (!res.ok) { setErroNovo(j.error || "Não consegui cadastrar."); return; }
+    setNovo(null); setAba("empresas"); await carregar();
+  }
   function abrirEdicao(e: Empresa) {
     setErroForm("");
     const { qs, qa } = seatsDePlano(e.plano);
@@ -319,6 +337,33 @@ export default function Admin() {
           </form>
         </div>
       )}
+
+      {novo && (
+        <div className="adm-modalbg" onClick={() => !salvNovo && setNovo(null)}>
+          <form className="adm-modal" onClick={(ev) => ev.stopPropagation()} onSubmit={criarNovo}>
+            <div className="adm-mhead"><h3>Cadastrar novo cliente</h3><button type="button" onClick={() => setNovo(null)}><X size={18} /></button></div>
+            {erroNovo && <div className="adm-erro">{erroNovo}</div>}
+            <div className="adm-grid2">
+              <L label="Nome da empresa"><input value={novo.nomeEmpresa} onChange={(ev) => setNovo({ ...novo, nomeEmpresa: ev.target.value })} required /></L>
+              <L label="CNPJ (opcional)"><input value={novo.cnpj} onChange={(ev) => setNovo({ ...novo, cnpj: mascaraCnpj(ev.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" /></L>
+              <L label="Responsável (Super Admin)"><input value={novo.responsavel} onChange={(ev) => setNovo({ ...novo, responsavel: ev.target.value })} /></L>
+              <L label="E-mail do responsável"><input type="email" value={novo.emailResp} onChange={(ev) => setNovo({ ...novo, emailResp: ev.target.value })} required /></L>
+            </div>
+            <div className="adm-funhead"><span>Funcionários (acessos)</span><button type="button" className="adm-btn sm ghost" onClick={addFunc}><Plus size={13} /> Adicionar</button></div>
+            {novo.funcionarios.length === 0 && <p className="adm-sub" style={{ marginTop: 6 }}>Nenhum funcionário ainda. Clique em “Adicionar” para incluir acessos.</p>}
+            {novo.funcionarios.map((f, i) => (
+              <div key={i} className="adm-funrow">
+                <input placeholder={`Nome do funcionário ${i + 1}`} value={f.nome} onChange={(ev) => setFunc(i, "nome", ev.target.value)} />
+                <input placeholder="e-mail de acesso" type="email" value={f.email} onChange={(ev) => setFunc(i, "email", ev.target.value)} />
+                <button type="button" className="adm-funx" onClick={() => rmFunc(i)}><X size={15} /></button>
+              </div>
+            ))}
+            <div className="adm-valor" style={{ marginTop: 14 }}>Plano: <b>{brl(precos.superadmin + novo.funcionarios.filter((f) => f.email.includes("@")).length * precos.acesso)}/mês</b> <span>(1 Super Admin + {novo.funcionarios.filter((f) => f.email.includes("@")).length} acesso(s))</span></div>
+            <button className="adm-btn" type="submit" disabled={salvNovo} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvNovo ? "Cadastrando…" : "Cadastrar cliente"}</button>
+            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>O responsável e cada funcionário recebem um e-mail para <b>criar a senha</b> e acessar. Cria a página <b>minhasmetricas.com/{novo.nomeEmpresa ? novo.nomeEmpresa.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") : "(nome)"}</b>.</p>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
@@ -416,6 +461,12 @@ const CSS = `
 .adm-erro{background:#2a1212;border:1px solid #6b1f1f;color:#EF4444;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:6px}
 .adm-valor{margin-top:14px;background:#0f1a14;border:1px solid #1f3a2c;color:#10B981;border-radius:10px;padding:11px 14px;font-size:15px;font-weight:700}
 .adm-valor span{color:#9aa0a6;font-size:12px;font-weight:500}
+.adm-funhead{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+.adm-funhead span{font-size:13px;color:#9aa0a6;font-weight:700}
+.adm-funrow{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:8px;align-items:center}
+.adm-funrow input{background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;min-width:0}
+.adm-funrow input:focus{outline:0;border-color:#1AADE2}
+.adm-funx{background:#2a1212;border:1px solid #6b1f1f;color:#EF4444;border-radius:9px;width:38px;height:38px;display:grid;place-items:center;cursor:pointer}
 @media(max-width:820px){
   .adm-shell{flex-direction:column}
   .adm-side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;border-right:0;border-bottom:1px solid #1d1d1d;padding:12px}

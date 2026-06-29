@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 // Super admin embutido + extras via env SUPER_ADMINS="email1,email2"
 const SUPERS_PADRAO = ["minhasmetricas@gmail.com"];
 const SUPERS = [...new Set([
@@ -122,38 +124,45 @@ export async function POST(req: NextRequest) {
     cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string;
     nome?: string; areas?: string[]; segmento?: string; saldoInicial?: number | string;
     precoSuperadmin?: number | string; precoAcesso?: number | string;
+    emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
   };
   const { action, userId, empresaId } = body;
 
-  // Cadastrar novo cliente (empresa B2B): cria o acesso do responsável + a empresa com a marca dele.
+  // Cadastrar novo cliente (B2B): cria o responsável (super admin) + os funcionários e dispara e-mails de "crie sua senha".
   if (action === "criar") {
-    const email = (body.email || "").trim().toLowerCase();
-    const senha = body.senha || "";
     const nomeEmpresa = (body.nomeEmpresa || "").trim();
-    if (!email || senha.length < 6 || !nomeEmpresa) return NextResponse.json({ error: "Informe empresa, e-mail e senha (mín. 6)." }, { status: 400 });
-    const slugFinal = slugify(body.slug || nomeEmpresa);
+    const emailResp = (body.emailResp || body.email || "").trim().toLowerCase();
+    if (!nomeEmpresa || !emailResp || !emailResp.includes("@")) return NextResponse.json({ error: "Informe a empresa e o e-mail do responsável." }, { status: 400 });
+    const slugFinal = slugify(nomeEmpresa);
     const { data: existe } = await s.from("empresas").select("id").eq("slug", slugFinal).maybeSingle();
-    if (existe) return NextResponse.json({ error: `Já existe uma empresa com o endereço "/${slugFinal}". Escolha outro.` }, { status: 400 });
-    const { data: novo, error } = await s.auth.admin.createUser({
-      email, password: senha, email_confirm: true,
-      user_metadata: { nome: body.responsavel || email, empresa: nomeEmpresa },
-    });
-    if (error || !novo?.user) {
-      const msg = /already.*registered|exists/i.test(error?.message || "") ? "Este e-mail já tem conta." : (error?.message || "Não consegui criar o acesso.");
+    if (existe) return NextResponse.json({ error: `Já existe uma empresa com o endereço "/${slugFinal}".` }, { status: 400 });
+    const tempPw = () => crypto.randomBytes(9).toString("base64url");
+    // responsável = 1º super admin
+    const { data: sa, error: saErr } = await s.auth.admin.createUser({ email: emailResp, password: tempPw(), email_confirm: true, user_metadata: { nome: body.responsavel || emailResp, empresa: nomeEmpresa } });
+    if (saErr || !sa?.user) {
+      const msg = /already.*registered|exists/i.test(saErr?.message || "") ? "O e-mail do responsável já tem conta." : (saErr?.message || "Não consegui criar.");
       return NextResponse.json({ error: msg }, { status: 400 });
     }
-    const qs = Math.max(1, Math.floor(Number(body.qtdSuperadmins) || 1));
-    const qa = Math.max(0, Math.floor(Number(body.qtdAcessos) || 0));
+    const funcs = (Array.isArray(body.funcionarios) ? body.funcionarios : []).filter((f) => (f?.email || "").includes("@"));
     const pr = await getPrecos(s);
-    const valor = qs * pr.superadmin + qa * pr.acesso;
-    const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
-    const { data: emp } = await s.from("empresas").select("id").eq("dono_id", novo.user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
-    if (emp?.id) {
-      await s.from("empresas").update({
-        nome: nomeEmpresa, cnpj: body.cnpj || null, plano,
-        valor, slug: slugFinal, responsavel: body.responsavel || null,
-        logo_url: body.logo || null, segmento: body.segmento || null, saldo_inicial: Number(body.saldoInicial) || 0,
-      }).eq("id", emp.id);
+    const valor = pr.superadmin + funcs.length * pr.acesso;
+    const plano = `1 Super Admin + ${funcs.length} Acesso${funcs.length !== 1 ? "s" : ""}`;
+    const { data: emp } = await s.from("empresas").select("id").eq("dono_id", sa.user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
+    if (emp?.id) await s.from("empresas").update({ nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null }).eq("id", emp.id);
+    const emails = [emailResp];
+    for (const f of funcs) {
+      const email = (f.email || "").trim().toLowerCase();
+      const { data: fu, error: fe } = await s.auth.admin.createUser({ email, password: tempPw(), email_confirm: true, user_metadata: { nome: f.nome || email, empresa: "" } });
+      if (fe || !fu?.user) continue;
+      await s.from("perfis").update({ empresa_id: emp?.id, papel: "colaborador", areas: ["financas", "saude", "comercial", "marketing"], nome: f.nome || email }).eq("id", fu.user.id);
+      await s.from("empresas").delete().eq("dono_id", fu.user.id);
+      emails.push(email);
+    }
+    // E-mails de boas-vindas / criar senha (best-effort — depende do SMTP configurado no Supabase)
+    if (anonKey && url) {
+      const origin = new URL(req.url).origin;
+      const pub = createClient(url, anonKey, { auth: { persistSession: false } });
+      for (const e of emails) { try { await pub.auth.resetPasswordForEmail(e, { redirectTo: `${origin}/login?nova=1` }); } catch { /* ignora */ } }
     }
     return NextResponse.json({ ok: true, slug: slugFinal });
   }
