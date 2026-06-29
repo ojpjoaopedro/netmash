@@ -21,6 +21,14 @@ function seatsDePlano(plano: string | null): { qs: number; qa: number } {
   const m = (plano || "").match(/(\d+)\s*Super Admin.*?(\d+)\s*Acesso/i);
   return { qs: m ? Number(m[1]) : 1, qa: m ? Number(m[2]) : 0 };
 }
+function mascaraCnpj(v: string): string {
+  const d = v.replace(/\D/g, "").slice(0, 14);
+  if (d.length > 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+  if (d.length > 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  if (d.length > 5) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  return d;
+}
 type Aba = "visao" | "empresas" | "permissoes" | "config";
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
@@ -147,8 +155,9 @@ export default function Admin() {
             ))}
           </nav>
           <div className="adm-side-foot">
+            <button onClick={() => router.push("/")}><LayoutDashboard size={15} /> Meu painel</button>
             <button onClick={carregar}><RefreshCw size={15} /> Atualizar</button>
-            <button onClick={() => router.push("/")}><LogOut size={15} /> Sair</button>
+            <button onClick={entrarComOutra}><LogOut size={15} /> Sair</button>
           </div>
         </aside>
 
@@ -292,7 +301,7 @@ export default function Admin() {
             {erroForm && <div className="adm-erro">{erroForm}</div>}
             <div className="adm-grid2">
               <L label="Nome da empresa"><input value={form.nomeEmpresa} onChange={(ev) => setForm({ ...form, nomeEmpresa: ev.target.value })} required /></L>
-              <L label="CNPJ (opcional)"><input value={form.cnpj} onChange={(ev) => setForm({ ...form, cnpj: ev.target.value })} /></L>
+              <L label="CNPJ (opcional)"><input value={form.cnpj} onChange={(ev) => setForm({ ...form, cnpj: mascaraCnpj(ev.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" /></L>
               <L label="Segmento (opcional)"><input value={form.segmento} onChange={(ev) => setForm({ ...form, segmento: ev.target.value })} placeholder="Ex: Comércio" /></L>
               <L label="Saldo inicial em caixa (R$)"><input type="number" step="0.01" value={form.saldoInicial} onChange={(ev) => setForm({ ...form, saldoInicial: ev.target.value })} /></L>
               <L label="Responsável"><input value={form.responsavel} onChange={(ev) => setForm({ ...form, responsavel: ev.target.value })} /></L>

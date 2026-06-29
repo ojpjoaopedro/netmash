@@ -142,7 +142,8 @@ export default function Home() {
   // Controle de acesso: dono vê tudo; colaborador vê só as áreas liberadas.
   const ehDono = !supabaseReady || (perfil?.papel ?? "dono") !== "colaborador";
   const areasPerm = perfil?.areas ?? [];
-  const metricasVis = ehDono ? METRICAS.slice() : METRICAS.filter((m) => m.key === "dashboard" || areasPerm.includes(m.key));
+  const ehSuper = ["minhasmetricas@gmail.com"].includes((perfil?.email || "").toLowerCase());
+  const metricasVis = (ehDono ? METRICAS.slice() : METRICAS.filter((m) => m.key === "dashboard" || areasPerm.includes(m.key))).filter((m) => !ehSuper || m.key !== "marketing");
   const opsKeys: string[] = ehDono
     ? OPERACOES.map((o) => o.key)
     : (() => {
@@ -151,7 +152,7 @@ export default function Home() {
         if (areasPerm.includes("comercial")) ops.add("clientes");
         return [...ops];
       })();
-  const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key));
+  const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key)).filter((o) => !ehSuper || (o.key !== "clientes" && o.key !== "equipe"));
 
   const VIEW_SECAO: Partial<Record<View, Secao>> = {
     financas: "financeiro", saude: "cliente", comercial: "comercial", marketing: "marketing", equipe: "colaboradores",
@@ -293,6 +294,7 @@ export default function Home() {
       {/* Main */}
       <main className="main">
         <div className="topctrls">
+          {ehSuper && <a className="btn ghost sm" href="/admin"><ShieldCheck size={14} /> Super Admin</a>}
           {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
         </div>

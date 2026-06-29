@@ -4,6 +4,15 @@ import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { SecHead } from "./dash/Kit";
 
+function mascaraCnpj(v: string): string {
+  const d = v.replace(/\D/g, "").slice(0, 14);
+  if (d.length > 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+  if (d.length > 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  if (d.length > 5) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  return d;
+}
+
 export default function Config({ empresa, reload, brand, saveBrand }: {
   empresa: Empresa | null; reload: () => void;
   brand: Brand; saveBrand: (p: Partial<Brand>) => void;
@@ -88,7 +97,7 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
           <div className="field"><label className="f">Nome da empresa</label><input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
           <div className="row">
             <div className="field"><label className="f">Segmento</label><input value={segmento} onChange={(e) => setSegmento(e.target.value)} placeholder="Ex: Comércio" /></div>
-            <div className="field"><label className="f">CNPJ</label><input value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="Opcional" /></div>
+            <div className="field"><label className="f">CNPJ</label><input value={cnpj} onChange={(e) => setCnpj(mascaraCnpj(e.target.value))} placeholder="00.000.000/0000-00" inputMode="numeric" /></div>
           </div>
           <div className="field">
             <label className="f">Saldo inicial em caixa (R$)</label>
