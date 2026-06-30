@@ -343,7 +343,7 @@ export default function Home() {
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
-        {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
+        {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
         {view === "lancamentos" && <Lancamentos lancs={lancs} reload={carregarDados} />}
         {view === "clientes" && <Clientes clientes={clientes} lancs={lancs} reload={carregarDados} />}
         {view === "custos" && <Custos lancs={lancs} funcs={funcs} reload={carregarDados} />}
