@@ -16,7 +16,24 @@ export default function CheckoutProduto() {
   const [email, setEmail] = useState("");
   const [erro, setErro] = useState("");
   const [indo, setIndo] = useState(false);
+  const [cupom, setCupom] = useState("");
+  const [cupomOk, setCupomOk] = useState<{ codigo: string; percentual: number; descricao: string | null } | null>(null);
+  const [cupomMsg, setCupomMsg] = useState("");
+  const [validando, setValidando] = useState(false);
   const cancelado = search.get("cancelado") === "1";
+
+  async function aplicarCupom() {
+    const c = cupom.trim();
+    if (!c) return;
+    setValidando(true); setCupomMsg("");
+    try {
+      const res = await fetch(`/api/cupom?codigo=${encodeURIComponent(c)}`);
+      const j = await res.json();
+      if (j.valido) { setCupomOk({ codigo: j.codigo, percentual: j.percentual, descricao: j.descricao }); setCupomMsg(""); }
+      else { setCupomOk(null); setCupomMsg("Cupom inválido ou expirado."); }
+    } catch { setCupomMsg("Não foi possível validar o cupom."); }
+    setValidando(false);
+  }
 
   useEffect(() => {
     (async () => {
@@ -32,7 +49,7 @@ export default function CheckoutProduto() {
     e.preventDefault();
     setErro(""); setIndo(true);
     try {
-      const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, email: email.trim() }) });
+      const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, email: email.trim(), cupom: cupomOk?.codigo || "" }) });
       const j = await res.json();
       if (!res.ok || !j.url) throw new Error(j.error || "Não foi possível iniciar o pagamento.");
       window.location.href = j.url; // redireciona para o checkout seguro da Stripe
@@ -64,7 +81,15 @@ export default function CheckoutProduto() {
             <h1>{prod.nome}</h1>
             {prod.descricao && <p className="ck-sub">{prod.descricao}</p>}
 
-            <div className="ck-preco">{brl(Number(prod.preco))}<span className="ck-suf">{sufixo}</span></div>
+            {cupomOk ? (
+              <>
+                <div className="ck-de">{brl(Number(prod.preco))}</div>
+                <div className="ck-preco">{brl(Number(prod.preco) * (1 - cupomOk.percentual / 100))}<span className="ck-suf">{sufixo}</span></div>
+                <div className="ck-desc">🎟️ Cupom <b>{cupomOk.codigo}</b> aplicado · {cupomOk.percentual}% OFF</div>
+              </>
+            ) : (
+              <div className="ck-preco">{brl(Number(prod.preco))}<span className="ck-suf">{sufixo}</span></div>
+            )}
             {!isAssin && prod.parcelas && prod.parcelas > 1 && (
               <div className="ck-parc">em até {prod.parcelas}x no cartão</div>
             )}
@@ -74,8 +99,19 @@ export default function CheckoutProduto() {
 
             <form onSubmit={pagar}>
               <input className="ck-input" type="email" placeholder="Seu melhor e-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
+
+              {cupomOk ? (
+                <button type="button" className="ck-cupom-rm" onClick={() => { setCupomOk(null); setCupom(""); setCupomMsg(""); }}>Remover cupom</button>
+              ) : (
+                <div className="ck-cupom">
+                  <input className="ck-input" placeholder="Cupom de desconto" value={cupom} onChange={(e) => setCupom(e.target.value.toUpperCase())} />
+                  <button type="button" className="ck-aplicar" onClick={aplicarCupom} disabled={validando || !cupom.trim()}>{validando ? "…" : "Aplicar"}</button>
+                </div>
+              )}
+              {cupomMsg && <div className="ck-cupom-erro">{cupomMsg}</div>}
+
               <button className="ck-btn" type="submit" disabled={indo}>
-                {indo ? "Redirecionando…" : `Pagar ${brl(Number(prod.preco))}${sufixo}`}
+                {indo ? "Redirecionando…" : `Pagar ${brl(Number(prod.preco) * (cupomOk ? 1 - cupomOk.percentual / 100 : 1))}${sufixo}`}
               </button>
             </form>
 
@@ -97,6 +133,15 @@ const CSS = `
 .ck-preco{margin-top:22px;font-size:40px;font-weight:900;letter-spacing:-.03em;color:#1AADE2}
 .ck-suf{font-size:18px;font-weight:700;color:#9aa0a6;margin-left:2px}
 .ck-parc{color:#9aa0a6;font-size:13.5px;margin-top:4px}
+.ck-de{margin-top:18px;color:#7a8088;font-size:17px;text-decoration:line-through}
+.ck-desc{margin-top:6px;color:#10B981;font-size:13.5px;font-weight:600}
+.ck-cupom{display:flex;gap:8px}
+.ck-cupom .ck-input{flex:1}
+.ck-aplicar{background:#161616;border:1px solid #333;color:#f4f5f7;border-radius:12px;padding:0 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.ck-aplicar:hover{border-color:#1AADE2}
+.ck-aplicar:disabled{opacity:.5;cursor:default}
+.ck-cupom-rm{background:none;border:0;color:#9aa0a6;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:2px}
+.ck-cupom-erro{color:#ffb4b4;font-size:13px;text-align:left}
 .ck form{margin-top:22px;display:flex;flex-direction:column;gap:11px}
 .ck-input{width:100%;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:12px;padding:14px 15px;color:#f4f5f7;font-size:15px;font-family:inherit;outline:none}
 .ck-input:focus{border-color:#1AADE2}

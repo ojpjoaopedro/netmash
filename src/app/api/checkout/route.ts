@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const s = svc();
   if (!s) return NextResponse.json({ error: "Servidor sem Supabase." }, { status: 500 });
 
-  const { slug, email } = (await req.json()) as { slug?: string; email?: string };
+  const { slug, email, cupom } = (await req.json()) as { slug?: string; email?: string; cupom?: string };
   if (!slug) return NextResponse.json({ error: "Produto não informado." }, { status: 400 });
 
   const { data: prod } = await s.from("produtos").select("*").eq("slug", String(slug).toLowerCase()).eq("ativo", true).maybeSingle();
@@ -44,7 +44,19 @@ export async function POST(req: NextRequest) {
   const p = prod as Produto;
 
   const origin = new URL(req.url).origin;
-  const centavos = Math.round(Number(p.preco) * 100);
+  let centavos = Math.round(Number(p.preco) * 100);
+
+  // Revalida o cupom no servidor (não confia no preço vindo do cliente).
+  let cupomCod = "";
+  const codigo = (cupom || "").trim().toUpperCase().replace(/\s+/g, "");
+  if (codigo) {
+    const { data: cup } = await s.from("cupons").select("codigo,percentual,ativo").eq("codigo", codigo).maybeSingle();
+    if (cup && cup.ativo && Number(cup.percentual) > 0) {
+      centavos = Math.max(0, Math.round(centavos * (1 - Number(cup.percentual) / 100)));
+      cupomCod = cup.codigo;
+    }
+  }
+
   const isAssinatura = p.modo === "assinatura";
   const intervalo = (p.intervalo === "year" ? "year" : "month") as "month" | "year";
 
@@ -63,7 +75,7 @@ export async function POST(req: NextRequest) {
     }],
     success_url: `${origin}/checkout/sucesso?cs={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/checkout/${p.slug}?cancelado=1`,
-    metadata: { produto_id: p.id, slug: p.slug, libera_acesso: p.libera_acesso ? "1" : "0" },
+    metadata: { produto_id: p.id, slug: p.slug, libera_acesso: p.libera_acesso ? "1" : "0", cupom: cupomCod },
     ...(isAssinatura ? { subscription_data: { metadata: { produto_id: p.id } } } : {}),
   } as Stripe.Checkout.SessionCreateParams);
 

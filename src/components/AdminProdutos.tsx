@@ -19,7 +19,7 @@ const VAZIO: FormP = { nome: "", descricao: "", imagem: "", slug: "", preco: "",
 function brl(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 
 export default function AdminProdutos() {
-  const [produtos, setProdutos] = useState<Produto[] | null>(null);
+  const [produtos, setProdutos] = useState<Produto[] | null>(supabaseReady ? null : []);
   const [form, setForm] = useState<FormP | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
@@ -34,7 +34,7 @@ export default function AdminProdutos() {
   }, []);
 
   const carregar = useCallback(async () => {
-    if (!supabaseReady) { setProdutos([]); return; }
+    if (!supabaseReady) return;
     const res = await fetch("/api/produtos-admin", { headers: { ...(await tokenH()) } });
     const j = await res.json().catch(() => ({}));
     setProdutos(res.ok ? (j.produtos ?? []) : []);
