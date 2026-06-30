@@ -68,20 +68,25 @@ export default function AdminCupons() {
             <p className="adm-sub" style={{ marginTop: 10 }}>Nenhum cupom ainda. Clique em <b>Adicionar cupom</b>.</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {cupons.map((c) => (
-              <div key={c.id} className="adm-acbox" style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: 14, letterSpacing: ".04em", background: "#16242b", color: "#1AADE2", border: "1px solid #1AADE255", borderRadius: 8, padding: "6px 12px" }}>{c.codigo}</span>
-                <div style={{ flex: 1, minWidth: 160 }}>
-                  <div className="adm-sub">{c.descricao || <span style={{ opacity: .5 }}>sem descrição</span>} {!c.ativo && <span className="adm-badge cortado" style={{ marginLeft: 6 }}>Inativo</span>}</div>
-                </div>
-                <span style={{ fontWeight: 800, fontSize: 16, color: "#10B981" }}>{c.percentual}%</span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button className="adm-btn sm ghost" onClick={() => editar(c)}><Pencil size={13} /> Editar</button>
-                  <button className="adm-btn sm danger" onClick={() => excluir(c)}><Trash2 size={13} /> Excluir</button>
-                </div>
-              </div>
-            ))}
+          <div className="adm-tablewrap">
+            <table className="adm-table">
+              <thead><tr><th>Código</th><th>Descrição</th><th>Desconto</th><th>Ações</th></tr></thead>
+              <tbody>
+                {cupons.map((c) => (
+                  <tr key={c.id}>
+                    <td><span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: 13.5, letterSpacing: ".04em", background: "rgba(26,173,226,.12)", color: "#1AADE2", border: "1px solid #1AADE255", borderRadius: 8, padding: "5px 11px", display: "inline-block" }}>{c.codigo}</span></td>
+                    <td>{c.descricao || <span className="adm-sub" style={{ opacity: .6 }}>sem descrição</span>} {!c.ativo && <span className="adm-badge cortado" style={{ marginLeft: 4 }}>Inativo</span>}</td>
+                    <td><b style={{ color: "#10B981", fontSize: 15 }}>{c.percentual}%</b></td>
+                    <td>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button className="adm-btn sm ghost" onClick={() => editar(c)} title="Editar"><Pencil size={14} /></button>
+                        <button className="adm-btn sm danger" onClick={() => excluir(c)} title="Excluir"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 

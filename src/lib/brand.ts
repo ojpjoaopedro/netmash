@@ -64,5 +64,5 @@ export function useBrand() {
     if (brand.cor) document.documentElement.style.setProperty("--brand", brand.cor);
   }, [brand.cor]);
 
-  return { brand, save, theme, toggleTheme };
+  return { brand, save, theme, toggleTheme, setTheme };
 }

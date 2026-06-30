@@ -57,7 +57,9 @@ const DEMO_RESP: Resp = {
 
 export default function Admin() {
   const router = useRouter();
-  const { theme, toggleTheme } = useBrand();
+  const { theme, toggleTheme, setTheme } = useBrand();
+  // Admin abre no tema claro por padrão (a não ser que o usuário já tenha escolhido um).
+  useEffect(() => { if (typeof window !== "undefined" && !localStorage.getItem("fin_theme")) setTheme("light"); }, [setTheme]);
   const [demo, setDemo] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [estado, setEstado] = useState<"carregando" | "semlogin" | "negado" | "ok" | "erro">("carregando");

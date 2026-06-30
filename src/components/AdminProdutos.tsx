@@ -95,28 +95,38 @@ export default function AdminProdutos() {
             <p className="adm-sub" style={{ marginTop: 10 }}>Nenhum produto ainda. Clique em <b>Adicionar produto</b> para criar o primeiro.</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {produtos.map((p) => (
-              <div key={p.id} className="adm-acbox" style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--bg-2,#0d0d0d)", border: "1px solid var(--line,#222)", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0 }}>
-                  {p.imagem ? <img src={p.imagem} alt={p.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Package size={20} style={{ opacity: .4 }} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 180 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{p.nome} {!p.ativo && <span className="adm-badge cortado" style={{ marginLeft: 6 }}>Inativo</span>}</div>
-                  <div className="adm-sub" style={{ marginTop: 2 }}>
-                    {brl(Number(p.preco))}{p.modo === "assinatura" ? (p.intervalo === "year" ? "/ano" : "/mês") : ""} · {p.modo === "assinatura" ? "Assinatura" : "Pagamento único"}
-                    {p.libera_acesso ? " · libera acesso" : ""}
-                  </div>
-                  <div className="adm-sub" style={{ marginTop: 2, opacity: .7, fontSize: 12 }}>/checkout/{p.slug}</div>
-                </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <button className="adm-btn sm ghost" onClick={() => copiarLink(p.slug)}>{copiado === p.slug ? <><Check size={13} /> Copiado</> : <><Copy size={13} /> Copiar link</>}</button>
-                  <a className="adm-btn sm ghost" href={`/checkout/${p.slug}`} target="_blank" rel="noreferrer"><ExternalLink size={13} /> Abrir</a>
-                  <button className="adm-btn sm ghost" onClick={() => editar(p)}><Pencil size={13} /> Editar</button>
-                  <button className="adm-btn sm danger" onClick={() => excluir(p)}><Trash2 size={13} /> Excluir</button>
-                </div>
-              </div>
-            ))}
+          <div className="adm-tablewrap">
+            <table className="adm-table">
+              <thead><tr><th>Produto</th><th>Endereço (link)</th><th>Preço</th><th>Tipo</th><th>Ações</th></tr></thead>
+              <tbody>
+                {produtos.map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 10, background: "var(--bg-2,#0d0d0d)", border: "1px solid var(--line,#222)", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0 }}>
+                          {p.imagem ? <img src={p.imagem} alt={p.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Package size={18} style={{ opacity: .4 }} />}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700 }}>{p.nome} {!p.ativo && <span className="adm-badge cortado" style={{ marginLeft: 4 }}>Inativo</span>}</div>
+                          {p.descricao && <div className="adm-sub" style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.descricao}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td><span className="adm-sub" style={{ fontFamily: "monospace" }}>/checkout/{p.slug}</span></td>
+                    <td><b>{brl(Number(p.preco))}{p.modo === "assinatura" ? (p.intervalo === "year" ? "/ano" : "/mês") : ""}</b>{p.libera_acesso && <div className="adm-sub" style={{ fontSize: 11.5 }}>libera acesso</div>}</td>
+                    <td>{p.modo === "assinatura" ? "Assinatura" : "Único"}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <button className="adm-btn sm ghost" onClick={() => copiarLink(p.slug)} title="Copiar link">{copiado === p.slug ? <Check size={14} /> : <Copy size={14} />}</button>
+                        <a className="adm-btn sm ghost" href={`/checkout/${p.slug}`} target="_blank" rel="noreferrer" title="Abrir checkout"><ExternalLink size={14} /></a>
+                        <button className="adm-btn sm ghost" onClick={() => editar(p)} title="Editar"><Pencil size={14} /></button>
+                        <button className="adm-btn sm danger" onClick={() => excluir(p)} title="Excluir"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
