@@ -69,3 +69,40 @@ export function parseLancamento(texto: string): LancParsed | null {
   const descricao = limparDescricao(t) || (tipo === "receita" ? "Recebimento" : "Despesa");
   return { tipo, valor, descricao, data: parseData(t), pago: !RE_ABERTO.test(t) };
 }
+
+/** Valor monetário (com centavos) numa linha de texto de OCR. */
+function valorDaLinha(s: string): number | null {
+  const m = s.match(/(\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2}|\d+\.\d{2})/);
+  if (!m) return null;
+  let v = m[1];
+  if (v.includes(".") && v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
+  else if (v.includes(",")) v = v.replace(",", ".");
+  return Number(v) || null;
+}
+
+/**
+ * Versão para textos de OCR (comprovantes/recibos): usa o "total"
+ * ou o maior valor encontrado, a 1ª linha de texto como descrição.
+ */
+export function parseLancamentoOCR(texto: string): LancParsed | null {
+  const t = (texto || "").replace(/\r/g, "\n");
+  if (!t.trim()) return null;
+  const linhas = t.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  let valor = 0;
+  for (const l of linhas) {
+    if (/total/i.test(l) && !/sub-?total/i.test(l)) { const v = valorDaLinha(l); if (v && v > valor) valor = v; }
+  }
+  if (!valor) for (const l of linhas) { const v = valorDaLinha(l); if (v && v > valor) valor = v; }
+  if (!valor) { const p = parseLancamento(t); return p; } // fallback: 1º número
+
+  const descLinha = linhas.find((l) => /[a-zA-ZÀ-ú]{3,}/.test(l) && !/total|cnpj|cpf|data|hora|r\$/i.test(l));
+  const descricao = (descLinha ? descLinha.slice(0, 60) : "Comprovante").replace(/\s+/g, " ").trim();
+  const tipo: Tipo = /recebid|cr[ée]dito|pix\s+recebido|entrada|dep[óo]sito/i.test(t) ? "receita" : "despesa";
+
+  let data = hoje();
+  const dm = t.match(/\b(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})\b/);
+  if (dm) { const [, d, m, y] = dm; const yyyy = y.length === 2 ? "20" + y : y; data = `${yyyy}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`; }
+
+  return { tipo, valor, descricao: descricao.charAt(0).toUpperCase() + descricao.slice(1), data, pago: true };
+}

@@ -1,11 +1,11 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, ArrowRight, MessageCircle, Plus, Mic, MicOff, FileSpreadsheet, Check } from "lucide-react";
+import { Sparkles, Send, ArrowRight, MessageCircle, Plus, Mic, MicOff, FileSpreadsheet, Check, Camera } from "lucide-react";
 import { Lancamento, Cliente, Funcionario, addLancamento, Tipo } from "@/lib/db";
 import { Metrica } from "@/lib/indicadores";
 import { brl } from "@/lib/format";
 import { PERGUNTAS, responder, type Resposta, type Bloco, type Tom, type Ctx } from "@/lib/assistente";
-import { parseLancamento, type LancParsed } from "@/lib/lancParser";
+import { parseLancamento, parseLancamentoOCR, type LancParsed } from "@/lib/lancParser";
 
 const COR: Record<Tom, string> = { good: "var(--green)", bad: "var(--red)", warn: "var(--amber)", info: "var(--accent)" };
 
@@ -71,7 +71,27 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
   const [salvando, setSalvando] = useState(false);
   const [msgReg, setMsgReg] = useState("");
   const [erroReg, setErroReg] = useState("");
+  const [lendoImg, setLendoImg] = useState(false);
+  const [progOCR, setProgOCR] = useState(0);
   const srRef = useRef<SR | null>(null);
+  const imgRef = useRef<HTMLInputElement>(null);
+
+  async function lerImagem(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setErroReg(""); setMsgReg(""); setPrevia(null); setLendoImg(true); setProgOCR(0);
+    try {
+      const { recognize } = await import("tesseract.js");
+      const { data } = await recognize(file, "por", { logger: (m: { status: string; progress: number }) => { if (m.status === "recognizing text") setProgOCR(Math.round(m.progress * 100)); } });
+      const p = parseLancamentoOCR(data.text || "");
+      if (!p) setErroReg("Não achei um valor na imagem. Tente um print mais nítido, ou digite/fale o lançamento.");
+      else { setEntrada(""); setPrevia(p); }
+    } catch {
+      setErroReg("Não consegui ler a imagem. Tente novamente.");
+    }
+    setLendoImg(false);
+  }
 
   function interpretar(texto: string) {
     setErroReg(""); setMsgReg("");
@@ -176,11 +196,16 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
               <button type="submit" className="btn">Interpretar</button>
             </form>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-              {EXEMPLOS.map((ex) => <button key={ex} className="btn ghost sm" onClick={() => { setEntrada(ex); interpretar(ex); }}>{ex}</button>)}
+              <button className="btn ghost sm" onClick={() => imgRef.current?.click()} disabled={lendoImg} style={{ display: "flex", alignItems: "center", gap: 6 }}><Camera size={13} /> {lendoImg ? `Lendo… ${progOCR}%` : "Imagem / print"}</button>
               {onImportar && <button className="btn ghost sm" onClick={onImportar} style={{ display: "flex", alignItems: "center", gap: 6 }}><FileSpreadsheet size={13} /> Importar planilha</button>}
+              <input ref={imgRef} type="file" accept="image/*" onChange={lerImagem} style={{ display: "none" }} />
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+              {EXEMPLOS.map((ex) => <button key={ex} className="btn ghost sm" onClick={() => { setEntrada(ex); interpretar(ex); }}>{ex}</button>)}
             </div>
           </div>
 
+          {lendoImg && <div className="card" style={{ marginBottom: 12, textAlign: "center" }}><p className="sub">📷 Lendo a imagem… {progOCR}% (a primeira leitura baixa o idioma e pode demorar alguns segundos)</p></div>}
           {erroReg && <div className="err" style={{ marginBottom: 12 }}>{erroReg}</div>}
           {msgReg && <div className="ok" style={{ marginBottom: 12 }}>{msgReg}</div>}
 
