@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Settings, Pencil, Eye, Send,
-  ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText,
+  ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText, Package,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, brl } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
+import AdminProdutos from "@/components/AdminProdutos";
 
 type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
@@ -31,7 +32,7 @@ function mascaraCnpj(v: string): string {
   if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return d;
 }
-type Aba = "visao" | "empresas" | "permissoes" | "config";
+type Aba = "visao" | "empresas" | "produtos" | "permissoes" | "config";
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
@@ -255,6 +256,7 @@ export default function Admin() {
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "empresas", label: "Empresas", Icon: Building2 },
+    { k: "produtos", label: "Produtos", Icon: Package },
     { k: "config", label: "Configurações", Icon: Settings },
   ];
 
@@ -362,6 +364,8 @@ export default function Admin() {
               </div>
             </>
           )}
+
+          {aba === "produtos" && <AdminProdutos />}
 
           {aba === "config" && (
             <>
