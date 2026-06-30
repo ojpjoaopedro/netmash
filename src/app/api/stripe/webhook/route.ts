@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const email = (session.customer_details?.email || session.customer_email || "").toLowerCase();
-    const nome = session.customer_details?.name || (email ? email.split("@")[0] : "Cliente");
     const meta = session.metadata || {};
+    const nome = meta.nome || session.customer_details?.name || (email ? email.split("@")[0] : "Cliente");
     await s.from("vendas").insert({
       produto_id: meta.produto_id || null, email, nome,
       valor: (session.amount_total || 0) / 100, modo: session.mode, status: "pago",

@@ -53,6 +53,12 @@ export function useBrand() {
     });
   }, []);
 
+  const setTheme = useCallback((t: "dark" | "light") => {
+    setThemeState(t);
+    localStorage.setItem(KEY_THEME, t);
+    document.body.classList.toggle("theme-light", t === "light");
+  }, []);
+
   // aplica cor custom no load
   useEffect(() => {
     if (brand.cor) document.documentElement.style.setProperty("--brand", brand.cor);

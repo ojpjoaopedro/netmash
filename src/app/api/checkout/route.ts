@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const s = svc();
   if (!s) return NextResponse.json({ error: "Servidor sem Supabase." }, { status: 500 });
 
-  const { slug, email, cupom } = (await req.json()) as { slug?: string; email?: string; cupom?: string };
+  const { slug, email, cupom, nome, telefone, cpf } = (await req.json()) as { slug?: string; email?: string; cupom?: string; nome?: string; telefone?: string; cpf?: string };
   if (!slug) return NextResponse.json({ error: "Produto não informado." }, { status: 400 });
 
   const { data: prod } = await s.from("produtos").select("*").eq("slug", String(slug).toLowerCase()).eq("ativo", true).maybeSingle();
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     }],
     success_url: `${origin}/checkout/sucesso?cs={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/checkout/${p.slug}?cancelado=1`,
-    metadata: { produto_id: p.id, slug: p.slug, libera_acesso: p.libera_acesso ? "1" : "0", cupom: cupomCod },
+    metadata: { produto_id: p.id, slug: p.slug, libera_acesso: p.libera_acesso ? "1" : "0", cupom: cupomCod, nome: (nome || "").slice(0, 120), telefone: (telefone || "").slice(0, 40), cpf: (cpf || "").slice(0, 40) },
     ...(isAssinatura ? { subscription_data: { metadata: { produto_id: p.id } } } : {}),
   } as Stripe.Checkout.SessionCreateParams);
 
