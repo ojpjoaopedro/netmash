@@ -11,6 +11,7 @@ import { dataBR, brl } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
 import AdminProdutos from "@/components/AdminProdutos";
 import AdminCupons from "@/components/AdminCupons";
+import AdminVendas from "@/components/AdminVendas";
 
 type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
@@ -33,7 +34,7 @@ function mascaraCnpj(v: string): string {
   if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return d;
 }
-type Aba = "visao" | "empresas" | "produtos" | "cupons" | "permissoes" | "config";
+type Aba = "visao" | "empresas" | "produtos" | "cupons" | "vendas" | "permissoes" | "config";
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
@@ -259,6 +260,7 @@ export default function Admin() {
     { k: "empresas", label: "Empresas", Icon: Building2 },
     { k: "produtos", label: "Produtos", Icon: Package },
     { k: "cupons", label: "Cupons", Icon: Ticket },
+    { k: "vendas", label: "Vendas", Icon: Receipt },
     { k: "config", label: "Configurações", Icon: Settings },
   ];
 
@@ -370,6 +372,8 @@ export default function Admin() {
           {aba === "produtos" && <AdminProdutos />}
 
           {aba === "cupons" && <AdminCupons />}
+
+          {aba === "vendas" && <AdminVendas />}
 
           {aba === "config" && (
             <>
