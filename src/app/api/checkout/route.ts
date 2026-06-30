@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   if (!s) return NextResponse.json({ error: "indisponível" }, { status: 500 });
   const slug = new URL(req.url).searchParams.get("slug");
   if (!slug) return NextResponse.json({ error: "sem slug" }, { status: 400 });
-  const { data } = await s.from("produtos").select("nome,descricao,imagem,preco,modo,intervalo,parcelas").eq("slug", slug.toLowerCase()).eq("ativo", true).maybeSingle();
+  const { data } = await s.from("produtos").select("nome,descricao,imagem,preco,modo,intervalo,parcelas,pos_venda_msg,pos_venda_btn_texto,pos_venda_btn_link").eq("slug", slug.toLowerCase()).eq("ativo", true).maybeSingle();
   if (!data) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
   return NextResponse.json(data);
 }
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         ...(isAssinatura ? { recurring: { interval: intervalo } } : {}),
       },
     }],
-    success_url: `${origin}/checkout/sucesso?cs={CHECKOUT_SESSION_ID}`,
+    success_url: `${origin}/checkout/sucesso?slug=${p.slug}&cs={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/checkout/${p.slug}?cancelado=1`,
     metadata: { produto_id: p.id, slug: p.slug, libera_acesso: p.libera_acesso ? "1" : "0", cupom: cupomCod, nome: (nome || "").slice(0, 120), telefone: (telefone || "").slice(0, 40), cpf: (cpf || "").slice(0, 40) },
     ...(isAssinatura ? { subscription_data: { metadata: { produto_id: p.id } } } : {}),

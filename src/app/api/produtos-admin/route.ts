@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
     nome?: string; descricao?: string; imagem?: string; slug?: string;
     preco?: number | string; modo?: string; intervalo?: string; parcelas?: number | string;
     libera_acesso?: boolean; ativo?: boolean;
+    pos_venda_msg?: string; pos_venda_btn_texto?: string; pos_venda_btn_link?: string;
   };
   const { action } = body;
 
@@ -78,6 +79,9 @@ export async function POST(req: NextRequest) {
       parcelas: Math.max(1, Math.floor(Number(body.parcelas) || 1)),
       libera_acesso: body.libera_acesso !== false,
       ativo: body.ativo !== false,
+      pos_venda_msg: (body.pos_venda_msg || "").trim() || null,
+      pos_venda_btn_texto: (body.pos_venda_btn_texto || "").trim() || null,
+      pos_venda_btn_link: (body.pos_venda_btn_link || "").trim() || null,
     };
     if (body.id) {
       await s.from("produtos").update(reg).eq("id", body.id);

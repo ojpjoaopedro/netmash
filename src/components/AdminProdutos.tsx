@@ -7,14 +7,16 @@ type Produto = {
   id: string; nome: string; descricao: string | null; imagem: string | null; slug: string;
   preco: number; modo: string; intervalo: string | null; parcelas: number | null;
   libera_acesso: boolean; ativo: boolean;
+  pos_venda_msg?: string | null; pos_venda_btn_texto?: string | null; pos_venda_btn_link?: string | null;
 };
 type FormP = {
   id?: string; nome: string; descricao: string; imagem: string; slug: string;
   preco: string; modo: "pagamento" | "assinatura"; intervalo: "month" | "year"; parcelas: string;
   libera_acesso: boolean; ativo: boolean;
+  pos_venda_msg: string; pos_venda_btn_texto: string; pos_venda_btn_link: string;
 };
 
-const VAZIO: FormP = { nome: "", descricao: "", imagem: "", slug: "", preco: "", modo: "pagamento", intervalo: "month", parcelas: "1", libera_acesso: true, ativo: true };
+const VAZIO: FormP = { nome: "", descricao: "", imagem: "", slug: "", preco: "", modo: "pagamento", intervalo: "month", parcelas: "1", libera_acesso: true, ativo: true, pos_venda_msg: "", pos_venda_btn_texto: "", pos_venda_btn_link: "" };
 
 function brl(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 
@@ -45,7 +47,7 @@ export default function AdminProdutos() {
   function novo() { setErro(""); setOk(""); setForm({ ...VAZIO }); }
   function editar(p: Produto) {
     setErro(""); setOk("");
-    setForm({ id: p.id, nome: p.nome, descricao: p.descricao || "", imagem: p.imagem || "", slug: p.slug, preco: String(p.preco).replace(".", ","), modo: p.modo === "assinatura" ? "assinatura" : "pagamento", intervalo: p.intervalo === "year" ? "year" : "month", parcelas: String(p.parcelas || 1), libera_acesso: p.libera_acesso, ativo: p.ativo });
+    setForm({ id: p.id, nome: p.nome, descricao: p.descricao || "", imagem: p.imagem || "", slug: p.slug, preco: String(p.preco).replace(".", ","), modo: p.modo === "assinatura" ? "assinatura" : "pagamento", intervalo: p.intervalo === "year" ? "year" : "month", parcelas: String(p.parcelas || 1), libera_acesso: p.libera_acesso, ativo: p.ativo, pos_venda_msg: p.pos_venda_msg || "", pos_venda_btn_texto: p.pos_venda_btn_texto || "", pos_venda_btn_link: p.pos_venda_btn_link || "" });
   }
 
   async function salvar(e: React.FormEvent) {
@@ -173,6 +175,16 @@ export default function AdminProdutos() {
               <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer" }}>
                 <input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} /> Produto ativo (à venda)
               </label>
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--line,#2a2a2a)", margin: "16px 0 6px", paddingTop: 14 }}>
+              <h4 style={{ margin: "0 0 4px", fontSize: 14.5, fontWeight: 700 }}>💬 Pós-venda (opcional)</h4>
+              <p className="adm-sub" style={{ margin: "0 0 8px" }}>Mensagem e botão que aparecem na tela de agradecimento após a compra.</p>
+            </div>
+            <Campo label="Mensagem pós-venda"><textarea value={form.pos_venda_msg} onChange={(e) => setForm({ ...form, pos_venda_msg: e.target.value })} rows={2} placeholder="Ex: Obrigado pela compra! Seu acesso já está sendo liberado." style={{ background: "#0f0f0f", border: "1px solid #2a2a2a", color: "#f4f5f7", borderRadius: 10, padding: "10px 12px", fontSize: 14, fontFamily: "inherit", width: "100%", resize: "vertical" }} /></Campo>
+            <div className="adm-grid2">
+              <Campo label="Texto do botão"><input value={form.pos_venda_btn_texto} onChange={(e) => setForm({ ...form, pos_venda_btn_texto: e.target.value })} placeholder="Ex: Acessar o app" /></Campo>
+              <Campo label="Link do botão"><input value={form.pos_venda_btn_link} onChange={(e) => setForm({ ...form, pos_venda_btn_link: e.target.value })} placeholder="https://…" /></Campo>
             </div>
 
             <button className="adm-btn" type="submit" disabled={salvando} style={{ marginTop: 10, width: "100%", justifyContent: "center" }}>{salvando ? "Salvando…" : "Salvar produto"}</button>

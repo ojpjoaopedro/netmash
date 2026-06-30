@@ -1,6 +1,25 @@
 "use client";
+import { useEffect, useState } from "react";
+
+type PosVenda = { pos_venda_msg?: string | null; pos_venda_btn_texto?: string | null; pos_venda_btn_link?: string | null };
 
 export default function CheckoutSucesso() {
+  const [pv, setPv] = useState<PosVenda | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const slug = new URLSearchParams(window.location.search).get("slug");
+    if (!slug) return;
+    fetch(`/api/checkout?slug=${encodeURIComponent(slug)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setPv(d); })
+      .catch(() => {});
+  }, []);
+
+  const msg = pv?.pos_venda_msg?.trim();
+  const btnTexto = pv?.pos_venda_btn_texto?.trim();
+  const btnLink = pv?.pos_venda_btn_link?.trim();
+
   return (
     <div className="ck">
       <style>{CSS}</style>
@@ -8,13 +27,19 @@ export default function CheckoutSucesso() {
         <div className="ck-check">✓</div>
         <h1>Pagamento confirmado! 🎉</h1>
         <p className="ck-sub">
-          Obrigado pela compra. Enviamos um <b>e-mail para você criar sua senha</b> e acessar o app.
+          {msg || "Obrigado pela compra. Enviamos um e-mail para você criar sua senha e acessar o app."}
         </p>
-        <p className="ck-sub" style={{ marginTop: 14 }}>
-          Não chegou em alguns minutos? Olhe a caixa de <b>spam</b> ou use a opção
-          <b> &ldquo;Primeiro acesso&rdquo;</b> na tela de login.
-        </p>
-        <a className="ck-btn" href="/login">Ir para o login →</a>
+        {!msg && (
+          <p className="ck-sub" style={{ marginTop: 14 }}>
+            Não chegou em alguns minutos? Olhe a caixa de <b>spam</b> ou use a opção
+            <b> &ldquo;Primeiro acesso&rdquo;</b> na tela de login.
+          </p>
+        )}
+
+        {btnTexto && btnLink
+          ? <a className="ck-btn" href={btnLink} target="_blank" rel="noreferrer">{btnTexto}</a>
+          : <a className="ck-btn" href="/login">Ir para o login →</a>}
+
         <div className="ck-foot">Powered by Minhas Métricas</div>
       </div>
     </div>
