@@ -224,7 +224,7 @@
           <label>Ferramentas adicionais</label>
           <div class="prop-radios">
             <label class="prop-radio"><input type="checkbox" id="fPlan"> <span class="rp">Planejamento Estratégico</span><span class="rv">R$ 39,90/mês</span></label>
-            <label class="prop-radio"><input type="checkbox" id="fApp"> <span class="rp">Seção Comercial + Marketing</span><span class="rv">R$ 49,90/mês</span></label>
+            <label class="prop-radio"><input type="checkbox" id="fApp"> <span class="rp">Acesso pelo Aplicativo</span><span class="rv">R$ 29,90/mês</span></label>
           </div>
         </div>
 
@@ -266,7 +266,7 @@
   const fSupers = document.getElementById('fSupers');
   const fPlan = document.getElementById('fPlan');
   const fApp = document.getElementById('fApp');
-  const PRECO = { acesso:39.90, superadmin:79.90, planejamento:39.90, app:49.90 };
+  const PRECO = { acesso:39.90, superadmin:79.90, planejamento:39.90, app:29.90 };
 
   function getState(){
     const acessos = Math.max(0, Math.floor(Number(fAcessos.value) || 0));
@@ -336,7 +336,7 @@
       + '<div class="ck-label">Ferramentas adicionais</div>'
       + '<div class="ck-list">'
       + modulo(fPlan.checked, 'Planejamento Estratégico', PRECO.planejamento)
-      + modulo(fApp.checked, 'Seção Comercial + Marketing', PRECO.app)
+      + modulo(fApp.checked, 'Acesso pelo Aplicativo', PRECO.app)
       + '</div>';
   }
   function renderCheck(){ document.getElementById('checkBody').innerHTML = buildCheck(); }
@@ -345,7 +345,7 @@
     const cb = e.target;
     if (!cb.dataset || !cb.dataset.mod) return;
     if (cb.dataset.mod === 'Planejamento Estratégico') fPlan.checked = cb.checked;
-    if (cb.dataset.mod === 'Seção Comercial + Marketing') fApp.checked = cb.checked;
+    if (cb.dataset.mod === 'Acesso pelo Aplicativo') fApp.checked = cb.checked;
     recalc();
     const lab = cb.closest('.ck-item'); if (lab) lab.classList.toggle('on', cb.checked);
     const t = document.getElementById('ckTotal'); if (t) t.textContent = BRL(getState().total);
@@ -393,7 +393,7 @@
       { show:s.acessos > 0, t:'Acesso ao Hub', det:s.acessos + ' acesso(s) × R$ 39,90', val:s.subAcesso },
       { show:s.supers > 0, t:'Superadmin', det:s.supers + ' superadmin(s) × R$ 79,90', val:s.subSuper },
       { show:s.plan, t:'Planejamento Estratégico', det:'Valor fixo / mês', val:s.subPlan },
-      { show:s.app, t:'Seção Comercial + Marketing', det:'Valor fixo / mês', val:s.subApp },
+      { show:s.app, t:'Acesso pelo Aplicativo', det:'Valor fixo / mês', val:s.subApp },
     ];
     let linhas = '';
     itens.forEach(it => { if (it.show) linhas += '<tr><td>' + esc(it.t) + '</td><td>' + esc(it.det) + '</td><td>' + BRL(it.val) + '</td></tr>'; });

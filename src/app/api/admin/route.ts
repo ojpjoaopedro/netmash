@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     s.from("clientes").select("empresa_id"),
     s.from("funcionarios").select("empresa_id"),
   ]);
-  const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; logo_url?: string | null; cor?: string | null }[];
+  const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; cidade?: string | null; estado?: string | null; logo_url?: string | null; cor?: string | null }[];
   const perfis = (per.data ?? []) as { id: string; empresa_id: string; nome: string | null; email: string | null; papel: string }[];
 
   // Status de acesso (banido = acesso cortado)
@@ -100,6 +100,8 @@ export async function GET(req: NextRequest) {
       valor: Number(e.valor ?? 0),
       slug: e.slug ?? null,
       cnpj: (e as { cnpj?: string | null }).cnpj ?? null,
+      cidade: e.cidade ?? null,
+      estado: e.estado ?? null,
       logo_url: e.logo_url ?? null,
       cor: e.cor ?? null,
       nLanc: (cLan.get(e.id) as number) ?? 0,
@@ -125,7 +127,7 @@ export async function POST(req: NextRequest) {
     action?: string; userId?: string; empresaId?: string;
     nomeEmpresa?: string; responsavel?: string; email?: string; senha?: string;
     cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string; cor?: string;
-    nome?: string; areas?: string[]; segmento?: string; saldoInicial?: number | string;
+    nome?: string; areas?: string[]; segmento?: string; cidade?: string; estado?: string; saldoInicial?: number | string;
     precoSuperadmin?: number | string; precoAcesso?: number | string;
     emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
   };
@@ -258,6 +260,15 @@ export async function POST(req: NextRequest) {
     if (body.segmento !== undefined) patch.segmento = body.segmento || null;
     if (body.logo) patch.logo_url = body.logo;
     if (Object.keys(patch).length) await s.from("empresas").update(patch).eq("id", empresaId);
+    // Cidade/estado são colunas novas — atualiza à parte e ignora o erro se ainda não existirem no banco,
+    // pra nunca derrubar o salvamento de nome/CNPJ/responsável.
+    const geo: Record<string, unknown> = {};
+    if (body.cidade !== undefined) geo.cidade = body.cidade || null;
+    if (body.estado !== undefined) geo.estado = body.estado || null;
+    if (Object.keys(geo).length) {
+      const { error } = await s.from("empresas").update(geo).eq("id", empresaId);
+      if (error) console.warn("[empresa-dados] cidade/estado ainda não existem no banco:", error.message);
+    }
     const { data: emp } = await s.from("empresas").select("dono_id").eq("id", empresaId).single();
     const donoId = (emp as { dono_id?: string } | null)?.dono_id;
     if (donoId && (body.responsavel !== undefined || body.email)) {

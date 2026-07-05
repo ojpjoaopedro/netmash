@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Settings, Pencil, Eye, Send,
-  ArrowLeft, CreditCard, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText,
+  ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText,
+  HeartPulse, ShoppingCart, Megaphone, Package,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, brl } from "@/lib/format";
@@ -14,6 +15,7 @@ type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
   dono_id: string | null; dono: { id: string; nome: string | null; email: string | null } | null;
   acessoCortado: boolean; plano: string | null; valor: number; slug: string | null; cnpj: string | null;
+  cidade: string | null; estado: string | null;
   logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
 };
 type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number } };
@@ -35,7 +37,13 @@ type Aba = "visao" | "empresas" | "permissoes" | "config";
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
-const AREAS = [{ k: "financas", l: "Finanças" }, { k: "saude", l: "Saúde do Cliente" }, { k: "comercial", l: "Comercial" }, { k: "marketing", l: "Marketing" }];
+const AREAS = [
+  { k: "financas", l: "Finanças", Icon: DollarSign },
+  { k: "saude", l: "Cliente", Icon: HeartPulse },
+  { k: "comercial", l: "Comercial", Icon: ShoppingCart },
+  { k: "marketing", l: "Marketing", Icon: Megaphone },
+  { k: "estoque", l: "Estoque", Icon: Package },
+];
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null };
 type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[] };
 
@@ -43,10 +51,10 @@ type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; ema
 // pra você visualizar/ajustar a tela sem precisar de login.
 const DEMO_RESP: Resp = {
   empresas: [
-    { id: "demo-araguaia", nome: "Colégio Araguaia", segmento: "Educação", criado_em: "2026-06-29T12:00:00Z", saldo_inicial: 0, dono_id: "d1", dono: { id: "d1", nome: "Secretaria Araguaia", email: "secretaria@colegioaraguaia.com.br" }, acessoCortado: false, plano: "1 Super Admin + 1 Acesso", valor: 119.8, slug: "colegioaraguaia", cnpj: "33.364.563/0001-18", logo_url: null, cor: "#E11D48", nLanc: 24, nCli: 8, nFunc: 3 },
-    { id: "demo-metricas", nome: "Metricas", segmento: null, criado_em: "2026-06-29T09:00:00Z", saldo_inicial: 0, dono_id: "d2", dono: { id: "d2", nome: "Minhas Métricas", email: "minhasmetricas@gmail.com" }, acessoCortado: false, plano: null, valor: 0, slug: "metricas", cnpj: null, logo_url: null, cor: null, nLanc: 0, nCli: 0, nFunc: 0 },
-    { id: "demo-jp", nome: "JP Contabilidade", segmento: "Serviços", criado_em: "2026-06-20T10:00:00Z", saldo_inicial: 0, dono_id: "d3", dono: { id: "d3", nome: "João Pedro", email: "jp@gmail.com" }, acessoCortado: false, plano: "1 Super Admin + 2 Acessos", valor: 199.6, slug: "jp", cnpj: "12.345.678/0001-90", logo_url: null, cor: "#16A34A", nLanc: 51, nCli: 14, nFunc: 5 },
-    { id: "demo-walk", nome: "Walk Store", segmento: "Comércio", criado_em: "2026-05-26T08:00:00Z", saldo_inicial: 0, dono_id: "d4", dono: { id: "d4", nome: "Pedro Walk", email: "pedro@gmail.com" }, acessoCortado: true, plano: "1 Super Admin", valor: 79.9, slug: "walk", cnpj: null, logo_url: null, cor: null, nLanc: 9, nCli: 3, nFunc: 1 },
+    { id: "demo-araguaia", nome: "Colégio Araguaia", segmento: "Educação", criado_em: "2026-06-29T12:00:00Z", saldo_inicial: 0, dono_id: "d1", dono: { id: "d1", nome: "Secretaria Araguaia", email: "secretaria@colegioaraguaia.com.br" }, acessoCortado: false, plano: "1 Super Admin + 1 Acesso", valor: 119.8, slug: "colegioaraguaia", cnpj: "33.364.563/0001-18", cidade: "Aparecida de Goiânia", estado: "GO", logo_url: null, cor: "#E11D48", nLanc: 24, nCli: 8, nFunc: 3 },
+    { id: "demo-metricas", nome: "Metricas", segmento: null, criado_em: "2026-06-29T09:00:00Z", saldo_inicial: 0, dono_id: "d2", dono: { id: "d2", nome: "Minhas Métricas", email: "minhasmetricas@gmail.com" }, acessoCortado: false, plano: null, valor: 0, slug: "metricas", cnpj: null, cidade: "Itajaí", estado: "SC", logo_url: null, cor: null, nLanc: 0, nCli: 0, nFunc: 0 },
+    { id: "demo-jp", nome: "JP Contabilidade", segmento: "Serviços", criado_em: "2026-06-20T10:00:00Z", saldo_inicial: 0, dono_id: "d3", dono: { id: "d3", nome: "João Pedro", email: "jp@gmail.com" }, acessoCortado: false, plano: "1 Super Admin + 2 Acessos", valor: 199.6, slug: "jp", cnpj: "12.345.678/0001-90", cidade: "Goiânia", estado: "GO", logo_url: null, cor: "#16A34A", nLanc: 51, nCli: 14, nFunc: 5 },
+    { id: "demo-walk", nome: "Walk Store", segmento: "Comércio", criado_em: "2026-05-26T08:00:00Z", saldo_inicial: 0, dono_id: "d4", dono: { id: "d4", nome: "Pedro Walk", email: "pedro@gmail.com" }, acessoCortado: true, plano: "1 Super Admin", valor: 79.9, slug: "walk", cnpj: null, cidade: "São Paulo", estado: "SP", logo_url: null, cor: null, nLanc: 9, nCli: 3, nFunc: 1 },
   ],
   totais: { empresas: 4, usuarios: 11, faturamento: 399.3, ativos: 3 },
   precos: { superadmin: 79.9, acesso: 39.9 },
@@ -167,12 +175,14 @@ export default function Admin() {
     await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "empresa-cor", empresaId, cor }) });
     setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === empresaId ? { ...emp, cor } : emp) } : d);
   }
-  async function salvarDados(empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; responsavel?: string; email?: string; logo?: string }) {
+  async function salvarDados(empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; cidade?: string; estado?: string; responsavel?: string; email?: string; logo?: string }) {
     const aplicar = (emp: Empresa): Empresa => ({
       ...emp,
       ...(patch.nomeEmpresa !== undefined ? { nome: patch.nomeEmpresa } : {}),
       ...(patch.cnpj !== undefined ? { cnpj: patch.cnpj || null } : {}),
       ...(patch.segmento !== undefined ? { segmento: patch.segmento || null } : {}),
+      ...(patch.cidade !== undefined ? { cidade: patch.cidade || null } : {}),
+      ...(patch.estado !== undefined ? { estado: patch.estado || null } : {}),
       ...(patch.logo ? { logo_url: patch.logo } : {}),
       dono: emp.dono ? { ...emp.dono, ...(patch.responsavel !== undefined ? { nome: patch.responsavel || null } : {}), ...(patch.email ? { email: patch.email } : {}) } : emp.dono,
     });
@@ -226,6 +236,19 @@ export default function Admin() {
     setOkAcesso(`✅ Acesso criado! Enviamos um e-mail para ${novoAcesso.email} criar a senha.`);
     setNovoAcesso({ nome: "", email: "", senha: "", areas: [] });
     await selecionarEmpresa(permEmpresa);
+  }
+  // Cria e envia UM acesso de funcionário (usado pelas linhas "+", uma por funcionário).
+  async function criarAcessoDireto(d: { nome: string; email: string; areas: string[] }): Promise<boolean> {
+    if (!permEmpresa || !d.email.includes("@")) return false;
+    if (demo) {
+      setAcessos((a) => [...(a ?? []), { id: "demo-novo-" + Date.now(), nome: d.nome || d.email, email: d.email, papel: "colaborador", areas: d.areas }]);
+      return true;
+    }
+    if (!supabase) return false;
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-criar", empresaId: permEmpresa, nome: d.nome, email: d.email, areas: d.areas }) });
+    if (!res.ok) return false;
+    await selecionarEmpresa(permEmpresa);
+    return true;
   }
   async function removerAcesso(userId: string) {
     if (!window.confirm("Remover este acesso?")) return;
@@ -287,7 +310,7 @@ export default function Admin() {
 
         <main className="adm-main">
           {detalhe ? (
-            <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onSalvarCor={salvarCor} onSalvarDados={salvarDados} equipe={{ acessos, novoAcesso, setNovoAcesso, criar: criarAcesso, remover: removerAcesso, toggleArea, salvando: salvAcesso, erro: erroAcesso, ok: okAcesso }} />
+            <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onSalvarCor={salvarCor} onSalvarDados={salvarDados} equipe={{ acessos, novoAcesso, setNovoAcesso, criar: criarAcesso, criarUm: criarAcessoDireto, remover: removerAcesso, toggleArea, salvando: salvAcesso, erro: erroAcesso, ok: okAcesso }} />
           ) : (
           <>
           {demo && <div className="adm-demo"><Eye size={14} /> Modo demonstração — dados de exemplo (no site no ar aparecem os clientes reais).</div>}
@@ -462,12 +485,13 @@ function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados, equip
   onBack: () => void;
   onEditar: (e: Empresa) => void;
   onSalvarCor: (empresaId: string, cor: string) => Promise<void> | void;
-  onSalvarDados: (empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; responsavel?: string; email?: string; logo?: string }) => Promise<void> | void;
+  onSalvarDados: (empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; cidade?: string; estado?: string; responsavel?: string; email?: string; logo?: string }) => Promise<void> | void;
   equipe: {
     acessos: Acesso[] | null;
     novoAcesso: { nome: string; email: string; senha: string; areas: string[] };
     setNovoAcesso: (v: { nome: string; email: string; senha: string; areas: string[] }) => void;
     criar: () => void;
+    criarUm: (d: { nome: string; email: string; areas: string[] }) => Promise<boolean>;
     remover: (userId: string) => void;
     toggleArea: (k: string) => void;
     salvando: boolean;
@@ -486,19 +510,36 @@ function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados, equip
   async function salvarCorClick() { setSalvandoCor(true); await onSalvarCor(e.id, cor); setSalvandoCor(false); setCorSalva(true); }
 
   // Edição inline dos dados cadastrais.
-  const [dados, setDados] = useState({ nome: e.nome, cnpj: e.cnpj || "", segmento: e.segmento || "", responsavel: e.dono?.nome || "", email: e.dono?.email || "" });
+  const [dados, setDados] = useState({ nome: e.nome, cnpj: e.cnpj || "", cidade: e.cidade || "", estado: e.estado || "", responsavel: e.dono?.nome || "" });
   const [salvandoDados, setSalvandoDados] = useState(false);
   const [dadosSalvos, setDadosSalvos] = useState(false);
   const setD = (k: keyof typeof dados, v: string) => { setDados((d) => ({ ...d, [k]: v })); setDadosSalvos(false); };
-  const dirty = dados.nome !== e.nome || dados.cnpj !== (e.cnpj || "") || dados.segmento !== (e.segmento || "") || dados.responsavel !== (e.dono?.nome || "") || dados.email !== (e.dono?.email || "");
+  const dirty = dados.nome !== e.nome || dados.cnpj !== (e.cnpj || "") || dados.cidade !== (e.cidade || "") || dados.estado !== (e.estado || "") || dados.responsavel !== (e.dono?.nome || "");
   async function salvarDadosClick() {
     setSalvandoDados(true);
-    await onSalvarDados(e.id, { nomeEmpresa: dados.nome, cnpj: dados.cnpj, segmento: dados.segmento, responsavel: dados.responsavel, email: dados.email });
+    await onSalvarDados(e.id, { nomeEmpresa: dados.nome, cnpj: dados.cnpj, cidade: dados.cidade, estado: dados.estado, responsavel: dados.responsavel });
     setSalvandoDados(false); setDadosSalvos(true);
   }
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   function escolherLogo(file: File) { const r = new FileReader(); r.onload = () => { const url = String(r.result); setLogoPreview(url); onSalvarDados(e.id, { logo: url }); }; r.readAsDataURL(file); }
   const logoMostrar = logoPreview || e.logo_url;
+
+  // Equipe & Acessos — linhas de funcionários (o "+" adiciona uma nova).
+  type EmpRow = { nome: string; email: string; areas: string[]; enviando?: boolean; enviado?: boolean };
+  const [empRows, setEmpRows] = useState<EmpRow[]>([{ nome: "", email: "", areas: [] }]);
+  const updRow = (i: number, patch: Partial<EmpRow>) => setEmpRows((r) => r.map((x, k) => (k === i ? { ...x, ...patch } : x)));
+  const toggleRowArea = (i: number, key: string) => setEmpRows((r) => r.map((x, k) => (k === i ? { ...x, areas: x.areas.includes(key) ? x.areas.filter((a) => a !== key) : [...x.areas, key] } : x)));
+  const addRow = () => setEmpRows((r) => [...r, { nome: "", email: "", areas: [] }]);
+  const rmRow = (i: number) => setEmpRows((r) => (r.length > 1 ? r.filter((_, k) => k !== i) : r));
+  async function enviarRow(i: number) {
+    const row = empRows[i];
+    if (!row.email.includes("@")) return;
+    updRow(i, { enviando: true });
+    const ok = await equipe.criarUm({ nome: row.nome, email: row.email, areas: row.areas });
+    updRow(i, { enviando: false, enviado: ok });
+  }
+  const colabs = (equipe.acessos ?? []).filter((p) => p.papel !== "dono");
+
   return (
     <div className="adm-det">
       <button className="adm-det-back" onClick={onBack}><ArrowLeft size={16} /> Voltar para a lista</button>
@@ -520,25 +561,76 @@ function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados, equip
           <div className="adm-det-form">
             <label className="adm-det-f"><span>Nome da empresa</span><input value={dados.nome} onChange={(ev) => setD("nome", ev.target.value)} /></label>
             <label className="adm-det-f"><span>CNPJ</span><input value={dados.cnpj} onChange={(ev) => setD("cnpj", mascaraCnpj(ev.target.value))} placeholder="00.000.000/0000-00" inputMode="numeric" /></label>
-            <label className="adm-det-f"><span>Segmento</span><input value={dados.segmento} onChange={(ev) => setD("segmento", ev.target.value)} placeholder="Ex: Educação" /></label>
-            <label className="adm-det-f"><span>Responsável</span><input value={dados.responsavel} onChange={(ev) => setD("responsavel", ev.target.value)} /></label>
-            <label className="adm-det-f"><span>E-mail</span><input type="email" value={dados.email} onChange={(ev) => setD("email", ev.target.value)} /></label>
-            <div className="adm-det-f"><span>Cadastrado em</span><div className="adm-det-ro">{dataBR(e.criado_em)}</div></div>
+            <label className="adm-det-f"><span>Cidade</span><input value={dados.cidade} onChange={(ev) => setD("cidade", ev.target.value)} placeholder="Ex: Goiânia" /></label>
+            <label className="adm-det-f"><span>Estado</span><input value={dados.estado} onChange={(ev) => setD("estado", ev.target.value.toUpperCase().slice(0, 2))} placeholder="Ex: GO" maxLength={2} /></label>
+            <label className="adm-det-f"><span>Responsável principal</span><input value={dados.responsavel} onChange={(ev) => setD("responsavel", ev.target.value)} /></label>
           </div>
           <button className="adm-btn sm" style={{ marginTop: 16 }} disabled={!dirty || salvandoDados} onClick={salvarDadosClick}>
             {salvandoDados ? "Salvando…" : dadosSalvos && !dirty ? "✓ Salvo" : "Salvar alterações"}
           </button>
+          <p style={{ marginTop: 12, fontSize: 11.5, color: "var(--adm-muted, #94a3b8)" }}>Cadastrado em {dataBR(e.criado_em)}</p>
         </div>
 
-        <div className="adm-det-card">
-          <h4><CreditCard size={15} /> Plano &amp; cobrança</h4>
-          <dl>
-            <div><dt>Plano</dt><dd>{e.plano || "—"}</dd></div>
-            <div><dt>Mensalidade</dt><dd className="adm-det-strong">{e.valor > 0 ? brl(e.valor) : "—"}</dd></div>
-            <div><dt>Cliente há</dt><dd>{desde}</dd></div>
-            <div><dt><Receipt size={13} style={{ verticalAlign: "-2px", marginRight: 5 }} />Pagamentos efetuados</dt><dd className="adm-sub">em breve</dd></div>
-          </dl>
-          <button className="adm-btn sm ghost" style={{ marginTop: 16 }} onClick={() => onEditar(e)}><Pencil size={13} /> Editar plano</button>
+        <div className="adm-det-card adm-eqp-card">
+          <h4><KeyRound size={15} /> Equipe &amp; Acessos</h4>
+
+          {/* Super Administrador (responsável principal) */}
+          <div className="adm-eqp-super">
+            <div className="adm-eqp-super-ico"><ShieldCheck size={18} /></div>
+            <div className="adm-eqp-super-txt">
+              <span className="adm-eqp-tag">Super Administrador</span>
+              <b>{e.dono?.nome || dados.responsavel || "Responsável"}</b>
+              <span className="adm-eqp-super-mail">{e.dono?.email || "—"}</span>
+            </div>
+            <span className="adm-eqp-super-badge">Acesso total</span>
+          </div>
+
+          {/* Funcionários */}
+          <div className="adm-eqp-sec">
+            <h5 className="adm-det-h5">Acessos de funcionários</h5>
+            <p className="adm-sub" style={{ margin: "0 0 14px" }}>Adicione cada funcionário e marque o que ele pode ver. O Dashboard aparece para todos.</p>
+
+            {empRows.map((row, i) => (
+              <div className={"adm-eqp-emp" + (row.enviado ? " enviado" : "")} key={i}>
+                <div className="adm-eqp-emp-top">
+                  <span className="adm-eqp-emp-n">{i + 1}</span>
+                  <input className="adm-eqp-inp" placeholder="Nome do funcionário" value={row.nome} onChange={(ev) => updRow(i, { nome: ev.target.value })} disabled={row.enviado} />
+                  {empRows.length > 1 && !row.enviado && <button className="adm-eqp-x" onClick={() => rmRow(i)} title="Remover"><X size={15} /></button>}
+                </div>
+                <input className="adm-eqp-inp" type="email" placeholder="email@empresa.com (login)" value={row.email} onChange={(ev) => updRow(i, { email: ev.target.value })} disabled={row.enviado} />
+                <div className="adm-areas">
+                  {AREAS.map((a) => (
+                    <button type="button" key={a.k} className={"adm-area" + (row.areas.includes(a.k) ? " on" : "")} onClick={() => !row.enviado && toggleRowArea(i, a.k)} disabled={row.enviado}>
+                      <a.Icon size={13} /> {a.l}
+                    </button>
+                  ))}
+                </div>
+                <div className="adm-eqp-emp-foot">
+                  {row.enviado
+                    ? <span className="adm-eqp-sent"><Send size={12} /> Acesso enviado para {row.email}</span>
+                    : <button className="adm-eqp-send" disabled={row.enviando || !row.email.includes("@")} onClick={() => enviarRow(i)}>{row.enviando ? "Enviando…" : <><Send size={13} /> Criar e enviar acesso</>}</button>}
+                </div>
+              </div>
+            ))}
+
+            <button className="adm-eqp-add" onClick={addRow}><Plus size={16} /> Adicionar funcionário</button>
+          </div>
+
+          {/* Quem já tem acesso (colaboradores criados) */}
+          {colabs.length > 0 && (
+            <div className="adm-eqp-sec">
+              <h5 className="adm-det-h5">Quem já tem acesso</h5>
+              {colabs.map((p) => (
+                <div key={p.id} className="adm-acrow">
+                  <div><b>{p.nome || "—"}</b><div className="adm-sub">{p.email}</div></div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="adm-sub">{p.areas && p.areas.length ? p.areas.map((k) => AREAS.find((a) => a.k === k)?.l || k).join(", ") : "só dashboard"}</span>
+                    <button className="adm-btn sm danger" onClick={() => equipe.remover(p.id)}><Trash2 size={13} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="adm-det-card">
@@ -574,36 +666,6 @@ function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados, equip
           </label>
         </div>
 
-        <div className="adm-det-card adm-det-wide">
-          <h4><KeyRound size={15} /> Equipe &amp; Acessos</h4>
-          <p className="adm-sub" style={{ margin: "0 0 16px" }}>Crie logins para a equipe dessa empresa e defina o que cada um vê. O Dashboard fica visível para todos.</p>
-          <div className="adm-eqp-grid">
-            <div>
-              <h5 className="adm-det-h5">Dar acesso a um colaborador</h5>
-              {equipe.erro && <div className="adm-erro">{equipe.erro}</div>}
-              {equipe.ok && <div className="adm-ok">{equipe.ok}</div>}
-              <label className="adm-det-f"><span>Nome</span><input value={equipe.novoAcesso.nome} onChange={(ev) => equipe.setNovoAcesso({ ...equipe.novoAcesso, nome: ev.target.value })} placeholder="Nome do colaborador" /></label>
-              <label className="adm-det-f" style={{ marginTop: 11 }}><span>E-mail (login)</span><input type="email" value={equipe.novoAcesso.email} onChange={(ev) => equipe.setNovoAcesso({ ...equipe.novoAcesso, email: ev.target.value })} placeholder="email@empresa.com" /></label>
-              <div className="adm-det-f" style={{ marginTop: 11 }}><span>O que ele pode acessar</span>
-                <div className="adm-areas">
-                  {AREAS.map((a) => <button type="button" key={a.k} className={"adm-area" + (equipe.novoAcesso.areas.includes(a.k) ? " on" : "")} onClick={() => equipe.toggleArea(a.k)}>{equipe.novoAcesso.areas.includes(a.k) ? "✓ " : ""}{a.l}</button>)}
-                </div>
-              </div>
-              <button className="adm-btn sm" style={{ marginTop: 14 }} disabled={equipe.salvando} onClick={equipe.criar}><Send size={13} /> {equipe.salvando ? "Enviando…" : "Criar e enviar acesso"}</button>
-            </div>
-            <div>
-              <h5 className="adm-det-h5">Quem tem acesso</h5>
-              {equipe.acessos === null ? <p className="adm-sub">Carregando…</p> : equipe.acessos.length === 0 ? <p className="adm-sub">Ninguém ainda.</p> : equipe.acessos.map((p) => (
-                <div key={p.id} className="adm-acrow">
-                  <div><b>{p.nome || "—"}</b><div className="adm-sub">{p.email}</div></div>
-                  {p.papel === "dono"
-                    ? <span className="adm-badge ativo">Dono (tudo)</span>
-                    : <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="adm-sub">{p.areas && p.areas.length ? p.areas.map((k) => AREAS.find((a) => a.k === k)?.l || k).join(", ") : "só dashboard"}</span><button className="adm-btn sm danger" onClick={() => equipe.remover(p.id)}><Trash2 size={13} /></button></div>}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -659,8 +721,41 @@ const CSS = `
 .adm-acgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
 .adm-acbox{background:#121212;border:1px solid #222;border-radius:16px;padding:20px}
 .adm-areas{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.adm-area{background:#161616;border:1px solid #2a2a2a;color:#cfd3d8;border-radius:99px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.adm-area{display:inline-flex;align-items:center;gap:6px;background:#161616;border:1px solid #2a2a2a;color:#cfd3d8;border-radius:99px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s}
+.adm-area svg{opacity:.75}
+.adm-area:hover:not(:disabled){border-color:#3a3a3a}
 .adm-area.on{background:#16242b;border-color:#1AADE2;color:#1AADE2}
+.adm-area.on svg{opacity:1}
+.adm-area:disabled{cursor:default;opacity:.85}
+
+/* Equipe & Acessos — card redesenhado */
+.adm-eqp-card{display:flex;flex-direction:column}
+.adm-eqp-super{display:flex;align-items:center;gap:13px;background:linear-gradient(135deg,rgba(26,173,226,.13),rgba(26,173,226,.03));border:1px solid rgba(26,173,226,.32);border-radius:14px;padding:14px 15px;margin-bottom:20px}
+.adm-eqp-super-ico{width:40px;height:40px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;background:#1AADE2;color:#04141c}
+.adm-eqp-super-txt{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.adm-eqp-tag{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#1AADE2}
+.adm-eqp-super-txt b{font-size:15px;line-height:1.25}
+.adm-eqp-super-mail{font-size:12.5px;color:#9aa0a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-eqp-super-badge{flex-shrink:0;background:#10331f;border:1px solid #1d5b32;color:#7be3a4;font-size:11px;font-weight:700;padding:5px 10px;border-radius:99px}
+.adm-eqp-sec{margin-top:6px}
+.adm-eqp-sec + .adm-eqp-sec{margin-top:22px;border-top:1px solid #1d1d1d;padding-top:18px}
+.adm-eqp-emp{background:#0e0e0e;border:1px solid #232323;border-radius:14px;padding:14px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s}
+.adm-eqp-emp:focus-within{border-color:#1AADE2}
+.adm-eqp-emp.enviado{border-color:#1d5b32;background:#0c1610}
+.adm-eqp-emp-top{display:flex;align-items:center;gap:9px}
+.adm-eqp-emp-n{flex-shrink:0;width:22px;height:22px;border-radius:7px;background:#1c1c1c;color:#9aa0a6;font-size:12px;font-weight:800;display:grid;place-items:center}
+.adm-eqp-inp{flex:1;width:100%;background:#0f0f0f;border:1px solid #2a2a2a;color:#f4f5f7;border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit}
+.adm-eqp-inp:focus{outline:0;border-color:#1AADE2}
+.adm-eqp-inp:disabled{opacity:.7}
+.adm-eqp-x{flex-shrink:0;width:30px;height:30px;border-radius:8px;border:1px solid #2a2a2a;background:#161616;color:#9aa0a6;cursor:pointer;display:grid;place-items:center}
+.adm-eqp-x:hover{color:#EF4444;border-color:#6b1f1f}
+.adm-eqp-emp-foot{display:flex;justify-content:flex-end;margin-top:2px}
+.adm-eqp-send{display:inline-flex;align-items:center;gap:7px;background:none;border:0;color:#1AADE2;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:4px 2px}
+.adm-eqp-send:hover:not(:disabled){text-decoration:underline}
+.adm-eqp-send:disabled{color:#5a5f64;cursor:default}
+.adm-eqp-sent{display:inline-flex;align-items:center;gap:6px;color:#7be3a4;font-size:12.5px;font-weight:700}
+.adm-eqp-add{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:none;border:1.5px dashed #2f2f2f;color:#cfd3d8;border-radius:12px;padding:12px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s}
+.adm-eqp-add:hover{border-color:#1AADE2;color:#1AADE2;background:rgba(26,173,226,.05)}
 .adm-acrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #1d1d1d}
 .adm-acrow:last-child{border-bottom:0}
 .adm-chips{display:flex;gap:8px;flex-wrap:wrap}
