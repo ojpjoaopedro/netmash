@@ -4,12 +4,15 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Settings, Pencil, Eye, Send,
-  ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText,
+  ArrowLeft, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText, Ticket,
   HeartPulse, ShoppingCart, Megaphone, Package,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, brl } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
+import AdminProdutos from "@/components/AdminProdutos";
+import AdminCupons from "@/components/AdminCupons";
+import AdminVendas from "@/components/AdminVendas";
 
 type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
@@ -33,7 +36,7 @@ function mascaraCnpj(v: string): string {
   if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return d;
 }
-type Aba = "visao" | "empresas" | "permissoes" | "config";
+type Aba = "visao" | "empresas" | "produtos" | "cupons" | "vendas" | "permissoes" | "config";
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
@@ -62,7 +65,9 @@ const DEMO_RESP: Resp = {
 
 export default function Admin() {
   const router = useRouter();
-  const { theme, toggleTheme } = useBrand();
+  const { theme, toggleTheme, setTheme } = useBrand();
+  // Admin abre no tema claro por padrão (a não ser que o usuário já tenha escolhido um).
+  useEffect(() => { if (typeof window !== "undefined" && !localStorage.getItem("fin_theme")) setTheme("light"); }, [setTheme]);
   const [demo, setDemo] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [estado, setEstado] = useState<"carregando" | "semlogin" | "negado" | "ok" | "erro">("carregando");
@@ -278,6 +283,9 @@ export default function Admin() {
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "empresas", label: "Empresas", Icon: Building2 },
+    { k: "produtos", label: "Produtos", Icon: Package },
+    { k: "cupons", label: "Cupons", Icon: Ticket },
+    { k: "vendas", label: "Vendas", Icon: Receipt },
     { k: "config", label: "Configurações", Icon: Settings },
   ];
 
@@ -385,6 +393,12 @@ export default function Admin() {
               </div>
             </>
           )}
+
+          {aba === "produtos" && <AdminProdutos />}
+
+          {aba === "cupons" && <AdminCupons />}
+
+          {aba === "vendas" && <AdminVendas />}
 
           {aba === "config" && (
             <>
