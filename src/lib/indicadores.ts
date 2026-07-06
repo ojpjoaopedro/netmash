@@ -45,7 +45,7 @@ export const CATALOGO: DefMetrica[] = [
   { key: "clientes_ativos", label: "Clientes ativos", unidade: "count", categoria: "cliente", icon: "Users", cor: "#8b5cf6", agg: "last", metaAno: 2200 },
   { key: "nps", label: "NPS", unidade: "score", categoria: "cliente", icon: "Smile", cor: "#10B981", agg: "last", metaAno: 80 },
   { key: "churn", label: "Churn", unidade: "%", categoria: "cliente", icon: "UserMinus", cor: "#EF4444", agg: "last", invert: true, metaAno: 3 },
-  { key: "cross_sell", label: "Cross-sell", unidade: "BRL", categoria: "cliente", icon: "ShoppingCart", cor: "#1AADE2", agg: "sum", metaAno: 24000 },
+  { key: "cross_sell", label: "Vendas de produtos", unidade: "BRL", categoria: "cliente", icon: "ShoppingCart", cor: "#1AADE2", agg: "sum", metaAno: 24000 },
   { key: "indicacoes", label: "Indicações", unidade: "count", categoria: "cliente", icon: "Share2", cor: "#F59E0B", agg: "sum", metaAno: 120 },
 
   // ---- COMERCIAL ----

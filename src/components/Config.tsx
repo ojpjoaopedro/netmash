@@ -13,6 +13,19 @@ function mascaraCnpj(v: string): string {
   return d;
 }
 
+/* Dados fiscais/bancários extras da empresa. Ficam por empresa no navegador
+   (não exigem coluna nova no banco). Chaveado pelo id da empresa. */
+type DadosExtra = { ie: string; email: string; endereco: string; banco: string };
+const EXTRA_VAZIO: DadosExtra = { ie: "", email: "", endereco: "", banco: "" };
+function chaveExtra(id?: string | null) { return `me_empresa_extra:${id || "default"}`; }
+function lerExtra(id?: string | null): DadosExtra {
+  if (typeof window === "undefined") return EXTRA_VAZIO;
+  try { return { ...EXTRA_VAZIO, ...JSON.parse(localStorage.getItem(chaveExtra(id)) || "{}") }; } catch { return EXTRA_VAZIO; }
+}
+function salvarExtra(id: string | null | undefined, d: DadosExtra) {
+  if (typeof window !== "undefined") localStorage.setItem(chaveExtra(id), JSON.stringify(d));
+}
+
 export default function Config({ empresa, reload, brand, saveBrand }: {
   empresa: Empresa | null; reload: () => void;
   brand: Brand; saveBrand: (p: Partial<Brand>) => void;
@@ -23,8 +36,10 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
   const [saldo, setSaldo] = useState(empresa ? String(empresa.saldo_inicial) : "0");
   const [saudacao, setSaudacao] = useState(brand.saudacao ?? "");
   const [cor, setCor] = useState(brand.cor ?? "#1AADE2");
+  const [extra, setExtra] = useState<DadosExtra>(() => lerExtra(empresa?.id));
   const [msg, setMsg] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const upExtra = (p: Partial<DadosExtra>) => setExtra((e) => ({ ...e, ...p }));
 
   function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -43,6 +58,7 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
       saldo_inicial: Number(String(saldo).replace(/\./g, "").replace(",", ".")) || 0,
     });
     saveBrand({ nome: nome.trim() || "Minha Empresa", saudacao: saudacao.trim(), cor });
+    salvarExtra(empresa?.id, extra);
     setSalvando(false);
     setMsg("✅ Dados salvos!");
     reload();
@@ -99,6 +115,12 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
             <div className="field"><label className="f">Segmento</label><input value={segmento} onChange={(e) => setSegmento(e.target.value)} placeholder="Ex: Comércio" /></div>
             <div className="field"><label className="f">CNPJ</label><input value={cnpj} onChange={(e) => setCnpj(mascaraCnpj(e.target.value))} placeholder="00.000.000/0000-00" inputMode="numeric" /></div>
           </div>
+          <div className="row">
+            <div className="field"><label className="f">Inscrição Estadual</label><input value={extra.ie} onChange={(e) => upExtra({ ie: e.target.value })} placeholder="Opcional" /></div>
+            <div className="field"><label className="f">E-mail principal</label><input value={extra.email} onChange={(e) => upExtra({ email: e.target.value })} placeholder="contato@empresa.com" inputMode="email" /></div>
+          </div>
+          <div className="field"><label className="f">Endereço</label><input value={extra.endereco} onChange={(e) => upExtra({ endereco: e.target.value })} placeholder="Rua, nº, bairro — Cidade/UF · CEP" /></div>
+          <div className="field"><label className="f">Banco · Agência · Conta</label><input value={extra.banco} onChange={(e) => upExtra({ banco: e.target.value })} placeholder="Ex: Itaú · Ag. 0000 · Conta 00000-0" /></div>
           <div className="field">
             <label className="f">Saldo inicial em caixa (R$)</label>
             <input value={saldo} onChange={(e) => setSaldo(e.target.value)} inputMode="decimal" />
