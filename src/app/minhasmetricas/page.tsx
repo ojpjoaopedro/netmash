@@ -50,13 +50,15 @@ const METRICAS = [
   { key: "marketing", label: "Marketing", Icon: Megaphone },
 ] as const;
 // Sub-abas (pílulas) dentro de cada área — enxuga o menu principal
+const PILL_FIN: { key: View; label: string }[] = [
+  { key: "financas", label: "Dashboard" }, { key: "analise", label: "Receitas • Despesas" }, { key: "contas", label: "Calendário de Pgto" },
+];
+const PILL_COM: { key: View; label: string }[] = [{ key: "comercial", label: "Visão geral" }, { key: "gestaovista", label: "Gestão à Vista" }];
+const PILL_MKT: { key: View; label: string }[] = [{ key: "marketing", label: "Visão geral" }, { key: "trafego", label: "Tráfego Pago" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
-  financas: [{ key: "financas", label: "Visão geral" }, { key: "analise", label: "Análise de Resultados" }],
-  analise: [{ key: "financas", label: "Visão geral" }, { key: "analise", label: "Análise de Resultados" }],
-  comercial: [{ key: "comercial", label: "Visão geral" }, { key: "gestaovista", label: "Gestão à Vista" }],
-  gestaovista: [{ key: "comercial", label: "Visão geral" }, { key: "gestaovista", label: "Gestão à Vista" }],
-  marketing: [{ key: "marketing", label: "Visão geral" }, { key: "trafego", label: "Tráfego Pago" }],
-  trafego: [{ key: "marketing", label: "Visão geral" }, { key: "trafego", label: "Tráfego Pago" }],
+  financas: PILL_FIN, analise: PILL_FIN, contas: PILL_FIN,
+  comercial: PILL_COM, gestaovista: PILL_COM,
+  marketing: PILL_MKT, trafego: PILL_MKT,
 };
 // Cor de cada aba por área (estilo Hub)
 const NAV_COR: Record<string, string> = {
