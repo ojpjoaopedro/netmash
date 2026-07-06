@@ -32,6 +32,7 @@ import GestaoComercial from "@/components/dash/GestaoComercial";
 import MarketingTrafego from "@/components/dash/MarketingTrafego";
 import ResumoHome from "@/components/dash/ResumoHome";
 import GraficosHome from "@/components/dash/GraficosHome";
+import FinancasDashboard from "@/components/dash/FinancasDashboard";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -406,7 +407,8 @@ export default function Home() {
         {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {view === "dashboard" && <DashboardHub metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {view === "graficos" && <GraficosHome onOpen={(v) => setView(v as View)} mostrarMarketing={!ehSuper} />}
-        {AREAS[view] && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
+        {view === "financas" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} />}
+        {AREAS[view] && view !== "financas" && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
         {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} />}
         {view === "gestaovista" && <GestaoComercial metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} onEditar={() => setEditor("comercial")} />}
