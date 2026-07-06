@@ -30,6 +30,7 @@ import Assistente from "@/components/dash/Assistente";
 import AnaliseResultados from "@/components/dash/AnaliseResultados";
 import GestaoComercial from "@/components/dash/GestaoComercial";
 import MarketingTrafego from "@/components/dash/MarketingTrafego";
+import ResumoHome from "@/components/dash/ResumoHome";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -397,6 +398,7 @@ export default function Home() {
             </div>
           </div>
         )}
+        {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {view === "dashboard" && <DashboardHub metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {AREAS[view] && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
