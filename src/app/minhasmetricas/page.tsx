@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3,
+  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
@@ -28,6 +28,7 @@ import Acessos from "@/components/dash/Acessos";
 import ApresentarModal from "@/components/dash/ApresentarModal";
 import Assistente from "@/components/dash/Assistente";
 import AnaliseResultados from "@/components/dash/AnaliseResultados";
+import GestaoComercial from "@/components/dash/GestaoComercial";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -35,7 +36,7 @@ import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 
 type View =
-  | "dashboard" | "financas" | "analise" | "saude" | "comercial" | "marketing"
+  | "dashboard" | "financas" | "analise" | "saude" | "comercial" | "gestaovista" | "marketing"
   | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
 
 const METRICAS = [
@@ -44,6 +45,7 @@ const METRICAS = [
   { key: "analise", label: "Análise de Resultados", Icon: BarChart3 },
   { key: "saude", label: "Saúde do Cliente", Icon: HeartPulse },
   { key: "comercial", label: "Comercial", Icon: ShoppingCart },
+  { key: "gestaovista", label: "Gestão à Vista", Icon: Target },
   { key: "marketing", label: "Marketing", Icon: Megaphone },
 ] as const;
 const OPERACOES = [
@@ -343,6 +345,7 @@ export default function Home() {
         {AREAS[view] && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
         {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} />}
+        {view === "gestaovista" && <GestaoComercial metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} />}
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
