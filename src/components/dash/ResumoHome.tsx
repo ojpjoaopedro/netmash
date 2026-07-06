@@ -48,25 +48,18 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
         <div className="sub" style={{ textTransform: "capitalize" }}>{dataHoje()}</div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16 }}>
-        {/* Faturamento */}
-        <div className="card" style={{ padding: 16 }}>
-          <span style={{ width: 40, height: 40, borderRadius: 11, display: "grid", placeItems: "center", background: "#10B98122", color: "#10B981" }}><DollarSign size={19} /></span>
-          <b style={{ fontSize: 21, display: "block", marginTop: 10, letterSpacing: "-.02em" }}>{brl(r.faturamento)}</b>
-          <small className="sub" style={{ textTransform: "uppercase", letterSpacing: ".05em", fontSize: 10.5 }}>Faturamento</small>
-        </div>
-        {/* Novos clientes */}
-        <div className="card" style={{ padding: 16 }}>
-          <span style={{ width: 40, height: 40, borderRadius: 11, display: "grid", placeItems: "center", background: "#8b5cf622", color: "#8b5cf6" }}><TrendingUp size={19} /></span>
-          <b style={{ fontSize: 21, display: "block", marginTop: 10 }}>{novos}</b>
-          <small className="sub" style={{ textTransform: "uppercase", letterSpacing: ".05em", fontSize: 10.5 }}>Novos clientes</small>
-        </div>
-        {/* Saldo em caixa — card destacado */}
-        <div className="card" style={{ padding: 16, background: "linear-gradient(135deg, var(--accent), #0d7fa8)", border: "0", color: "#fff" }}>
-          <span style={{ width: 40, height: 40, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.2)" }}><Wallet size={19} /></span>
-          <b style={{ fontSize: 21, display: "block", marginTop: 10, color: "#fff" }}>{brl(r.saldo)}</b>
-          <small style={{ textTransform: "uppercase", letterSpacing: ".05em", fontSize: 10.5, opacity: .9 }}>Saldo em caixa</small>
-        </div>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
+        {[
+          { icon: <DollarSign size={18} />, cor: "#10B981", val: brl(r.faturamento), label: "Faturamento", destaque: false },
+          { icon: <TrendingUp size={18} />, cor: "#8b5cf6", val: String(novos), label: "Novos clientes", destaque: false },
+          { icon: <Wallet size={18} />, cor: "#1AADE2", val: brl(r.saldo), label: "Saldo em caixa", destaque: true },
+        ].map((k, i) => (
+          <div key={i} className="card" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8, minHeight: 108, ...(k.destaque ? { background: "linear-gradient(135deg, var(--accent), #0d7fa8)", border: "0", color: "#fff" } : {}) }}>
+            <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: k.destaque ? "rgba(255,255,255,.2)" : k.cor + "22", color: k.destaque ? "#fff" : k.cor, flexShrink: 0 }}>{k.icon}</span>
+            <b style={{ fontSize: 17, letterSpacing: "-.02em", lineHeight: 1.1, color: k.destaque ? "#fff" : "var(--txt)", marginTop: "auto" }}>{k.val}</b>
+            <small style={{ textTransform: "uppercase", letterSpacing: ".04em", fontSize: 10, fontWeight: 600, color: k.destaque ? "rgba(255,255,255,.9)" : "var(--muted)" }}>{k.label}</small>
+          </div>
+        ))}
       </div>
 
       <NotaEditavel chave="me_pulso" icon={<ClipboardList size={18} color="var(--accent)" />} titulo="Pulso da Semana"

@@ -56,9 +56,19 @@ export default function FinancasDashboard({ lancs, saldoInicial, onLancar, onImp
           {mesesDoAno.map((m, i) => {
             const tem = mesesComDados.has(m);
             const on = sel.has(m) || (sel.size === 0 && tem);
-            return <button key={m} disabled={!tem} onClick={() => toggle(m)} className={"adm-area" + (on ? " on" : "")} style={{ opacity: tem ? 1 : .35, cursor: tem ? "pointer" : "default", textAlign: "center", justifyContent: "center" }}>{MES3[i]}</button>;
+            return (
+              <button key={m} disabled={!tem} onClick={() => toggle(m)} style={{
+                padding: "9px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+                cursor: tem ? "pointer" : "not-allowed",
+                border: on ? "1px solid var(--accent)" : "1px solid var(--line-2)",
+                background: on ? "var(--accent)" : "var(--card)",
+                color: on ? "#06222e" : (tem ? "var(--txt)" : "var(--muted)"),
+                opacity: tem ? 1 : .4,
+              }}>{MES3[i]}</button>
+            );
           })}
         </div>
+        <p className="sub" style={{ fontSize: 11.5, marginTop: 8 }}>Clique nos meses para somar. Sem seleção = todos com dados.</p>
       </div>
 
       {/* FATURAMENTO */}

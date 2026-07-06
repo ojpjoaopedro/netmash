@@ -16,10 +16,10 @@ export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome, o
   const [tab, setTab] = useState<Tab>("resumo");
   return (
     <>
-      <div style={{ display: "flex", gap: 6, marginBottom: 18, overflowX: "auto", paddingBottom: 2 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
         {TABS.map((t) => (
           <button key={t.k} onClick={() => setTab(t.k)}
-            style={{ flexShrink: 0, background: tab === t.k ? "var(--accent)" : "transparent", color: tab === t.k ? "#06222e" : "var(--muted)", border: tab === t.k ? "0" : "1px solid var(--line-2)", borderRadius: 99, padding: "8px 18px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>
+            style={{ flexShrink: 0, background: tab === t.k ? "var(--accent)" : "var(--card)", color: tab === t.k ? "#06222e" : "var(--txt)", border: tab === t.k ? "1px solid var(--accent)" : "1px solid var(--line-2)", borderRadius: 99, padding: "5px 13px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>
         ))}
       </div>
       {tab === "resumo" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={nome} />}

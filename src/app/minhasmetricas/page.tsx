@@ -384,10 +384,12 @@ export default function Home() {
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
         </div>
         {SUBTABS[view] && (
-          <div className="period" style={{ marginBottom: 16, flexWrap: "wrap" }}>
-            {SUBTABS[view].map((t) => (
-              <button key={t.key} className={view === t.key ? "active" : ""} onClick={() => setView(t.key)}>{t.label}</button>
-            ))}
+          <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
+            {SUBTABS[view].map((t) => {
+              const at = view === t.key;
+              return <button key={t.key} onClick={() => setView(t.key)}
+                style={{ flexShrink: 0, background: at ? "var(--accent)" : "var(--card)", color: at ? "#06222e" : "var(--txt)", border: at ? "1px solid var(--accent)" : "1px solid var(--line-2)", borderRadius: 99, padding: "6px 15px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>;
+            })}
           </div>
         )}
         {view === "dashboard" && lancs.length === 0 && !bemVindoFechado && (
