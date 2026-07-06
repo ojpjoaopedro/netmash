@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { ShoppingCart, Target, Users, Award, Zap, Trophy } from "lucide-react";
+import { ShoppingCart, Target, Users, Award, Zap, Trophy, Pencil } from "lucide-react";
 import { Lancamento } from "@/lib/db";
 import { Metrica, def, valorMes } from "@/lib/indicadores";
 import { brl, rotuloMes, mesDe } from "@/lib/format";
@@ -9,7 +9,7 @@ import { resumo } from "@/lib/calc";
 const MES3 = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const mesCurto = (ym: string) => MES3[Number(ym.slice(5, 7)) - 1];
 
-export default function GestaoComercial({ metrs, lancs, saldoInicial }: { metrs: Metrica[]; lancs: Lancamento[]; saldoInicial: number }) {
+export default function GestaoComercial({ metrs, lancs, saldoInicial, onEditar }: { metrs: Metrica[]; lancs: Lancamento[]; saldoInicial: number; onEditar?: () => void }) {
   const anos = useMemo(() => [...new Set(lancs.map((l) => l.data_competencia.slice(0, 4)))].filter(Boolean).sort().reverse(), [lancs]);
   const [ano, setAno] = useState(anos[0] || String(new Date().getFullYear()));
   const [sel, setSel] = useState<string>("ANO");
@@ -88,6 +88,7 @@ export default function GestaoComercial({ metrs, lancs, saldoInicial }: { metrs:
             <option value="">Escolher mês…</option>
             {mesesDoAno.map((m) => <option key={m} value={m} disabled={!mesesComDados.has(m)}>{rotuloMes(m)}</option>)}
           </select>
+          {onEditar && <button className="btn sm" onClick={onEditar} style={{ display: "flex", alignItems: "center", gap: 6 }}><Pencil size={13} /> Editar dados</button>}
         </div>
       </div>
 

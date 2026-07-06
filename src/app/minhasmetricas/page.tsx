@@ -347,8 +347,8 @@ export default function Home() {
         {AREAS[view] && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
         {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} />}
-        {view === "gestaovista" && <GestaoComercial metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} />}
-        {view === "trafego" && <MarketingTrafego metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} />}
+        {view === "gestaovista" && <GestaoComercial metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} onEditar={() => setEditor("comercial")} />}
+        {view === "trafego" && <MarketingTrafego metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} onEditar={() => setEditor("marketing")} />}
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
