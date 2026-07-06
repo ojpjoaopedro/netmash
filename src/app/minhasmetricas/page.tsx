@@ -15,7 +15,6 @@ import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicado
 import { gerarInsights } from "@/lib/insights";
 import { gerarDeck, gerarRelatorio, abrirHtml, slug, type Secao } from "@/lib/apresentacao";
 import { useBrand } from "@/lib/brand";
-import DashboardHub from "@/components/dash/DashboardHub";
 import AreaOverview, { AreaConfig } from "@/components/dash/AreaOverview";
 import MarketingFull from "@/components/dash/MarketingFull";
 import Ferramentas from "@/components/dash/Ferramentas";
@@ -30,7 +29,7 @@ import Assistente from "@/components/dash/Assistente";
 import AnaliseResultados from "@/components/dash/AnaliseResultados";
 import GestaoComercial from "@/components/dash/GestaoComercial";
 import MarketingTrafego from "@/components/dash/MarketingTrafego";
-import ResumoHome from "@/components/dash/ResumoHome";
+import HomeTabs from "@/components/dash/HomeTabs";
 import GraficosHome from "@/components/dash/GraficosHome";
 import FinancasDashboard from "@/components/dash/FinancasDashboard";
 import Lancamentos from "@/components/Lancamentos";
@@ -404,8 +403,7 @@ export default function Home() {
             </div>
           </div>
         )}
-        {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} />}
-        {view === "dashboard" && <DashboardHub metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
+        {view === "dashboard" && <HomeTabs lancs={lancs} clientes={clientes} metrs={effMetrs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {view === "graficos" && <GraficosHome onOpen={(v) => setView(v as View)} mostrarMarketing={!ehSuper} />}
         {view === "financas" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} />}
         {AREAS[view] && view !== "financas" && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
