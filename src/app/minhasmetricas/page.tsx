@@ -43,13 +43,29 @@ type View =
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { key: "financas", label: "Finanças", Icon: DollarSign },
-  { key: "analise", label: "Análise de Resultados", Icon: BarChart3 },
   { key: "saude", label: "Saúde do Cliente", Icon: HeartPulse },
   { key: "comercial", label: "Comercial", Icon: ShoppingCart },
-  { key: "gestaovista", label: "Gestão à Vista", Icon: Target },
   { key: "marketing", label: "Marketing", Icon: Megaphone },
-  { key: "trafego", label: "Tráfego Pago", Icon: Filter },
 ] as const;
+// Sub-abas (pílulas) dentro de cada área — enxuga o menu principal
+const SUBTABS: Record<string, { key: View; label: string }[]> = {
+  financas: [{ key: "financas", label: "Visão geral" }, { key: "analise", label: "Análise de Resultados" }],
+  analise: [{ key: "financas", label: "Visão geral" }, { key: "analise", label: "Análise de Resultados" }],
+  comercial: [{ key: "comercial", label: "Visão geral" }, { key: "gestaovista", label: "Gestão à Vista" }],
+  gestaovista: [{ key: "comercial", label: "Visão geral" }, { key: "gestaovista", label: "Gestão à Vista" }],
+  marketing: [{ key: "marketing", label: "Visão geral" }, { key: "trafego", label: "Tráfego Pago" }],
+  trafego: [{ key: "marketing", label: "Visão geral" }, { key: "trafego", label: "Tráfego Pago" }],
+};
+// Cor de cada aba por área (estilo Hub)
+const NAV_COR: Record<string, string> = {
+  dashboard: "#1AADE2", financas: "#10B981", analise: "#10B981", saude: "#EF4444",
+  comercial: "#1AADE2", gestaovista: "#1AADE2", marketing: "#8b5cf6", trafego: "#EC4899",
+};
+const corDe = (k: string) => NAV_COR[k] || "var(--accent)";
+const navStyle = (ativo: boolean, k: string): React.CSSProperties | undefined =>
+  ativo ? { color: corDe(k), background: corDe(k) + "1f", boxShadow: `inset 0 0 0 1px ${corDe(k)}3d` } : undefined;
+// Sub-view -> área pai (pra o menu pai acender quando você está numa sub-aba)
+const grupoDe = (v: string) => v === "analise" ? "financas" : v === "gestaovista" ? "comercial" : v === "trafego" ? "marketing" : v;
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "lancamentos", label: "Lançamentos", Icon: ListChecks },
@@ -198,7 +214,7 @@ export default function Home() {
   }
   const apresTitulo = view === "dashboard" || !VIEW_SECAO[view] ? "Visão geral (tudo)" : "Esta área";
   // "Apresentar" só faz sentido nos painéis de métrica (Dashboard + 5 áreas). Nas telas operacionais (Clientes, Custos, Lançamentos…) o botão some.
-  const podeApresentar = METRICAS.some((m) => m.key === view);
+  const podeApresentar = METRICAS.some((m) => m.key === grupoDe(view));
 
   const navClick = (k: View) => { setView(k); setMenuAberto(false); };
 
@@ -242,9 +258,9 @@ export default function Home() {
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
             <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
-              {metricasVis.map(({ key, label, Icon }) => (
-                <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
-              ))}
+              {metricasVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
+                <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => navClick(key as View)}><Icon size={18} color={corDe(key)} /> {label}</button>
+              ); })}
             </nav></div>
             <div className="navgroup"><div className="gl">Operações</div><nav className="nav">
               {opsVis.map(({ key, label, Icon }) => (
@@ -268,11 +284,11 @@ export default function Home() {
         <div className="navgroup">
           <div className="gl">Métricas</div>
           <nav className="nav">
-            {metricasVis.map(({ key, label, Icon }) => (
-              <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
-                <Icon size={18} /> {label}
+            {metricasVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
+              <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => setView(key as View)}>
+                <Icon size={18} color={corDe(key)} /> {label}
               </button>
-            ))}
+            ); })}
           </nav>
         </div>
 
@@ -327,6 +343,13 @@ export default function Home() {
           {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
         </div>
+        {SUBTABS[view] && (
+          <div className="period" style={{ marginBottom: 16, flexWrap: "wrap" }}>
+            {SUBTABS[view].map((t) => (
+              <button key={t.key} className={view === t.key ? "active" : ""} onClick={() => setView(t.key)}>{t.label}</button>
+            ))}
+          </div>
+        )}
         {view === "dashboard" && lancs.length === 0 && !bemVindoFechado && (
           <div className="card" style={{ marginBottom: 16, borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
@@ -374,10 +397,10 @@ export default function Home() {
 
       {/* Bottom nav (mobile) — estilo Hub: atalhos fixos + Menu */}
       <nav className="bottomnav">
-        <button className={view === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><LayoutDashboard size={20} />Início</button>
-        <button className={view === "financas" ? "active" : ""} onClick={() => setView("financas")}><DollarSign size={20} />Finanças</button>
-        <button className={view === "comercial" ? "active" : ""} onClick={() => setView("comercial")}><ShoppingCart size={20} />Comercial</button>
-        <button className={view === "equipe" ? "active" : ""} onClick={() => setView("equipe")}><Users size={20} />Equipe</button>
+        <button className={grupoDe(view) === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><LayoutDashboard size={20} color={corDe("dashboard")} />Início</button>
+        <button className={grupoDe(view) === "financas" ? "active" : ""} onClick={() => setView("financas")}><DollarSign size={20} color={corDe("financas")} />Finanças</button>
+        <button className={grupoDe(view) === "comercial" ? "active" : ""} onClick={() => setView("comercial")}><ShoppingCart size={20} color={corDe("comercial")} />Comercial</button>
+        <button className={view === "equipe" ? "active" : ""} onClick={() => setView("equipe")}><Users size={20} color="#F59E0B" />Equipe</button>
         <button onClick={() => setMenuAberto(true)}><Menu size={20} />Menu</button>
       </nav>
     </div>
