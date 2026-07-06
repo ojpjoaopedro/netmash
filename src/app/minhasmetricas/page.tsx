@@ -428,11 +428,10 @@ export default function Home() {
 
       {/* Bottom nav (mobile) — estilo Hub: atalhos fixos + Menu */}
       <nav className="bottomnav">
-        <button className={grupoDe(view) === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><LayoutDashboard size={20} color={corDe("dashboard")} />Início</button>
-        <button className={grupoDe(view) === "financas" ? "active" : ""} onClick={() => setView("financas")}><DollarSign size={20} color={corDe("financas")} />Finanças</button>
-        <button className={grupoDe(view) === "comercial" ? "active" : ""} onClick={() => setView("comercial")}><ShoppingCart size={20} color={corDe("comercial")} />Comercial</button>
-        <button className={view === "equipe" ? "active" : ""} onClick={() => setView("equipe")}><Users size={20} color="#F59E0B" />Equipe</button>
-        <button onClick={() => setMenuAberto(true)}><Menu size={20} />Menu</button>
+        <button className={grupoDe(view) === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><LayoutDashboard size={20} />Home</button>
+        <button className={view === "relatorios" ? "active" : ""} onClick={() => setView("relatorios")}><BarChart3 size={20} />Gráficos</button>
+        <button className={grupoDe(view) === "financas" ? "active" : ""} onClick={() => setView("financas")}><DollarSign size={20} />Finanças</button>
+        <button className={view === "equipe" ? "active" : ""} onClick={() => setView("equipe")}><Users size={20} />Equipe</button>
       </nav>
     </div>
   );
