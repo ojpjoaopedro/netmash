@@ -1,37 +1,119 @@
 "use client";
-import { useEffect, useState } from "react";
-import { HeartPulse, Smile, UserMinus, Share2, Users, Rocket, Pencil, Check } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { HeartPulse, Smile, UserMinus, Share2, Users, Rocket, Pencil, Check, Target, TrendingUp } from "lucide-react";
 import { Lancamento, Cliente } from "@/lib/db";
 import { brl } from "@/lib/format";
+import { resumo } from "@/lib/calc";
 import { Metrica, def, valorMes } from "@/lib/indicadores";
+import { fmt } from "./Kit";
+import { LineChart } from "./Charts";
 import ResumoHome from "./ResumoHome";
-import FinancasDashboard from "./FinancasDashboard";
 
-type Tab = "resumo" | "faturamento" | "satisfacao" | "iniciativas";
-const TABS: { k: Tab; label: string }[] = [
-  { k: "resumo", label: "Resumo" }, { k: "faturamento", label: "Faturamento" },
-  { k: "satisfacao", label: "Satisfação" }, { k: "iniciativas", label: "Iniciativas" },
-];
+const MES3 = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome, onLancar, onImportar, reload }: { lancs: Lancamento[]; clientes: Cliente[]; metrs: Metrica[]; saldoInicial: number; nome: string; onLancar?: () => void; onImportar?: () => void; reload?: () => void }) {
-  const [tab, setTab] = useState<Tab>("resumo");
+/** Home em rolagem única (estilo Hub): Resumo → Indicadores-chave → Faturamento → Satisfação → Iniciativas. */
+export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome }: { lancs: Lancamento[]; clientes: Cliente[]; metrs: Metrica[]; saldoInicial: number; nome: string; onLancar?: () => void; onImportar?: () => void; reload?: () => void }) {
   return (
     <>
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
-        {TABS.map((t) => (
-          <button key={t.k} onClick={() => setTab(t.k)}
-            style={{ flexShrink: 0, background: tab === t.k ? "var(--accent)" : "var(--card)", color: tab === t.k ? "#06222e" : "var(--txt)", border: tab === t.k ? "1px solid var(--accent)" : "1px solid var(--line-2)", borderRadius: 99, padding: "5px 13px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>
-        ))}
-      </div>
-      {tab === "resumo" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={nome} />}
-      {tab === "faturamento" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} onLancar={onLancar} onImportar={onImportar} reload={reload} />}
-      {tab === "satisfacao" && <Satisfacao metrs={metrs} />}
-      {tab === "iniciativas" && <Iniciativas />}
+      <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={nome} />
+      <IndicadoresChave metrs={metrs} lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} />
+      <FaturamentoResumo lancs={lancs} saldoInicial={saldoInicial} />
+      <Satisfacao metrs={metrs} />
+      <Iniciativas />
     </>
   );
 }
 
-/** Velocímetro (gauge) do NPS — arco vermelho→amarelo→verde + ponteiro. 0 a 100. */
+/* ─── Indicadores-chave (anéis de progresso vs meta do ano) ─────────────── */
+function anelValor(metrs: Metrica[], key: string): number {
+  const ano = String(new Date().getFullYear());
+  const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`);
+  const d = def(key);
+  if (d?.agg === "last") { for (let i = meses.length - 1; i >= 0; i--) { const m = valorMes(metrs, key, meses[i]); if (m) return m.value; } return 0; }
+  return meses.reduce((a, m) => a + (valorMes(metrs, key, m)?.value ?? 0), 0);
+}
+
+function progressoAno(): number {
+  const now = new Date();
+  const ini = new Date(now.getFullYear(), 0, 1).getTime();
+  const fim = new Date(now.getFullYear() + 1, 0, 1).getTime();
+  return ((now.getTime() - ini) / (fim - ini)) * 100;
+}
+
+function Anel({ pct, cor }: { pct: number; cor: string }) {
+  const R = 30, C = 2 * Math.PI * R, off = C - (Math.min(100, Math.max(0, pct)) / 100) * C;
+  return (
+    <svg width="74" height="74" viewBox="0 0 74 74" style={{ flexShrink: 0 }}>
+      <circle cx="37" cy="37" r={R} fill="none" stroke="var(--line-2)" strokeWidth="6" />
+      <circle cx="37" cy="37" r={R} fill="none" stroke={cor} strokeWidth="6" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} transform="rotate(-90 37 37)" />
+      <text x="37" y="41" textAnchor="middle" fontSize="15" fontWeight="800" fill="var(--txt)">{Math.round(pct)}%</text>
+    </svg>
+  );
+}
+
+function IndicadoresChave({ metrs, lancs, clientes, saldoInicial }: { metrs: Metrica[]; lancs: Lancamento[]; clientes: Cliente[]; saldoInicial: number }) {
+  const ano = String(new Date().getFullYear());
+  const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`);
+  const rAno = resumo(lancs, meses, saldoInicial);
+  const yp = progressoAno();
+
+  const CARDS = [
+    { key: "faturamento", label: "Faturamento", cor: "#10B981", real: rAno.faturamento, meta: def("faturamento")!.metaAno, un: "BRL" },
+    { key: "novos_clientes", label: "Novos clientes", cor: "#1AADE2", real: clientes.length || anelValor(metrs, "novos_clientes"), meta: def("novos_clientes")!.metaAno, un: "count" },
+    { key: "clientes_ativos", label: "Clientes ativos", cor: "#8b5cf6", real: anelValor(metrs, "clientes_ativos"), meta: def("clientes_ativos")!.metaAno, un: "count" },
+    { key: "nps", label: "NPS", cor: "#F59E0B", real: anelValor(metrs, "nps"), meta: def("nps")!.metaAno, un: "score" },
+  ];
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div className="section-title"><div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#1AADE2,#0c6e9e)" }}><Target size={18} color="#fff" /></span>
+        <div><div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--accent)" }}>No ano</div><h2 style={{ margin: 0 }}>Indicadores-chave</h2></div>
+      </div></div>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 14 }}>
+        {CARDS.map((c) => {
+          const pct = c.meta > 0 ? (c.real / c.meta) * 100 : 0;
+          const ritmo = pct >= yp ? { t: "No ritmo", c: "#10B981" } : pct >= yp * 0.75 ? { t: "Atenção", c: "#F59E0B" } : { t: "Abaixo", c: "#EF4444" };
+          return (
+            <div key={c.key} className="card" style={{ padding: 16, display: "flex", alignItems: "center", gap: 14 }}>
+              <Anel pct={pct} cor={c.cor} />
+              <div style={{ minWidth: 0 }}>
+                <div className="sub" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>{c.label}</div>
+                <b style={{ fontSize: 19, display: "block", lineHeight: 1.15, marginTop: 2 }}>{c.real ? fmt(c.real, c.un) : "—"}</b>
+                <span className="sub" style={{ fontSize: 11 }}>Meta {fmt(c.meta, c.un)}</span>
+                <div style={{ marginTop: 5, display: "inline-block", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: ritmo.c + "1f", color: ritmo.c }}>{ritmo.t}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Faturamento mês a mês (compacto) ──────────────────────────────────── */
+function FaturamentoResumo({ lancs, saldoInicial }: { lancs: Lancamento[]; saldoInicial: number }) {
+  const ano = String(new Date().getFullYear());
+  const mesesComDados = useMemo(() => new Set(lancs.map((l) => l.data_competencia.slice(0, 7))), [lancs]);
+  const cols = useMemo(() => Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`).filter((m) => mesesComDados.has(m)), [ano, mesesComDados]);
+  const serie = useMemo(() => cols.map((m) => ({ label: MES3[Number(m.slice(5, 7)) - 1], value: resumo(lancs, [m], 0).faturamento })), [lancs, cols]);
+  const total = useMemo(() => resumo(lancs, cols, saldoInicial).faturamento, [lancs, cols, saldoInicial]);
+  if (cols.length === 0) return null;
+  return (
+    <div className="card" style={{ marginTop: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><TrendingUp size={18} color="#10B981" /><h3 style={{ margin: 0 }}>Faturamento mês a mês</h3></div>
+        <div style={{ textAlign: "right", background: "rgba(16,185,129,.1)", border: "1px solid rgba(16,185,129,.25)", borderRadius: 12, padding: "8px 14px" }}>
+          <div className="sub" style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".08em", color: "#10B981" }}>TOTAL FATURADO</div>
+          <b style={{ fontSize: 20 }}>{brl(total)}</b>
+        </div>
+      </div>
+      <LineChart pts={serie} cor="#1AADE2" />
+    </div>
+  );
+}
+
+/* ─── Satisfação ────────────────────────────────────────────────────────── */
 function Velocimetro({ value }: { value: number }) {
   const cx = 120, cy = 118, R = 96, sw = 18;
   const polar = (v: number, rad = R) => { const t = Math.PI * (1 - Math.min(100, Math.max(0, v)) / 100); return { x: cx + rad * Math.cos(t), y: cy - rad * Math.sin(t) }; };
@@ -67,7 +149,7 @@ function Satisfacao({ metrs }: { metrs: Metrica[] }) {
     { icon: <Share2 size={18} />, cor: "#F59E0B", label: "Indicações", v: valP("indicacoes"), suf: "" },
   ];
   return (
-    <>
+    <div style={{ marginTop: 20 }}>
       <div className="section-title"><div style={{ display: "flex", alignItems: "center", gap: 10 }}><HeartPulse size={20} color="#EF4444" /><h2 style={{ margin: 0 }}>Satisfação do cliente</h2></div></div>
       <div className="card" style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><Smile size={18} color="#22C55E" /><b style={{ fontSize: 14 }}>Pesquisa de satisfação</b></div>
@@ -83,10 +165,11 @@ function Satisfacao({ metrs }: { metrs: Metrica[] }) {
         ))}
       </div>
       <p className="sub" style={{ marginTop: 12, fontSize: 12 }}>Preencha esses números na aba <b>Saúde do Cliente</b> → &ldquo;Editar dados&rdquo;.</p>
-    </>
+    </div>
   );
 }
 
+/* ─── Iniciativas ───────────────────────────────────────────────────────── */
 function Iniciativas() {
   const [txt, setTxt] = useState("");
   const [editando, setEditando] = useState(false);
@@ -94,7 +177,7 @@ function Iniciativas() {
   useEffect(() => { if (typeof window !== "undefined") setTxt(localStorage.getItem("me_iniciativas") || ""); }, []);
   function salvar() { localStorage.setItem("me_iniciativas", rasc); setTxt(rasc); setEditando(false); }
   return (
-    <>
+    <div style={{ marginTop: 20 }}>
       <div className="section-title"><div style={{ display: "flex", alignItems: "center", gap: 10 }}><Rocket size={20} color="var(--accent)" /><h2 style={{ margin: 0 }}>Iniciativas</h2></div>
         {editando ? <button className="btn sm" onClick={salvar}><Check size={14} /> Salvar</button> : <button className="btn ghost sm" onClick={() => { setRasc(txt); setEditando(true); }}><Pencil size={13} /> Editar</button>}
       </div>
@@ -105,6 +188,6 @@ function Iniciativas() {
         ) : txt ? <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: 14.5 }}>{txt}</p>
           : <p className="sub" style={{ fontStyle: "italic" }}>Nenhuma iniciativa ainda. Clique em &ldquo;Editar&rdquo; para escrever o plano estratégico do período.</p>}
       </div>
-    </>
+    </div>
   );
 }
