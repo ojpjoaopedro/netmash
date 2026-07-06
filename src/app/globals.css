@@ -85,7 +85,9 @@ button{font-family:inherit}
 
 /* ===== Generic surfaces ===== */
 .surface{background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;
+  transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease}
+.card:hover{border-color:var(--line-2);box-shadow:0 12px 34px -16px rgba(0,0,0,.6)}
 .card h3{margin:0 0 14px;font-size:15px;font-weight:700}
 .card .sub,.sub{color:var(--muted);font-size:12.5px;font-weight:500}
 
@@ -279,8 +281,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand)}
   .sechead h2{font-size:19px}
   .sechead > :last-child:not(div){margin-left:auto;margin-top:4px}
   .mobiletop{display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:45;
-    height:52px;padding:0 12px;background:rgba(13,13,13,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-  body.theme-light .mobiletop{background:rgba(255,255,255,.92)}
+    height:54px;padding:0 14px;background:rgba(16,16,20,.6);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.08)}
+  body.theme-light .mobiletop{background:rgba(255,255,255,.65);border-bottom-color:rgba(0,0,0,.06)}
   .mobiletop .brand{padding:0;min-height:auto;gap:8px}
   .mobiletop .brand img{max-width:62vw}
   .mobiletop .brand .fallback{font-size:16px}
