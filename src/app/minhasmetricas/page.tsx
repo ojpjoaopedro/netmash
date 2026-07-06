@@ -33,6 +33,7 @@ import HomeTabs from "@/components/dash/HomeTabs";
 import GraficosHome from "@/components/dash/GraficosHome";
 import FinancasDashboard from "@/components/dash/FinancasDashboard";
 import AreaGraficos from "@/components/dash/AreaGraficos";
+import CalendarioPgto from "@/components/dash/CalendarioPgto";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -40,7 +41,7 @@ import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 
 type View =
-  | "dashboard" | "graficos" | "gdet" | "financas" | "analise" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
+  | "dashboard" | "graficos" | "gdet" | "financas" | "analise" | "calendario" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
   | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
 
 const METRICAS = [
@@ -52,13 +53,13 @@ const METRICAS = [
 ] as const;
 // Sub-abas (pílulas) dentro de cada área — enxuga o menu principal
 const PILL_FIN: { key: View; label: string }[] = [
-  { key: "financas", label: "Dashboard" }, { key: "analise", label: "Receitas • Despesas" }, { key: "contas", label: "Calendário de Pgto" },
+  { key: "financas", label: "Dashboard" }, { key: "analise", label: "Receitas • Despesas" }, { key: "calendario", label: "Calendário de Pgto" },
 ];
 const PILL_COM: { key: View; label: string }[] = [{ key: "comercial", label: "Visão geral" }, { key: "gestaovista", label: "Gestão à Vista" }];
 const PILL_MKT: { key: View; label: string }[] = [{ key: "marketing", label: "Visão geral" }, { key: "trafego", label: "Tráfego Pago" }];
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }, { key: "acessos", label: "Acessos" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
-  financas: PILL_FIN, analise: PILL_FIN, contas: PILL_FIN,
+  financas: PILL_FIN, analise: PILL_FIN, calendario: PILL_FIN,
   comercial: PILL_COM, gestaovista: PILL_COM,
   marketing: PILL_MKT, trafego: PILL_MKT,
   empresa: PILL_EQ, equipe: PILL_EQ, acessos: PILL_EQ,
@@ -412,6 +413,7 @@ export default function Home() {
         }} />}
         {view === "gdet" && <AreaGraficos metrs={effMetrs} categoria={gCat} cor={gCat === "cliente" ? "#EF4444" : gCat === "comercial" ? "#1AADE2" : gCat === "marketing" ? "#8b5cf6" : "#10B981"} onBack={() => setView("graficos")} />}
         {view === "financas" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} />}
+        {view === "calendario" && <CalendarioPgto lancs={lancs} />}
         {AREAS[view] && view !== "financas" && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
         {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} />}
