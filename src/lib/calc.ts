@@ -81,6 +81,46 @@ export function despesasPorCategoria(lancs: Lancamento[], meses: string[]): Fati
   return [...map.entries()].map(([categoria, valor]) => ({ categoria, valor })).sort((a, b) => b.valor - a.valor);
 }
 
+/** Receitas agrupadas por categoria no período. */
+export function receitasPorCategoria(lancs: Lancamento[], meses: string[]): FatiaCategoria[] {
+  const set = new Set(meses);
+  const map = new Map<string, number>();
+  for (const l of lancs) {
+    if (l.tipo !== "receita" || !set.has(mesDe(l.data_competencia))) continue;
+    const c = l.categoria || "Outras receitas";
+    map.set(c, (map.get(c) || 0) + l.valor);
+  }
+  return [...map.entries()].map(([categoria, valor]) => ({ categoria, valor })).sort((a, b) => b.valor - a.valor);
+}
+
+/** Matriz categoria × meses (para as planilhas mês a mês). */
+export type LinhaMatriz = { categoria: string; valores: number[]; total: number };
+export function matrizPorCategoria(lancs: Lancamento[], meses: string[], tipo: "receita" | "despesa"): LinhaMatriz[] {
+  const idx = new Map(meses.map((m, i) => [m, i]));
+  const padrao = tipo === "receita" ? "Outras receitas" : "Outras despesas";
+  const map = new Map<string, number[]>();
+  for (const l of lancs) {
+    if (l.tipo !== tipo) continue;
+    const i = idx.get(mesDe(l.data_competencia));
+    if (i === undefined) continue;
+    const c = l.categoria || padrao;
+    if (!map.has(c)) map.set(c, new Array(meses.length).fill(0));
+    map.get(c)![i] += l.valor;
+  }
+  return [...map.entries()]
+    .map(([categoria, valores]) => ({ categoria, valores, total: valores.reduce((a, b) => a + b, 0) }))
+    .sort((a, b) => b.total - a.total);
+}
+
+/** EBITDA aproximado = faturamento − despesas operacionais (exclui impostos, juros, empréstimos, tarifas). */
+export function ebitda(lancs: Lancamento[], meses: string[]): number {
+  const set = new Set(meses);
+  const fat = lancs.filter((l) => l.tipo === "receita" && set.has(mesDe(l.data_competencia))).reduce((a, l) => a + l.valor, 0);
+  const naoOper = /juros|imposto|empr[ée]stimo|financ|tarifa/i;
+  const despOper = lancs.filter((l) => l.tipo === "despesa" && set.has(mesDe(l.data_competencia)) && !naoOper.test(l.categoria || "")).reduce((a, l) => a + l.valor, 0);
+  return fat - despOper;
+}
+
 export type LinhaDRE = { rotulo: string; valor: number; tipo: "receita" | "despesa" | "resultado" };
 
 /** DRE simplificada do período. */
