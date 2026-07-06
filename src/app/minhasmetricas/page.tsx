@@ -32,6 +32,7 @@ import MarketingTrafego from "@/components/dash/MarketingTrafego";
 import HomeTabs from "@/components/dash/HomeTabs";
 import GraficosHome from "@/components/dash/GraficosHome";
 import FinancasDashboard from "@/components/dash/FinancasDashboard";
+import AreaGraficos from "@/components/dash/AreaGraficos";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -39,7 +40,7 @@ import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 
 type View =
-  | "dashboard" | "graficos" | "financas" | "analise" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
+  | "dashboard" | "graficos" | "gdet" | "financas" | "analise" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
   | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
 
 const METRICAS = [
@@ -131,6 +132,7 @@ export default function Home() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [apresOpen, setApresOpen] = useState(false);
   const [sistemaAberto, setSistemaAberto] = useState(false);
+  const [gCat, setGCat] = useState<Categoria>("cliente");
   const [bemVindoFechado, setBemVindoFechado] = useState(false);
 
   const carregarDados = useCallback(async () => {
@@ -404,7 +406,11 @@ export default function Home() {
           </div>
         )}
         {view === "dashboard" && <HomeTabs lancs={lancs} clientes={clientes} metrs={effMetrs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
-        {view === "graficos" && <GraficosHome onOpen={(v) => setView(v as View)} mostrarMarketing={!ehSuper} />}
+        {view === "graficos" && <GraficosHome mostrarMarketing={!ehSuper} onOpen={(k) => {
+          if (k === "financas") { setView("financas"); }
+          else { setGCat((k === "saude" ? "cliente" : k) as Categoria); setView("gdet"); }
+        }} />}
+        {view === "gdet" && <AreaGraficos metrs={effMetrs} categoria={gCat} cor={gCat === "cliente" ? "#EF4444" : gCat === "comercial" ? "#1AADE2" : gCat === "marketing" ? "#8b5cf6" : "#10B981"} onBack={() => setView("graficos")} />}
         {view === "financas" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} />}
         {AREAS[view] && view !== "financas" && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
