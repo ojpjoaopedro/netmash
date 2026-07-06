@@ -55,10 +55,12 @@ const PILL_FIN: { key: View; label: string }[] = [
 ];
 const PILL_COM: { key: View; label: string }[] = [{ key: "comercial", label: "Visão geral" }, { key: "gestaovista", label: "Gestão à Vista" }];
 const PILL_MKT: { key: View; label: string }[] = [{ key: "marketing", label: "Visão geral" }, { key: "trafego", label: "Tráfego Pago" }];
+const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }, { key: "acessos", label: "Acessos" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
   financas: PILL_FIN, analise: PILL_FIN, contas: PILL_FIN,
   comercial: PILL_COM, gestaovista: PILL_COM,
   marketing: PILL_MKT, trafego: PILL_MKT,
+  empresa: PILL_EQ, equipe: PILL_EQ, acessos: PILL_EQ,
 };
 // Cor de cada aba por área (estilo Hub)
 const NAV_COR: Record<string, string> = {
