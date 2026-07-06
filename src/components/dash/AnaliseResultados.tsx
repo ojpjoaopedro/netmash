@@ -86,6 +86,10 @@ export default function AnaliseResultados({ lancs, saldoInicial }: { lancs: Lanc
             <KpiBox icon={<TrendingUp size={18} />} cor="#1AADE2" label="EBITDA (aprox.)" valor={brl(eb)} />
           </div>
 
+          {/* PAINEL BI (dark neon) */}
+          <PainelBI cols={cols} fat={cols.map((_, i) => totalCol(matRec, i))} desp={cols.map((_, i) => totalCol(matCus, i))}
+            totalFat={cols.reduce((a, _, i) => a + totalCol(matRec, i), 0)} totalDesp={cols.reduce((a, _, i) => a + totalCol(matCus, i), 0)} />
+
           {/* COMPOSIÇÕES */}
           <div className="grid two" style={{ gap: 14, marginBottom: 16 }}>
             <Composicao titulo="Composição do Faturamento" sub="De onde veio a receita" total={r.faturamento} fatias={fatCats} corTotal="#10B981" />
@@ -117,6 +121,67 @@ export default function AnaliseResultados({ lancs, saldoInicial }: { lancs: Lanc
         </>
       )}
     </>
+  );
+}
+
+/* Mini gráfico de linha dark (neon) — rótulos brancos, imune ao tema claro. */
+function LinhaDark({ pts, cor }: { pts: { label: string; value: number }[]; cor: string }) {
+  const W = 340, H = 150, padL = 8, padR = 8, padT = 24, padB = 20;
+  const vals = pts.map((p) => p.value);
+  const maxV = Math.max(...vals, 1), minV = Math.min(...vals, 0), rng = maxV - minV || 1;
+  const x = (i: number) => padL + (pts.length === 1 ? (W - padL - padR) / 2 : (i / (pts.length - 1)) * (W - padL - padR));
+  const y = (v: number) => padT + (1 - (v - minV) / rng) * (H - padT - padB);
+  const linha = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ");
+  const area = `${linha} L${x(pts.length - 1).toFixed(1)},${(H - padB).toFixed(1)} L${x(0).toFixed(1)},${(H - padB).toFixed(1)} Z`;
+  const gid = `bi${cor.replace("#", "")}`;
+  const kfmt = (n: number) => (Math.abs(n) >= 1000 ? `R$${Math.round(n / 1000)}k` : `R$${Math.round(n)}`);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block", overflow: "visible" }}>
+      <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={cor} stopOpacity="0.4" /><stop offset="100%" stopColor={cor} stopOpacity="0" /></linearGradient></defs>
+      {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={padL} x2={W - padR} y1={padT + f * (H - padT - padB)} y2={padT + f * (H - padT - padB)} stroke="rgba(255,255,255,.08)" strokeDasharray="3 4" />)}
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={linha} fill="none" stroke={cor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      {pts.map((p, i) => (
+        <g key={i}>
+          <circle cx={x(i)} cy={y(p.value)} r="3.5" fill={cor} />
+          <text x={x(i)} y={y(p.value) - 8} textAnchor="middle" fontSize="9" fontWeight="700" fill="#e6eef7">{kfmt(p.value)}</text>
+          <text x={x(i)} y={H - 5} textAnchor="middle" fontSize="9" fill="rgba(226,232,240,.6)">{p.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function PainelBI({ cols, fat, desp, totalFat, totalDesp }: { cols: string[]; fat: number[]; desp: number[]; totalFat: number; totalDesp: number }) {
+  const labels = cols.map(mesCurto);
+  return (
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, border: "1px solid rgba(255,255,255,.08)", padding: 20, marginBottom: 16, boxShadow: "0 24px 60px -20px rgba(0,0,0,.7)", background: "linear-gradient(135deg,#0A0F1F 0%,#141024 55%,#1B1030 100%)" }}>
+      <div style={{ position: "absolute", left: -90, top: -90, width: 240, height: 240, borderRadius: "50%", background: "#1AADE2", opacity: .2, filter: "blur(60px)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", right: -90, bottom: -90, width: 240, height: 240, borderRadius: "50%", background: "#8B5CF6", opacity: .18, filter: "blur(60px)", pointerEvents: "none" }} />
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#22B8F0,#4F46E5)", boxShadow: "0 8px 24px -6px rgba(34,184,240,.6)" }}><TrendingUp size={20} color="#fff" /></span>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".2em", textTransform: "uppercase", color: "#38BDF8" }}>Análise · BI</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#F1F5F9" }}>Faturamento × Despesas mês a mês</div>
+        </div>
+      </div>
+      <div className="grid two" style={{ position: "relative", gap: 14 }}>
+        <div style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,.08)", background: "rgba(255,255,255,.04)", padding: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: "#F1F5F9" }}>Faturamento</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#34d399" }}>{brl(totalFat)}</span>
+          </div>
+          <LinhaDark pts={labels.map((l, i) => ({ label: l, value: fat[i] }))} cor="#38BDF8" />
+        </div>
+        <div style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,.08)", background: "rgba(255,255,255,.04)", padding: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: "#F1F5F9" }}>Despesas</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#fb7185" }}>{brl(totalDesp)}</span>
+          </div>
+          <LinhaDark pts={labels.map((l, i) => ({ label: l, value: desp[i] }))} cor="#FB7185" />
+        </div>
+      </div>
+    </div>
   );
 }
 
