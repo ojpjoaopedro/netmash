@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target,
+  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
@@ -29,6 +29,7 @@ import ApresentarModal from "@/components/dash/ApresentarModal";
 import Assistente from "@/components/dash/Assistente";
 import AnaliseResultados from "@/components/dash/AnaliseResultados";
 import GestaoComercial from "@/components/dash/GestaoComercial";
+import MarketingTrafego from "@/components/dash/MarketingTrafego";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -36,7 +37,7 @@ import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 
 type View =
-  | "dashboard" | "financas" | "analise" | "saude" | "comercial" | "gestaovista" | "marketing"
+  | "dashboard" | "financas" | "analise" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
   | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
 
 const METRICAS = [
@@ -47,6 +48,7 @@ const METRICAS = [
   { key: "comercial", label: "Comercial", Icon: ShoppingCart },
   { key: "gestaovista", label: "Gestão à Vista", Icon: Target },
   { key: "marketing", label: "Marketing", Icon: Megaphone },
+  { key: "trafego", label: "Tráfego Pago", Icon: Filter },
 ] as const;
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
@@ -346,6 +348,7 @@ export default function Home() {
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
         {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} />}
         {view === "gestaovista" && <GestaoComercial metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} />}
+        {view === "trafego" && <MarketingTrafego metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} />}
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
