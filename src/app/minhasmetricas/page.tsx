@@ -31,6 +31,7 @@ import AnaliseResultados from "@/components/dash/AnaliseResultados";
 import GestaoComercial from "@/components/dash/GestaoComercial";
 import MarketingTrafego from "@/components/dash/MarketingTrafego";
 import ResumoHome from "@/components/dash/ResumoHome";
+import GraficosHome from "@/components/dash/GraficosHome";
 import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
@@ -38,7 +39,7 @@ import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 
 type View =
-  | "dashboard" | "financas" | "analise" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
+  | "dashboard" | "graficos" | "financas" | "analise" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
   | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
 
 const METRICAS = [
@@ -400,6 +401,7 @@ export default function Home() {
         )}
         {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} />}
         {view === "dashboard" && <DashboardHub metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
+        {view === "graficos" && <GraficosHome onOpen={(v) => setView(v as View)} mostrarMarketing={!ehSuper} />}
         {AREAS[view] && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
         {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} />}
@@ -431,7 +433,7 @@ export default function Home() {
       {/* Bottom nav (mobile) — estilo Hub: atalhos fixos + Menu */}
       <nav className="bottomnav">
         <button className={grupoDe(view) === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><LayoutDashboard size={20} />Home</button>
-        <button className={view === "relatorios" ? "active" : ""} onClick={() => setView("relatorios")}><BarChart3 size={20} />Gráficos</button>
+        <button className={view === "graficos" ? "active" : ""} onClick={() => setView("graficos")}><BarChart3 size={20} />Gráficos</button>
         <button className={grupoDe(view) === "financas" ? "active" : ""} onClick={() => setView("financas")}><DollarSign size={20} />Finanças</button>
         <button className={view === "equipe" ? "active" : ""} onClick={() => setView("equipe")}><Users size={20} />Equipe</button>
       </nav>
