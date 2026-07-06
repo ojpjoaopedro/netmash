@@ -62,10 +62,12 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
         ))}
       </div>
 
-      <NotaEditavel chave="me_pulso" icon={<ClipboardList size={18} color="var(--accent)" />} titulo="Pulso da Semana"
-        placeholder="Nenhum lembrete ainda. Clique em “Editar” para adicionar os avisos da semana." />
-      <NotaEditavel chave="me_aniversarios" icon={<Cake size={18} color="#EC4899" />} titulo="Aniversários do mês"
-        placeholder="Adicione os aniversariantes do mês. Ex: 🎂 João — 16/07" />
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, alignItems: "start" }}>
+        <NotaEditavel chave="me_pulso" icon={<ClipboardList size={18} color="var(--accent)" />} titulo="Pulso da Semana"
+          placeholder="Nenhum lembrete ainda. Clique em “Editar” para adicionar os avisos da semana." />
+        <NotaEditavel chave="me_aniversarios" icon={<Cake size={18} color="#EC4899" />} titulo="Aniversários do mês"
+          placeholder="Adicione os aniversariantes do mês. Ex: 🎂 João — 16/07" />
+      </div>
     </>
   );
 }

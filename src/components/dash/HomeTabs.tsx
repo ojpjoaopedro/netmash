@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { HeartPulse, Smile, UserMinus, Share2, Users, Rocket, Pencil, Check, Target, TrendingUp } from "lucide-react";
+import { HeartPulse, Rocket, Pencil, Check, Target, TrendingUp } from "lucide-react";
 import { Lancamento, Cliente } from "@/lib/db";
 import { brl } from "@/lib/format";
 import { resumo } from "@/lib/calc";
@@ -142,29 +142,28 @@ function Satisfacao({ metrs }: { metrs: Metrica[] }) {
   const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`);
   const valP = (key: string) => { const d = def(key); if (d?.agg === "last") { for (let i = meses.length - 1; i >= 0; i--) { const m = valorMes(metrs, key, meses[i]); if (m) return m.value; } return 0; } return meses.reduce((a, m) => a + (valorMes(metrs, key, m)?.value ?? 0), 0); };
   const nps = Math.round(valP("nps"));
-  const KPIS = [
-    { icon: <Users size={18} />, cor: "#8b5cf6", label: "Clientes ativos", v: valP("clientes_ativos"), suf: "" },
-    { icon: <UserMinus size={18} />, cor: "#EF4444", label: "Churn", v: valP("churn"), suf: "%" },
-    { icon: <Smile size={18} />, cor: "#10B981", label: "Vendas de produtos", v: valP("cross_sell"), suf: "", brl: true },
-    { icon: <Share2 size={18} />, cor: "#F59E0B", label: "Indicações", v: valP("indicacoes"), suf: "" },
+  const STATS = [
+    { cor: "#8b5cf6", label: "Clientes ativos", v: valP("clientes_ativos") ? String(Math.round(valP("clientes_ativos"))) : "—" },
+    { cor: "#EF4444", label: "Churn", v: valP("churn") ? valP("churn") + "%" : "—" },
+    { cor: "#F59E0B", label: "Indicações", v: valP("indicacoes") ? String(Math.round(valP("indicacoes"))) : "—" },
   ];
   return (
     <div style={{ marginTop: 20 }}>
       <div className="section-title"><div style={{ display: "flex", alignItems: "center", gap: 10 }}><HeartPulse size={20} color="#EF4444" /><h2 style={{ margin: 0 }}>Satisfação do cliente</h2></div></div>
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><Smile size={18} color="#22C55E" /><b style={{ fontSize: 14 }}>Pesquisa de satisfação</b></div>
-        <Velocimetro value={nps} />
-      </div>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
-        {KPIS.map((k, i) => (
-          <div key={i} className="card" style={{ padding: 16 }}>
-            <span style={{ width: 42, height: 42, borderRadius: 12, display: "grid", placeItems: "center", background: k.cor + "22", color: k.cor }}>{k.icon}</span>
-            <b style={{ fontSize: 24, display: "block", marginTop: 10 }}>{k.v ? (k.brl ? brl(k.v) : k.v + k.suf) : "—"}</b>
-            <small className="sub">{k.label}</small>
+      <div className="card">
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
+          <div style={{ flex: "1 1 260px", minWidth: 240 }}><Velocimetro value={nps} /></div>
+          <div style={{ flex: "1 1 200px", display: "grid", gap: 10 }}>
+            {STATS.map((s, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, borderBottom: i < STATS.length - 1 ? "1px solid var(--line)" : "none", paddingBottom: i < STATS.length - 1 ? 10 : 0 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 9, height: 9, borderRadius: 99, background: s.cor }} /><span className="sub" style={{ fontSize: 12.5 }}>{s.label}</span></span>
+                <b style={{ fontSize: 16 }}>{s.v}</b>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+        <p className="sub" style={{ marginTop: 12, fontSize: 11.5 }}>Preencha esses números na aba <b>Saúde do Cliente</b> → &ldquo;Editar dados&rdquo;.</p>
       </div>
-      <p className="sub" style={{ marginTop: 12, fontSize: 12 }}>Preencha esses números na aba <b>Saúde do Cliente</b> → &ldquo;Editar dados&rdquo;.</p>
     </div>
   );
 }
