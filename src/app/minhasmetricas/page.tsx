@@ -66,6 +66,8 @@ const navStyle = (ativo: boolean, k: string): React.CSSProperties | undefined =>
   ativo ? { color: corDe(k), background: corDe(k) + "1f", boxShadow: `inset 0 0 0 1px ${corDe(k)}3d` } : undefined;
 // Sub-view -> área pai (pra o menu pai acender quando você está numa sub-aba)
 const grupoDe = (v: string) => v === "analise" ? "financas" : v === "gestaovista" ? "comercial" : v === "trafego" ? "marketing" : v;
+// Itens de "Sistema" (saída + configuração) — ficam numa seção recolhível pra enxugar o menu
+const SISTEMA_KEYS = ["relatorios", "apresentacao", "ferramentas", "importar", "acessos", "empresa"];
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "lancamentos", label: "Lançamentos", Icon: ListChecks },
@@ -122,6 +124,7 @@ export default function Home() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [apresOpen, setApresOpen] = useState(false);
+  const [sistemaAberto, setSistemaAberto] = useState(false);
   const [bemVindoFechado, setBemVindoFechado] = useState(false);
 
   const carregarDados = useCallback(async () => {
@@ -200,6 +203,9 @@ export default function Home() {
         return [...ops];
       })();
   const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key)).filter((o) => !ehSuper || (o.key !== "clientes" && o.key !== "equipe"));
+  const opsCore = opsVis.filter((o) => !SISTEMA_KEYS.includes(o.key));
+  const opsSistema = opsVis.filter((o) => SISTEMA_KEYS.includes(o.key));
+  const sistemaTemAtivo = opsSistema.some((o) => o.key === view);
 
   const VIEW_SECAO: Partial<Record<View, Secao>> = {
     financas: "financeiro", saude: "cliente", comercial: "comercial", marketing: "marketing", equipe: "colaboradores",
@@ -263,10 +269,20 @@ export default function Home() {
               ); })}
             </nav></div>
             <div className="navgroup"><div className="gl">Operações</div><nav className="nav">
-              {opsVis.map(({ key, label, Icon }) => (
+              {opsCore.map(({ key, label, Icon }) => (
                 <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
               ))}
             </nav></div>
+            {opsSistema.length > 0 && (
+              <div className="navgroup">
+                <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Sistema <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
+                {(sistemaAberto || sistemaTemAtivo) && <nav className="nav">
+                  {opsSistema.map(({ key, label, Icon }) => (
+                    <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
+                  ))}
+                </nav>}
+              </div>
+            )}
             <div className="navgroup"><nav className="nav">
               {podeApresentar && <button onClick={() => { setApresOpen(true); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>}
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
@@ -295,13 +311,28 @@ export default function Home() {
         <div className="navgroup">
           <div className="gl">Operações</div>
           <nav className="nav">
-            {opsVis.map(({ key, label, Icon }) => (
+            {opsCore.map(({ key, label, Icon }) => (
               <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
                 <Icon size={18} /> {label}
               </button>
             ))}
           </nav>
         </div>
+
+        {opsSistema.length > 0 && (
+          <div className="navgroup">
+            <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Sistema <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
+            {(sistemaAberto || sistemaTemAtivo) && (
+              <nav className="nav">
+                {opsSistema.map(({ key, label, Icon }) => (
+                  <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
+                    <Icon size={18} /> {label}
+                  </button>
+                ))}
+              </nav>
+            )}
+          </div>
+        )}
 
         <div className="side-foot">
           <div className="av">{(saudacaoNome || nomeMarca).charAt(0).toUpperCase()}</div>
