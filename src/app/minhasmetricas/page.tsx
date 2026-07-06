@@ -372,13 +372,13 @@ export default function Home() {
         <ApresentarModal titulo={apresTitulo} onClose={() => setApresOpen(false)} onGerar={gerarApres} />
       )}
 
-      {/* Bottom nav (mobile) */}
+      {/* Bottom nav (mobile) — estilo Hub: atalhos fixos + Menu */}
       <nav className="bottomnav">
-        {metricasVis.map(({ key, label, Icon }) => (
-          <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
-            <Icon size={20} />{label.split(" ")[0]}
-          </button>
-        ))}
+        <button className={view === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><LayoutDashboard size={20} />Início</button>
+        <button className={view === "financas" ? "active" : ""} onClick={() => setView("financas")}><DollarSign size={20} />Finanças</button>
+        <button className={view === "comercial" ? "active" : ""} onClick={() => setView("comercial")}><ShoppingCart size={20} />Comercial</button>
+        <button className={view === "equipe" ? "active" : ""} onClick={() => setView("equipe")}><Users size={20} />Equipe</button>
+        <button onClick={() => setMenuAberto(true)}><Menu size={20} />Menu</button>
       </nav>
     </div>
   );
