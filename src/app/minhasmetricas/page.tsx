@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter,
+  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
@@ -26,6 +26,7 @@ import Clientes from "@/components/dash/Clientes";
 import Acessos from "@/components/dash/Acessos";
 import ApresentarModal from "@/components/dash/ApresentarModal";
 import Assistente from "@/components/dash/Assistente";
+import LinksImportantes from "@/components/dash/LinksImportantes";
 import AnaliseResultados from "@/components/dash/AnaliseResultados";
 import GestaoComercial from "@/components/dash/GestaoComercial";
 import MarketingTrafego from "@/components/dash/MarketingTrafego";
@@ -42,7 +43,7 @@ import Config from "@/components/Config";
 
 type View =
   | "dashboard" | "graficos" | "gdet" | "financas" | "analise" | "calendario" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
-  | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa";
+  | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa" | "links";
 
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -83,6 +84,7 @@ const OPERACOES = [
   { key: "custos", label: "Custos & Despesas", Icon: Receipt },
   { key: "contas", label: "Contas a pagar/receber", Icon: CalendarClock },
   { key: "equipe", label: "Equipe", Icon: Users },
+  { key: "links", label: "Links Importantes", Icon: Link2 },
   { key: "ferramentas", label: "Ferramentas", Icon: Wrench },
   { key: "relatorios", label: "Relatórios / PDF", Icon: FileText },
   { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
@@ -431,6 +433,7 @@ export default function Home() {
         {view === "contas" && <Contas lancs={lancs} reload={carregarDados} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
         {view === "acessos" && <Acessos />}
+        {view === "links" && <LinksImportantes />}
         {view === "importar" && <Importar reload={carregarDados} />}
         {view === "empresa" && <Config empresa={empresa} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
       </main>

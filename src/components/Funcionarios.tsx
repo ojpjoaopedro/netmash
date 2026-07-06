@@ -4,6 +4,10 @@ import { Funcionario, addFuncionario, updateFuncionario, delFuncionario } from "
 import { custoFolha } from "@/lib/calc";
 import { brl, dataBR, hoje } from "@/lib/format";
 
+function iniciais(nome: string): string {
+  return nome.trim().split(/\s+/).map((p) => p[0]).join("").toUpperCase().slice(0, 2);
+}
+
 function FuncModal({ edit, onClose, onSaved }: { edit: Funcionario | null; onClose: () => void; onSaved: () => void }) {
   const [nome, setNome] = useState(edit?.nome ?? "");
   const [cargo, setCargo] = useState(edit?.cargo ?? "");
@@ -81,31 +85,35 @@ export default function Funcionarios({ funcs, reload }: { funcs: Funcionario[]; 
         <div className="card kpi"><div className="kbadge tint-amber">🎁</div><div className="klabel">Custo total folha</div><div className="kval" style={{ fontSize: 22 }}>{brl(folha.total)}</div><div className="ktrend" style={{ color: "var(--muted)" }}>com benefícios</div></div>
       </div>
 
-      <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-        {funcs.length === 0 ? (
-          <div className="empty"><div className="big">👥</div>Nenhum colaborador cadastrado.</div>
-        ) : (
-          <table className="table">
-            <thead><tr><th>Nome</th><th>Cargo</th><th>Departamento</th><th>Admissão</th><th className="num">Salário</th><th className="num">Custo total</th><th></th></tr></thead>
-            <tbody>
-              {funcs.map((f) => (
-                <tr key={f.id} style={{ opacity: f.ativo ? 1 : 0.5 }}>
-                  <td><b>{f.nome}</b> {!f.ativo && <span className="chip muted">inativo</span>}</td>
-                  <td>{f.cargo || "—"}</td>
-                  <td>{f.departamento || "—"}</td>
-                  <td className="mono">{dataBR(f.admissao)}</td>
-                  <td className="num">{brl(f.salario)}</td>
-                  <td className="num">{brl(f.salario + f.beneficios)}</td>
-                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <button className="btn ghost sm" onClick={() => { setEdit(f); setModal(true); }}>✏️</button>{" "}
-                    <button className="btn ghost sm" onClick={async () => { if (confirm("Remover colaborador?")) { await delFuncionario(f.id); reload(); } }}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {funcs.length === 0 ? (
+        <div className="card"><div className="empty"><div className="big">👥</div>Nenhum colaborador cadastrado.</div></div>
+      ) : (
+        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+          {funcs.map((f) => (
+            <div key={f.id} className="card" style={{ padding: 16, opacity: f.ativo ? 1 : 0.55 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ width: 46, height: 46, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "var(--accent)22", color: "var(--accent)", fontWeight: 800, fontSize: 16 }}>{iniciais(f.nome)}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <b style={{ fontSize: 15 }}>{f.nome}</b>
+                    <span className="chip" style={{ background: f.ativo ? "rgba(16,185,129,.12)" : "rgba(113,113,122,.18)", color: f.ativo ? "#10B981" : "var(--muted)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", padding: "2px 8px", borderRadius: 99 }}>{f.ativo ? "Ativo" : "Inativo"}</span>
+                  </div>
+                  {f.cargo && <span style={{ display: "inline-block", marginTop: 5, fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 99, background: "var(--accent)14", color: "var(--accent)" }}>{f.cargo}</span>}
+                </div>
+              </div>
+              <div style={{ marginTop: 12, display: "grid", gap: 5, fontSize: 12.5 }}>
+                {f.departamento && <div className="sub">🏢 {f.departamento}</div>}
+                <div className="sub">📅 Admissão {dataBR(f.admissao)}</div>
+                <div className="sub">💵 Salário <b style={{ color: "var(--txt)" }}>{brl(f.salario)}</b>{f.beneficios ? ` · Custo total ${brl(f.salario + f.beneficios)}` : ""}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+                <button className="btn ghost sm" onClick={() => { setEdit(f); setModal(true); }}>✏️ Editar</button>
+                <button className="btn ghost sm" onClick={async () => { if (confirm("Remover colaborador?")) { await delFuncionario(f.id); reload(); } }}>🗑️</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {modal && <FuncModal edit={edit} onClose={() => setModal(false)} onSaved={() => { setModal(false); reload(); }} />}
     </>
