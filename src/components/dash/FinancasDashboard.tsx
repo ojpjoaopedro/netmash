@@ -1,14 +1,22 @@
 "use client";
 import { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Plus, Upload, Wand2 } from "lucide-react";
 import { Lancamento } from "@/lib/db";
 import { brl, mesDe } from "@/lib/format";
 import { resumo, receitasPorCategoria, despesasPorCategoria } from "@/lib/calc";
+import { seedExemplo } from "@/lib/seed";
 import { LineChart, CompBars } from "./Charts";
 
 const MES3 = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-export default function FinancasDashboard({ lancs, saldoInicial }: { lancs: Lancamento[]; saldoInicial: number }) {
+export default function FinancasDashboard({ lancs, saldoInicial, onLancar, onImportar, reload }: { lancs: Lancamento[]; saldoInicial: number; onLancar?: () => void; onImportar?: () => void; reload?: () => void }) {
+  const [seedando, setSeedando] = useState(false);
+  async function carregarExemplo() {
+    if (!window.confirm("Carregar dados de EXEMPLO na sua conta (lançamentos e indicadores) só para você ver os gráficos? Você pode apagar depois em Lançamentos.")) return;
+    setSeedando(true);
+    try { await seedExemplo(); reload?.(); } catch { alert("Não consegui carregar o exemplo."); }
+    setSeedando(false);
+  }
   const anos = useMemo(() => [...new Set(lancs.map((l) => l.data_competencia.slice(0, 4)))].filter(Boolean).sort().reverse(), [lancs]);
   const [ano, setAno] = useState(anos[0] || String(new Date().getFullYear()));
   const mesesDoAno = useMemo(() => Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`), [ano]);
@@ -30,6 +38,11 @@ export default function FinancasDashboard({ lancs, saldoInicial }: { lancs: Lanc
 
   return (
     <>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+        {onLancar && <button className="btn sm" onClick={onLancar}><Plus size={14} /> Inserir dados</button>}
+        {onImportar && <button className="btn ghost sm" onClick={onImportar}><Upload size={14} /> Importar planilha</button>}
+        <button className="btn ghost sm" onClick={carregarExemplo} disabled={seedando}><Wand2 size={14} /> {seedando ? "Carregando…" : "Dados de exemplo"}</button>
+      </div>
       {anos.length > 1 && (
         <div className="period" style={{ marginBottom: 12, width: "fit-content" }}>
           {anos.map((a) => <button key={a} className={ano === a ? "active" : ""} onClick={() => { setAno(a); setSel(new Set()); }}>{a}</button>)}

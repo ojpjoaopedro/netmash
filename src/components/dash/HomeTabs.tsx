@@ -12,7 +12,7 @@ const TABS: { k: Tab; label: string }[] = [
   { k: "satisfacao", label: "Satisfação" }, { k: "iniciativas", label: "Iniciativas" },
 ];
 
-export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome }: { lancs: Lancamento[]; clientes: Cliente[]; metrs: Metrica[]; saldoInicial: number; nome: string }) {
+export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome, onLancar, onImportar, reload }: { lancs: Lancamento[]; clientes: Cliente[]; metrs: Metrica[]; saldoInicial: number; nome: string; onLancar?: () => void; onImportar?: () => void; reload?: () => void }) {
   const [tab, setTab] = useState<Tab>("resumo");
   return (
     <>
@@ -23,7 +23,7 @@ export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome }:
         ))}
       </div>
       {tab === "resumo" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={nome} />}
-      {tab === "faturamento" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} />}
+      {tab === "faturamento" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} onLancar={onLancar} onImportar={onImportar} reload={reload} />}
       {tab === "satisfacao" && <Satisfacao metrs={metrs} />}
       {tab === "iniciativas" && <Iniciativas />}
     </>

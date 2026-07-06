@@ -406,13 +406,13 @@ export default function Home() {
             </div>
           </div>
         )}
-        {view === "dashboard" && <HomeTabs lancs={lancs} clientes={clientes} metrs={effMetrs} saldoInicial={saldoInicial} nome={saudacaoNome} />}
+        {view === "dashboard" && <HomeTabs lancs={lancs} clientes={clientes} metrs={effMetrs} saldoInicial={saldoInicial} nome={saudacaoNome} onLancar={() => setView("lancamentos")} onImportar={() => setView("importar")} reload={carregarDados} />}
         {view === "graficos" && <GraficosHome mostrarMarketing={!ehSuper} onOpen={(k) => {
           if (k === "financas") { setView("financas"); }
           else { setGCat((k === "saude" ? "cliente" : k) as Categoria); setView("gdet"); }
         }} />}
         {view === "gdet" && <AreaGraficos metrs={effMetrs} categoria={gCat} cor={gCat === "cliente" ? "#EF4444" : gCat === "comercial" ? "#1AADE2" : gCat === "marketing" ? "#8b5cf6" : "#10B981"} onBack={() => setView("graficos")} />}
-        {view === "financas" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} />}
+        {view === "financas" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} onLancar={() => setView("lancamentos")} onImportar={() => setView("importar")} reload={carregarDados} />}
         {view === "calendario" && <CalendarioPgto lancs={lancs} />}
         {AREAS[view] && view !== "financas" && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
