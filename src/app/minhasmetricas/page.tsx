@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2,
+  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
@@ -27,6 +27,7 @@ import Acessos from "@/components/dash/Acessos";
 import ApresentarModal from "@/components/dash/ApresentarModal";
 import Assistente from "@/components/dash/Assistente";
 import LinksImportantes from "@/components/dash/LinksImportantes";
+import PlanilhaDados from "@/components/dash/PlanilhaDados";
 import AnaliseResultados from "@/components/dash/AnaliseResultados";
 import GestaoComercial from "@/components/dash/GestaoComercial";
 import MarketingTrafego from "@/components/dash/MarketingTrafego";
@@ -43,7 +44,7 @@ import Config from "@/components/Config";
 
 type View =
   | "dashboard" | "graficos" | "gdet" | "financas" | "analise" | "calendario" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
-  | "assistente" | "lancamentos" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa" | "links";
+  | "assistente" | "lancamentos" | "planilha" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa" | "links";
 
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -80,6 +81,7 @@ const SISTEMA_KEYS = ["relatorios", "apresentacao", "ferramentas", "importar", "
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "lancamentos", label: "Lançamentos", Icon: ListChecks },
+  { key: "planilha", label: "Planilha (mês a mês)", Icon: Table2 },
   { key: "clientes", label: "Clientes & Vendas", Icon: Contact },
   { key: "custos", label: "Custos & Despesas", Icon: Receipt },
   { key: "contas", label: "Contas a pagar/receber", Icon: CalendarClock },
@@ -428,6 +430,7 @@ export default function Home() {
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
         {view === "lancamentos" && <Lancamentos lancs={lancs} reload={carregarDados} />}
+        {view === "planilha" && <PlanilhaDados reload={carregarDados} />}
         {view === "clientes" && <Clientes clientes={clientes} lancs={lancs} reload={carregarDados} />}
         {view === "custos" && <Custos lancs={lancs} funcs={funcs} reload={carregarDados} />}
         {view === "contas" && <Contas lancs={lancs} reload={carregarDados} />}
