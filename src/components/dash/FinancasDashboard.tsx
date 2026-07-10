@@ -73,7 +73,7 @@ export default function FinancasDashboard({ lancs, saldoInicial, onLancar, onImp
 
       {/* FATURAMENTO */}
       <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><TrendingUp size={18} color="#10B981" /><h3 style={{ margin: 0 }}>Faturamento mês a mês</h3></div>
           <div style={{ textAlign: "right", background: "rgba(16,185,129,.1)", border: "1px solid rgba(16,185,129,.25)", borderRadius: 12, padding: "8px 14px" }}>
             <div className="sub" style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".08em", color: "#10B981" }}>TOTAL FATURADO</div>
@@ -91,7 +91,7 @@ export default function FinancasDashboard({ lancs, saldoInicial, onLancar, onImp
 
       {/* DESPESAS */}
       <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><TrendingDown size={18} color="#EF4444" /><h3 style={{ margin: 0 }}>Despesas mês a mês</h3></div>
           <div style={{ textAlign: "right", background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.25)", borderRadius: 12, padding: "8px 14px" }}>
             <div className="sub" style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".08em", color: "#EF4444" }}>CUSTOS TOTAIS</div>

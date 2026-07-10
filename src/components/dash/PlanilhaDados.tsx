@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { CATALOGO, def, getIndicadores, setIndicador, valorMes, type Categoria } from "@/lib/indicadores";
+import { playSuccess } from "@/lib/ui-sound";
 import { SecHead } from "./Kit";
 
 const MES3 = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -65,7 +66,7 @@ export default function PlanilhaDados({ reload }: { reload?: () => void }) {
       const meta = targets[`${d.key}|${m}`] ?? metaSugerida(d.key);
       await setIndicador(d.key, m, n, meta);
     }
-    setSalvando(false); setSalvo(true); reload?.();
+    setSalvando(false); setSalvo(true); playSuccess(); reload?.();
     setTimeout(() => setSalvo(false), 2500);
   }
 

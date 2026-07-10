@@ -77,17 +77,19 @@ export default function AnaliseResultados({ lancs, saldoInicial, onLancar, onImp
         </div>
       ) : (
         <>
-          {/* HERO + KPIs */}
-          <div className="grid" style={{ gridTemplateColumns: "1.3fr 1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
-            <div style={{ position: "relative", overflow: "hidden", borderRadius: 18, padding: 22, color: "#fff", background: pos ? "linear-gradient(135deg,#059669,#0d9488 55%,#047857)" : "linear-gradient(135deg,#e11d48,#b91c1c 55%,#9f1239)", boxShadow: pos ? "0 18px 44px -14px rgba(16,185,129,.5)" : "0 18px 44px -14px rgba(225,29,72,.5)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,.2)", display: "grid", placeItems: "center" }}>{pos ? <TrendingUp size={18} /> : <TrendingDown size={18} />}</span>
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".15em", textTransform: "uppercase", opacity: .9 }}>{pos ? "Lucro do período" : "Prejuízo do período"}</span>
-                <Sparkles size={16} style={{ marginLeft: "auto", opacity: .7 }} />
-              </div>
-              <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-.02em", lineHeight: 1 }}>{pos ? "" : "−"}{brl(Math.abs(r.lucro))}</div>
-              <div style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.2)", borderRadius: 99, padding: "4px 12px", fontSize: 12.5, fontWeight: 700 }}>Margem líquida {r.margem.toFixed(1)}%</div>
+          {/* HERO (largura total) */}
+          <div style={{ position: "relative", overflow: "hidden", borderRadius: 18, padding: 22, marginBottom: 14, color: "#fff", background: pos ? "linear-gradient(135deg,#059669,#0d9488 55%,#047857)" : "linear-gradient(135deg,#e11d48,#b91c1c 55%,#9f1239)", boxShadow: pos ? "0 18px 44px -14px rgba(16,185,129,.5)" : "0 18px 44px -14px rgba(225,29,72,.5)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,.2)", display: "grid", placeItems: "center" }}>{pos ? <TrendingUp size={18} /> : <TrendingDown size={18} />}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".15em", textTransform: "uppercase", opacity: .9 }}>{pos ? "Lucro do período" : "Prejuízo do período"}</span>
+              <Sparkles size={16} style={{ marginLeft: "auto", opacity: .7 }} />
             </div>
+            <div style={{ fontSize: 34, fontWeight: 900, letterSpacing: "-.02em", lineHeight: 1.05, wordBreak: "break-word" }}>{pos ? "" : "−"}{brl(Math.abs(r.lucro))}</div>
+            <div style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.2)", borderRadius: 99, padding: "4px 12px", fontSize: 12.5, fontWeight: 700 }}>Margem líquida {r.margem.toFixed(1)}%</div>
+          </div>
+
+          {/* KPIs (responsivos) */}
+          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 16 }}>
             <KpiBox icon={<DollarSign size={18} />} cor="#10B981" label="Faturamento" valor={brl(r.faturamento)} />
             <KpiBox icon={<Receipt size={18} />} cor="#EF4444" label="Custos totais" valor={brl(r.despesas)} />
             <KpiBox icon={<TrendingUp size={18} />} cor="#1AADE2" label="EBITDA (aprox.)" valor={brl(eb)} />

@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2,
+  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2, Volume2, VolumeX,
 } from "lucide-react";
+import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
   getPerfil, getEmpresa, getLancamentos, getFuncionarios, getClientes, logout,
@@ -139,6 +140,9 @@ export default function Home() {
   const [sistemaAberto, setSistemaAberto] = useState(false);
   const [gCat, setGCat] = useState<Categoria>("cliente");
   const [bemVindoFechado, setBemVindoFechado] = useState(false);
+  const [som, setSomState] = useState(true);
+  useEffect(() => { setSomState(somLigado()); }, []);
+  const toggleSom = () => { const v = !som; setSom(v); setSomState(v); };
 
   const carregarDados = useCallback(async () => {
     const [e, l, f, c, m] = await Promise.all([getEmpresa(), getLancamentos(), getFuncionarios(), getClientes(), getIndicadores()]);
@@ -235,7 +239,7 @@ export default function Home() {
   // "Apresentar" só faz sentido nos painéis de métrica (Dashboard + 5 áreas). Nas telas operacionais (Clientes, Custos, Lançamentos…) o botão some.
   const podeApresentar = METRICAS.some((m) => m.key === grupoDe(view));
 
-  const navClick = (k: View) => { setView(k); setMenuAberto(false); };
+  const navClick = (k: View) => { playTick(); setView(k); setMenuAberto(false); };
 
   return (
     <div className="app">
@@ -314,7 +318,7 @@ export default function Home() {
           <div className="gl">Métricas</div>
           <nav className="nav">
             {metricasVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
-              <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => setView(key as View)}>
+              <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => { playTick(); setView(key as View); }}>
                 <Icon size={18} color={corDe(key)} /> {label}
               </button>
             ); })}
@@ -325,7 +329,7 @@ export default function Home() {
           <div className="gl">Operações</div>
           <nav className="nav">
             {opsCore.map(({ key, label, Icon }) => (
-              <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
+              <button key={key} className={view === key ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
                 <Icon size={18} /> {label}
               </button>
             ))}
@@ -338,7 +342,7 @@ export default function Home() {
             {(sistemaAberto || sistemaTemAtivo) && (
               <nav className="nav">
                 {opsSistema.map(({ key, label, Icon }) => (
-                  <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key as View)}>
+                  <button key={key} className={view === key ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
                     <Icon size={18} /> {label}
                   </button>
                 ))}
@@ -386,12 +390,13 @@ export default function Home() {
           {ehSuper && <a className="btn ghost sm" href="/admin"><ShieldCheck size={14} /> Super Admin</a>}
           {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
+          <button className="btn ghost sm" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
         </div>
         {SUBTABS[view] && (
           <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
             {SUBTABS[view].map((t) => {
               const at = view === t.key;
-              return <button key={t.key} onClick={() => setView(t.key)}
+              return <button key={t.key} onClick={() => { playTick(); setView(t.key); }}
                 style={{ flexShrink: 0, background: at ? "var(--accent)" : "var(--card)", color: at ? "#06222e" : "var(--txt)", border: at ? "1px solid var(--accent)" : "1px solid var(--line-2)", borderRadius: 99, padding: "6px 15px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>;
             })}
           </div>
@@ -452,10 +457,10 @@ export default function Home() {
 
       {/* Bottom nav (mobile) — estilo Hub: atalhos fixos + Menu */}
       <nav className="bottomnav">
-        <button className={grupoDe(view) === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><LayoutDashboard size={20} />Home</button>
-        <button className={view === "graficos" ? "active" : ""} onClick={() => setView("graficos")}><BarChart3 size={20} />Gráficos</button>
-        <button className={grupoDe(view) === "financas" ? "active" : ""} onClick={() => setView("financas")}><DollarSign size={20} />Finanças</button>
-        <button className={view === "equipe" ? "active" : ""} onClick={() => setView("equipe")}><Users size={20} />Equipe</button>
+        <button className={grupoDe(view) === "dashboard" ? "active" : ""} onClick={() => { playTick(); setView("dashboard"); }}><LayoutDashboard size={20} />Home</button>
+        <button className={view === "graficos" ? "active" : ""} onClick={() => { playTick(); setView("graficos"); }}><BarChart3 size={20} />Gráficos</button>
+        <button className={grupoDe(view) === "financas" ? "active" : ""} onClick={() => { playTick(); setView("financas"); }}><DollarSign size={20} />Finanças</button>
+        <button className={view === "equipe" ? "active" : ""} onClick={() => { playTick(); setView("equipe"); }}><Users size={20} />Equipe</button>
       </nav>
     </div>
   );
