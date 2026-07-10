@@ -33,6 +33,17 @@ function anelValor(metrs: Metrica[], key: string): number {
   return meses.reduce((a, m) => a + (valorMes(metrs, key, m)?.value ?? 0), 0);
 }
 
+/** Meta da EMPRESA (soma/último dos targets mensais cadastrados); cai no padrão do catálogo se não houver. */
+function anelMeta(metrs: Metrica[], key: string): number {
+  const ano = String(new Date().getFullYear());
+  const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`);
+  const d = def(key);
+  const padrao = d?.metaAno ?? 0;
+  if (d?.agg === "last") { for (let i = meses.length - 1; i >= 0; i--) { const m = valorMes(metrs, key, meses[i]); if (m?.target) return m.target; } return padrao; }
+  const soma = meses.reduce((a, m) => a + (valorMes(metrs, key, m)?.target ?? 0), 0);
+  return soma > 0 ? soma : padrao;
+}
+
 function progressoAno(): number {
   const now = new Date();
   const ini = new Date(now.getFullYear(), 0, 1).getTime();
@@ -58,10 +69,10 @@ function IndicadoresChave({ metrs, lancs, clientes, saldoInicial }: { metrs: Met
   const yp = progressoAno();
 
   const CARDS = [
-    { key: "faturamento", label: "Faturamento", cor: "#10B981", real: rAno.faturamento, meta: def("faturamento")!.metaAno, un: "BRL" },
-    { key: "novos_clientes", label: "Novos clientes", cor: "#1AADE2", real: clientes.length || anelValor(metrs, "novos_clientes"), meta: def("novos_clientes")!.metaAno, un: "count" },
-    { key: "clientes_ativos", label: "Clientes ativos", cor: "#8b5cf6", real: anelValor(metrs, "clientes_ativos"), meta: def("clientes_ativos")!.metaAno, un: "count" },
-    { key: "nps", label: "NPS", cor: "#F59E0B", real: anelValor(metrs, "nps"), meta: def("nps")!.metaAno, un: "score" },
+    { key: "faturamento", label: "Faturamento", cor: "#10B981", real: rAno.faturamento, meta: anelMeta(metrs, "faturamento"), un: "BRL" },
+    { key: "novos_clientes", label: "Novos clientes", cor: "#1AADE2", real: clientes.length || anelValor(metrs, "novos_clientes"), meta: anelMeta(metrs, "novos_clientes"), un: "count" },
+    { key: "clientes_ativos", label: "Clientes ativos", cor: "#8b5cf6", real: anelValor(metrs, "clientes_ativos"), meta: anelMeta(metrs, "clientes_ativos"), un: "count" },
+    { key: "nps", label: "NPS", cor: "#F59E0B", real: anelValor(metrs, "nps"), meta: anelMeta(metrs, "nps"), un: "score" },
   ];
 
   return (

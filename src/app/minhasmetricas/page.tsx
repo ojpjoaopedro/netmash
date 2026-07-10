@@ -420,7 +420,7 @@ export default function Home() {
         {view === "calendario" && <CalendarioPgto lancs={lancs} />}
         {AREAS[view] && view !== "financas" && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
         {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
-        {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} />}
+        {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} onLancar={() => setView("lancamentos")} onImportar={() => setView("importar")} />}
         {view === "gestaovista" && <GestaoComercial metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} onEditar={() => setEditor("comercial")} />}
         {view === "trafego" && <MarketingTrafego metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} onEditar={() => setEditor("marketing")} />}
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}

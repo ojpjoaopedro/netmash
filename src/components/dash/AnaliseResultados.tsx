@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, DollarSign, Receipt, Sparkles, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Receipt, Sparkles, BarChart3, Plus, Upload } from "lucide-react";
 import { Lancamento } from "@/lib/db";
 import { brl, rotuloMes, mesDe } from "@/lib/format";
 import { resumo, dre, receitasPorCategoria, despesasPorCategoria, matrizPorCategoria, ebitda } from "@/lib/calc";
@@ -9,7 +9,7 @@ const MES3 = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Ou
 const PALETA = ["#10B981", "#1AADE2", "#8b5cf6", "#F59E0B", "#EF4444", "#EC4899", "#14B8A6", "#6366F1", "#c48a57", "#84CC16", "#F97316", "#0EA5E9"];
 const mesCurto = (ym: string) => MES3[Number(ym.slice(5, 7)) - 1];
 
-export default function AnaliseResultados({ lancs, saldoInicial }: { lancs: Lancamento[]; saldoInicial: number }) {
+export default function AnaliseResultados({ lancs, saldoInicial, onLancar, onImportar }: { lancs: Lancamento[]; saldoInicial: number; onLancar?: () => void; onImportar?: () => void }) {
   const anos = useMemo(() => [...new Set(lancs.map((l) => l.data_competencia.slice(0, 4)))].filter(Boolean).sort().reverse(), [lancs]);
   const anoAtual = String(new Date().getFullYear());
   const [ano, setAno] = useState(anos[0] || anoAtual);
@@ -62,6 +62,13 @@ export default function AnaliseResultados({ lancs, saldoInicial }: { lancs: Lanc
           </select>
         </div>
       </div>
+
+      {(onLancar || onImportar) && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+          {onLancar && <button className="btn sm" onClick={onLancar}><Plus size={14} /> Inserir receita/despesa</button>}
+          {onImportar && <button className="btn ghost sm" onClick={onImportar}><Upload size={14} /> Importar planilha</button>}
+        </div>
+      )}
 
       {semDados ? (
         <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
