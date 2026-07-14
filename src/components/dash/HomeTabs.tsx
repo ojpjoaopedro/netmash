@@ -1,23 +1,19 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { Rocket, Pencil, Check, Target, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Rocket, Pencil, Check, Target } from "lucide-react";
 import { Lancamento, Cliente } from "@/lib/db";
-import { brl } from "@/lib/format";
 import { resumo } from "@/lib/calc";
 import { Metrica, def, valorMes } from "@/lib/indicadores";
+import { playTick } from "@/lib/ui-sound";
 import { fmt } from "./Kit";
-import { LineChart } from "./Charts";
 import ResumoHome from "./ResumoHome";
 
-const MES3 = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-/** Home em rolagem única (estilo Hub): Resumo → Indicadores-chave → Faturamento → Satisfação → Iniciativas. */
+/** Home em rolagem única (estilo Hub): Resumo → Indicadores-chave → Iniciativas. */
 export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome }: { lancs: Lancamento[]; clientes: Cliente[]; metrs: Metrica[]; saldoInicial: number; nome: string; onLancar?: () => void; onImportar?: () => void; reload?: () => void }) {
   return (
     <>
       <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={nome} />
       <IndicadoresChave metrs={metrs} lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} />
-      <FaturamentoResumo lancs={lancs} saldoInicial={saldoInicial} />
       <Iniciativas />
     </>
   );
@@ -32,8 +28,19 @@ function anelValor(metrs: Metrica[], key: string): number {
   return meses.reduce((a, m) => a + (valorMes(metrs, key, m)?.value ?? 0), 0);
 }
 
-/** Meta da EMPRESA (soma/último dos targets mensais cadastrados); cai no padrão do catálogo se não houver. */
+/** Meta anual definida pelo usuário no próprio anel (localStorage). */
+function metaOverride(key: string): number | null {
+  if (typeof window === "undefined") return null;
+  const v = localStorage.getItem(`me_metaAno:${key}`);
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Meta da EMPRESA: override do anel → soma/último dos targets mensais → padrão do catálogo. */
 function anelMeta(metrs: Metrica[], key: string): number {
+  const ov = metaOverride(key);
+  if (ov != null) return ov;
   const ano = String(new Date().getFullYear());
   const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`);
   const d = def(key);
@@ -66,6 +73,19 @@ function IndicadoresChave({ metrs, lancs, clientes, saldoInicial }: { metrs: Met
   const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`);
   const rAno = resumo(lancs, meses, saldoInicial);
   const yp = progressoAno();
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [tmp, setTmp] = useState("");
+  const [, setVer] = useState(0);
+  function abrirMeta(key: string, metaAtual: number) { setEditKey(key); setTmp(String(metaAtual)); }
+  function salvarMeta() {
+    if (editKey) {
+      const n = Number((tmp || "").trim().replace(/\./g, "").replace(",", "."));
+      if (!tmp.trim() || !Number.isFinite(n) || n <= 0) localStorage.removeItem(`me_metaAno:${editKey}`);
+      else localStorage.setItem(`me_metaAno:${editKey}`, String(n));
+      playTick(660);
+    }
+    setEditKey(null); setVer((v) => v + 1);
+  }
 
   const CARDS = [
     { key: "faturamento", label: "Faturamento", cor: "#10B981", real: rAno.faturamento, meta: anelMeta(metrs, "faturamento"), un: "BRL" },
@@ -85,40 +105,28 @@ function IndicadoresChave({ metrs, lancs, clientes, saldoInicial }: { metrs: Met
           const pct = c.meta > 0 ? (c.real / c.meta) * 100 : 0;
           const ritmo = pct >= yp ? { t: "No ritmo", c: "#10B981" } : pct >= yp * 0.75 ? { t: "Atenção", c: "#F59E0B" } : { t: "Abaixo", c: "#EF4444" };
           return (
-            <div key={c.key} className="card" style={{ padding: 16, display: "flex", alignItems: "center", gap: 14 }}>
+            <div key={c.key} className="card" style={{ padding: 16, display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
+              <button className="iconbtn" title="Editar meta" onClick={() => abrirMeta(c.key, c.meta)} style={{ position: "absolute", top: 8, right: 8, width: 26, height: 26 }}><Pencil size={13} /></button>
               <Anel pct={pct} cor={c.cor} />
               <div style={{ minWidth: 0 }}>
                 <div className="sub" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>{c.label}</div>
                 <b style={{ fontSize: 19, display: "block", lineHeight: 1.15, marginTop: 2 }}>{c.real ? fmt(c.real, c.un) : "—"}</b>
-                <span className="sub" style={{ fontSize: 11 }}>Meta {fmt(c.meta, c.un)}</span>
+                {editKey === c.key ? (
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 5 }}>
+                    <input autoFocus value={tmp} onChange={(e) => setTmp(e.target.value)} inputMode="decimal" placeholder="Meta do ano"
+                      onKeyDown={(e) => { if (e.key === "Enter") salvarMeta(); }}
+                      style={{ width: 96, background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--txt)", borderRadius: 7, padding: "4px 7px", fontSize: 12, fontFamily: "inherit" }} />
+                    <button className="btn sm" onClick={salvarMeta}><Check size={12} /></button>
+                  </div>
+                ) : (
+                  <span className="sub" style={{ fontSize: 11 }}>Meta {fmt(c.meta, c.un)}</span>
+                )}
                 <div style={{ marginTop: 5, display: "inline-block", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: ritmo.c + "1f", color: ritmo.c }}>{ritmo.t}</div>
               </div>
             </div>
           );
         })}
       </div>
-    </div>
-  );
-}
-
-/* ─── Faturamento mês a mês (compacto) ──────────────────────────────────── */
-function FaturamentoResumo({ lancs, saldoInicial }: { lancs: Lancamento[]; saldoInicial: number }) {
-  const ano = String(new Date().getFullYear());
-  const mesesComDados = useMemo(() => new Set(lancs.map((l) => l.data_competencia.slice(0, 7))), [lancs]);
-  const cols = useMemo(() => Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`).filter((m) => mesesComDados.has(m)), [ano, mesesComDados]);
-  const serie = useMemo(() => cols.map((m) => ({ label: MES3[Number(m.slice(5, 7)) - 1], value: resumo(lancs, [m], 0).faturamento })), [lancs, cols]);
-  const total = useMemo(() => resumo(lancs, cols, saldoInicial).faturamento, [lancs, cols, saldoInicial]);
-  if (cols.length === 0) return null;
-  return (
-    <div className="card" style={{ marginTop: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><TrendingUp size={18} color="#10B981" /><h3 style={{ margin: 0 }}>Faturamento mês a mês</h3></div>
-        <div style={{ textAlign: "right", background: "rgba(16,185,129,.1)", border: "1px solid rgba(16,185,129,.25)", borderRadius: 12, padding: "8px 14px" }}>
-          <div className="sub" style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".08em", color: "#10B981" }}>TOTAL FATURADO</div>
-          <b style={{ fontSize: 20 }}>{brl(total)}</b>
-        </div>
-      </div>
-      <LineChart pts={serie} cor="#1AADE2" />
     </div>
   );
 }

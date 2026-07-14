@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2, Volume2, VolumeX,
+  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2, Volume2, VolumeX, ChevronDown,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -50,6 +50,9 @@ type View =
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { key: "financas", label: "Finanças", Icon: DollarSign },
+] as const;
+// Recolhidas num "Mais" — foco do app é Finanças
+const METRICAS_MAIS = [
   { key: "comercial", label: "Comercial", Icon: ShoppingCart },
   { key: "marketing", label: "Marketing", Icon: Megaphone },
 ] as const;
@@ -137,6 +140,7 @@ export default function Home() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [apresOpen, setApresOpen] = useState(false);
   const [sistemaAberto, setSistemaAberto] = useState(false);
+  const [maisAberto, setMaisAberto] = useState(false);
   const [gCat, setGCat] = useState<Categoria>("cliente");
   const [bemVindoFechado, setBemVindoFechado] = useState(false);
   const [som, setSomState] = useState(true);
@@ -209,7 +213,9 @@ export default function Home() {
       ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
       : <span className="fallback">{nomeMarca}</span>
   );
-  const metricasVis = (ehDono ? METRICAS.slice() : METRICAS.filter((m) => m.key === "dashboard" || areasPerm.includes(m.key))).filter((m) => !ehSuper || m.key !== "marketing");
+  const metricasVis = (ehDono ? METRICAS.slice() : METRICAS.filter((m) => m.key === "dashboard" || areasPerm.includes(m.key)));
+  const metricasMaisVis = (ehDono ? METRICAS_MAIS.slice() : METRICAS_MAIS.filter((m) => areasPerm.includes(m.key))).filter((m) => !ehSuper || m.key !== "marketing");
+  const maisTemAtivo = metricasMaisVis.some((m) => grupoDe(view) === m.key);
   const opsKeys: string[] = ehDono
     ? OPERACOES.map((o) => o.key)
     : (() => {
@@ -283,6 +289,12 @@ export default function Home() {
               {metricasVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
                 <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => navClick(key as View)}><Icon size={18} color={corDe(key)} /> {label}</button>
               ); })}
+              {metricasMaisVis.length > 0 && (maisAberto || maisTemAtivo) && metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
+                <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => navClick(key as View)}><Icon size={18} color={corDe(key)} /> {label}</button>
+              ); })}
+              {metricasMaisVis.length > 0 && !maisTemAtivo && (
+                <button onClick={() => setMaisAberto((v) => !v)} style={{ color: "var(--muted)", justifyContent: "flex-start" }}><ChevronDown size={16} style={{ transform: maisAberto ? "none" : "rotate(-90deg)", transition: ".15s" }} /> {maisAberto ? "Menos" : "Mais métricas"}</button>
+              )}
             </nav></div>
             <div className="navgroup"><div className="gl">Operações</div><nav className="nav">
               {opsCore.map(({ key, label, Icon }) => (
@@ -321,6 +333,16 @@ export default function Home() {
                 <Icon size={18} color={corDe(key)} /> {label}
               </button>
             ); })}
+            {metricasMaisVis.length > 0 && (maisAberto || maisTemAtivo) && metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
+              <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => { playTick(); setView(key as View); }}>
+                <Icon size={18} color={corDe(key)} /> {label}
+              </button>
+            ); })}
+            {metricasMaisVis.length > 0 && !maisTemAtivo && (
+              <button onClick={() => setMaisAberto((v) => !v)} style={{ color: "var(--muted)", justifyContent: "flex-start" }}>
+                <ChevronDown size={16} style={{ transform: maisAberto ? "none" : "rotate(-90deg)", transition: ".15s" }} /> {maisAberto ? "Menos" : "Mais métricas"}
+              </button>
+            )}
           </nav>
         </div>
 
@@ -459,7 +481,7 @@ export default function Home() {
         <button className={grupoDe(view) === "dashboard" ? "active" : ""} onClick={() => { playTick(); setView("dashboard"); }}><LayoutDashboard size={20} />Home</button>
         <button className={view === "graficos" ? "active" : ""} onClick={() => { playTick(); setView("graficos"); }}><BarChart3 size={20} />Gráficos</button>
         <button className={grupoDe(view) === "financas" ? "active" : ""} onClick={() => { playTick(); setView("financas"); }}><DollarSign size={20} />Finanças</button>
-        <button className={view === "equipe" ? "active" : ""} onClick={() => { playTick(); setView("equipe"); }}><Users size={20} />Equipe</button>
+        <button className={view === "planilha" ? "active" : ""} onClick={() => { playTick(); setView("planilha"); }}><Table2 size={20} />Planilha</button>
       </nav>
     </div>
   );
