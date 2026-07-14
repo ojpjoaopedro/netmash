@@ -1,9 +1,8 @@
 "use client";
-import { DollarSign, HeartPulse, ShoppingCart, Megaphone, BarChart3, ArrowRight } from "lucide-react";
+import { DollarSign, ShoppingCart, Megaphone, BarChart3, ArrowRight } from "lucide-react";
 
 const AREAS_G = [
   { key: "financas", label: "Finanças", cor: "#10B981", Icon: DollarSign },
-  { key: "saude", label: "Saúde do Cliente", cor: "#EF4444", Icon: HeartPulse },
   { key: "comercial", label: "Comercial", cor: "#1AADE2", Icon: ShoppingCart },
   { key: "marketing", label: "Marketing", cor: "#8b5cf6", Icon: Megaphone },
 ];

@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard, DollarSign, HeartPulse, ShoppingCart, Megaphone,
+  LayoutDashboard, DollarSign, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
   Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2, Volume2, VolumeX,
 } from "lucide-react";
@@ -50,7 +50,6 @@ type View =
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { key: "financas", label: "Finanças", Icon: DollarSign },
-  { key: "saude", label: "Saúde do Cliente", Icon: HeartPulse },
   { key: "comercial", label: "Comercial", Icon: ShoppingCart },
   { key: "marketing", label: "Marketing", Icon: Megaphone },
 ] as const;

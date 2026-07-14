@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { HeartPulse, Rocket, Pencil, Check, Target, TrendingUp } from "lucide-react";
+import { Rocket, Pencil, Check, Target, TrendingUp } from "lucide-react";
 import { Lancamento, Cliente } from "@/lib/db";
 import { brl } from "@/lib/format";
 import { resumo } from "@/lib/calc";
@@ -18,7 +18,6 @@ export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome }:
       <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={nome} />
       <IndicadoresChave metrs={metrs} lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} />
       <FaturamentoResumo lancs={lancs} saldoInicial={saldoInicial} />
-      <Satisfacao metrs={metrs} />
       <Iniciativas />
     </>
   );
@@ -70,9 +69,9 @@ function IndicadoresChave({ metrs, lancs, clientes, saldoInicial }: { metrs: Met
 
   const CARDS = [
     { key: "faturamento", label: "Faturamento", cor: "#10B981", real: rAno.faturamento, meta: anelMeta(metrs, "faturamento"), un: "BRL" },
-    { key: "novos_clientes", label: "Novos clientes", cor: "#1AADE2", real: clientes.length || anelValor(metrs, "novos_clientes"), meta: anelMeta(metrs, "novos_clientes"), un: "count" },
-    { key: "clientes_ativos", label: "Clientes ativos", cor: "#8b5cf6", real: anelValor(metrs, "clientes_ativos"), meta: anelMeta(metrs, "clientes_ativos"), un: "count" },
-    { key: "nps", label: "NPS", cor: "#F59E0B", real: anelValor(metrs, "nps"), meta: anelMeta(metrs, "nps"), un: "score" },
+    { key: "lucro", label: "Lucro", cor: "#1AADE2", real: rAno.lucro, meta: anelMeta(metrs, "lucro"), un: "BRL" },
+    { key: "margem", label: "Margem", cor: "#8b5cf6", real: rAno.margem, meta: anelMeta(metrs, "margem"), un: "%" },
+    { key: "novos_clientes", label: "Novos clientes", cor: "#F59E0B", real: clientes.length || anelValor(metrs, "novos_clientes"), meta: anelMeta(metrs, "novos_clientes"), un: "count" },
   ];
 
   return (
@@ -120,61 +119,6 @@ function FaturamentoResumo({ lancs, saldoInicial }: { lancs: Lancamento[]; saldo
         </div>
       </div>
       <LineChart pts={serie} cor="#1AADE2" />
-    </div>
-  );
-}
-
-/* ─── Satisfação ────────────────────────────────────────────────────────── */
-function Velocimetro({ value }: { value: number }) {
-  const cx = 120, cy = 118, R = 96, sw = 18;
-  const polar = (v: number, rad = R) => { const t = Math.PI * (1 - Math.min(100, Math.max(0, v)) / 100); return { x: cx + rad * Math.cos(t), y: cy - rad * Math.sin(t) }; };
-  const arc = (v1: number, v2: number) => { const a = polar(v1), b = polar(v2); return `M ${a.x} ${a.y} A ${R} ${R} 0 0 1 ${b.x} ${b.y}`; };
-  const n = polar(value, R - 10);
-  const zona = value >= 75 ? "Zona de excelência" : value >= 50 ? "Zona de qualidade" : value > 0 ? "Zona de aperfeiçoamento" : "Sem dados";
-  const zc = value >= 75 ? "#22C55E" : value >= 50 ? "#F59E0B" : "#EF4444";
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <svg viewBox="0 0 240 140" style={{ width: "100%", maxWidth: 300 }}>
-        <path d={arc(0, 50)} fill="none" stroke="#EF4444" strokeWidth={sw} strokeLinecap="round" />
-        <path d={arc(50, 75)} fill="none" stroke="#F59E0B" strokeWidth={sw} />
-        <path d={arc(75, 100)} fill="none" stroke="#22C55E" strokeWidth={sw} strokeLinecap="round" />
-        <line x1={cx} y1={cy} x2={n.x} y2={n.y} stroke="var(--txt)" strokeWidth={4} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={8} fill="var(--txt)" />
-        <text x={cx} y={cy - 34} textAnchor="middle" fontSize="34" fontWeight="800" fill="var(--txt)">{value || "—"}</text>
-        <text x={cx} y={cy - 15} textAnchor="middle" fontSize="11" fontWeight="700" fill="#22C55E">NPS</text>
-      </svg>
-      <span style={{ fontSize: 12.5, fontWeight: 700, color: zc, marginTop: 4 }}>{zona}</span>
-    </div>
-  );
-}
-
-function Satisfacao({ metrs }: { metrs: Metrica[] }) {
-  const ano = String(new Date().getFullYear());
-  const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`);
-  const valP = (key: string) => { const d = def(key); if (d?.agg === "last") { for (let i = meses.length - 1; i >= 0; i--) { const m = valorMes(metrs, key, meses[i]); if (m) return m.value; } return 0; } return meses.reduce((a, m) => a + (valorMes(metrs, key, m)?.value ?? 0), 0); };
-  const nps = Math.round(valP("nps"));
-  const STATS = [
-    { cor: "#8b5cf6", label: "Clientes ativos", v: valP("clientes_ativos") ? String(Math.round(valP("clientes_ativos"))) : "—" },
-    { cor: "#EF4444", label: "Churn", v: valP("churn") ? valP("churn") + "%" : "—" },
-    { cor: "#F59E0B", label: "Indicações", v: valP("indicacoes") ? String(Math.round(valP("indicacoes"))) : "—" },
-  ];
-  return (
-    <div style={{ marginTop: 20 }}>
-      <div className="section-title"><div style={{ display: "flex", alignItems: "center", gap: 10 }}><HeartPulse size={20} color="#EF4444" /><h2 style={{ margin: 0 }}>Satisfação do cliente</h2></div></div>
-      <div className="card">
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
-          <div style={{ flex: "1 1 260px", minWidth: 240 }}><Velocimetro value={nps} /></div>
-          <div style={{ flex: "1 1 200px", display: "grid", gap: 10 }}>
-            {STATS.map((s, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, borderBottom: i < STATS.length - 1 ? "1px solid var(--line)" : "none", paddingBottom: i < STATS.length - 1 ? 10 : 0 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 9, height: 9, borderRadius: 99, background: s.cor }} /><span className="sub" style={{ fontSize: 12.5 }}>{s.label}</span></span>
-                <b style={{ fontSize: 16 }}>{s.v}</b>
-              </div>
-            ))}
-          </div>
-        </div>
-        <p className="sub" style={{ marginTop: 12, fontSize: 11.5 }}>Preencha esses números na aba <b>Saúde do Cliente</b> → &ldquo;Editar dados&rdquo;.</p>
-      </div>
     </div>
   );
 }

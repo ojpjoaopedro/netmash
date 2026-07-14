@@ -8,7 +8,6 @@ import { SecHead } from "./Kit";
 const MES3 = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const CATS: { k: Categoria; label: string; cor: string }[] = [
   { k: "financeiro", label: "Finanças", cor: "#10B981" },
-  { k: "cliente", label: "Saúde do Cliente", cor: "#EF4444" },
   { k: "comercial", label: "Comercial", cor: "#1AADE2" },
   { k: "marketing", label: "Marketing", cor: "#8b5cf6" },
 ];
