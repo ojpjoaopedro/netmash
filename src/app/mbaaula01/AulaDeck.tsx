@@ -434,7 +434,7 @@ function S02() {
 
           <div className="mt-8 inline-flex flex-col gap-1.5 rounded-xl border px-5 py-3.5" style={{ borderColor: `${GOLD}44`, background: 'rgba(196,138,87,0.06)' }}>
             <p className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: GOLD }}>Vote pelo celular</p>
-            <p className="text-lg font-black text-slate-100">hub.dynamisfamily.com.br<span style={{ color: GOLD }}>/votar-mba01</span></p>
+            <p className="text-lg font-black text-slate-100">minhasmetricas.com<span style={{ color: GOLD }}>/votar-mba01</span></p>
           </div>
         </div>
 
@@ -1352,7 +1352,7 @@ function S07() {
  * Os dados ficam no navegador do aluno (localStorage) — nada vai pro servidor.
  */
 
-const LINK_TREINO = 'hub.dynamisfamily.com.br/treino-mba01';
+const LINK_TREINO = 'minhasmetricas.com/treino-mba01';
 
 /** Moldura clara imitando a tela do exercício, para projetar. */
 function MockupTela({ cor, pilar, titulo, children }: {
@@ -1397,7 +1397,7 @@ function ChamadaTreino({ texto }: { texto: string }) {
       <p className="text-[9px] font-black uppercase tracking-[0.25em] mb-1.5" style={{ color: GOLD }}>Agora é você</p>
       <p className="text-[13px] text-slate-300 leading-relaxed mb-3">{texto}</p>
       <p className="text-base font-black text-slate-100">
-        hub.dynamisfamily.com.br<span style={{ color: GOLD }}>/treino-mba01</span>
+        minhasmetricas.com<span style={{ color: GOLD }}>/treino-mba01</span>
       </p>
     </div>
   );
