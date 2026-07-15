@@ -27,7 +27,7 @@ export function LineChart({ pts, cor = "#1AADE2", meta, formatValor = (n: number
       {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={padL} x2={W - padR} y1={padT + f * (H - padT - padB)} y2={padT + f * (H - padT - padB)} stroke="var(--line)" strokeDasharray="3 4" />)}
       {meta !== undefined && meta > 0 && <line x1={padL} x2={W - padR} y1={y(meta)} y2={y(meta)} stroke="var(--muted)" strokeDasharray="4 4" opacity="0.6" />}
       <path d={area} fill={`url(#${gid})`} />
-      <path d={linha} fill="none" stroke={cor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={linha} fill="none" stroke={cor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" style={{ filter: `drop-shadow(0 2px 6px ${cor}88)` }} />
       {pts.map((p, i) => (
         <g key={i}>
           <circle cx={x(i)} cy={y(p.value)} r="3.5" fill={cor} stroke="var(--card)" strokeWidth="1.5" />
