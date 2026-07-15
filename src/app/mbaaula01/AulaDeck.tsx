@@ -15,7 +15,7 @@ import {
   X as XIcon, ChevronLeft, ChevronRight, Presentation,
   Target, Map, Users, RefreshCw, TrendingUp, DollarSign, Megaphone,
   Cpu, Plane, GraduationCap, Handshake, AlertTriangle, HelpCircle,
-  Gauge as GaugeIcon, Clock, Layers, Database, Settings2, BarChart3, ShieldCheck, CheckCheck, LayoutGrid, Download,
+  Gauge as GaugeIcon, Clock, Layers, Database, Settings2, BarChart3, ShieldCheck, CheckCheck, LayoutGrid, Download, Home,
 } from 'lucide-react';
 
 /* ── Paleta (design system Dynamis) ──────────────────────────────────────── */
@@ -2964,9 +2964,20 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
           <span className="hidden sm:inline text-slate-600">·</span>
           <span className="hidden sm:inline text-[11px] font-normal text-slate-500">{atual.bloco}</span>
         </span>
-        <button onClick={onClose} className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 transition-colors">
-          <XIcon className="w-4 h-4" /> Fechar
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* volta para o slide 1 — some no próprio slide 1, onde não serve para nada */}
+          <button
+            onClick={() => go(0)}
+            disabled={idx === 0}
+            title="Voltar ao começo da aula"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/5"
+          >
+            <Home className="w-4 h-4" /> Início
+          </button>
+          <button onClick={onClose} className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 transition-colors">
+            <XIcon className="w-4 h-4" /> Fechar
+          </button>
+        </div>
       </div>
 
       {/* slide */}
