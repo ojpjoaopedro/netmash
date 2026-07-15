@@ -9,13 +9,13 @@
  * e os cálculos derivam delas — não há número mágico solto nos slides.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X as XIcon, ChevronLeft, ChevronRight, Presentation,
   Target, Map, Users, RefreshCw, TrendingUp, DollarSign, Megaphone,
   Cpu, Plane, GraduationCap, Handshake, AlertTriangle, HelpCircle,
-  Gauge as GaugeIcon, Clock, Layers, Database, Settings2, BarChart3, ShieldCheck, CheckCheck, LayoutGrid,
+  Gauge as GaugeIcon, Clock, Layers, Database, Settings2, BarChart3, ShieldCheck, CheckCheck, LayoutGrid, Download,
 } from 'lucide-react';
 
 /* ── Paleta (design system Dynamis) ──────────────────────────────────────── */
@@ -195,9 +195,44 @@ function S01() {
 /** Carta virada: mostra a categoria e vira no clique, revelando os termos. */
 function CartaGlossario({ grupo, delay }: { grupo: GrupoGlossario; delay: number }) {
   const [aberta, setAberta] = useState(false);
+  const [captura, setCaptura] = useState(false);
+  const raiz = useRef<HTMLDivElement>(null);
   const { cat, cor, icon: Icone, termos } = grupo;
+
+  /**
+   * No PDF a carta sai ABERTA e sem giro. O html2canvas não entende transform 3D:
+   * ele desenha as duas faces e a de trás (rotateY 180°) aparece espelhada.
+   * Dentro de #deck-capture, então, mostramos só a frente — mesma saída que o
+   * /pitch usa nos cards dele.
+   */
+  useEffect(() => {
+    if (raiz.current?.closest('#deck-capture')) setCaptura(true);
+  }, []);
+
+  // no PDF: nada de perspectiva, nada de flip, só a lista de termos
+  if (captura) {
+    return (
+      <div ref={raiz} className="h-full min-h-0">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 h-full flex flex-col">
+          <p className="text-[11px] font-black uppercase tracking-[0.15em] pb-3 mb-3 border-b border-white/10" style={{ color: cor }}>
+            {cat}
+          </p>
+          <ul className="space-y-3.5">
+            {termos.map(([t, d]) => (
+              <li key={t}>
+                <p className="text-[14px] font-black leading-tight" style={{ color: cor }}>{t}</p>
+                <p className="text-[12px] text-slate-400 leading-snug mt-1">{d}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
+      ref={raiz}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.45 }}
@@ -697,23 +732,233 @@ function S04() {
   );
 }
 
-// 6 — O sistema da receita (mapa da aula)
+/* ═════════════════════ 6 — O ICEBERG ═════════════════════
+ * Vem logo depois da reunião de resultados: todo mundo cobra a ponta, ninguém
+ * olha a massa. Acima da linha d'água, o que a empresa mostra. Abaixo, tudo o
+ * que esta aula ensina — e que é o que sustenta a ponta.
+ *
+ * Desenho em SVG puro (sem imagem): escala em qualquer projetor sem borrar.
+ * Os rótulos vivem DENTRO do SVG para nunca desalinharem do desenho.
+ */
+
+/** Etiqueta arredondada desenhada no SVG. */
+function ChipSVG({ x, y, texto, cor, delay, tamanho = 11 }: {
+  x: number; y: number; texto: string; cor: string; delay: number; tamanho?: number;
+}) {
+  const w = texto.length * tamanho * 0.58 + 22;
+  return (
+    <motion.g
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay, duration: 0.45, ease: 'backOut' }}
+      style={{ transformOrigin: `${x}px ${y}px` }}
+    >
+      <rect x={x - w / 2} y={y - 11} width={w} height={22} rx={11}
+        fill={`${cor}26`} stroke={`${cor}77`} strokeWidth={1} />
+      <text x={x} y={y + 4} textAnchor="middle" fontSize={tamanho} fontWeight={800}
+        fill={cor} letterSpacing={0.2}>{texto}</text>
+    </motion.g>
+  );
+}
+
+function SIceberg() {
+  // o que a empresa mostra
+  const acima = [
+    { t: 'Faturamento alto', x: 205, y: 62 },
+    { t: 'Metas batidas', x: 190, y: 104 },
+    { t: 'Empresa crescendo', x: 215, y: 146 },
+    { t: 'Resultado financeiro', x: 800, y: 62 },
+    { t: 'Clientes satisfeitos', x: 812, y: 104 },
+    { t: 'Time engajado', x: 790, y: 146 },
+  ];
+  // o que sustenta — é a ementa da aula
+  const abaixo = [
+    { t: 'Planejamento', x: 430, y: 258 },
+    { t: 'Plano estratégico', x: 610, y: 258 },
+    { t: 'Mapa de objetivos', x: 385, y: 300 },
+    { t: 'Sub-objetivos', x: 570, y: 300 },
+    { t: 'Iniciativas', x: 350, y: 342 },
+    { t: 'Ações', x: 480, y: 342 },
+    { t: 'Métricas', x: 610, y: 342 },
+    { t: 'Indicadores', x: 370, y: 384 },
+    { t: 'Monitoramento', x: 545, y: 384 },
+    { t: 'Números', x: 675, y: 384 },
+    { t: 'Fluxo de atividades', x: 400, y: 426 },
+    { t: 'Budget', x: 580, y: 426 },
+    { t: 'Forecast', x: 662, y: 426 },
+    { t: 'Pipeline', x: 390, y: 468 },
+    { t: 'Cadência', x: 500, y: 468 },
+    { t: 'Dados', x: 610, y: 468 },
+    { t: 'Processo', x: 440, y: 510 },
+    { t: 'Disciplina', x: 570, y: 510 },
+  ];
+  const MAR = 200;
+
+  return (
+    <Slide bg="dark">
+      <div className="shrink-0 mb-1">
+        <p className="text-[11px] font-black uppercase tracking-[0.3em]" style={{ color: BLUE }}>Todo mundo cobra a ponta</p>
+        <h2 className="text-2xl sm:text-3xl font-black tracking-tight">O iceberg do resultado</h2>
+      </div>
+
+      <div className="flex-1 min-h-0">
+        <svg viewBox="0 0 1000 620" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            {/* o gelo é chapado, em facetas — os degradês saíram junto com o
+                desenho antigo para o traço bater com public/iceberg.jpg */}
+            <linearGradient id="agua" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#1AADE2" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#04101F" stopOpacity="0.75" />
+            </linearGradient>
+          </defs>
+
+          {/* ── água ── */}
+          <rect x="0" y={MAR} width="1000" height={620 - MAR} fill="url(#agua)" />
+
+          {/* ── avião cruzando o céu ── */}
+          <motion.g
+            initial={{ x: -120 }}
+            animate={{ x: 1120 }}
+            transition={{ duration: 26, repeat: Infinity, ease: 'linear', delay: 1 }}
+          >
+            <path d="M0 30 L18 26 L26 18 L30 26 L46 24 L30 32 L26 42 L18 32 Z"
+              fill="#8FA9BD" opacity="0.5" />
+          </motion.g>
+
+          {/* ── iceberg: massa submersa — facetas planas, no traço de public/iceberg.jpg ── */}
+          <motion.g
+            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.85, duration: 1.1, ease: 'easeOut' }}
+          >
+            {/* silhueta */}
+            <path d="M375 200 L262 296 L240 424 L338 548 L468 602 L566 566 L688 452 L756 320 L706 236 L625 200 Z" fill="#1D6FB8" />
+            {/* faceta clara superior esquerda */}
+            <path d="M375 200 L262 296 L448 372 L500 200 Z" fill="#3E9BDA" />
+            {/* faceta média esquerda */}
+            <path d="M262 296 L240 424 L338 548 L448 372 Z" fill="#2A80C6" />
+            {/* faceta clara superior direita */}
+            <path d="M500 200 L448 372 L688 452 L756 320 L706 236 L625 200 Z" fill="#2B7CBE" />
+            {/* quilha central escura — dá a profundidade */}
+            <path d="M448 372 L338 548 L468 602 L566 566 L688 452 Z" fill="#12508F" />
+            <path d="M448 372 L468 602 L566 566 Z" fill="#0C3E74" />
+          </motion.g>
+
+          {/* ── iceberg: ponta acima da água ── */}
+          <motion.g
+            initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.7, ease: 'easeOut' }}
+          >
+            {/* silhueta recortada: pico principal + ombro à esquerda */}
+            <path d="M500 58 L546 118 L582 156 L625 200 L375 200 L402 162 L424 108 L458 138 Z" fill="#F4FBFE" />
+            {/* face esquerda em sombra suave */}
+            <path d="M424 108 L402 162 L375 200 L458 200 L458 138 Z" fill="#D3E9F6" />
+            {/* face direita, mais escura — a luz vem da esquerda */}
+            <path d="M500 58 L546 118 L582 156 L625 200 L500 200 Z" fill="#B7D9EE" />
+            {/* facetinha do pico */}
+            <path d="M500 58 L458 138 L500 200 Z" fill="#E8F5FC" />
+          </motion.g>
+
+          {/* ── linha do mar ── */}
+          <motion.path
+            d={`M0 ${MAR} Q 125 ${MAR - 5}, 250 ${MAR} T 500 ${MAR} T 750 ${MAR} T 1000 ${MAR}`}
+            fill="none" stroke={BLUE} strokeWidth="2" strokeOpacity="0.8"
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+            transition={{ delay: 0.15, duration: 1.1, ease: 'easeInOut' }}
+          />
+          <motion.text
+            x="24" y={MAR - 10} fontSize="9" fontWeight={800} fill={BLUE} opacity="0.75" letterSpacing="2"
+            initial={{ opacity: 0 }} animate={{ opacity: 0.75 }} transition={{ delay: 1.2 }}
+          >
+            NÍVEL DO MAR
+          </motion.text>
+
+          {/* ── navios ── */}
+          {[{ x: 120, d: 0 }, { x: 880, d: 1.2 }].map((n) => (
+            <motion.g key={n.x}
+              animate={{ y: [0, -3, 0] }}
+              transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: n.d }}
+            >
+              <g transform={`translate(${n.x}, ${MAR - 13})`}>
+                <path d="M-13 8 L13 8 L9 14 L-9 14 Z" fill="#94A3B8" />
+                <rect x="-1" y="-8" width="1.6" height="16" fill="#94A3B8" />
+                <path d="M1 -8 L10 5 L1 5 Z" fill="#CBD5E1" />
+                <path d="M-1.5 -5 L-9 5 L-1.5 5 Z" fill="#E2E8F0" />
+              </g>
+            </motion.g>
+          ))}
+
+          {/* ── peixinhos ── */}
+          {[
+            { x: 120, y: 300, s: 1, dur: 22, delay: 0 },
+            { x: 860, y: 250, s: -1, dur: 27, delay: 3 },
+            { x: 150, y: 545, s: 1, dur: 31, delay: 6 },
+            { x: 890, y: 470, s: -1, dur: 24, delay: 1.5 },
+          ].map((p, i) => (
+            <motion.g key={i}
+              initial={{ x: p.s > 0 ? -60 : 60 }}
+              animate={{ x: p.s > 0 ? 60 : -60 }}
+              transition={{ duration: p.dur, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut', delay: p.delay }}
+            >
+              <g transform={`translate(${p.x}, ${p.y}) scale(${p.s}, 1)`} opacity="0.5">
+                <ellipse cx="0" cy="0" rx="7" ry="3.6" fill="#7FD3F0" />
+                <path d="M6 0 L12 -4 L12 4 Z" fill="#7FD3F0" />
+                <circle cx="-3.5" cy="-1" r="0.9" fill="#04101F" />
+              </g>
+            </motion.g>
+          ))}
+
+          {/* ── o que aparece ── */}
+          {acima.map((c, i) => (
+            <ChipSVG key={c.t} x={c.x} y={c.y} texto={c.t} cor={GOLD} delay={1.1 + i * 0.1} />
+          ))}
+
+          {/* ── o que sustenta ── */}
+          {abaixo.map((c, i) => (
+            <ChipSVG key={c.t} x={c.x} y={c.y} texto={c.t} cor="#BFE9FA" delay={2 + i * 0.09} tamanho={10} />
+          ))}
+        </svg>
+      </div>
+
+      <Mensagem>
+        A empresa cobra a <strong style={{ color: GOLD }}>ponta</strong>. Esta aula é sobre a{' '}
+        <strong style={{ color: BLUE }}>massa embaixo d&apos;água</strong> — que é o que sustenta a ponta.
+      </Mensagem>
+    </Slide>
+  );
+}
+
+// 7 — O sistema da receita (mapa da aula)
 // Slide animado: cascata na entrada, pulso de fluxo contínuo descendo a cadeia,
 // e hover que destaca o elo (os outros recuam) — reforça que é UM sistema, não 7 caixas.
-function S05() {
-  const etapas = [
-    { nome: 'ESTRATÉGIA', desc: 'A ambição' },
-    { nome: 'META', desc: 'O número' },
-    { nome: 'PLANEJAMENTO COMERCIAL', desc: 'A decomposição', destaque: true },
-    { nome: 'BUDGET', desc: 'O financiamento', destaque: true },
-    { nome: 'EXECUÇÃO + PIPELINE', desc: 'A realidade', destaque: true },
-    { nome: 'FORECAST', desc: 'A antecipação', destaque: true },
-    { nome: 'DECISÃO E AJUSTES', desc: 'A correção' },
-  ];
+//
+// O mapa volta ao longo da aula como divisor de capítulo (ver S05Foco): mesma
+// figura, com o próximo tema aceso e o resto recuado. A turma reencontra o
+// mesmo desenho e sabe onde está.
+const ETAPAS_MAPA = [
+  { nome: 'ESTRATÉGIA', desc: 'A ambição' },
+  { nome: 'META', desc: 'O número' },
+  { nome: 'PLANEJAMENTO COMERCIAL', desc: 'A decomposição', destaque: true },
+  { nome: 'BUDGET', desc: 'O financiamento', destaque: true },
+  { nome: 'EXECUÇÃO + PIPELINE', desc: 'A realidade', destaque: true },
+  { nome: 'FORECAST', desc: 'A antecipação', destaque: true },
+  { nome: 'DECISÃO E AJUSTES', desc: 'A correção' },
+];
+
+/**
+ * @param foco  nome da etapa a destacar como próximo tema. Sem foco, é o mapa
+ *              de abertura (slide 7) e todos os elos ficam vivos.
+ *              O valor especial 'REVOPS' não casa com elo nenhum de propósito:
+ *              apaga os sete e acende a moldura, porque RevOps é o que envolve
+ *              a cadeia, não mais um elo dela.
+ */
+function MapaReceita({ foco }: { foco?: string }) {
+  const etapas = ETAPAS_MAPA;
   const [hover, setHover] = useState<number | null>(null);
   const ENTRADA = 0.15;   // início da cascata
   const PASSO = 0.13;     // intervalo entre elos
   const FIM = ENTRADA + etapas.length * PASSO; // quando a cascata termina
+  const temFoco = Boolean(foco);
+  const focoRevops = foco === 'REVOPS';
 
   return (
     <Slide bg="dark">
@@ -726,17 +971,46 @@ function S05() {
           className="mx-auto mt-3 h-[3px] rounded-full"
           style={{ background: `linear-gradient(90deg, ${BLUE}, ${GOLD})` }}
         />
+        {temFoco && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
+            className="text-[10px] font-black uppercase tracking-[0.25em] mt-3"
+            style={{ color: GOLD }}
+          >
+            Próximo tema
+          </motion.p>
+        )}
       </div>
       <div className="flex-1 flex items-center justify-center min-h-0">
         <div className="relative w-full max-w-[720px]">
-          {/* moldura RevOps — entra por último e "respira" devagar */}
+          {/* No foco REVOPS a moldura é a protagonista: RevOps não é um elo da
+              cadeia, é o que envolve todos. Por isso ela acende e a etiqueta
+              aparece, enquanto os sete elos recuam juntos. */}
+          {focoRevops && (
+            <motion.span
+              className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 text-[10px] font-black uppercase tracking-[0.25em] rounded-full z-20"
+              style={{ background: NAVY, color: GOLD }}
+              initial={{ opacity: 0, y: -6, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: FIM, duration: 0.5, ease: 'backOut' }}
+            >
+              Revenue Operations
+            </motion.span>
+          )}
           <motion.div
             className="absolute -inset-x-3 -inset-y-4 sm:-inset-x-10 rounded-[28px] border-2 border-dashed pointer-events-none"
-            style={{ borderColor: `${GOLD}55` }}
+            style={{ borderColor: focoRevops ? GOLD : `${GOLD}55` }}
             initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: [0, 1, 0.55, 1], scale: 1 }}
+            animate={
+              focoRevops
+                ? { opacity: 1, scale: 1, boxShadow: [`0 0 0px ${GOLD}00`, `0 0 60px -5px ${GOLD}66`, `0 0 0px ${GOLD}00`] }
+                : { opacity: [0, 1, 0.55, 1], scale: 1 }
+            }
             transition={{
-              opacity: { delay: FIM, duration: 5, times: [0, 0.12, 0.56, 1], repeat: Infinity, ease: 'easeInOut' },
+              boxShadow: { delay: FIM, duration: 2.8, repeat: Infinity, ease: 'easeInOut' },
+              opacity: focoRevops
+                ? { delay: FIM, duration: 0.6 }
+                : { delay: FIM, duration: 5, times: [0, 0.12, 0.56, 1], repeat: Infinity, ease: 'easeInOut' },
               scale: { delay: FIM, duration: 0.6, ease: 'easeOut' },
             }}
           />
@@ -759,7 +1033,10 @@ function S05() {
             />
 
             {etapas.map((e, i) => {
-              const cor = e.destaque ? BLUE : '#E2E8F0';
+              const focado = temFoco && e.nome === foco;
+              // com foco, o resto recua para o próximo tema saltar
+              const apagado = temFoco && !focado;
+              const cor = focado ? GOLD : e.destaque ? BLUE : '#E2E8F0';
               const ativo = hover === i;
               const outroAtivo = hover !== null && !ativo;
               return (
@@ -767,23 +1044,30 @@ function S05() {
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.97 }}
                     animate={{
-                      opacity: outroAtivo ? 0.4 : 1,
+                      opacity: outroAtivo ? 0.4 : apagado ? 0.28 : 1,
                       y: 0,
-                      scale: ativo ? 1.045 : 1,
+                      scale: ativo ? 1.045 : focado ? 1.06 : 1,
+                      boxShadow: focado
+                        ? [`0 0 0px ${GOLD}00`, `0 10px 40px -6px ${GOLD}77`, `0 0 0px ${GOLD}00`]
+                        : ativo ? `0 8px 30px -6px ${cor}55` : '0 0 0px rgba(0,0,0,0)',
                     }}
                     transition={{
                       opacity: { delay: hover === null ? ENTRADA + i * PASSO : 0, duration: 0.35 },
                       y: { delay: ENTRADA + i * PASSO, duration: 0.4, ease: 'easeOut' },
-                      scale: { type: 'spring', stiffness: 380, damping: 22 },
+                      scale: { type: 'spring', stiffness: 380, damping: 22, delay: focado ? FIM : 0 },
+                      boxShadow: focado
+                        ? { delay: FIM, duration: 2.6, repeat: Infinity, ease: 'easeInOut' }
+                        : { duration: 0.25 },
                     }}
                     onHoverStart={() => setHover(i)}
                     onHoverEnd={() => setHover(null)}
                     className="group relative z-10 w-full max-w-[420px] rounded-xl px-5 py-2.5 flex items-center justify-between border overflow-hidden cursor-default"
                     style={{
-                      borderColor: ativo ? cor : e.destaque ? `${BLUE}55` : 'rgba(255,255,255,0.10)',
-                      background: e.destaque ? 'rgba(26,173,226,0.08)' : 'rgba(255,255,255,0.025)',
-                      boxShadow: ativo ? `0 8px 30px -6px ${cor}55` : 'none',
-                      transition: 'border-color 0.25s, box-shadow 0.25s',
+                      borderColor: focado ? GOLD : ativo ? cor : e.destaque ? `${BLUE}55` : 'rgba(255,255,255,0.10)',
+                      background: focado
+                        ? 'rgba(196,138,87,0.14)'
+                        : e.destaque ? 'rgba(26,173,226,0.08)' : 'rgba(255,255,255,0.025)',
+                      transition: 'border-color 0.25s',
                     }}
                   >
                     {/* varredura de luz da esquerda no hover */}
@@ -834,9 +1118,14 @@ function S05() {
   );
 }
 
+// 7 — o mapa de abertura: a cadeia inteira viva
+function S05() {
+  return <MapaReceita />;
+}
+
 /* ═════════════════ BLOCO 2 — PLANEJAMENTO COMERCIAL ═════════════════ */
 
-// 7 — A estratégia (as 3 perguntas que a antecedem)
+// 8 — A estratégia (as 3 perguntas que a antecedem)
 // "Quais recursos?" saiu de propósito: recurso não é estratégia, é budget —
 // e budget é o bloco 3. Aqui a aula ainda está decidindo PARA ONDE ir.
 function S06() {
@@ -869,9 +1158,45 @@ function S06() {
   );
 }
 
-// 8 — Ferramentas da estratégia
+// 9 — Ferramentas da estratégia
 // Cada card traz um mini-diagrama da ferramenta e amarra na pergunta que ela
-// responde no slide 7 — as três não competem, elas cobrem perguntas diferentes.
+// responde no slide 8 — as três não competem, elas cobrem perguntas diferentes.
+/** Card de ferramenta: sobe no hover, e os outros recuam para dar foco. */
+function CardFerramenta({ cor, atraso, ativo, outroAtivo, onHover, children }: {
+  cor: string; atraso: number; ativo: boolean; outroAtivo: boolean;
+  onHover: (v: boolean) => void; children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 22, scale: 0.96 }}
+      animate={{ opacity: outroAtivo ? 0.45 : 1, y: ativo ? -8 : 0, scale: ativo ? 1.02 : 1 }}
+      transition={{
+        opacity: { delay: atraso, duration: 0.45 },
+        y: { type: 'spring', stiffness: 320, damping: 22, delay: ativo ? 0 : atraso },
+        scale: { type: 'spring', stiffness: 320, damping: 22 },
+      }}
+      onHoverStart={() => onHover(true)}
+      onHoverEnd={() => onHover(false)}
+      className="h-full cursor-default"
+    >
+      <div
+        className="rounded-2xl border bg-white/[0.03] p-6 h-full lg:min-h-[240px] flex flex-col relative overflow-hidden"
+        style={{
+          borderColor: ativo ? cor : `${cor}2e`,
+          boxShadow: ativo ? `0 18px 45px -12px ${cor}55` : 'none',
+          transition: 'border-color 0.3s, box-shadow 0.3s',
+        }}
+      >
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-500"
+          style={{ background: `radial-gradient(ellipse at 50% 0%, ${cor}1f, transparent 65%)`, opacity: ativo ? 1 : 0 }}
+        />
+        <div className="relative flex flex-col flex-1">{children}</div>
+      </div>
+    </motion.div>
+  );
+}
+
 function S07() {
   const swot = [
     { letra: 'S', pt: 'Forças', cor: GREEN },
@@ -880,102 +1205,143 @@ function S07() {
     { letra: 'T', pt: 'Ameaças', cor: AMBER },
   ];
   const motivadores = ['Rentabilidade', 'Market share', 'Sobrevivência', 'Captação', 'Sucessão'];
+  const [hover, setHover] = useState<number | null>(null);
+  const ver = (i: number) => (v: boolean) => setHover(v ? i : null);
 
   return (
     <Slide bg="dark">
       <Titulo>Ferramentas</Titulo>
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 content-center min-h-0">
 
-        {/* ── 1. AS IS / TO BE ── */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.45 }} className="h-full">
-          <Card className="p-6 h-full lg:min-h-[240px] flex flex-col" style={{ borderColor: `${BLUE}2e` }}>
-            <div className="flex items-center gap-2.5 mb-1">
+        {/* ── 1. AS IS / TO BE — o "hoje" desbota e a luz viaja para o "amanhã" ── */}
+        <CardFerramenta cor={BLUE} atraso={0.12} ativo={hover === 0} outroAtivo={hover !== null && hover !== 0} onHover={ver(0)}>
+          <div className="flex items-center gap-2.5 mb-1">
+            <motion.span animate={hover === 0 ? { rotate: [0, -8, 8, 0] } : {}} transition={{ duration: 0.5 }}>
               <Map className="w-4 h-4" style={{ color: BLUE }} />
-              <p className="text-base font-black" style={{ color: BLUE }}>As is / To be</p>
-            </div>
-            <p className="text-[11px] text-slate-500 mb-5">A fotografia de hoje contra a de amanhã.</p>
+            </motion.span>
+            <p className="text-base font-black" style={{ color: BLUE }}>As is / To be</p>
+          </div>
+          <p className="text-[11px] text-slate-500 mb-5">A fotografia de hoje contra a de amanhã.</p>
 
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-full flex items-center gap-2">
-                <div className="flex-1 rounded-lg border px-3 py-4 text-center" style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.02)' }}>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">As is</p>
-                  <p className="text-sm font-black text-slate-300 mt-1">Hoje</p>
-                </div>
-                <motion.span
-                  className="text-lg shrink-0"
-                  style={{ color: BLUE }}
-                  animate={{ x: [0, 4, 0] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  →
-                </motion.span>
-                <div className="flex-1 rounded-lg border px-3 py-4 text-center" style={{ borderColor: `${BLUE}55`, background: 'rgba(26,173,226,0.08)' }}>
-                  <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: BLUE }}>To be</p>
-                  <p className="text-sm font-black mt-1" style={{ color: BLUE }}>Amanhã</p>
-                </div>
-              </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-full flex items-center gap-2 relative">
+              {/* pulso que sai do hoje e chega no amanhã, em loop */}
+              <motion.span
+                className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full z-10 pointer-events-none"
+                style={{ background: BLUE, boxShadow: `0 0 10px 3px ${BLUE}` }}
+                animate={{ left: ['22%', '78%'], opacity: [0, 1, 1, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 0.7, ease: 'easeInOut', times: [0, 0.15, 0.8, 1] }}
+              />
+              <motion.div
+                className="flex-1 rounded-lg border px-3 py-4 text-center"
+                style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.02)' }}
+                animate={{ opacity: [1, 0.55, 1] }}
+                transition={{ duration: 2.7, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">As is</p>
+                <p className="text-sm font-black text-slate-300 mt-1">Hoje</p>
+              </motion.div>
+              <motion.span
+                className="text-lg shrink-0"
+                style={{ color: BLUE }}
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                →
+              </motion.span>
+              <motion.div
+                className="flex-1 rounded-lg border px-3 py-4 text-center"
+                style={{ borderColor: `${BLUE}55`, background: 'rgba(26,173,226,0.08)' }}
+                animate={{ boxShadow: [`0 0 0px ${BLUE}00`, `0 0 22px -4px ${BLUE}88`, `0 0 0px ${BLUE}00`] }}
+                transition={{ duration: 2.7, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+              >
+                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: BLUE }}>To be</p>
+                <p className="text-sm font-black mt-1" style={{ color: BLUE }}>Amanhã</p>
+              </motion.div>
             </div>
-          </Card>
-        </motion.div>
+          </div>
+        </CardFerramenta>
 
-        {/* ── 2. SWOT ── */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26, duration: 0.45 }} className="h-full">
-          <Card className="p-6 h-full lg:min-h-[240px] flex flex-col" style={{ borderColor: `${GREEN}2e` }}>
-            <div className="flex items-center gap-2.5 mb-1">
+        {/* ── 2. SWOT — os 4 quadrantes acendem em sequência, como quem varre a matriz ── */}
+        <CardFerramenta cor={GREEN} atraso={0.26} ativo={hover === 1} outroAtivo={hover !== null && hover !== 1} onHover={ver(1)}>
+          <div className="flex items-center gap-2.5 mb-1">
+            <motion.span animate={hover === 1 ? { rotate: [0, 90] } : { rotate: 0 }} transition={{ duration: 0.5, ease: 'backOut' }}>
               <LayoutGrid className="w-4 h-4" style={{ color: GREEN }} />
-              <p className="text-base font-black" style={{ color: GREEN }}>SWOT</p>
-            </div>
-            <p className="text-[11px] text-slate-500 mb-5">O que joga a favor e contra.</p>
+            </motion.span>
+            <p className="text-base font-black" style={{ color: GREEN }}>SWOT</p>
+          </div>
+          <p className="text-[11px] text-slate-500 mb-5">O que joga a favor e contra.</p>
 
-            <div className="flex-1 flex items-center">
-              <div className="w-full">
-                <div className="grid grid-cols-2 gap-1.5">
-                  {swot.map((q, i) => (
-                    <motion.div
-                      key={q.letra}
-                      initial={{ opacity: 0, scale: 0.85 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.4 + i * 0.08 }}
-                      className="rounded-lg border px-2.5 py-3"
-                      style={{ borderColor: `${q.cor}33`, background: `${q.cor}0d` }}
-                    >
-                      <p className="text-lg font-black leading-none" style={{ color: q.cor }}>{q.letra}</p>
-                      <p className="text-[10px] text-slate-400 mt-1 leading-tight">{q.pt}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+          <div className="flex-1 flex items-center">
+            <div className="w-full grid grid-cols-2 gap-1.5">
+              {swot.map((q, i) => (
+                <motion.div
+                  key={q.letra}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    borderColor: [`${q.cor}33`, q.cor, `${q.cor}33`],
+                    backgroundColor: [`${q.cor}0d`, `${q.cor}26`, `${q.cor}0d`],
+                  }}
+                  transition={{
+                    opacity: { delay: 0.4 + i * 0.08 },
+                    scale: { delay: 0.4 + i * 0.08, type: 'spring', stiffness: 380, damping: 20 },
+                    borderColor: { delay: 1.2 + i * 0.6, duration: 2.4, repeat: Infinity, repeatDelay: 2.4, ease: 'easeInOut' },
+                    backgroundColor: { delay: 1.2 + i * 0.6, duration: 2.4, repeat: Infinity, repeatDelay: 2.4, ease: 'easeInOut' },
+                  }}
+                  whileHover={{ scale: 1.06 }}
+                  className="rounded-lg border px-2.5 py-3"
+                >
+                  <p className="text-lg font-black leading-none" style={{ color: q.cor }}>{q.letra}</p>
+                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">{q.pt}</p>
+                </motion.div>
+              ))}
             </div>
-          </Card>
-        </motion.div>
+          </div>
+        </CardFerramenta>
 
-        {/* ── 3. MOTIVADORES ESTRATÉGICOS ── */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.45 }} className="h-full">
-          <Card className="p-6 h-full lg:min-h-[240px] flex flex-col" style={{ borderColor: `${GOLD}2e` }}>
-            <div className="flex items-center gap-2.5 mb-1">
+        {/* ── 3. MOTIVADORES — o destaque circula pelos chips: "qual é o seu?" ── */}
+        <CardFerramenta cor={GOLD} atraso={0.4} ativo={hover === 2} outroAtivo={hover !== null && hover !== 2} onHover={ver(2)}>
+          <div className="flex items-center gap-2.5 mb-1">
+            <motion.span animate={hover === 2 ? { scale: [1, 1.25, 1] } : {}} transition={{ duration: 0.5 }}>
               <Target className="w-4 h-4" style={{ color: GOLD }} />
-              <p className="text-base font-black" style={{ color: GOLD }}>Motivadores estratégicos</p>
-            </div>
-            <p className="text-[11px] text-slate-500 mb-5">O porquê que vem antes do número.</p>
+            </motion.span>
+            <p className="text-base font-black" style={{ color: GOLD }}>Motivadores estratégicos</p>
+          </div>
+          <p className="text-[11px] text-slate-500 mb-5">O porquê que vem antes do número.</p>
 
-            <div className="flex-1 flex items-center">
-              <div className="w-full flex flex-wrap gap-1.5">
-                {motivadores.map((m, i) => (
-                  <motion.span
-                    key={m}
-                    initial={{ opacity: 0, scale: 0.85 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.55 + i * 0.07 }}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold border"
-                    style={{ borderColor: `${GOLD}44`, color: '#E2E8F0', background: 'rgba(196,138,87,0.08)' }}
-                  >
-                    {m}
-                  </motion.span>
-                ))}
-              </div>
+          <div className="flex-1 flex items-center">
+            <div className="w-full flex flex-wrap gap-1.5">
+              {motivadores.map((m, i) => (
+                <motion.span
+                  key={m}
+                  initial={{ opacity: 0, scale: 0.85, y: 6 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    scale: [1, 1.07, 1],
+                    borderColor: [`${GOLD}44`, GOLD, `${GOLD}44`],
+                    backgroundColor: ['rgba(196,138,87,0.08)', 'rgba(196,138,87,0.28)', 'rgba(196,138,87,0.08)'],
+                  }}
+                  transition={{
+                    opacity: { delay: 0.55 + i * 0.07 },
+                    y: { delay: 0.55 + i * 0.07, type: 'spring', stiffness: 380, damping: 20 },
+                    // o destaque passa de chip em chip e recomeça
+                    scale: { delay: 1.4 + i * 0.55, duration: 1.1, repeat: Infinity, repeatDelay: motivadores.length * 0.55 - 1.1, ease: 'easeInOut' },
+                    borderColor: { delay: 1.4 + i * 0.55, duration: 1.1, repeat: Infinity, repeatDelay: motivadores.length * 0.55 - 1.1, ease: 'easeInOut' },
+                    backgroundColor: { delay: 1.4 + i * 0.55, duration: 1.1, repeat: Infinity, repeatDelay: motivadores.length * 0.55 - 1.1, ease: 'easeInOut' },
+                  }}
+                  whileHover={{ scale: 1.12 }}
+                  className="px-3 py-1.5 rounded-full text-[11px] font-bold border cursor-default"
+                  style={{ color: '#E2E8F0' }}
+                >
+                  {m}
+                </motion.span>
+              ))}
             </div>
-          </Card>
-        </motion.div>
+          </div>
+        </CardFerramenta>
       </div>
     </Slide>
   );
@@ -1015,7 +1381,7 @@ function MockupTela({ cor, pilar, titulo, children }: {
       <div className="px-4 py-3 flex items-center gap-3" style={{ background: `${cor}14` }}>
         <div className="w-8 h-8 rounded-lg shrink-0" style={{ background: cor }} />
         <div>
-          <p className="text-[8px] font-black uppercase tracking-[0.2em]" style={{ color: cor }}>Pilar {pilar} de 3</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.2em]" style={{ color: cor }}>Pilar {pilar} de 5</p>
           <p className="text-[15px] font-black text-slate-900 leading-tight">{titulo}</p>
         </div>
       </div>
@@ -1037,7 +1403,7 @@ function ChamadaTreino({ texto }: { texto: string }) {
   );
 }
 
-// 9 — To be / As is (tela + exercício)
+// 10 — To be / As is (tela + exercício)
 function S08A() {
   const linhas = [
     ['Marketing que gera demanda constante', 'Baixa demanda, poucos canais e caros'],
@@ -1090,7 +1456,7 @@ function S08A() {
   );
 }
 
-// 10 — SWOT (tela + exercício)
+// 11 — SWOT (tela + exercício)
 function S08B() {
   const quad = [
     { l: 'S', r: 'Forças', c: GREEN, ex: ['Produto transformador', 'Comunidade engajada'] },
@@ -1143,46 +1509,68 @@ function S08B() {
   );
 }
 
-// 11 — Motivadores Estratégicos (tela + exercício)
+// 12 — Motivadores Estratégicos (tela + exercício)
 function S08C() {
   const cols = [
-    { t: 'BUSCAR', s: 'quero ser e não tenho', c: '#3B82F6', itens: ['MRR de R$ 30 mil', 'Marketing que gera demanda', 'Novos líderes seniores'] },
-    { t: 'PRESERVAR', s: 'quero ser e já tenho', c: GREEN, itens: ['Produto transformador', 'Comunidade engajada', 'Time engajado'] },
+    { t: 'BUSCAR', s: 'quero · não tenho', c: '#3B82F6', itens: ['MRR de R$ 30 mil', 'Marketing que gera demanda'] },
+    { t: 'PRESERVAR', s: 'quero · tenho', c: GREEN, itens: ['Produto transformador', 'Comunidade engajada'] },
+    { t: 'EVITAR', s: 'não quero · não tenho', c: AMBER, itens: ['Depender de um cliente só'] },
+    { t: 'ELIMINAR', s: 'não quero · tenho', c: RED, itens: ['Venda só por indicação'] },
   ];
   return (
     <Slide bg="dark">
       <Titulo><span style={{ color: '#8B5CF6' }}>3</span> Motivadores estratégicos</Titulo>
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-7 items-center min-h-0">
         <MockupTela cor="#8B5CF6" pilar={3} titulo="Motivadores Estratégicos">
-          <div className="grid grid-cols-2 gap-2.5">
-            {cols.map((c, i) => (
-              <motion.div
-                key={c.t}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 + i * 0.15 }}
-                className="rounded-lg bg-white border border-slate-200 p-3"
-              >
-                <div className="text-center pb-2 mb-2 border-b border-slate-100">
-                  <p className="text-[13px] font-black" style={{ color: c.c }}>{c.t}</p>
-                  <p className="text-[7px] text-slate-400">{c.s}</p>
-                </div>
-                {c.itens.map((x) => (
-                  <p key={x} className="text-[9px] text-slate-500 leading-snug py-0.5">• {x}</p>
+          <div className="flex gap-1.5">
+            <div className="flex flex-col justify-around shrink-0">
+              {['QUERO', 'NÃO QUERO'].map((e) => (
+                <span key={e} className="text-[6px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap"
+                  style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{e}</span>
+              ))}
+            </div>
+            <div className="flex-1">
+              <div className="grid grid-cols-2 gap-1.5 mb-1">
+                <p className="text-[6px] font-black uppercase tracking-wider text-slate-400 text-center">Não tenho</p>
+                <p className="text-[6px] font-black uppercase tracking-wider text-slate-400 text-center">Tenho</p>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {cols.map((c, i) => (
+                  <motion.div
+                    key={c.t}
+                    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.35 + i * 0.12 }}
+                    className="rounded-lg bg-white border border-slate-200 p-2.5"
+                  >
+                    <div className="text-center pb-1.5 mb-1.5 border-b border-slate-100">
+                      <p className="text-[11px] font-black" style={{ color: c.c }}>{c.t}</p>
+                      <p className="text-[6px] text-slate-400">{c.s}</p>
+                    </div>
+                    {c.itens.map((x) => (
+                      <p key={x} className="text-[8px] text-slate-500 leading-snug py-0.5">• {x}</p>
+                    ))}
+                  </motion.div>
                 ))}
-              </motion.div>
-            ))}
+              </div>
+            </div>
           </div>
         </MockupTela>
 
         <div className="space-y-5">
           <p className="text-[15px] text-slate-400 leading-relaxed">
-            Este exercício se alimenta dos outros dois: o que ficou no{' '}
-            <strong style={{ color: GOLD }}>gap</strong> vira <strong style={{ color: BLUE }}>BUSCAR</strong>.
-            O que apareceu nas <strong style={{ color: GREEN }}>forças</strong> vira{' '}
-            <strong style={{ color: GREEN }}>PRESERVAR</strong>.
+            A matriz cruza <strong className="text-slate-200">querer</strong> com{' '}
+            <strong className="text-slate-200">ter</strong>. Ela se alimenta dos outros dois: o{' '}
+            <strong style={{ color: GOLD }}>gap</strong> vira <strong style={{ color: BLUE }}>BUSCAR</strong>,
+            as <strong style={{ color: GREEN }}>forças</strong> viram{' '}
+            <strong style={{ color: GREEN }}>PRESERVAR</strong>, as{' '}
+            <strong style={{ color: RED }}>fraquezas</strong> viram{' '}
+            <strong style={{ color: RED }}>ELIMINAR</strong>.
           </p>
           <p className="text-[15px] text-slate-400 leading-relaxed">
-            Empresa que só busca quebra o que já funcionava. Empresa que só preserva não cresce.
+            A linha de baixo é a que ninguém preenche — e é a que evita desperdício.{' '}
+            <strong style={{ color: RED }}>Eliminar</strong> dói: é admitir que algo que você construiu
+            precisa morrer. <strong style={{ color: AMBER }}>Evitar</strong> é recusar hoje a oportunidade
+            que ia te distrair depois.
           </p>
           <ChamadaTreino texto="Terceira aba. Feche o exercício, salve e baixe o PDF — é o esqueleto do plano comercial da sua empresa." />
         </div>
@@ -1191,7 +1579,7 @@ function S08C() {
   );
 }
 
-// 12 — De onde virá o crescimento? (4 motores)
+// 14 — De onde virá o crescimento? (4 motores)
 function S08() {
   const motores = [
     { n: '01', nome: 'AQUISIÇÃO', sub: 'Novos clientes', desc: 'O motor mais caro e mais lento.', icon: Target, cor: BLUE },
@@ -1220,7 +1608,349 @@ function S08() {
   );
 }
 
-// 13 — O caso Empresa Alpha
+// 15 — Mapa de Objetivos (tela + exercício) — mesmo formato dos slides 9/10/11
+// A cascata de 4 níveis: a meta desce até virar tarefa com dono. É o mesmo
+// movimento do funil reverso (slide 25), mas para iniciativas em vez de leads.
+// Exemplo genérico de propósito: a Empresa Alpha só é apresentada no slide 23.
+function SMapaObjetivos() {
+  const cols = [
+    { t: 'Objetivo', q: 'onde chegar', c: AMBER, itens: ['Faturar R$ 600 mil no ano'] },
+    { t: 'Sub-objetivos', q: 'em que pedaços', c: '#3B82F6', itens: ['R$ 30 mil/mês até Q3', 'Escolas: R$ 12,5 mil/mês'] },
+    { t: 'Iniciativas', q: 'o que fazer', c: GREEN, itens: ['Esteira de produtos', 'Recrutar closers'] },
+    { t: 'Ações', q: 'quem e quando', c: '#8B5CF6', itens: ['Roadmap com tecnologia', 'Descritivo de cargo'] },
+  ];
+  return (
+    <Slide bg="dark">
+      <Titulo><span style={{ color: '#EC4899' }}>4</span> Mapa de objetivos</Titulo>
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-7 items-center min-h-0">
+        <MockupTela cor="#EC4899" pilar={4} titulo="Mapa de Objetivos">
+          <div className="grid grid-cols-4 gap-1.5">
+            {cols.map((c, i) => (
+              <motion.div
+                key={c.t}
+                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35 + i * 0.16 }}
+                className="rounded-lg bg-white border border-slate-200 p-2"
+              >
+                <div className="pb-1.5 mb-1.5 border-b border-slate-100">
+                  <div className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded flex items-center justify-center text-[6px] font-black shrink-0"
+                      style={{ background: `${c.c}26`, color: c.c }}>{i + 1}</span>
+                    <p className="text-[8px] font-black uppercase tracking-wider" style={{ color: c.c }}>{c.t}</p>
+                  </div>
+                  <p className="text-[6px] text-slate-400 mt-0.5">{c.q}</p>
+                </div>
+                {c.itens.map((x) => (
+                  <p key={x} className="text-[7px] text-slate-500 leading-snug py-0.5 border-l-2 pl-1 mb-1"
+                    style={{ borderLeftColor: c.c }}>{x}</p>
+                ))}
+              </motion.div>
+            ))}
+          </div>
+        </MockupTela>
+
+        <div className="space-y-5">
+          <p className="text-[15px] text-slate-400 leading-relaxed">
+            A cascata: o <strong style={{ color: AMBER }}>objetivo</strong> sai do gap do To be / As is,
+            quebra em <strong style={{ color: BLUE }}>sub-objetivos</strong> que somados fecham a conta,
+            cada um vira <strong style={{ color: GREEN }}>iniciativas</strong>, e cada iniciativa vira{' '}
+            <strong style={{ color: '#8B5CF6' }}>ações</strong>.
+          </p>
+          <p className="text-[15px] text-slate-400 leading-relaxed">
+            O teste é a última coluna: se ela não tem <strong className="text-slate-200">dono e prazo</strong>,
+            o plano ainda é um desejo. Meta que não desce até a agenda de alguém não acontece.
+          </p>
+          <ChamadaTreino texto="Quarta aba. Traga o objetivo do seu To be / As is e desça até a ação — é aqui que o exercício vira plano." />
+        </div>
+      </div>
+    </Slide>
+  );
+}
+
+/* ════════ 19 a 22 — TOP-DOWN E BOTTOM-UP, UM DE CADA VEZ ════════
+ * Empresa BETA: exemplo separado da Alpha de propósito. A Alpha só entra no
+ * slide 23 e atravessa a aula inteira; a Beta é pequena e descartável, existe
+ * só para a turma ver as duas contas isoladas.
+ *
+ * Os slides 20 e 22 são a MESMA empresa vista dos dois lados — é isso que faz
+ * o confronto funcionar: 8,4 mi pedidos contra 5,4 mi possíveis.
+ */
+const BETA = {
+  receita: 6_000_000,        // faturamento de hoje, no ano
+  crescimento: 0.4,          // o quanto o conselho quer crescer
+  vendedores: 6,
+  oppMesPorVendedor: 10,     // oportunidades que um vendedor toca por mês
+  winRate: 0.25,
+  ticket: 30_000,
+};
+const B_META = BETA.receita * (1 + BETA.crescimento);              // 8.400.000
+const B_TRI = B_META / 4;                                          // 2.100.000
+const B_VEND_TRI = B_TRI / BETA.vendedores;                        // 350.000
+const B_VEND_MES = B_VEND_TRI / 3;                                 // 116.667
+const B_VENDAS_EXIGIDAS = B_VEND_MES / BETA.ticket;                // 3,9 por mês
+// o mesmo negócio, agora de baixo para cima
+const B_OPP_MES = BETA.vendedores * BETA.oppMesPorVendedor;        // 60
+const B_VENDAS_MES = B_OPP_MES * BETA.winRate;                     // 15
+const B_RECEITA_MES = B_VENDAS_MES * BETA.ticket;                  // 450.000
+const B_POSSIVEL = B_RECEITA_MES * 12;                             // 5.400.000
+const B_GAP = B_META - B_POSSIVEL;                                 // 3.000.000
+const B_VENDAS_REAIS = B_VENDAS_MES / BETA.vendedores;             // 2,5 por mês
+const B_VENDEDORES_NEC = B_META / 12 / BETA.ticket / BETA.winRate / BETA.oppMesPorVendedor; // 9,3
+
+const fmtMi = (n: number) => 'R$ ' + (n / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mi';
+const um = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// 19 — O que é top-down
+function STopDown() {
+  const origens = [
+    { t: 'A ambição do dono', d: '“quero dobrar em dois anos”' },
+    { t: 'A exigência do investidor', d: 'o valuation combinado pede X' },
+    { t: 'O mercado', d: 'a fatia que queremos tomar' },
+    { t: 'O histórico + um %', d: '“ano passado 6, então 8,4”' },
+  ];
+  return (
+    <Slide bg="dark">
+      <Titulo sub="O número vem de cima">Top-down</Titulo>
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 items-center min-h-0">
+        <div className="flex flex-col items-center">
+          {['CONSELHO / SÓCIOS', 'DIRETORIA', 'GESTOR COMERCIAL', 'VENDEDOR'].map((n, i) => (
+            <div key={n} className="w-full flex flex-col items-center">
+              <motion.div
+                initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.18, duration: 0.4 }}
+                className="rounded-xl border px-5 py-3 text-center"
+                style={{
+                  borderColor: i === 0 ? BLUE : `${BLUE}33`,
+                  background: `rgba(26,173,226,${0.14 - i * 0.03})`,
+                  width: `${100 - i * 12}%`,
+                }}
+              >
+                <p className="text-[12px] font-black tracking-wide" style={{ color: i === 0 ? BLUE : '#CBD5E1' }}>{n}</p>
+              </motion.div>
+              {i < 3 && (
+                <motion.span className="text-[12px] py-1" style={{ color: BLUE }}
+                  initial={{ opacity: 0 }} animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ delay: 1.1 + i * 0.25, duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
+                  ▼
+                </motion.span>
+              )}
+            </div>
+          ))}
+          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600 mt-4">a meta desce pronta</p>
+        </div>
+
+        <div className="space-y-5">
+          <p className="text-[15px] text-slate-400 leading-relaxed">
+            O número <strong className="text-slate-200">nasce no topo</strong> e desce. Primeiro se decide onde
+            a empresa tem que chegar; só depois se pergunta como.
+          </p>
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-2.5" style={{ color: GOLD }}>De onde sai esse número</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {origens.map((o, i) => (
+                <motion.div key={o.t}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 + i * 0.1 }}
+                >
+                  <Card className="px-3.5 py-2.5 h-full">
+                    <p className="text-[12px] font-bold text-slate-100">{o.t}</p>
+                    <p className="text-[10.5px] text-slate-500 italic mt-0.5">{o.d}</p>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border-l-[3px] px-5 py-3.5" style={{ borderColor: RED, background: 'rgba(239,68,68,0.06)' }}>
+            <p className="text-[13px] text-slate-300 leading-relaxed">
+              Repare no que ele <strong style={{ color: RED }}>não pergunta</strong>: se a máquina que existe
+              hoje aguenta entregar isso.
+            </p>
+          </div>
+        </div>
+      </div>
+      <Mensagem>O top-down é uma <strong style={{ color: BLUE }}>decisão</strong>, não um cálculo.</Mensagem>
+    </Slide>
+  );
+}
+
+// 20 — Top-down na prática
+function STopDownPratica() {
+  const degraus = [
+    { r: 'Faturamento de hoje', v: fmtMi(BETA.receita), c: '#94A3B8', conta: null as string | null },
+    { r: 'O conselho quer crescer 40%', v: fmtMi(B_META), c: BLUE, conta: `${fmtMi(BETA.receita)} × 1,4` },
+    { r: 'Por trimestre', v: fmtMi(B_TRI), c: BLUE, conta: `${fmtMi(B_META)} ÷ 4` },
+    { r: 'Por vendedor, no trimestre', v: fmtK(B_VEND_TRI), c: BLUE, conta: `${fmtMi(B_TRI)} ÷ ${BETA.vendedores}` },
+    { r: 'Por vendedor, no mês', v: fmtK(B_VEND_MES), c: GOLD, conta: `${fmtK(B_VEND_TRI)} ÷ 3` },
+    { r: 'Vendas por vendedor, no mês', v: um(B_VENDAS_EXIGIDAS), c: GOLD, conta: `${fmtK(B_VEND_MES)} ÷ ${fmtK(BETA.ticket)}` },
+  ];
+  return (
+    <Slide bg="dark">
+      <div className="shrink-0 flex items-center gap-3 mb-5">
+        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.25em]" style={{ background: `${BLUE}1a`, color: BLUE }}>Top-down na prática</span>
+        <h2 className="text-xl sm:text-2xl font-black tracking-tight">EMPRESA BETA</h2>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center min-h-0 space-y-1.5">
+        {degraus.map((d, i) => (
+          <motion.div key={d.r}
+            initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15 + i * 0.22, duration: 0.4 }}
+            className="flex items-center gap-4 rounded-xl border px-5 py-2.5"
+            style={{ borderColor: `${d.c}33`, background: `${d.c}0a` }}
+          >
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0"
+              style={{ background: `${d.c}26`, color: d.c }}>{i + 1}</span>
+            <p className="text-[13px] text-slate-300 flex-1">{d.r}</p>
+            {d.conta && <p className="text-[11px] font-mono text-slate-600 hidden sm:block">{d.conta}</p>}
+            <p className="text-xl font-black w-[110px] text-right shrink-0" style={{ color: d.c }}>{d.v}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <Mensagem cor={GOLD}>
+        Cada vendedor precisa fechar <strong style={{ color: GOLD }}>{um(B_VENDAS_EXIGIDAS)} vendas por mês</strong>.
+        Ele consegue? O top-down <strong>não pergunta</strong>.
+      </Mensagem>
+      <Premissa>
+        Empresa Beta é fictícia e separada da Empresa Alpha. Ticket de {fmtK(BETA.ticket)}, {BETA.vendedores}{' '}
+        vendedores, meta dividida igual entre trimestres e vendedores — na vida real a distribuição é
+        desigual e sazonal.
+      </Premissa>
+    </Slide>
+  );
+}
+
+// 21 — O que é bottom-up
+function SBottomUp() {
+  return (
+    <Slide bg="dark">
+      <Titulo sub="O número vem de baixo">Bottom-up</Titulo>
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 items-center min-h-0">
+        <div className="flex flex-col-reverse items-center">
+          {['O QUE A EMPRESA CONSEGUE', 'TIME COMERCIAL', 'CADA VENDEDOR', 'AS OPORTUNIDADES QUE ELE TOCA'].map((n, i) => (
+            <div key={n} className="w-full flex flex-col-reverse items-center">
+              <motion.div
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.18, duration: 0.4 }}
+                className="rounded-xl border px-5 py-3 text-center"
+                style={{
+                  borderColor: i === 0 ? GOLD : `${GOLD}33`,
+                  background: `rgba(196,138,87,${0.14 - i * 0.03})`,
+                  width: `${100 - i * 12}%`,
+                }}
+              >
+                <p className="text-[12px] font-black tracking-wide" style={{ color: i === 0 ? GOLD : '#CBD5E1' }}>{n}</p>
+              </motion.div>
+              {i < 3 && (
+                <motion.span className="text-[12px] py-1" style={{ color: GOLD }}
+                  initial={{ opacity: 0 }} animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ delay: 1.1 + i * 0.25, duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
+                  ▲
+                </motion.span>
+              )}
+            </div>
+          ))}
+          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600 mt-4">a conta sobe da máquina</p>
+        </div>
+
+        <div className="space-y-5">
+          <p className="text-[15px] text-slate-400 leading-relaxed">
+            Aqui ninguém decide o número: ele é <strong className="text-slate-200">o resultado de uma conta</strong>.
+            Você mede o que a máquina produz e vê onde isso dá.
+          </p>
+
+          <div className="rounded-2xl border px-5 py-4" style={{ borderColor: `${GOLD}44`, background: 'rgba(196,138,87,0.06)' }}>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-3" style={{ color: GOLD }}>A conta</p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-bold text-slate-200">
+              <span>vendedores</span><span className="text-slate-600">×</span>
+              <span>oportunidades/mês</span><span className="text-slate-600">×</span>
+              <span>win rate</span><span className="text-slate-600">×</span>
+              <span>ticket</span>
+              <span className="text-slate-600">=</span>
+              <span style={{ color: GOLD }}>receita possível</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Mensagem cor={GOLD}>O bottom-up é um <strong style={{ color: GOLD }}>cálculo</strong>, não uma decisão.</Mensagem>
+    </Slide>
+  );
+}
+
+// 22 — Bottom-up na prática + o confronto
+function SBottomUpPratica() {
+  const degraus = [
+    { r: `${BETA.vendedores} vendedores × ${BETA.oppMesPorVendedor} oportunidades`, v: `${B_OPP_MES}/mês`, c: '#94A3B8' },
+    { r: `× win rate de ${BETA.winRate * 100}%`, v: `${B_VENDAS_MES} vendas/mês`, c: GOLD },
+    { r: `× ticket de ${fmtK(BETA.ticket)}`, v: fmtK(B_RECEITA_MES) + '/mês', c: GOLD },
+    { r: '× 12 meses', v: fmtMi(B_POSSIVEL), c: GREEN },
+  ];
+  return (
+    <Slide bg="dark">
+      <div className="shrink-0 flex items-center gap-3 mb-4">
+        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.25em]" style={{ background: `${GOLD}1a`, color: GOLD }}>Bottom-up na prática</span>
+        <h2 className="text-xl sm:text-2xl font-black tracking-tight">EMPRESA BETA</h2>
+      </div>
+
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_0.85fr] gap-6 items-center min-h-0">
+        <div className="space-y-1.5">
+          {degraus.map((d, i) => (
+            <motion.div key={d.r}
+              initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 + i * 0.24, duration: 0.4 }}
+              className="flex items-center gap-3 rounded-xl border px-5 py-3"
+              style={{ borderColor: `${d.c}33`, background: `${d.c}0a` }}
+            >
+              <p className="text-[13px] text-slate-300 flex-1">{d.r}</p>
+              <p className="text-lg font-black shrink-0" style={{ color: d.c }}>{d.v}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.3, duration: 0.5 }}
+        >
+          <Card className="p-6" style={{ borderColor: `${RED}44` }}>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-4" style={{ color: RED }}>O confronto</p>
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[12px] text-slate-400">O topo pediu</span>
+                <span className="text-2xl font-black" style={{ color: BLUE }}>{fmtMi(B_META)}</span>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-[12px] text-slate-400">A máquina entrega</span>
+                <span className="text-2xl font-black" style={{ color: GREEN }}>{fmtMi(B_POSSIVEL)}</span>
+              </div>
+              <div className="flex items-baseline justify-between pt-3 border-t border-white/10">
+                <span className="text-[12px] font-bold text-slate-200">Falta</span>
+                <span className="text-3xl font-black" style={{ color: RED }}>{fmtMi(B_GAP)}</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed mt-4 pt-3 border-t border-white/10">
+              Por vendedor: o topo pede <strong style={{ color: BLUE }}>{um(B_VENDAS_EXIGIDAS)}</strong> vendas/mês.
+              A máquina faz <strong style={{ color: GREEN }}>{um(B_VENDAS_REAIS)}</strong>.
+            </p>
+          </Card>
+        </motion.div>
+      </div>
+
+      <Mensagem cor={GOLD}>
+        Agora a conversa deixa de ser sobre esforço: ou o time vai para{' '}
+        <strong style={{ color: GOLD }}>{um(B_VENDEDORES_NEC)} vendedores</strong> no lugar de {BETA.vendedores},
+        ou sobe o win rate, ou sobe o ticket — ou a meta baixa.
+      </Mensagem>
+      <Premissa>
+        Mesma Empresa Beta do slide 20, vista de baixo. Win rate e oportunidades por vendedor são médias
+        constantes — modelo didático.
+      </Premissa>
+    </Slide>
+  );
+}
+
+// 23 — O caso Empresa Alpha
 function S09() {
   const dados = [
     { label: 'Receita atual', valor: 'R$ 30 mil/mês', sub: fmtK(RECEITA_ATUAL) + '/ano', cor: '#E2E8F0' },
@@ -1256,11 +1986,48 @@ function S09() {
   );
 }
 
-// 14 — Começando pelo fim
+// 18 — Começando pelo fim
+/**
+ * Selo do método. O funil reverso confunde: parece "de baixo pra cima" porque
+ * termina em leads, mas é TOP-DOWN — parte da meta que veio de cima e desce até
+ * a operação. Sem o selo, a turma sai da aula achando que fez bottom-up.
+ */
+function SeloMetodo({ metodo }: { metodo: 'top-down' | 'bottom-up' }) {
+  const top = metodo === 'top-down';
+  const cor = top ? BLUE : GOLD;
+  return (
+    <motion.span
+      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, ease: 'backOut' }}
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border"
+      style={{ color: cor, borderColor: `${cor}55`, background: `${cor}14` }}
+    >
+      <motion.span
+        animate={{ y: top ? [0, 2, 0] : [0, -2, 0] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        {top ? '▼' : '▲'}
+      </motion.span>
+      {metodo}
+    </motion.span>
+  );
+}
+
 function S10() {
   return (
     <Slide bg="dark">
-      <Titulo sub="Primeira transformação">Começando pelo fim</Titulo>
+      <div className="shrink-0 mb-6 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: BLUE }}>Primeira transformação</p>
+          <h2 className="text-2xl sm:text-4xl font-black tracking-tight">Começando pelo fim</h2>
+        </div>
+        <div className="text-right shrink-0">
+          <SeloMetodo metodo="top-down" />
+          <p className="text-[10px] text-slate-500 italic mt-2 max-w-[230px]">
+            A meta veio de cima. Agora ela desce até virar operação.
+          </p>
+        </div>
+      </div>
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="flex items-center gap-5 sm:gap-9 flex-wrap justify-center">
           <div className="text-center">
@@ -1292,7 +2059,7 @@ function S10() {
   );
 }
 
-// 15 — O funil reverso
+// 19 — O funil reverso
 function S11() {
   const degraus = [
     { valor: fmtK(GAP) + ' de nova receita', conta: null as string | null, w: 100, cor: '#E2E8F0', num: `${fmtK(GAP_MES)}/mês` },
@@ -1302,7 +2069,18 @@ function S11() {
   ];
   return (
     <Slide bg="dark">
-      <Titulo sub="O slide mais importante do bloco">O funil reverso</Titulo>
+      <div className="shrink-0 mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-4xl font-black tracking-tight">O funil reverso</h2>
+        </div>
+        <div className="text-right shrink-0">
+          <SeloMetodo metodo="top-down" />
+          <p className="text-[10px] text-slate-500 italic mt-2 max-w-[250px]">
+            Termina em leads, mas <strong className="text-slate-400">não é bottom-up</strong>: parte da meta
+            e desce. A máquina não foi consultada.
+          </p>
+        </div>
+      </div>
       <div className="flex-1 flex flex-col items-center justify-center gap-1 min-h-0">
         {degraus.map((d, i) => (
           <div key={d.valor} className="w-full flex flex-col items-center">
@@ -1324,15 +2102,11 @@ function S11() {
         ))}
       </div>
       <Mensagem>Toda meta de receita esconde uma <strong style={{ color: BLUE }}>meta operacional</strong>.</Mensagem>
-      <Premissa>
-        Ticket R$ 500 · Win rate 25% · Lead→Oportunidade 20%, constantes ao longo do ano. Modelo
-        didático: conversões reais variam por canal, segmento e vendedor.
-      </Premissa>
     </Slide>
   );
 }
 
-// 16 — Mas a realidade não é uma planilha
+// 20 — Mas a realidade não é uma planilha
 function S12() {
   const vars = [
     { v: 'Sazonalidade', d: '9.600 leads não caem 800 por mês.' },
@@ -1377,7 +2151,7 @@ function S12() {
   );
 }
 
-// 17 — Top-down × Bottom-up
+// 21 — Top-down × Bottom-up
 function S13() {
   const cols = [
     { t: 'TOP-DOWN', cor: BLUE, itens: ['Parte da ambição', '“Queremos crescer 50%”', 'Visão estratégica', 'Pressiona crescimento'], risco: 'Risco: meta sem lastro que o time descarta no primeiro mês.' },
@@ -1414,47 +2188,13 @@ function S13() {
   );
 }
 
-// 18 — O plano comercial (5 pilares)
-function S14() {
-  const pilares = [
-    { n: '1', t: 'META', q: 'Quanto queremos gerar?', icon: Target },
-    { n: '2', t: 'MERCADO', q: 'Para quem venderemos?', icon: Map },
-    { n: '3', t: 'MÁQUINA COMERCIAL', q: 'Como venderemos?', icon: Settings2 },
-    { n: '4', t: 'RECURSOS', q: 'O que será necessário?', icon: DollarSign },
-    { n: '5', t: 'INDICADORES', q: 'Como saberemos se está funcionando?', icon: BarChart3 },
-  ];
-  return (
-    <Slide bg="dark">
-      <TituloCentral sub="Fechando o bloco 2">O plano comercial</TituloCentral>
-      <div className="flex-1 flex items-center min-h-0">
-        <div className="w-full grid grid-cols-1 sm:grid-cols-5 gap-3">
-          {pilares.map((p, i) => (
-            <motion.div key={p.n} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.12 }} className="h-full">
-              <div className="h-full sm:min-h-[300px] rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex flex-col">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-4" style={{ background: 'rgba(26,173,226,0.12)' }}>
-                  <p.icon className="w-4.5 h-4.5" style={{ color: BLUE }} />
-                </div>
-                <p className="text-[10px] font-black" style={{ color: `${GOLD}` }}>{p.n}</p>
-                <p className="text-base font-black text-slate-100 leading-tight mt-1">{p.t}</p>
-                <p className="text-[12px] text-slate-500 mt-3 leading-relaxed">{p.q}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-      <Mensagem cor={GOLD}>Se um dos cinco pilares está vazio, o plano <strong>não é executável</strong> — repare no pilar 4.</Mensagem>
-    </Slide>
-  );
-}
-
 /* ═══════════════════════ BLOCO 3 — BUDGET ═══════════════════════ */
 
-// 19 — Transição para budget
+// 23 — Transição para budget
 function S15() {
   return (
     <Slide bg="dark">
       <div className="flex-1 flex flex-col items-center justify-center text-center">
-        <p className="text-[11px] font-black uppercase tracking-[0.4em] mb-8" style={{ color: GOLD }}>Bloco 3</p>
         <h1 className="text-2xl sm:text-4xl font-bold leading-snug text-slate-200 max-w-[820px]">
           Quanto <span style={{ color: BLUE }}>custa executar</span> a estratégia que acabamos de desenhar?
         </h1>
@@ -1472,7 +2212,7 @@ function S15() {
   );
 }
 
-// 20 — O que é budget?
+// 24 — O que é budget?
 function S16() {
   const fluxo = [
     { t: 'ESTRATÉGIA', v: '“Gerar R$ 240 mil no ano”', cor: '#94A3B8' },
@@ -1516,7 +2256,7 @@ function S16() {
   );
 }
 
-// 21 — O que entra no budget comercial?
+// 25 — O que entra no budget comercial?
 function S17() {
   const cats = [
     { c: 'Pessoas', d: 'Salários, encargos, hiring, ramp-up', icon: Users, cor: BLUE },
@@ -1551,7 +2291,7 @@ function S17() {
   );
 }
 
-// 22 — Construindo o budget da Alpha
+// 26 — Construindo o budget da Alpha
 function S18() {
   const max = Math.max(...BUDGET.map((b) => b.valor));
   return (
@@ -1614,12 +2354,12 @@ function S18() {
   );
 }
 
-// 23 — Três cenários
+// 27 — Três cenários
 function S19() {
   const cenarios = [
-    { nome: 'CONSERVADOR', receitaMes: 40_000, cor: '#94A3B8', pergunta: 'A que ponto ainda estou de pé?' },
-    { nome: 'BASE', receitaMes: 50_000, cor: BLUE, pergunta: 'A hipótese central. Vai para o board.' },
-    { nome: 'AGRESSIVO', receitaMes: 60_000, cor: GOLD, pergunta: 'O que preciso ter pronto ANTES?' },
+    { nome: 'CONSERVADOR', receitaMes: 40_000, cor: '#94A3B8' },
+    { nome: 'BASE', receitaMes: 50_000, cor: BLUE },
+    { nome: 'AGRESSIVO', receitaMes: 60_000, cor: GOLD },
   ];
   const linha = (rMes: number) => {
     const gap = (rMes - ALPHA.receitaAtualMes) * MESES;
@@ -1649,18 +2389,16 @@ function S19() {
                   <div className="flex justify-between"><span className="text-slate-500">Budget</span><span className="font-bold" style={{ color: GOLD }}>{i === 1 ? fmtK(BUDGET_TOTAL) : '↕ recalcular'}</span></div>
                   <div className="flex justify-between"><span className="text-slate-500">Equipe</span><span className="font-bold" style={{ color: GOLD }}>{i === 0 ? '↓' : i === 1 ? '=' : '↑'}</span></div>
                 </div>
-                <p className="text-[11px] text-slate-500 italic mt-4 pt-3 border-t border-white/10 leading-relaxed">{c.pergunta}</p>
               </div>
             </motion.div>
           );
         })}
       </div>
-      <Mensagem>Planejamento não é adivinhar um único futuro. É <strong style={{ color: BLUE }}>preparar-se para futuros possíveis</strong> — e definir os gatilhos antes do pânico.</Mensagem>
     </Slide>
   );
 }
 
-// 24 — Budget não é sentença
+// 28 — Budget não é sentença
 function S20() {
   return (
     <Slide bg="dark">
@@ -1692,44 +2430,13 @@ function S20() {
           <p className="text-4xl sm:text-6xl font-black tracking-tight" style={{ color: BLUE, textShadow: '0 0 60px rgba(26,173,226,0.35)' }}>FORECAST</p>
         </motion.div>
       </div>
-      <Mensagem>Budget é uma <strong>foto</strong> tirada em novembro. A empresa é um <strong style={{ color: BLUE }}>filme</strong>.</Mensagem>
     </Slide>
   );
 }
 
 /* ═══════════════ BLOCO 4 — FORECAST E PIPELINE ═══════════════ */
 
-// 25 — Budget × Forecast × Actual
-function S21() {
-  const cols = [
-    { t: 'BUDGET', q: 'O que planejamos?', cor: '#94A3B8', freq: 'Feito 1x por ano', olhar: 'Olha para frente', nat: 'Compromisso' },
-    { t: 'FORECAST', q: 'O que provavelmente acontecerá?', cor: BLUE, freq: 'Refeito toda semana/mês', olhar: 'Olha para frente', nat: 'Estimativa' },
-    { t: 'ACTUAL', q: 'O que realmente aconteceu?', cor: GREEN, freq: 'Fechamento do período', olhar: 'Olha para trás', nat: 'Fato' },
-  ];
-  return (
-    <Slide bg="dark">
-      <TituloCentral sub="Bloco 4 · Forecast e pipeline">Três palavras que vivem confundidas</TituloCentral>
-      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center min-h-0">
-        {cols.map((c, i) => (
-          <motion.div key={c.t} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.15 }} className="h-full">
-            <div className="h-full rounded-2xl border p-6 flex flex-col" style={{ borderColor: `${c.cor}33`, background: `${c.cor}0a` }}>
-              <p className="text-2xl font-black" style={{ color: c.cor }}>{c.t}</p>
-              <p className="text-[15px] font-semibold text-slate-200 mt-2 leading-snug">{c.q}</p>
-              <div className="mt-5 pt-4 border-t border-white/10 space-y-2 text-[11px] text-slate-500">
-                <p className="flex items-center gap-2"><RefreshCw className="w-3 h-3" /> {c.freq}</p>
-                <p className="flex items-center gap-2"><Clock className="w-3 h-3" /> {c.olhar}</p>
-                <p className="flex items-center gap-2"><Layers className="w-3 h-3" /> {c.nat}</p>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <Mensagem>O budget <strong>define</strong> a expectativa. O forecast <strong style={{ color: BLUE }}>atualiza</strong> a expectativa. O actual <strong style={{ color: GREEN }}>valida</strong> os dois.</Mensagem>
-    </Slide>
-  );
-}
-
-// 26 — Planejamento sem atualização vira ficção
+// 30 — Planejamento sem atualização vira ficção
 function S22() {
   const linha = [
     { mes: 'JANEIRO', ev: 'Budget aprovado: R$ 50 mil/mês', cor: BLUE },
@@ -1739,7 +2446,10 @@ function S22() {
   ];
   return (
     <Slide bg="dark">
-      <Titulo sub="O ano de uma empresa qualquer">Planejamento sem atualização vira ficção</Titulo>
+      {/* só o rótulo — o título grande saiu */}
+      <div className="shrink-0 mb-6">
+        <p className="text-[11px] font-black uppercase tracking-[0.3em]" style={{ color: BLUE }}>O ano de uma empresa qualquer</p>
+      </div>
       <div className="flex-1 flex items-center min-h-0">
         <div className="w-full relative pl-6">
           <div className="absolute left-[7px] top-2 bottom-2 w-px bg-gradient-to-b from-[#1AADE2] via-[#F59E0B] to-[#EF4444]" />
@@ -1757,12 +2467,11 @@ function S22() {
           </motion.div>
         </div>
       </div>
-      <Mensagem>O plano precisa ser <strong>estável</strong> o suficiente para orientar e <strong style={{ color: BLUE }}>flexível</strong> o suficiente para reagir.</Mensagem>
     </Slide>
   );
 }
 
-// 27 — O pipeline
+// 31 — O pipeline
 function S23() {
   const etapas = [
     { e: 'Lead', w: 100 }, { e: 'Qualificado', w: 84 }, { e: 'Diagnóstico', w: 68 },
@@ -1803,16 +2512,13 @@ function S23() {
               <span className="text-sm font-bold" style={{ color: i === 5 ? GREEN : '#E2E8F0' }}>{x.e}</span>
             </motion.div>
           ))}
-          <p className="text-[10px] text-slate-600 italic mt-3 text-center">
-            Exemplo de venda consultiva B2B. As etapas variam conforme o modelo de negócio.
-          </p>
         </div>
       </div>
     </Slide>
   );
 }
 
-// 28 — Pipeline não é forecast
+// 32 — Pipeline não é forecast
 function S24() {
   const deals = [
     { c: 'Cliente A', valor: 5_000, prob: 0.8 },
@@ -1823,7 +2529,7 @@ function S24() {
   const totalFcst = deals.reduce((s, d) => s + d.valor * d.prob, 0);
   return (
     <Slide bg="dark">
-      <Titulo sub="A distinção mais importante do bloco">Pipeline não é forecast</Titulo>
+      <Titulo>Pipeline não é forecast</Titulo>
       <div className="flex-1 flex flex-col justify-center min-h-0">
         <div className="rounded-2xl border border-white/10 overflow-hidden">
           <div className="grid grid-cols-4 px-5 py-2.5 bg-white/[0.04] text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -1861,7 +2567,7 @@ function S24() {
   );
 }
 
-// 29 — A fórmula do forecast ponderado
+// 33 — A fórmula do forecast ponderado
 function S25() {
   const origens = [
     { t: 'Arbitrária', d: 'Alguém definiu quando configurou o CRM, há três anos.', v: 'A mais comum. A pior.', cor: RED },
@@ -1909,7 +2615,7 @@ function S25() {
   );
 }
 
-// 30 — Pipeline coverage
+// 34 — Pipeline coverage
 function S26() {
   return (
     <Slide bg="dark">
@@ -1971,7 +2677,7 @@ function S26() {
   );
 }
 
-// 31 — Sinais de saúde do pipeline
+// 35 — Sinais de saúde do pipeline
 function S27() {
   const kpis = [
     { l: 'Pipeline total', v: fmtK(PIPELINE_NECESSARIO), s: 'volume absoluto', c: '#94A3B8' },
@@ -2002,7 +2708,7 @@ function S27() {
   );
 }
 
-// 32 — Forecast é ferramenta de decisão
+// 36 — Forecast é ferramenta de decisão
 function S28() {
   const sits = [
     { t: 'ACIMA DA META', cor: GREEN, icon: TrendingUp, qs: ['Acelerar?', 'Investir?', 'Antecipar capacidade?', 'Ou o forecast está inflado?'] },
@@ -2038,7 +2744,7 @@ function S28() {
 
 /* ═══════════════ BLOCO 5 — REVENUE OPERATIONS ═══════════════ */
 
-// 33 — O problema dos silos
+// 37 — O problema dos silos
 function S29() {
   const areas = [
     { a: 'MARKETING', m: 'MQLs', cor: BLUE },
@@ -2048,7 +2754,7 @@ function S29() {
   ];
   return (
     <Slide bg="dark">
-      <Titulo sub="Bloco 5 · Revenue Operations">O problema dos silos</Titulo>
+      <Titulo>O problema dos silos</Titulo>
       <div className="flex-1 flex flex-col items-center justify-center min-h-0">
         <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-6">
           {areas.map((x, i) => (
@@ -2061,18 +2767,12 @@ function S29() {
             </motion.div>
           ))}
         </div>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }} className="text-[11px] text-slate-600 italic mt-6">
-          Quatro caixas. Nenhuma linha ligando uma à outra. Não é falta de boa vontade — é arquitetura.
-        </motion.p>
       </div>
-      <Mensagem cor={RED}>
-        Todos trabalham pela receita. Mas frequentemente trabalham com <strong style={{ color: RED }}>versões diferentes da realidade</strong>.
-      </Mensagem>
     </Slide>
   );
 }
 
-// 34 — O que é Revenue Operations?
+// 38 — O que é Revenue Operations?
 function S30() {
   const orbita = [
     { a: 'Marketing', cor: BLUE }, { a: 'Vendas', cor: GOLD },
@@ -2132,42 +2832,7 @@ function S30() {
   );
 }
 
-// 35 — A jornada da receita
-function S31() {
-  const jornada = [
-    { e: 'AQUISIÇÃO', cor: BLUE }, { e: 'CONVERSÃO', cor: BLUE },
-    { e: 'FECHAMENTO', cor: GOLD }, { e: 'RETENÇÃO', cor: GREEN }, { e: 'EXPANSÃO', cor: GREEN },
-  ];
-  return (
-    <Slide bg="dark">
-      <TituloCentral>A jornada da receita</TituloCentral>
-      <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-        <div className="w-full flex items-center justify-center gap-1.5 sm:gap-3 flex-wrap">
-          {jornada.map((j, i) => (
-            <motion.div key={j.e} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.16 }} className="flex items-center gap-1.5 sm:gap-3">
-              <div className="px-4 sm:px-6 py-4 rounded-xl border text-center" style={{ borderColor: `${j.cor}44`, background: `${j.cor}0d` }}>
-                <p className="text-[11px] sm:text-sm font-black tracking-wide" style={{ color: j.cor }}>{j.e}</p>
-              </div>
-              {i < jornada.length - 1 && <span className="text-slate-600 text-sm">→</span>}
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="mt-8 w-full max-w-[720px]">
-          <div className="rounded-xl border border-dashed px-6 py-4 text-center" style={{ borderColor: `${GOLD}44` }}>
-            <p className="text-[12px] leading-relaxed text-slate-400">
-              A assinatura do contrato é o <strong className="text-slate-200">meio</strong> da jornada, não o fim.
-              Retenção e expansão são os motores 2 e 3 do slide 12 — agora como etapas operacionais.
-            </p>
-          </div>
-        </motion.div>
-      </div>
-      <Mensagem>Uma jornada. Uma base de dados. <strong style={{ color: BLUE }}>Uma visão da receita.</strong></Mensagem>
-    </Slide>
-  );
-}
-
-// 36 — O ciclo de gestão da receita
+// 40 — O ciclo de gestão da receita
 function S32() {
   const etapas = [
     { e: 'PLANEJAR', d: 'diagnóstico + meta + funil reverso', cor: BLUE },
@@ -2212,14 +2877,13 @@ function S32() {
           </div>
         </div>
       </div>
-      <Mensagem>Previsibilidade não é um número. É um <strong style={{ color: BLUE }}>processo contínuo de gestão</strong>.</Mensagem>
     </Slide>
   );
 }
 
 /* ═══════════════════ BLOCO 6 — FECHAMENTO ═══════════════════ */
 
-// 37 — O desafio final
+// 41 — O desafio final
 function S33() {
   const perguntas = [
     'Quantos clientes precisa conquistar?',
@@ -2268,7 +2932,7 @@ function S33() {
   );
 }
 
-// 38 — A grande síntese
+// 42 — A grande síntese
 function S34() {
   const cadeia = [
     { e: 'META', d: 'a ambição vira número' },
@@ -2324,44 +2988,55 @@ const SLIDES = [
   { id: 's03-pergunta', titulo: 'A pergunta central', bloco: 'O problema', node: <S02 /> },
   { id: 's04-meta-nao-e-plano', titulo: 'Meta não é plano', bloco: 'O problema', node: <S03 /> },
   { id: 's05-imprevisibilidade', titulo: 'A imprevisibilidade', bloco: 'O problema', node: <S04 /> },
-  { id: 's06-sistema-receita', titulo: 'O sistema da receita', bloco: 'O problema', node: <S05 /> },
-  { id: 's07-diagnostico', titulo: 'A estratégia', bloco: 'Planejamento', node: <S06 /> },
-  { id: 's08-ferramentas', titulo: 'Ferramentas', bloco: 'Planejamento', node: <S07 /> },
-  { id: 's09-tobe-asis', titulo: 'To be / As is', bloco: 'Planejamento', node: <S08A /> },
-  { id: 's10-swot', titulo: 'SWOT', bloco: 'Planejamento', node: <S08B /> },
-  { id: 's11-motivadores', titulo: 'Motivadores estratégicos', bloco: 'Planejamento', node: <S08C /> },
-  { id: 's12-motores', titulo: 'Os 4 motores', bloco: 'Planejamento', node: <S08 /> },
-  { id: 's13-alpha', titulo: 'Caso Empresa Alpha', bloco: 'Planejamento', node: <S09 /> },
-  { id: 's14-comecando-pelo-fim', titulo: 'Começando pelo fim', bloco: 'Planejamento', node: <S10 /> },
-  { id: 's15-funil-reverso', titulo: 'O funil reverso', bloco: 'Planejamento', node: <S11 /> },
-  { id: 's16-realidade', titulo: 'A realidade', bloco: 'Planejamento', node: <S12 /> },
-  { id: 's17-topdown-bottomup', titulo: 'Top-down × Bottom-up', bloco: 'Planejamento', node: <S13 /> },
-  { id: 's18-plano-comercial', titulo: 'O plano comercial', bloco: 'Planejamento', node: <S14 /> },
-  { id: 's19-transicao-budget', titulo: 'Quanto custa?', bloco: 'Budget', node: <S15 /> },
-  { id: 's20-o-que-e-budget', titulo: 'O que é budget?', bloco: 'Budget', node: <S16 /> },
-  { id: 's21-o-que-entra', titulo: 'O que entra no budget', bloco: 'Budget', node: <S17 /> },
-  { id: 's22-budget-alpha', titulo: 'Budget da Alpha', bloco: 'Budget', node: <S18 /> },
-  { id: 's23-cenarios', titulo: 'Três cenários', bloco: 'Budget', node: <S19 /> },
-  { id: 's24-budget-nao-e-sentenca', titulo: 'Budget não é sentença', bloco: 'Budget', node: <S20 /> },
-  { id: 's25-budget-forecast-actual', titulo: 'Budget × Forecast × Actual', bloco: 'Forecast', node: <S21 /> },
-  { id: 's26-plano-desatualizado', titulo: 'Sem atualização vira ficção', bloco: 'Forecast', node: <S22 /> },
-  { id: 's27-pipeline', titulo: 'O pipeline', bloco: 'Forecast', node: <S23 /> },
-  { id: 's28-pipeline-nao-e-forecast', titulo: 'Pipeline não é forecast', bloco: 'Forecast', node: <S24 /> },
-  { id: 's29-formula-forecast', titulo: 'A fórmula do ponderado', bloco: 'Forecast', node: <S25 /> },
-  { id: 's30-coverage', titulo: 'Pipeline coverage', bloco: 'Forecast', node: <S26 /> },
-  { id: 's31-saude-pipeline', titulo: 'Saúde do pipeline', bloco: 'Forecast', node: <S27 /> },
-  { id: 's32-forecast-decisao', titulo: 'Forecast é decisão', bloco: 'Forecast', node: <S28 /> },
-  { id: 's33-silos', titulo: 'O problema dos silos', bloco: 'RevOps', node: <S29 /> },
-  { id: 's34-revops', titulo: 'O que é RevOps?', bloco: 'RevOps', node: <S30 /> },
-  { id: 's35-jornada-receita', titulo: 'A jornada da receita', bloco: 'RevOps', node: <S31 /> },
-  { id: 's36-ciclo-gestao', titulo: 'O ciclo de gestão', bloco: 'RevOps', node: <S32 /> },
-  { id: 's37-desafio-final', titulo: 'O desafio final', bloco: 'Fechamento', node: <S33 /> },
-  { id: 's38-sintese', titulo: 'A grande síntese', bloco: 'Fechamento', node: <S34 /> },
+  { id: 's06-iceberg', titulo: 'O iceberg do resultado', bloco: 'O problema', node: <SIceberg /> },
+  { id: 's07-sistema-receita', titulo: 'O sistema da receita', bloco: 'O problema', node: <S05 /> },
+  { id: 's08-diagnostico', titulo: 'A estratégia', bloco: 'Planejamento', node: <S06 /> },
+  { id: 's09-ferramentas', titulo: 'Ferramentas', bloco: 'Planejamento', node: <S07 /> },
+  { id: 's10-tobe-asis', titulo: 'To be / As is', bloco: 'Planejamento', node: <S08A /> },
+  { id: 's11-swot', titulo: 'SWOT', bloco: 'Planejamento', node: <S08B /> },
+  { id: 's12-motivadores', titulo: 'Motivadores estratégicos', bloco: 'Planejamento', node: <S08C /> },
+  { id: 's13-mapa-meta', titulo: 'O mapa · próximo: META', bloco: 'Planejamento', node: <MapaReceita foco="META" /> },
+  { id: 's14-motores', titulo: 'Os 4 motores', bloco: 'Planejamento', node: <S08 /> },
+  { id: 's15-mapa-objetivos', titulo: 'Mapa de objetivos', bloco: 'Planejamento', node: <SMapaObjetivos /> },
+  { id: 's16-mapa-comercial', titulo: 'O mapa · próximo: PLANEJAMENTO COMERCIAL', bloco: 'Planejamento', node: <MapaReceita foco="PLANEJAMENTO COMERCIAL" /> },
+  { id: 's17-realidade', titulo: 'A realidade', bloco: 'Planejamento', node: <S12 /> },
+  { id: 's18-topdown-bottomup', titulo: 'Top-down × Bottom-up', bloco: 'Planejamento', node: <S13 /> },
+  { id: 's19-topdown', titulo: 'O que é top-down', bloco: 'Planejamento', node: <STopDown /> },
+  { id: 's20-topdown-pratica', titulo: 'Top-down na prática · Beta', bloco: 'Planejamento', node: <STopDownPratica /> },
+  { id: 's21-bottomup', titulo: 'O que é bottom-up', bloco: 'Planejamento', node: <SBottomUp /> },
+  { id: 's22-bottomup-pratica', titulo: 'Bottom-up na prática · Beta', bloco: 'Planejamento', node: <SBottomUpPratica /> },
+  { id: 's23-alpha', titulo: 'Caso Empresa Alpha', bloco: 'Planejamento', node: <S09 /> },
+  { id: 's24-comecando-pelo-fim', titulo: 'Começando pelo fim', bloco: 'Planejamento', node: <S10 /> },
+  { id: 's25-funil-reverso', titulo: 'O funil reverso', bloco: 'Planejamento', node: <S11 /> },
+  { id: 's26-mapa-budget', titulo: 'O mapa · próximo: BUDGET', bloco: 'Planejamento', node: <MapaReceita foco="BUDGET" /> },
+  { id: 's27-transicao-budget', titulo: 'Quanto custa?', bloco: 'Budget', node: <S15 /> },
+  { id: 's28-o-que-e-budget', titulo: 'O que é budget?', bloco: 'Budget', node: <S16 /> },
+  { id: 's29-o-que-entra', titulo: 'O que entra no budget', bloco: 'Budget', node: <S17 /> },
+  { id: 's30-budget-alpha', titulo: 'Budget da Alpha', bloco: 'Budget', node: <S18 /> },
+  { id: 's31-cenarios', titulo: 'Três cenários', bloco: 'Budget', node: <S19 /> },
+  { id: 's32-budget-nao-e-sentenca', titulo: 'Budget não é sentença', bloco: 'Budget', node: <S20 /> },
+  { id: 's33-plano-desatualizado', titulo: 'Sem atualização vira ficção', bloco: 'Forecast', node: <S22 /> },
+  { id: 's34-mapa-pipeline', titulo: 'O mapa · próximo: EXECUÇÃO + PIPELINE', bloco: 'Forecast', node: <MapaReceita foco="EXECUÇÃO + PIPELINE" /> },
+  { id: 's35-pipeline', titulo: 'O pipeline', bloco: 'Forecast', node: <S23 /> },
+  { id: 's36-pipeline-nao-e-forecast', titulo: 'Pipeline não é forecast', bloco: 'Forecast', node: <S24 /> },
+  { id: 's37-mapa-forecast', titulo: 'O mapa · próximo: FORECAST', bloco: 'Forecast', node: <MapaReceita foco="FORECAST" /> },
+  { id: 's38-formula-forecast', titulo: 'A fórmula do ponderado', bloco: 'Forecast', node: <S25 /> },
+  { id: 's39-coverage', titulo: 'Pipeline coverage', bloco: 'Forecast', node: <S26 /> },
+  { id: 's40-saude-pipeline', titulo: 'Saúde do pipeline', bloco: 'Forecast', node: <S27 /> },
+  { id: 's41-forecast-decisao', titulo: 'Forecast é decisão', bloco: 'Forecast', node: <S28 /> },
+  { id: 's42-mapa-revops', titulo: 'O mapa · próximo: REVENUE OPERATIONS', bloco: 'RevOps', node: <MapaReceita foco="REVOPS" /> },
+  { id: 's43-silos', titulo: 'O problema dos silos', bloco: 'RevOps', node: <S29 /> },
+  { id: 's44-revops', titulo: 'O que é RevOps?', bloco: 'RevOps', node: <S30 /> },
+  { id: 's45-ciclo-gestao', titulo: 'O ciclo de gestão', bloco: 'RevOps', node: <S32 /> },
+  { id: 's46-desafio-final', titulo: 'O desafio final', bloco: 'Fechamento', node: <S33 /> },
+  { id: 's47-sintese', titulo: 'A grande síntese', bloco: 'Fechamento', node: <S34 /> },
 ];
 
 export default function AulaDeck({ onClose }: { onClose: () => void }) {
   const [idx, setIdx] = useState(0);
   const [dir, setDir] = useState(1);
+  const [imprimindo, setImprimindo] = useState(false);
+  const [pct, setPct] = useState(0);
 
   const go = useCallback((to: number) => {
     setIdx((cur) => {
@@ -2370,6 +3045,52 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
       return next;
     });
   }, []);
+
+  /**
+   * Gera e BAIXA o PDF direto, sem passar pela tela de imprimir — mesmo caminho
+   * que o /pitch usa (jsPDF + html2canvas, ambos já no projeto).
+   *
+   * O deck só monta o slide atual, então montamos os 47 fora da tela
+   * (#deck-capture, em left:-100000px), esperamos as animações e os CountUp
+   * assentarem — começam em opacity 0 e fotografar antes sairia em branco —,
+   * fotografamos cada página e montamos o PDF.
+   */
+  const baixarPdf = useCallback(async () => {
+    if (imprimindo) return;
+    setImprimindo(true);
+    setPct(0);
+    await new Promise((r) => setTimeout(r, 2200));
+    try {
+      const [{ default: html2canvas }, jspdf] = await Promise.all([import('html2canvas'), import('jspdf')]);
+      const JsPDF = jspdf.jsPDF;
+      // o html2canvas não entende as cores do Tailwind (rgb com barra/alpha):
+      // resolvemos cada uma para o formato que ele lê
+      const container = document.getElementById('deck-capture');
+      container?.querySelectorAll<HTMLElement>('*').forEach((el) => {
+        const cs = getComputedStyle(el);
+        el.style.color = cs.color;
+        el.style.borderColor = cs.borderColor;
+        if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') el.style.backgroundColor = cs.backgroundColor;
+      });
+      const pages = Array.from(document.querySelectorAll('#deck-capture .deck-capture-page')) as HTMLElement[];
+      const W = 1280, H = 720;
+      const pdf = new JsPDF({ orientation: 'landscape', unit: 'px', format: [W, H], compress: true });
+      for (let i = 0; i < pages.length; i++) {
+        const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: NAVY, logging: false, width: W, height: H, windowWidth: W, windowHeight: H });
+        const img = canvas.toDataURL('image/jpeg', 0.9);
+        if (i > 0) pdf.addPage([W, H], 'landscape');
+        pdf.addImage(img, 'JPEG', 0, 0, W, H);
+        setPct(Math.round(((i + 1) / pages.length) * 100));
+        await new Promise((r) => setTimeout(r, 0)); // devolve o fôlego pro navegador redesenhar o botão
+      }
+      pdf.save('Aula-Planejamento-Comercial-Budget-Forecast.pdf');
+    } catch {
+      alert('Não consegui gerar o PDF automaticamente. Tente de novo em alguns segundos.');
+    } finally {
+      setImprimindo(false);
+      setPct(0);
+    }
+  }, [imprimindo]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -2384,7 +3105,23 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
   const atual = SLIDES[idx];
 
   return (
-    <div className="deck-dark fixed inset-0 z-[70] overflow-hidden flex flex-col" style={{ backgroundColor: NAVY }}>
+    <div className="deck-dark deck-live fixed inset-0 z-[70] overflow-hidden flex flex-col" style={{ backgroundColor: NAVY }}>
+      {/* Pilha de captura: os 47 slides montados em 1280×720, jogados para fora
+          da tela. Não pode ser display:none nem visibility:hidden — o
+          html2canvas precisa que eles estejam realmente renderizados.
+          Só existe enquanto o PDF é gerado. */}
+      {imprimindo && (
+        <div id="deck-capture" className="deck-dark" aria-hidden
+          style={{ position: 'fixed', left: '-100000px', top: 0, width: 1280, pointerEvents: 'none' }}>
+          {SLIDES.map((s) => (
+            <div key={s.id} className="deck-capture-page"
+              style={{ width: 1280, height: 720, overflow: 'hidden', position: 'relative', backgroundColor: NAVY }}>
+              {s.node}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* topo */}
       <div className="flex items-center justify-between px-5 sm:px-8 py-3 border-b border-white/10 shrink-0">
         <span className="flex items-center gap-2 text-sm font-semibold text-slate-300">
@@ -2423,10 +3160,30 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <span className="text-[11px] font-mono text-slate-500 tabular-nums">{idx + 1}/{SLIDES.length}</span>
-          <button onClick={() => go(idx + 1)} disabled={idx === SLIDES.length - 1} className="flex items-center gap-1.5 text-sm font-bold text-white rounded-lg px-3.5 py-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed" style={{ background: `linear-gradient(to bottom right, ${BLUE}, #0c6e9e)` }}>
-            Próximo <ChevronRight className="w-4 h-4" />
-          </button>
+          {/* no último slide o "Próximo" não serve mais — o lugar vira o PDF */}
+          {idx === SLIDES.length - 1 ? (
+            <button
+              onClick={baixarPdf}
+              disabled={imprimindo}
+              className="relative flex items-center gap-1.5 overflow-hidden text-sm font-bold text-white rounded-lg px-3.5 py-2 transition-all hover:scale-[1.03] disabled:hover:scale-100"
+              style={{ background: `linear-gradient(to bottom right, ${GOLD}, #8f5f38)` }}
+            >
+              {/* a barra enche conforme cada slide é fotografado */}
+              {imprimindo && (
+                <span aria-hidden className="absolute inset-y-0 left-0 transition-[width] duration-300"
+                  style={{ width: `${pct}%`, background: 'rgba(255,255,255,0.28)' }} />
+              )}
+              <span className="relative flex items-center gap-1.5">
+                {imprimindo
+                  ? <><RefreshCw className="w-4 h-4 animate-spin" /> {pct}% gerando…</>
+                  : <><Download className="w-4 h-4" /> Baixar PDF</>}
+              </span>
+            </button>
+          ) : (
+            <button onClick={() => go(idx + 1)} className="flex items-center gap-1.5 text-sm font-bold text-white rounded-lg px-3.5 py-2 transition-all" style={{ background: `linear-gradient(to bottom right, ${BLUE}, #0c6e9e)` }}>
+              Próximo <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </div>
