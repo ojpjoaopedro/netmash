@@ -259,6 +259,7 @@ export default function Home() {
             {alertas.length > 0 && <span style={{ position: "absolute", top: 0, right: 0, minWidth: 14, height: 14, padding: "0 3px", borderRadius: 99, background: "var(--red)", color: "#fff", fontSize: 9, fontWeight: 800, display: "grid", placeItems: "center" }}>{alertas.length}</span>}
           </button>
           <button className="iconbtn" onClick={toggleTheme} title="Tema">{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button>
+          <button className="iconbtn" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button className="iconbtn" onClick={() => setMenuAberto(true)} title="Menu"><Menu size={22} /></button>
         </div>
         {notifOpen && (
@@ -313,6 +314,7 @@ export default function Home() {
             )}
             <div className="navgroup"><nav className="nav">
               {podeApresentar && <button onClick={() => { setApresOpen(true); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>}
+              {ehSuper && <button onClick={() => { setMenuAberto(false); router.push("/admin"); }}><ShieldCheck size={18} /> Super Admin</button>}
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
             </nav></div>
           </div>
@@ -408,10 +410,10 @@ export default function Home() {
       {/* Main */}
       <main className="main">
         <div className="topctrls">
-          {ehSuper && <a className="btn ghost sm" href="/admin"><ShieldCheck size={14} /> Super Admin</a>}
           {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
+          {ehSuper && <a className="btn ghost sm desk-only" href="/admin"><ShieldCheck size={14} /> Super Admin</a>}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
-          <button className="btn ghost sm" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
+          <button className="btn ghost sm desk-only" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
         </div>
         {SUBTABS[view] && (
           <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>

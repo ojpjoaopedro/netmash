@@ -41,7 +41,7 @@ export default function FinancasDashboard({ lancs, saldoInicial, onLancar, onImp
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
         {onLancar && <button className="btn sm" onClick={onLancar}><Plus size={14} /> Inserir dados</button>}
         {onImportar && <button className="btn ghost sm" onClick={onImportar}><Upload size={14} /> Importar planilha</button>}
-        <button className="btn ghost sm" onClick={carregarExemplo} disabled={seedando}><Wand2 size={14} /> {seedando ? "Carregando…" : "Dados de exemplo"}</button>
+        {lancs.length === 0 && <button className="btn ghost sm" onClick={carregarExemplo} disabled={seedando}><Wand2 size={14} /> {seedando ? "Carregando…" : "Dados de exemplo"}</button>}
       </div>
       {anos.length > 1 && (
         <div className="period" style={{ marginBottom: 12, width: "fit-content" }}>
