@@ -106,14 +106,6 @@ function Mensagem({ children, cor = BLUE }: { children: React.ReactNode; cor?: s
 }
 
 /** Etiqueta de premissa — deixa explícito o que é hipótese didática. */
-function Premissa({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="shrink-0 mt-4 text-[11px] leading-relaxed text-slate-500 italic">
-      <span className="not-italic font-bold uppercase tracking-wider" style={{ color: GOLD }}>Premissa · </span>
-      {children}
-    </p>
-  );
-}
 
 function Card({ children, className = '', style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return <div className={`rounded-2xl border border-white/10 bg-white/[0.03] ${className}`} style={style}>{children}</div>;
@@ -1822,10 +1814,6 @@ function S09() {
         ))}
       </div>
       <Mensagem cor={GOLD}>Como transformar um gap de <strong style={{ color: GOLD }}>R$ 20 mil por mês</strong> em um plano comercial?</Mensagem>
-      <Premissa>
-        Ticket médio, win rate e conversão lead→oportunidade são premissas didáticas simplificadas e
-        constantes. Na prática variam por segmento, canal e vendedor.
-      </Premissa>
     </Slide>
   );
 }
@@ -1862,7 +1850,6 @@ function S10() {
     <Slide bg="dark">
       <div className="shrink-0 mb-6 flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: BLUE }}>Primeira transformação</p>
           <h2 className="text-2xl sm:text-4xl font-black tracking-tight">Começando pelo fim</h2>
         </div>
         <div className="text-right shrink-0">
@@ -1895,10 +1882,6 @@ function S10() {
         </motion.div>
       </div>
       <Mensagem>A primeira transformação do planejamento é converter <strong>receita</strong> em <strong style={{ color: BLUE }}>clientes</strong>.</Mensagem>
-      <Premissa>
-        Assumimos que todo o gap vem de <strong>aquisição</strong>, com ticket estável. Se parte vier de
-        expansão ou de preço, o número de clientes necessários cai.
-      </Premissa>
     </Slide>
   );
 }
@@ -1945,7 +1928,6 @@ function S11() {
           </div>
         ))}
       </div>
-      <Mensagem>Toda meta de receita esconde uma <strong style={{ color: BLUE }}>meta operacional</strong>.</Mensagem>
     </Slide>
   );
 }
@@ -2064,13 +2046,6 @@ function S16() {
           <h2 className="text-2xl sm:text-4xl font-black leading-tight">
             Budget é a <span style={{ color: BLUE }}>tradução financeira</span> da estratégia.
           </h2>
-          <p className="mt-6 text-[15px] text-slate-400 leading-relaxed">
-            Se a estratégia mudou e o budget não mudou, um dos dois é ficção.
-          </p>
-          <p className="mt-3 text-[15px] text-slate-400 leading-relaxed">
-            Ler o budget de trás para frente revela a <strong className="text-slate-200">estratégia real</strong> da
-            empresa — o discurso pode dizer outra coisa.
-          </p>
         </div>
         <div className="flex flex-col items-stretch">
           {fluxo.map((f, i) => (
@@ -2122,7 +2097,6 @@ function S17() {
           </p>
         </div>
       </div>
-      <Mensagem>Não orçamos apenas despesas. Orçamos <strong style={{ color: BLUE }}>capacidades</strong>.</Mensagem>
     </Slide>
   );
 }
@@ -2181,11 +2155,6 @@ function S18() {
           </div>
         </Card>
       </div>
-      <Premissa>
-        Valores didáticos simplificados. Margem, LTV e recorrência <strong>não foram informados</strong> — e sem
-        eles não é possível concluir se o investimento é bom. Se a margem for 30%, cada venda deixa R$ 150 e o
-        CAC de R$ 275 nunca se paga na primeira compra.
-      </Premissa>
     </Slide>
   );
 }
@@ -2393,12 +2362,6 @@ function S24() {
           </Card>
         </div>
       </div>
-      <Mensagem cor={GOLD}>Quanto você <strong style={{ color: GOLD }}>realmente</strong> espera vender: R$ 30 mil ou R$ 12 mil?</Mensagem>
-      <Premissa>
-        São contratos/pacotes maiores que o ticket médio de R$ 500 — a Alpha vende para grupos e empresas
-        também. Nenhum deles fechará por R$ 12 mil: cada um fecha 100% ou 0%. O ponderado é uma média de
-        portfólio, só faz sentido com volume. Com 3 negócios é quase inútil; com os 1.920 do ano, é razoável.
-      </Premissa>
     </Slide>
   );
 }
@@ -2443,10 +2406,6 @@ function S25() {
           ))}
         </div>
       </div>
-      <Premissa>
-        Probabilidade de etapa não é verdade absoluta — é hipótese a ser calibrada contra o actual.
-        Empresas maduras combinam ponderado + julgamento do gestor + modelo histórico, e investigam onde divergem.
-      </Premissa>
     </Slide>
   );
 }
@@ -2539,7 +2498,6 @@ function S27() {
           </motion.div>
         ))}
       </div>
-      <Mensagem>Não basta saber <strong>quanto existe</strong> no pipeline. Precisamos saber a <strong style={{ color: BLUE }}>qualidade</strong> desse pipeline.</Mensagem>
     </Slide>
   );
 }
@@ -2660,10 +2618,6 @@ function S30() {
           </p>
         </div>
       </div>
-      <Premissa>
-        RevOps pode ser um time — mas antes disso é um <strong>modelo operacional</strong> e uma filosofia de gestão
-        integrada. Não é CRM, não é software, não é só um departamento novo no organograma.
-      </Premissa>
     </Slide>
   );
 }
@@ -3003,7 +2957,6 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
               <button key={s.id} onClick={() => go(i)} title={`${i + 1}. ${s.titulo}`} className={`h-2 rounded-full transition-all shrink-0 ${i === idx ? 'w-6' : 'w-2 hover:w-4 hover:brightness-200'}`} style={{ background: i === idx ? BLUE : 'rgba(255,255,255,0.2)' }} aria-label={`Slide ${i + 1}: ${s.titulo}`} />
             );
           })}
-          <span className="ml-3 text-[11px] font-bold tabular-nums text-slate-500 shrink-0">{idx + 1}/{SLIDES.length}</span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {/* no último slide o "Próximo" não serve mais — o lugar vira o PDF */}
