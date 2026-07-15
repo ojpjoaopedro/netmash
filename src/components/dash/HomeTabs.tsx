@@ -8,13 +8,30 @@ import { playTick } from "@/lib/ui-sound";
 import { fmt } from "./Kit";
 import ResumoHome from "./ResumoHome";
 
-/** Home em rolagem única (estilo Hub): Resumo → Indicadores-chave → Iniciativas. */
+type Tab = "resumo" | "faturamento" | "iniciativas";
+const TABS: { k: Tab; label: string }[] = [
+  { k: "resumo", label: "Resumo" }, { k: "faturamento", label: "Faturamento" }, { k: "iniciativas", label: "Iniciativas" },
+];
+
+/** Home minimalista com abas (estilo Hub). */
 export default function HomeTabs({ lancs, clientes, metrs, saldoInicial, nome }: { lancs: Lancamento[]; clientes: Cliente[]; metrs: Metrica[]; saldoInicial: number; nome: string; onLancar?: () => void; onImportar?: () => void; reload?: () => void }) {
+  const [tab, setTab] = useState<Tab>("resumo");
   return (
     <>
-      <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={nome} />
-      <IndicadoresChave metrs={metrs} lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} />
-      <Iniciativas />
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
+        {TABS.map((t) => {
+          const at = tab === t.k;
+          return <button key={t.k} onClick={() => { playTick(); setTab(t.k); }}
+            style={{ flexShrink: 0, padding: "8px 18px", borderRadius: 99, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+              border: at ? "1px solid #37c6f0" : "1px solid var(--line-2)",
+              background: at ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.04)",
+              color: at ? "#fff" : "var(--muted)",
+              boxShadow: at ? "0 8px 20px -8px rgba(26,173,226,.6)" : "none" }}>{t.label}</button>;
+        })}
+      </div>
+      {tab === "resumo" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={nome} />}
+      {tab === "faturamento" && <IndicadoresChave metrs={metrs} lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} />}
+      {tab === "iniciativas" && <Iniciativas />}
     </>
   );
 }
