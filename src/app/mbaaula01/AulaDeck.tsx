@@ -1249,11 +1249,10 @@ function MockupTela({ cor, pilar, titulo, children }: {
 }
 
 /** Bloco de chamada com o link do exercício. */
-function ChamadaTreino({ texto }: { texto: string }) {
+function ChamadaTreino() {
   return (
     <div className="rounded-xl border px-5 py-4" style={{ borderColor: `${GOLD}44`, background: 'rgba(196,138,87,0.06)' }}>
       <p className="text-[9px] font-black uppercase tracking-[0.25em] mb-1.5" style={{ color: GOLD }}>Agora é você</p>
-      <p className="text-[13px] text-slate-300 leading-relaxed mb-3">{texto}</p>
       <p className="text-base font-black text-slate-100">
         minhasmetricas.com<span style={{ color: GOLD }}>/treino-mba01</span>
       </p>
@@ -1307,7 +1306,7 @@ function S08A() {
             A distância entre as duas colunas é o <strong style={{ color: GOLD }}>gap</strong>. É ele que vira
             meta, e é a meta que o resto da aula vai decompor.
           </p>
-          <ChamadaTreino texto="Abra no celular, coloque seu nome e a sua empresa, e preencha o To be / As is do seu negócio. No fim você baixa em PDF." />
+          <ChamadaTreino />
         </div>
       </div>
     </Slide>
@@ -1356,11 +1355,7 @@ function S08B() {
             As duas de cima são sobre a <strong className="text-slate-200">sua empresa</strong> — você controla.
             As duas de baixo são sobre o <strong className="text-slate-200">mercado</strong> — só dá pra se preparar.
           </p>
-          <p className="text-[15px] text-slate-400 leading-relaxed">
-            Teste de honestidade: se você escreveu uma fraqueza na linha das{' '}
-            <strong style={{ color: AMBER }}>ameaças</strong>, está terceirizando culpa.
-          </p>
-          <ChamadaTreino texto="Mesma página, aba SWOT. Preencha os quatro quadrantes da sua empresa — comece pelas fraquezas, é onde a turma trava." />
+          <ChamadaTreino />
         </div>
       </div>
     </Slide>
@@ -1430,7 +1425,7 @@ function S08C() {
             precisa morrer. <strong style={{ color: AMBER }}>Evitar</strong> é recusar hoje a oportunidade
             que ia te distrair depois.
           </p>
-          <ChamadaTreino texto="Terceira aba. Feche o exercício, salve e baixe o PDF — é o esqueleto do plano comercial da sua empresa." />
+          <ChamadaTreino />
         </div>
       </div>
     </Slide>
@@ -1518,7 +1513,7 @@ function SMapaObjetivos() {
             O teste é a última coluna: se ela não tem <strong className="text-slate-200">dono e prazo</strong>,
             o plano ainda é um desejo. Meta que não desce até a agenda de alguém não acontece.
           </p>
-          <ChamadaTreino texto="Quarta aba. Traga o objetivo do seu To be / As is e desça até a ação — é aqui que o exercício vira plano." />
+          <ChamadaTreino />
         </div>
       </div>
     </Slide>
@@ -1671,11 +1666,6 @@ function STopDownPratica() {
         Cada vendedor precisa fechar <strong style={{ color: GOLD }}>{um(B_VENDAS_EXIGIDAS)} vendas por mês</strong>.
         Ele consegue? O top-down <strong>não pergunta</strong>.
       </Mensagem>
-      <Premissa>
-        Empresa Beta é fictícia e separada da Empresa Alpha. Ticket de {fmtK(BETA.ticket)}, {BETA.vendedores}{' '}
-        vendedores, meta dividida igual entre trimestres e vendedores — na vida real a distribuição é
-        desigual e sazonal.
-      </Premissa>
     </Slide>
   );
 }
@@ -1800,10 +1790,6 @@ function SBottomUpPratica() {
         <strong style={{ color: GOLD }}>{um(B_VENDEDORES_NEC)} vendedores</strong> no lugar de {BETA.vendedores},
         ou sobe o win rate, ou sobe o ticket — ou a meta baixa.
       </Mensagem>
-      <Premissa>
-        Mesma Empresa Beta do slide 20, vista de baixo. Win rate e oportunidades por vendedor são médias
-        constantes — modelo didático.
-      </Premissa>
     </Slide>
   );
 }
@@ -1971,9 +1957,9 @@ function S12() {
     { v: 'Capacidade da equipe', d: '160 oportunidades/mês exigem quantos vendedores?' },
     { v: 'Ciclo de vendas', d: 'Lead de setembro não vira receita neste ano.' },
     { v: 'Variação do ticket', d: 'Desconto muda o número de clientes necessários.' },
-    { v: 'Perdas no funil', d: 'A taxa média esconde os meses ruins.' },
+    { v: 'Perdas no funil', d: '' },
     { v: 'Churn', d: 'Parte da venda nova só repõe o que saiu.' },
-    { v: 'Mudanças de mercado', d: 'A premissa envelhece sozinha.' },
+    { v: 'Mudanças de mercado', d: '' },
   ];
   return (
     <Slide bg="dark">
@@ -1984,12 +1970,6 @@ function S12() {
             O plano é perfeito.<br />
             <span className="text-slate-500">A planilha aceita<br />qualquer número.</span>
           </h2>
-          <div className="mt-7 rounded-xl border-l-[3px] px-5 py-4" style={{ borderColor: RED, background: 'rgba(239,68,68,0.06)' }}>
-            <p className="text-base font-semibold text-slate-100 leading-snug">
-              O cálculo cria uma <strong style={{ color: BLUE }}>hipótese</strong>.<br />
-              A execução <strong style={{ color: RED }}>testa</strong> essa hipótese.
-            </p>
-          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {vars.map((x, i) => (
@@ -1999,7 +1979,7 @@ function S12() {
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: AMBER }} />
                   <p className="text-[13px] font-bold text-slate-100">{x.v}</p>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">{x.d}</p>
+                {x.d && <p className="text-[11px] text-slate-500 leading-relaxed">{x.d}</p>}
               </Card>
             </motion.div>
           ))}
@@ -2012,8 +1992,8 @@ function S12() {
 // 21 — Top-down × Bottom-up
 function S13() {
   const cols = [
-    { t: 'TOP-DOWN', cor: BLUE, itens: ['Parte da ambição', '“Queremos crescer 50%”', 'Visão estratégica', 'Pressiona crescimento'], risco: 'Risco: meta sem lastro que o time descarta no primeiro mês.' },
-    { t: 'BOTTOM-UP', cor: GOLD, itens: ['Parte da capacidade', '“Quanto conseguimos produzir?”', 'Visão operacional', 'Testa viabilidade'], risco: 'Risco: o time se protege e você planeja a mediocridade.' },
+    { t: 'TOP-DOWN', cor: BLUE, itens: ['Parte da ambição', '“Queremos crescer 50%”', 'Visão estratégica', 'Pressiona crescimento'] },
+    { t: 'BOTTOM-UP', cor: GOLD, itens: ['Parte da capacidade', '“Quanto conseguimos produzir?”', 'Visão operacional', 'Testa viabilidade'] },
   ];
   return (
     <Slide bg="dark">
@@ -2024,7 +2004,6 @@ function S13() {
           <ul className="space-y-2.5 flex-1">
             {cols[0].itens.map((x) => <li key={x} className="text-[15px] text-slate-200 flex gap-2"><span className="text-slate-600">↓</span>{x}</li>)}
           </ul>
-          <p className="text-[11px] text-slate-500 italic mt-4 pt-3 border-t border-white/10">{cols[0].risco}</p>
         </Card>
 
         <div className="flex flex-col items-center justify-center gap-2 px-2">
@@ -2038,10 +2017,9 @@ function S13() {
           <ul className="space-y-2.5 flex-1">
             {cols[1].itens.map((x) => <li key={x} className="text-[15px] text-slate-200 flex gap-2"><span className="text-slate-600">↑</span>{x}</li>)}
           </ul>
-          <p className="text-[11px] text-slate-500 italic mt-4 pt-3 border-t border-white/10">{cols[1].risco}</p>
         </Card>
       </div>
-      <Mensagem>Um bom planejamento <strong style={{ color: BLUE }}>confronta a ambição com a capacidade</strong> — e a diferença entre as duas é a pergunta mais útil do processo.</Mensagem>
+      <Mensagem>Um bom planejamento <strong style={{ color: BLUE }}>confronta a ambição com a capacidade</strong>.</Mensagem>
     </Slide>
   );
 }
