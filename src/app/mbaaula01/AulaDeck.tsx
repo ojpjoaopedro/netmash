@@ -139,6 +139,28 @@ function Seta({ label }: { label?: string }) {
   );
 }
 
+/**
+ * Selo da Magna, no rodapé. Vai na capa e no primeiro slide de cada bloco.
+ *
+ * Fica DENTRO do slide (e não na moldura do deck) de propósito: o PDF é montado
+ * a partir dos slides, então um selo na moldura não sairia no arquivo.
+ *
+ * O arquivo é JPEG de marca escura sobre fundo claro — deixar o fundo
+ * transparente sumiria com ela no navy. Daí o selo claro e arredondado.
+ */
+function SeloMagna() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.9, duration: 0.6 }}
+      className="absolute bottom-6 right-7 z-20"
+    >
+      <img src="/logos/magna.jpg" alt="Magna" className="h-10 w-auto rounded-md opacity-90" />
+    </motion.div>
+  );
+}
+
 /* ════════════════════════ BLOCO 1 — O PROBLEMA ════════════════════════ */
 
 // 1 — Capa
@@ -181,16 +203,7 @@ function S01() {
         </div>
       </div>
 
-      {/* Magna, no rodapé. O arquivo é JPEG de marca escura sobre fundo claro —
-          deixar o fundo transparente sumiria com ela aqui. Daí o selo claro. */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.1, duration: 0.6 }}
-        className="absolute bottom-6 right-7 z-10"
-      >
-        <img src="/logos/magna.jpg" alt="Magna" className="h-7 w-auto rounded-md opacity-90" />
-      </motion.div>
+      <SeloMagna />
     </div>
   );
 }
@@ -812,7 +825,9 @@ const ETAPAS_MAPA = [
  *              apaga os sete e acende a moldura, porque RevOps é o que envolve
  *              a cadeia, não mais um elo dela.
  */
-function MapaReceita({ foco }: { foco?: string }) {
+// `selo` fica de fora por padrão: este mapa aparece 6 vezes, mas só a entrada do
+// bloco de RevOps abre bloco — e só lá o selo faz sentido.
+function MapaReceita({ foco, selo }: { foco?: string; selo?: boolean }) {
   const etapas = ETAPAS_MAPA;
   const [hover, setHover] = useState<number | null>(null);
   const ENTRADA = 0.15;   // início da cascata
@@ -975,6 +990,7 @@ function MapaReceita({ foco }: { foco?: string }) {
           </div>
         </div>
       </div>
+      {selo && <SeloMagna />}
     </Slide>
   );
 }
@@ -1015,6 +1031,7 @@ function S06() {
         ))}
       </div>
       <Mensagem>Planejamento não começa na meta. Começa na <strong style={{ color: BLUE }}>realidade</strong>.</Mensagem>
+      <SeloMagna />
     </Slide>
   );
 }
@@ -2036,6 +2053,7 @@ function S15() {
           BUDGET
         </motion.p>
       </div>
+      <SeloMagna />
     </Slide>
   );
 }
@@ -2321,6 +2339,7 @@ function S22() {
           </motion.div>
         </div>
       </div>
+      <SeloMagna />
     </Slide>
   );
 }
@@ -2767,6 +2786,7 @@ function S33() {
           </p>
         </div>
       </div>
+      <SeloMagna />
     </Slide>
   );
 }
@@ -2863,7 +2883,7 @@ const SLIDES = [
   { id: 's39-coverage', titulo: 'Pipeline coverage', bloco: 'Forecast', node: <S26 /> },
   { id: 's40-saude-pipeline', titulo: 'Saúde do pipeline', bloco: 'Forecast', node: <S27 /> },
   { id: 's41-forecast-decisao', titulo: 'Forecast é decisão', bloco: 'Forecast', node: <S28 /> },
-  { id: 's42-mapa-revops', titulo: 'O mapa · próximo: REVENUE OPERATIONS', bloco: 'RevOps', node: <MapaReceita foco="REVOPS" /> },
+  { id: 's42-mapa-revops', titulo: 'O mapa · próximo: REVENUE OPERATIONS', bloco: 'RevOps', node: <MapaReceita foco="REVOPS" selo /> },
   { id: 's43-silos', titulo: 'O problema dos silos', bloco: 'RevOps', node: <S29 /> },
   { id: 's44-revops', titulo: 'O que é RevOps?', bloco: 'RevOps', node: <S30 /> },
   { id: 's45-ciclo-gestao', titulo: 'O ciclo de gestão', bloco: 'RevOps', node: <S32 /> },
