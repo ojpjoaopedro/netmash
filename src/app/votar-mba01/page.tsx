@@ -105,14 +105,6 @@ export default function VotarMba01() {
               <p className="mt-2 text-lg font-bold" style={{ color: meuVoto === 'sim' ? BLUE : GOLD }}>
                 {meuVoto === 'sim' ? 'Sim' : 'Não'}
               </p>
-              <p className="mt-6 text-sm text-slate-400">Agora olhe para a tela.</p>
-
-              <button
-                onClick={() => { setEstado('perguntando'); setMeuVoto(null); }}
-                className="mt-10 text-[11px] uppercase tracking-widest text-slate-600 hover:text-slate-400 transition-colors"
-              >
-                votar de novo
-              </button>
             </motion.div>
           )}
         </AnimatePresence>
