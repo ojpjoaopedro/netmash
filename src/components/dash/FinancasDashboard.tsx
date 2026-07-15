@@ -58,11 +58,12 @@ export default function FinancasDashboard({ lancs, saldoInicial, onLancar, onImp
             const on = sel.has(m) || (sel.size === 0 && tem);
             return (
               <button key={m} disabled={!tem} onClick={() => toggle(m)} style={{
-                padding: "9px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+                padding: "10px 0", borderRadius: 12, fontSize: 13, fontWeight: 800, fontFamily: "inherit",
                 cursor: tem ? "pointer" : "not-allowed",
-                border: on ? "1px solid var(--accent)" : "1px solid var(--line-2)",
-                background: on ? "var(--accent)" : "var(--card)",
-                color: on ? "#06222e" : (tem ? "var(--txt)" : "var(--muted)"),
+                border: on ? "1px solid #37c6f0" : "1px solid var(--line-2)",
+                background: on ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "var(--card)",
+                color: on ? "#fff" : (tem ? "var(--txt)" : "var(--muted)"),
+                boxShadow: on ? "0 6px 16px -6px rgba(26,173,226,.6), inset 0 1px 0 rgba(255,255,255,.25)" : "none",
                 opacity: tem ? 1 : .4,
               }}>{MES3[i]}</button>
             );

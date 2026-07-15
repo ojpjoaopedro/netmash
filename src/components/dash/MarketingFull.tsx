@@ -4,7 +4,37 @@ import { useState } from "react";
 import { LayoutGrid, MousePointerClick, Globe, Share2, Star } from "lucide-react";
 import { SecHead, KpiRing, Icon, fmt, fmtCompact } from "./Kit";
 import { DonutCategorias } from "@/components/Charts";
-import { def, ytd, statusMeta, type Metrica } from "@/lib/indicadores";
+import { LineChart } from "./Charts";
+import { def, ytd, statusMeta, valorMes, type Metrica } from "@/lib/indicadores";
+
+const MES3M = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+function serieMes(metrs: Metrica[], key: string) {
+  const ano = String(new Date().getFullYear());
+  return Array.from({ length: 12 }, (_, i) => ({ label: MES3M[i], value: valorMes(metrs, key, `${ano}-${String(i + 1).padStart(2, "0")}`)?.value ?? 0 }));
+}
+
+/** Gráficos de linha mês a mês para os indicadores informados. */
+function TrendCharts({ metrs, keys }: { metrs: Metrica[]; keys: string[] }) {
+  return (
+    <div className="grid two" style={{ gap: 14 }}>
+      {keys.map((k) => {
+        const d = def(k);
+        if (!d) return null;
+        const serie = serieMes(metrs, k);
+        const temDados = serie.some((p) => p.value);
+        return (
+          <div key={k} className="card">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ width: 30, height: 30, borderRadius: 9, display: "grid", placeItems: "center", background: d.cor + "22", color: d.cor }}><Icon name={d.icon} size={16} /></span>
+              <h3 style={{ margin: 0 }}>{d.label} <span className="sub" style={{ fontWeight: 500, fontSize: 12 }}>· mês a mês</span></h3>
+            </div>
+            {temDados ? <LineChart pts={serie} cor={d.cor} formatValor={(n) => fmtCompact(n, d.unidade)} /> : <p className="sub" style={{ padding: "18px 0" }}>Sem dados ainda. Preencha em “Adicionar dados” ou na Planilha.</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // ------------------------------------------------------------
 // Painéis de marketing — réplica do Hub Dynamis (tema escuro)
@@ -204,6 +234,9 @@ export default function MarketingFull({ metrs, onEditar }: { metrs: Metrica[]; o
             <KpiFromKey metrs={metrs} mkey="cac" />
             <KpiFromKey metrs={metrs} mkey="investimento" />
           </div>
+
+          <BlocoTitulo cor={ativo.cor}>Evolução mês a mês</BlocoTitulo>
+          <TrendCharts metrs={metrs} keys={["leads", "investimento", "roi", "trafego"]} />
         </>
       )}
 
@@ -227,6 +260,9 @@ export default function MarketingFull({ metrs, onEditar }: { metrs: Metrica[]; o
             <KpiFromKey metrs={metrs} mkey="leads" />
             <ResultCard icon="TrendingUp" label="ROI" valor={fmt(roi.value, "%")} cor="#10B981" />
           </div>
+
+          <BlocoTitulo cor={ativo.cor}>Evolução mês a mês</BlocoTitulo>
+          <TrendCharts metrs={metrs} keys={["trafego", "investimento", "cac"]} />
         </>
       )}
 
