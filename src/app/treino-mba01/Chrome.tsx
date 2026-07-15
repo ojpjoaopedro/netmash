@@ -11,14 +11,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Check, Download, GitCompareArrows, LayoutGrid, Rocket, Save, Plus, Trash2 } from 'lucide-react';
+import { Check, Download, GitCompareArrows, LayoutGrid, Rocket, Save, Plus, Trash2, Network, ListChecks } from 'lucide-react';
 import type { Treino } from './store';
 
 export const PILARES = [
   { n: 1, href: '/treino-mba01', titulo: 'To be / As is', icon: GitCompareArrows, cor: '#10B981' },
   { n: 2, href: '/treino-mba01/swot', titulo: 'SWOT', icon: LayoutGrid, cor: '#3B82F6' },
   { n: 3, href: '/treino-mba01/motivadores', titulo: 'Motivadores Estratégicos', icon: Rocket, cor: '#8B5CF6' },
+  { n: 4, href: '/treino-mba01/mapa-objetivos', titulo: 'Mapa de Objetivos', icon: Network, cor: '#EC4899' },
+  { n: 5, href: '/treino-mba01/iniciativas', titulo: 'Iniciativas do Ano', icon: ListChecks, cor: '#0EA5E9' },
 ];
+
+/** Quantos exercícios existem — a faixa de cada pilar mostra "Pilar N de TOTAL". */
+export const TOTAL_PILARES = PILARES.length;
 
 /* ── Cabeçalho fixo: quem é o aluno + ações ─────────────────────────────── */
 export function Topo({
@@ -115,7 +120,7 @@ export function FaixaPilar({ n, titulo, desc, icon: Icone, cor }: {
         <Icone className="w-6 h-6 text-white" />
       </div>
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: cor }}>Pilar {n} de 3</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: cor }}>Pilar {n} de {TOTAL_PILARES}</p>
         <h1 className="text-2xl font-black text-slate-900 leading-tight">{titulo}</h1>
         <p className="text-[13px] text-slate-500 italic mt-0.5">{desc}</p>
       </div>

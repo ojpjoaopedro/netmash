@@ -7,12 +7,30 @@
     margin: 14mm;
   }
 
+  /* ⚠️ O globals.css do Hub tem uma regra global para o PDF do pitch deck:
+       body * { visibility: hidden }  +  .deck-print * { visibility: visible }
+     Ou seja, tudo que não estiver dentro de .deck-print some na impressão —
+     era isso que fazia o PDF do treino sair em branco.
+     As três regras abaixo desfazem isso só para esta página. */
+  body,
+  body * {
+    visibility: visible !important;
+  }
+
+  /* o mesmo globals esconde <header> na impressão; aqui o header é o nome e a
+     empresa do aluno, que PRECISAM sair no PDF */
+  header {
+    display: block !important;
+  }
+
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* nada de sombra nem fundo cinza no papel */
+  /* nada de sombra nem fundo cinza no papel — o globals força #0A1A2E (tema do
+     deck) no body; aqui a folha é branca */
+  html,
   body {
     background: #fff !important;
   }
