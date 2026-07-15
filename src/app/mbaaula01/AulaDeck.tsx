@@ -2282,7 +2282,7 @@ function S20() {
 // 30 — Planejamento sem atualização vira ficção
 function S22() {
   const linha = [
-    { mes: 'JANEIRO', ev: 'Budget aprovado: R$ 50 mil/mês', cor: BLUE },
+    { mes: 'JANEIRO', ev: 'Budget aprovado: R$ 10 mil/mês', cor: BLUE },
     { mes: 'MARÇO', ev: 'O mercado mudou', cor: '#94A3B8' },
     { mes: 'JUNHO', ev: 'A conversão caiu', cor: AMBER },
     { mes: 'AGOSTO', ev: 'Grandes contratos atrasaram', cor: RED },
