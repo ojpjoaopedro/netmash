@@ -180,6 +180,17 @@ function S01() {
           ))}
         </div>
       </div>
+
+      {/* Magna, no rodapé. O arquivo é JPEG de marca escura sobre fundo claro —
+          deixar o fundo transparente sumiria com ela aqui. Daí o selo claro. */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.1, duration: 0.6 }}
+        className="absolute bottom-6 right-7 z-10"
+      >
+        <img src="/logos/magna.jpg" alt="Magna" className="h-7 w-auto rounded-md opacity-90" />
+      </motion.div>
     </div>
   );
 }
