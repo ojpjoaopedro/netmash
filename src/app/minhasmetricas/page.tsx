@@ -79,23 +79,23 @@ const navStyle = (ativo: boolean, k: string): React.CSSProperties | undefined =>
   ativo ? { color: corDe(k), background: corDe(k) + "1f", boxShadow: `inset 0 0 0 1px ${corDe(k)}3d` } : undefined;
 // Sub-view -> área pai (pra o menu pai acender quando você está numa sub-aba)
 const grupoDe = (v: string) => v === "analise" ? "financas" : v === "gestaovista" ? "comercial" : v === "trafego" ? "marketing" : v;
-// Itens de "Sistema" (saída + configuração) — ficam numa seção recolhível pra enxugar o menu
-const SISTEMA_KEYS = ["relatorios", "apresentacao", "ferramentas", "importar", "acessos", "empresa"];
+// Só o essencial do dia a dia fica visível; o resto vai pra "Sistema" (recolhível)
+const SISTEMA_KEYS = ["contas", "equipe", "links", "relatorios", "apresentacao", "ferramentas", "importar", "acessos", "empresa"];
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "lancamentos", label: "Lançamentos", Icon: ListChecks },
-  { key: "planilha", label: "Planilha (mês a mês)", Icon: Table2 },
-  { key: "clientes", label: "Clientes & Vendas", Icon: Contact },
+  { key: "planilha", label: "Planilha", Icon: Table2 },
   { key: "custos", label: "Custos & Despesas", Icon: Receipt },
+  { key: "clientes", label: "Clientes & Vendas", Icon: Contact },
   { key: "contas", label: "Contas a pagar/receber", Icon: CalendarClock },
   { key: "equipe", label: "Equipe", Icon: Users },
-  { key: "links", label: "Links Importantes", Icon: Link2 },
+  { key: "links", label: "Links importantes", Icon: Link2 },
   { key: "ferramentas", label: "Ferramentas", Icon: Wrench },
   { key: "relatorios", label: "Relatórios / PDF", Icon: FileText },
   { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
-  { key: "acessos", label: "Equipe & Acessos", Icon: ShieldCheck },
+  { key: "acessos", label: "Acessos & permissões", Icon: ShieldCheck },
   { key: "importar", label: "Importar planilha", Icon: Upload },
-  { key: "empresa", label: "Empresa", Icon: Building2 },
+  { key: "empresa", label: "Empresa & marca", Icon: Building2 },
 ] as const;
 
 const AREAS: Record<string, AreaConfig> = {
@@ -303,7 +303,7 @@ export default function Home() {
             </nav></div>
             {opsSistema.length > 0 && (
               <div className="navgroup">
-                <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Sistema <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
+                <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Mais opções <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
                 {(sistemaAberto || sistemaTemAtivo) && <nav className="nav">
                   {opsSistema.map(({ key, label, Icon }) => (
                     <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
@@ -359,7 +359,7 @@ export default function Home() {
 
         {opsSistema.length > 0 && (
           <div className="navgroup">
-            <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Sistema <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
+            <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Mais opções <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
             {(sistemaAberto || sistemaTemAtivo) && (
               <nav className="nav">
                 {opsSistema.map(({ key, label, Icon }) => (
