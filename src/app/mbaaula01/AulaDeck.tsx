@@ -1448,7 +1448,6 @@ function S08() {
           </motion.div>
         ))}
       </div>
-      <Mensagem>Crescer não significa necessariamente apenas <strong>vender para mais clientes</strong>.</Mensagem>
     </Slide>
   );
 }

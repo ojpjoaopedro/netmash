@@ -36,6 +36,17 @@ export const buscarDoToBe = (tobe: Linha[]): string[] =>
   tobe.map((l) => l.toBe.trim()).filter(Boolean);
 
 /**
+ * A SWOT desce sozinha para a matriz pela mesma lógica do BUSCAR: força é o que
+ * eu quero e JÁ tenho; fraqueza é o que eu tenho e NÃO quero. Redigitar aqui só
+ * criaria duas verdades para o mesmo fato.
+ */
+export const preservarDasForcas = (swot: Swot): string[] =>
+  swot.forcas.map((s) => s.trim()).filter(Boolean);
+
+export const eliminarDasFraquezas = (swot: Swot): string[] =>
+  swot.fraquezas.map((s) => s.trim()).filter(Boolean);
+
+/**
  * Cascata de 4 níveis: a meta descendo até virar tarefa com dono.
  * É uma árvore, não quatro listas soltas — cada ação pertence a uma iniciativa,
  * que pertence a um sub-objetivo, que pertence a um objetivo. É essa amarração
