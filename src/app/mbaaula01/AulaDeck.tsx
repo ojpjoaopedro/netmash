@@ -3156,7 +3156,7 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
         </button>
         <div className="flex items-center gap-1.5 overflow-x-auto">
           {SLIDES.map((s, i) => (
-            <button key={s.id} onClick={() => go(i)} title={`${i + 1}. ${s.titulo}`} className={`h-2 rounded-full transition-all shrink-0 ${i === idx ? 'w-6' : 'w-2'}`} style={{ background: i === idx ? BLUE : 'rgba(255,255,255,0.2)' }} aria-label={`Slide ${i + 1}: ${s.titulo}`} />
+            <button key={s.id} onClick={() => go(i)} title={`${i + 1}. ${s.titulo}`} className={`h-2 rounded-full transition-all shrink-0 ${i === idx ? 'w-6' : 'w-2 hover:w-4 hover:brightness-200'}`} style={{ background: i === idx ? BLUE : 'rgba(255,255,255,0.2)' }} aria-label={`Slide ${i + 1}: ${s.titulo}`} />
           ))}
         </div>
         <div className="flex items-center gap-3 shrink-0">

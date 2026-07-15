@@ -53,6 +53,13 @@ a{color:inherit;text-decoration:none}
 button{font-family:inherit}
 .mono{font-variant-numeric:tabular-nums}
 
+/* O Preflight do Tailwind v4 deixa botão com cursor de seta (no v3 era a mãozinha).
+   Sem isso, telas feitas só com classes Tailwind — como /mbaaula01 — não parecem clicáveis. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) { cursor: pointer; }
+}
+
 /* ===== Shell ===== */
 .app{display:flex;min-height:100vh}
 .side{width:248px;background:var(--sidebar);border-right:1px solid var(--line);
