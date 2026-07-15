@@ -378,154 +378,21 @@ function SGlossario() {
   );
 }
 
-// 3 — A pergunta central (QUIZ ao vivo)
-// A turma vota em /votar-mba01 pelo celular. Esta tela só conta os votos;
-// o resultado fica escondido até o professor clicar em "revelar" — assim
-// quem vota por último não é influenciado pela maioria.
+// 3 — A pergunta central
+// A votação ao vivo (link do celular + painel de votos) foi removida a pedido
+// do Diogo. A rota /votar-mba01 e a API continuam de pé, então dá para trazer
+// o quiz de volta sem refazer nada.
 function S02() {
-  const [placar, setPlacar] = useState<{ sim: number; nao: number; total: number } | null>(null);
-  const [revelado, setRevelado] = useState(false);
-  const [zerando, setZerando] = useState(false);
-
-  // busca o placar a cada 2s enquanto o slide está aberto
-  useEffect(() => {
-    let vivo = true;
-    const buscar = async () => {
-      try {
-        const r = await fetch('/api/quiz-mba01', { cache: 'no-store' });
-        if (!r.ok) return;
-        const d = await r.json();
-        if (vivo) setPlacar(d);
-      } catch { /* rede caiu: mantém o último placar na tela */ }
-    };
-    buscar();
-    const t = setInterval(buscar, 2000);
-    return () => { vivo = false; clearInterval(t); };
-  }, []);
-
-  const zerar = async () => {
-    setZerando(true);
-    try {
-      const r = await fetch('/api/quiz-mba01', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acao: 'zerar' }),
-      });
-      if (r.ok) { setPlacar(await r.json()); setRevelado(false); }
-    } catch { /* ignora */ }
-    setZerando(false);
-  };
-
-  const total = placar?.total ?? 0;
-  const pct = (n: number) => (total === 0 ? 0 : Math.round((n / total) * 100));
-
   return (
     <Slide bg="dark">
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 items-center min-h-0">
-        {/* ── a pergunta ── */}
-        <div>
-          <motion.div initial={{ height: 0 }} animate={{ height: 56 }} transition={{ duration: 0.6 }} className="w-[3px] mb-7" style={{ background: `linear-gradient(180deg, ${BLUE}, transparent)` }} />
-          <h1 className="text-2xl sm:text-[2.7rem] font-black leading-[1.15] tracking-tight">
-            Sua empresa tem uma<br />meta de vendas.
-          </h1>
-          <h1 className="mt-5 text-2xl sm:text-[2.7rem] font-black leading-[1.15] tracking-tight" style={{ color: BLUE }}>
-            Mas existe um plano capaz de explicar como ela será atingida?
-          </h1>
-
-          <div className="mt-8 inline-flex flex-col gap-1.5 rounded-xl border px-5 py-3.5" style={{ borderColor: `${GOLD}44`, background: 'rgba(196,138,87,0.06)' }}>
-            <p className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: GOLD }}>Vote pelo celular</p>
-            <p className="text-lg font-black text-slate-100">minhasmetricas.com<span style={{ color: GOLD }}>/votar-mba01</span></p>
-          </div>
-        </div>
-
-        {/* ── o painel de votos ── */}
-        <Card className="p-7 flex flex-col justify-center min-h-[340px]">
-          {/* contador — sempre visível */}
-          <div className="text-center">
-            <motion.p
-              key={total}
-              initial={{ scale: 1.25, opacity: 0.5 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 18 }}
-              className="text-6xl font-black tabular-nums"
-              style={{ color: BLUE, textShadow: '0 0 50px rgba(26,173,226,0.35)' }}
-            >
-              {total}
-            </motion.p>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mt-1">
-              {total === 1 ? 'voto recebido' : 'votos recebidos'}
-            </p>
-            {placar === null && <p className="text-[10px] text-slate-600 mt-2">conectando…</p>}
-          </div>
-
-          {/* resultado — só depois de revelar */}
-          <AnimatePresence mode="wait">
-            {!revelado ? (
-              <motion.div key="fechado" exit={{ opacity: 0 }} className="mt-8 flex flex-col items-center gap-4">
-                <div className="flex items-center gap-2">
-                  {[0, 1, 2].map((i) => (
-                    <motion.span
-                      key={i}
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: BLUE }}
-                      animate={{ opacity: [0.2, 1, 0.2] }}
-                      transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.2, ease: 'easeInOut' }}
-                    />
-                  ))}
-                </div>
-                <p className="text-xs text-slate-500">Resultado escondido — a turma ainda está votando.</p>
-                <button
-                  onClick={() => setRevelado(true)}
-                  disabled={total === 0}
-                  className="mt-1 px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest text-white transition-all hover:scale-[1.03] disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed"
-                  style={{ background: `linear-gradient(to bottom right, ${BLUE}, #0c6e9e)` }}
-                >
-                  Revelar resultado
-                </button>
-              </motion.div>
-            ) : (
-              <motion.div key="aberto" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="mt-8 space-y-4">
-                {([['sim', 'Sim', BLUE], ['nao', 'Não', GOLD]] as const).map(([chave, rotulo, cor]) => {
-                  const n = placar?.[chave] ?? 0;
-                  return (
-                    <div key={chave}>
-                      <div className="flex items-baseline justify-between mb-1.5">
-                        <span className="text-sm font-black uppercase tracking-widest" style={{ color: cor }}>{rotulo}</span>
-                        <span className="text-sm text-slate-400 tabular-nums">
-                          <strong className="text-xl font-black" style={{ color: cor }}>{pct(n)}%</strong>
-                          <span className="text-[11px] text-slate-600 ml-2">({n})</span>
-                        </span>
-                      </div>
-                      <div className="h-3 rounded-full overflow-hidden bg-white/[0.05]">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{ background: `linear-gradient(90deg, ${cor}, ${cor}88)` }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct(n)}%` }}
-                          transition={{ duration: 0.9, ease: 'easeOut' }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-                <button
-                  onClick={() => setRevelado(false)}
-                  className="w-full text-[10px] uppercase tracking-widest text-slate-600 hover:text-slate-400 pt-2 transition-colors"
-                >
-                  esconder de novo
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <button
-            onClick={zerar}
-            disabled={zerando}
-            className="mt-6 pt-4 border-t border-white/10 text-[10px] uppercase tracking-widest text-slate-600 hover:text-slate-400 transition-colors disabled:opacity-40"
-          >
-            {zerando ? 'zerando…' : 'zerar votação'}
-          </button>
-        </Card>
+      <div className="flex-1 flex flex-col justify-center min-h-0">
+        <motion.div initial={{ height: 0 }} animate={{ height: 56 }} transition={{ duration: 0.6 }} className="w-[3px] mb-7" style={{ background: `linear-gradient(180deg, ${BLUE}, transparent)` }} />
+        <h1 className="text-2xl sm:text-[3.2rem] font-black leading-[1.15] tracking-tight">
+          Sua empresa tem uma<br />meta de vendas.
+        </h1>
+        <h1 className="mt-6 max-w-[22ch] text-2xl sm:text-[3.2rem] font-black leading-[1.15] tracking-tight" style={{ color: BLUE }}>
+          Mas existe um plano capaz de explicar como ela será atingida?
+        </h1>
       </div>
     </Slide>
   );
@@ -599,7 +466,6 @@ function S03() {
           </ul>
         </Card>
       </div>
-      <Mensagem>Uma meta diz <strong>onde</strong> queremos chegar. Um plano explica <strong style={{ color: BLUE }}>como</strong>.</Mensagem>
     </Slide>
   );
 }
@@ -725,9 +591,6 @@ function S04() {
         </motion.div>
       </div>
 
-      <Mensagem cor={RED}>
-        Empresas não sofrem apenas por falta de vendas.<br />Sofrem por <strong style={{ color: RED }}>falta de previsibilidade</strong>.
-      </Mensagem>
     </Slide>
   );
 }
@@ -798,7 +661,6 @@ function SIceberg() {
     <Slide bg="dark">
       <div className="shrink-0 mb-1">
         <p className="text-[11px] font-black uppercase tracking-[0.3em]" style={{ color: BLUE }}>Todo mundo cobra a ponta</p>
-        <h2 className="text-2xl sm:text-3xl font-black tracking-tight">O iceberg do resultado</h2>
       </div>
 
       <div className="flex-1 min-h-0">
@@ -919,10 +781,6 @@ function SIceberg() {
         </svg>
       </div>
 
-      <Mensagem>
-        A empresa cobra a <strong style={{ color: GOLD }}>ponta</strong>. Esta aula é sobre a{' '}
-        <strong style={{ color: BLUE }}>massa embaixo d&apos;água</strong> — que é o que sustenta a ponta.
-      </Mensagem>
     </Slide>
   );
 }
@@ -3104,6 +2962,12 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
 
   const atual = SLIDES[idx];
 
+  // São 47 slides — 47 dots viram um risco só. Mostramos uma janela de 10 que
+  // acompanha o slide atual, mantendo-o no meio sempre que dá (nas pontas a
+  // janela encosta e para, senão sobrariam espaços vazios).
+  const DOTS_VISIVEIS = 10;
+  const dotIni = Math.max(0, Math.min(idx - Math.floor(DOTS_VISIVEIS / 2), SLIDES.length - DOTS_VISIVEIS));
+
   return (
     <div className="deck-dark deck-live fixed inset-0 z-[70] overflow-hidden flex flex-col" style={{ backgroundColor: NAVY }}>
       {/* Pilha de captura: os 47 slides montados em 1280×720, jogados para fora
@@ -3154,10 +3018,14 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
         <button onClick={() => go(idx - 1)} disabled={idx === 0} className="flex items-center gap-1.5 text-sm font-semibold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3.5 py-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
           <ChevronLeft className="w-4 h-4" /> Anterior
         </button>
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {SLIDES.map((s, i) => (
-            <button key={s.id} onClick={() => go(i)} title={`${i + 1}. ${s.titulo}`} className={`h-2 rounded-full transition-all shrink-0 ${i === idx ? 'w-6' : 'w-2 hover:w-4 hover:brightness-200'}`} style={{ background: i === idx ? BLUE : 'rgba(255,255,255,0.2)' }} aria-label={`Slide ${i + 1}: ${s.titulo}`} />
-          ))}
+        <div className="flex items-center gap-1.5">
+          {SLIDES.slice(dotIni, dotIni + DOTS_VISIVEIS).map((s, k) => {
+            const i = dotIni + k;
+            return (
+              <button key={s.id} onClick={() => go(i)} title={`${i + 1}. ${s.titulo}`} className={`h-2 rounded-full transition-all shrink-0 ${i === idx ? 'w-6' : 'w-2 hover:w-4 hover:brightness-200'}`} style={{ background: i === idx ? BLUE : 'rgba(255,255,255,0.2)' }} aria-label={`Slide ${i + 1}: ${s.titulo}`} />
+            );
+          })}
+          <span className="ml-3 text-[11px] font-bold tabular-nums text-slate-500 shrink-0">{idx + 1}/{SLIDES.length}</span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {/* no último slide o "Próximo" não serve mais — o lugar vira o PDF */}
