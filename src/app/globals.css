@@ -230,9 +230,12 @@ body.theme-light .kmini{background:linear-gradient(180deg,#fff,#fafcff);box-shad
 .btn:disabled{opacity:.5;cursor:not-allowed}
 
 label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px}
-input,select,textarea{width:100%;background:var(--bg-2);border:1px solid var(--line);color:var(--txt);
+/* O `:not(.mba-scope *)` isola as telas da aula de MBA (/mbaaula01, /treino-mba01,
+   /votar-mba01). Elas vieram do Hub, são tema claro e se estilizam só com Tailwind.
+   Sem isso, este campo escuro do design system vazava e pintava os inputs delas de preto. */
+input:not(.mba-scope *),select:not(.mba-scope *),textarea:not(.mba-scope *){width:100%;background:var(--bg-2);border:1px solid var(--line);color:var(--txt);
   padding:10px 12px;border-radius:10px;font-size:14px;font-family:inherit;outline:none}
-input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-scope *):focus{border-color:var(--brand)}
 .field{margin-bottom:13px}
 .row{display:flex;gap:11px;flex-wrap:wrap}
 .row > *{flex:1;min-width:140px}
