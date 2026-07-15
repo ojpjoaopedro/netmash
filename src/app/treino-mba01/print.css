@@ -1,0 +1,39 @@
+/* Impressão → "Salvar como PDF" no diálogo do navegador.
+   Some com botões e navegação, e força as cores dos cards a saírem no papel. */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* nada de sombra nem fundo cinza no papel */
+  body {
+    background: #fff !important;
+  }
+
+  /* campos de texto viram texto normal */
+  input,
+  textarea {
+    border: 0 !important;
+    background: transparent !important;
+    resize: none !important;
+  }
+
+  /* placeholder não deve ser impresso — senão o PDF sai cheio de "Ex: ..." */
+  input::placeholder,
+  textarea::placeholder {
+    color: transparent !important;
+  }
+
+  /* não quebrar um bloco no meio da página */
+  .print-bloco {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
