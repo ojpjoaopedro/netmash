@@ -2067,6 +2067,9 @@ function S16() {
 }
 
 // 25 — O que entra no budget comercial?
+// Os itens não aparecem sozinhos: cada clique revela o próximo, para o professor
+// falar de um por vez. Os invisíveis continuam ocupando o lugar deles (opacity),
+// então a grade não pula quando aparecem.
 function S17() {
   const cats = [
     { c: 'Pessoas', d: 'Salários, encargos, hiring, ramp-up', icon: Users, cor: BLUE },
@@ -2077,36 +2080,56 @@ function S17() {
     { c: 'Treinamento', d: 'Alavanca direta de win rate', icon: GraduationCap, cor: GREEN },
     { c: 'Parceiros e canais', d: 'Receita indireta', icon: Handshake, cor: AMBER },
   ];
+  const total = cats.length + 1; // +1 = o card tracejado do fim
+  const [revelados, setRevelados] = useState(0);
+  const revelar = () => setRevelados((n) => Math.min(n + 1, total));
+  const visivel = (i: number) => (i < revelados ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.94 });
+
   return (
     <Slide bg="dark">
       <Titulo sub="Composição">O que entra no budget comercial?</Titulo>
-      <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-3 content-center">
-        {cats.map((c, i) => (
-          <motion.div key={c.c} initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.06 + i * 0.08 }}>
-            <Card className="p-4 h-full">
-              <c.icon className="w-5 h-5 mb-2.5" style={{ color: c.cor }} />
-              <p className="text-sm font-bold text-slate-100">{c.c}</p>
-              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{c.d}</p>
-            </Card>
+      <div onClick={revelar} className="flex-1 flex flex-col justify-center cursor-pointer">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {cats.map((c, i) => (
+            <motion.div key={c.c} initial={{ opacity: 0, scale: 0.94 }} animate={visivel(i)} transition={{ duration: 0.3, ease: 'easeOut' }}>
+              <Card className="p-4 h-full">
+                <c.icon className="w-5 h-5 mb-2.5" style={{ color: c.cor }} />
+                <p className="text-sm font-bold text-slate-100">{c.c}</p>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{c.d}</p>
+              </Card>
+            </motion.div>
+          ))}
+          <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={visivel(cats.length)} transition={{ duration: 0.3, ease: 'easeOut' }}>
+            <div className="rounded-2xl border border-dashed flex items-center justify-center p-4 h-full" style={{ borderColor: `${GOLD}44` }}>
+              <p className="text-[11px] text-center leading-relaxed" style={{ color: GOLD }}>
+                Cortar 20% do budget =<br />reduzir X% da capacidade<br />de gerar receita.
+              </p>
+            </div>
           </motion.div>
-        ))}
-        <div className="rounded-2xl border border-dashed flex items-center justify-center p-4" style={{ borderColor: `${GOLD}44` }}>
-          <p className="text-[11px] text-center leading-relaxed" style={{ color: GOLD }}>
-            Cortar 20% do budget =<br />reduzir X% da capacidade<br />de gerar receita.
-          </p>
         </div>
+
+        {/* fica no lugar mesmo invisível, senão a grade se mexe ao sumir */}
+        <p
+          className="mt-7 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity duration-300"
+          style={{ opacity: revelados === 0 ? 1 : 0 }}
+        >
+          clique para revelar
+        </p>
       </div>
     </Slide>
   );
 }
 
 // 26 — Construindo o budget da Alpha
+// O card da direita (o veredito do investimento) só aparece no clique: primeiro
+// a turma olha o quanto custa, depois é que vem o "isso faz sentido?".
 function S18() {
   const max = Math.max(...BUDGET.map((b) => b.valor));
+  const [revelado, setRevelado] = useState(false);
   return (
     <Slide bg="dark">
       <Titulo sub="Estudo de caso · Empresa Alpha">Construindo o budget</Titulo>
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-6 items-center min-h-0">
+      <div onClick={() => setRevelado(true)} className="flex-1 grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-6 items-center min-h-0 cursor-pointer">
         <div className="space-y-2.5">
           {BUDGET.map((b, i) => (
             <motion.div key={b.item} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.11 }} className="flex items-center gap-3">
@@ -2132,6 +2155,20 @@ function S18() {
           </div>
         </div>
 
+        <div className="relative h-full">
+          {/* a dica ocupa o lugar do card enquanto ele não veio */}
+          <p
+            className="absolute inset-0 grid place-items-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity duration-300"
+            style={{ opacity: revelado ? 0 : 1 }}
+          >
+            clique para revelar
+          </p>
+          <motion.div
+            className="h-full"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={revelado ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+          >
         <Card className="p-6 h-full flex flex-col justify-center gap-5">
           <div>
             <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Investimento</p>
@@ -2153,6 +2190,8 @@ function S18() {
             </p>
           </div>
         </Card>
+          </motion.div>
+        </div>
       </div>
     </Slide>
   );
