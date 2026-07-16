@@ -14,6 +14,23 @@ import '../print.css';
 const VERDE = '#10B981';
 const AMBAR = '#F59E0B';
 
+/**
+ * Lixeira do canto do card. Vai nos dois lados: os dois são a MESMA linha, então
+ * apagar por qualquer um tira o par — a pessoa não precisa procurar de que lado
+ * fica o botão.
+ */
+function BotaoRemover({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 shadow-sm transition-all print:hidden"
+      aria-label="remover linha"
+    >
+      <Trash2 className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
 export default function ToBeAsIs() {
   const { slug } = useParams<{ slug: string }>();
   const t = useTreino(slug);
@@ -49,7 +66,7 @@ export default function ToBeAsIs() {
         <div className="space-y-2.5">
           {dados.tobe.map((l) => (
             <div key={l.id} className="group grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
-              <div className="rounded-xl border-l-4 bg-white border border-slate-200 p-3" style={{ borderLeftColor: VERDE }}>
+              <div className="relative rounded-xl border-l-4 bg-white border border-slate-200 p-3" style={{ borderLeftColor: VERDE }}>
                 <textarea
                   value={l.toBe}
                   onChange={(e) => editar(l.id, 'toBe', e.target.value)}
@@ -57,6 +74,7 @@ export default function ToBeAsIs() {
                   rows={2}
                   className="w-full resize-none text-[14px] text-slate-800 placeholder:text-slate-400 placeholder:italic focus:outline-none bg-transparent"
                 />
+                <BotaoRemover onClick={() => remover(l.id)} />
               </div>
 
               <div className="flex items-center justify-center">
@@ -71,13 +89,7 @@ export default function ToBeAsIs() {
                   rows={2}
                   className="w-full resize-none text-[14px] text-slate-800 placeholder:text-slate-400 placeholder:italic focus:outline-none bg-transparent"
                 />
-                <button
-                  onClick={() => remover(l.id)}
-                  className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 shadow-sm transition-all print:hidden"
-                  aria-label="remover linha"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <BotaoRemover onClick={() => remover(l.id)} />
               </div>
             </div>
           ))}
