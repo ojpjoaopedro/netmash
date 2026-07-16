@@ -79,8 +79,28 @@ export type Acao = {
 };
 export type Iniciativa = { id: string; texto: string; acoes: Acao[] };
 export type SubObjetivo = { id: string; texto: string; iniciativas: Iniciativa[] };
-export type Objetivo = { id: string; texto: string; subObjetivos: SubObjetivo[] };
+/** `origem` guarda de qual item do BUSCAR este objetivo nasceu (ver itensDoBuscar). */
+export type Objetivo = { id: string; texto: string; subObjetivos: SubObjetivo[]; origem?: string };
 export type MapaObjetivos = Objetivo[];
+
+/** Um item do BUSCAR, com uma chave estável para não virar objetivo duas vezes. */
+export type ItemBuscar = { chave: string; texto: string };
+
+/**
+ * Tudo que está no BUSCAR: o que desceu do "queremos ser" e o que o aluno
+ * acrescentou à mão. Cada um leva uma chave — o id da linha do To be / As is,
+ * ou a posição na lista — para o mapa saber quem já virou objetivo.
+ */
+export function itensDoBuscar(t: Treino): ItemBuscar[] {
+  return [
+    ...t.tobe
+      .filter((l) => l.toBe.trim())
+      .map((l) => ({ chave: `tobe:${l.id}`, texto: l.toBe.trim() })),
+    ...t.motivadores.buscar
+      .map((texto, i) => ({ chave: `buscar:${i}`, texto: texto.trim() }))
+      .filter((x) => x.texto),
+  ];
+}
 
 /** As áreas disponíveis — usadas no mapa e na aba de iniciativas. */
 export const AREAS = ['Comercial', 'Marketing', 'Customer Success', 'Financeiro', 'RH / Gestão', 'Tecnologia'] as const;
@@ -92,6 +112,12 @@ export type Treino = {
   swot: Swot;
   motivadores: Motivadores;
   mapa: MapaObjetivos;
+  /**
+   * Chaves do BUSCAR que já viraram objetivo — inclusive as que o aluno depois
+   * apagou. Sem esta lista, o objetivo apagado renasceria toda vez que ele
+   * abrisse o mapa de novo.
+   */
+  semeados: string[];
 };
 
 export const VAZIO: Treino = {
@@ -101,6 +127,7 @@ export const VAZIO: Treino = {
   swot: { forcas: [], fraquezas: [], oportunidades: [], ameacas: [] },
   motivadores: { buscar: [], preservar: [], evitar: [], eliminar: [] },
   mapa: [],
+  semeados: [],
 };
 
 /* ── construtores dos níveis da árvore ────────────────────────────────────── */
@@ -153,6 +180,8 @@ function normalizar(d: Partial<Treino> | null | undefined): Treino {
       // o mapa já foi 4 listas soltas antes de virar árvore; quem salvou naquele
       // formato cai aqui e começa vazio em vez de quebrar a tela
       mapa: Array.isArray(d.mapa) ? d.mapa : [],
+      // quem salvou antes de o BUSCAR virar objetivo não tem esta lista
+      semeados: Array.isArray(d.semeados) ? d.semeados : [],
     };
   }
 }

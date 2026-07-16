@@ -6,13 +6,18 @@
  * Árvore de 4 níveis: OBJETIVO → SUB-OBJETIVOS → INICIATIVAS → AÇÕES.
  * Cada nível pendura no de cima, então o aluno não consegue escrever uma ação
  * solta: ela nasce dentro de uma iniciativa, que nasce dentro de um sub-objetivo.
+ *
+ * Os objetivos não começam do zero: cada item do BUSCAR entra aqui como um
+ * objetivo (o que eu quero e não tenho é, por definição, o que preciso buscar).
+ * A corrente da aula inteira: To be / As is → BUSCAR → objetivo → ação.
  */
 
+import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Network, Plus, Trash2 } from 'lucide-react';
 import { Topo, FaixaPilar, AvisoLocal } from '../../Chrome';
 import {
-  useTreino, novoObjetivo, novoSubObjetivo, novaIniciativa, novaAcao, AREAS,
+  useTreino, novoObjetivo, novoSubObjetivo, novaIniciativa, novaAcao, AREAS, itensDoBuscar,
   type Objetivo, type SubObjetivo, type Iniciativa, type Acao,
 } from '../../store';
 import '../../print.css';
@@ -132,6 +137,28 @@ export default function MapaObjetivosPage() {
   const { slug } = useParams<{ slug: string }>();
   const t = useTreino(slug);
   const { dados, alterar } = t;
+
+  /**
+   * Cada item do BUSCAR entra como objetivo — uma vez só.
+   *
+   * `semeados` marca o que já veio, inclusive o que o aluno apagou depois; sem
+   * isso, o objetivo apagado voltaria toda vez que ele reabrisse o mapa. E o
+   * objetivo é dado de verdade daqui pra frente (não espelho do BUSCAR): ele
+   * carrega sub-objetivos, iniciativas e ações penduradas, que não podem sumir
+   * porque alguém mexeu numa frase no pilar 3.
+   */
+  useEffect(() => {
+    if (!t.carregado) return;
+    const jaVieram = new Set(dados.semeados);
+    const novos = itensDoBuscar(dados).filter((i) => !jaVieram.has(i.chave));
+    if (!novos.length) return;
+    alterar({
+      mapa: [...dados.mapa, ...novos.map((i) => ({ ...novoObjetivo(), texto: i.texto, origem: i.chave }))],
+      semeados: [...dados.semeados, ...novos.map((i) => i.chave)],
+    });
+    // roda ao abrir a tela: é quando o BUSCAR do pilar 3 pode ter mudado
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.carregado]);
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
 
