@@ -174,15 +174,6 @@ export default function MotivadoresPage() {
                       cor={c.cor}
                     />
 
-                    {origem && c.derivados.length === 0 && dados.motivadores[c.chave].length === 0 && (
-                      <p className="text-[11px] text-slate-400 leading-relaxed mt-2 print:hidden">
-                        O{' '}
-                        <Link href={origem.href} className="font-bold hover:underline" style={{ color: c.cor }}>
-                          {origem.rotulo}
-                        </Link>{' '}
-                        preenche isto sozinho — ou escreva aqui o que quiser acrescentar.
-                      </p>
-                    )}
                   </div>
                 );
               })}
