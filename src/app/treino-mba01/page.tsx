@@ -39,7 +39,7 @@ export default function CadastroTreinoPage() {
           </span>
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA</p>
-            <h1 className="text-xl font-black tracking-tight text-slate-800">Plano comercial da sua empresa</h1>
+            <h1 className="text-xl font-black tracking-tight text-slate-800">Simulador</h1>
           </div>
         </div>
 
@@ -55,7 +55,6 @@ export default function CadastroTreinoPage() {
             <input
               value={empresa}
               onChange={(e) => { setEmpresa(e.target.value); setErro(''); }}
-              placeholder="Ex: Padaria do João"
               maxLength={80}
               autoFocus
               className="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
