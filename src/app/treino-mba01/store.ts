@@ -1,18 +1,17 @@
 'use client';
 
 /**
- * Exercício do aluno — mora SÓ no navegador dele (localStorage).
+ * Exercício do aluno — guardado no banco, uma linha por empresa.
  *
- * Decisão consciente: nada vai para o servidor. O aluno não faz cadastro, o Hub
- * não guarda dado de terceiro, e ninguém vê o exercício de ninguém. Quem quiser
- * levar o trabalho, baixa o PDF.
+ * Antes morava no localStorage: era do navegador, então trocar de computador ou
+ * limpar o histórico perdia tudo. Agora cada empresa se cadastra e ganha um link
+ * (/treino-mba01/<slug>); o link é a chave, e o exercício segue a pessoa.
  *
- * Consequência: se o aluno limpar o navegador, perde. O aviso está na tela.
+ * Quem tem o link mexe no exercício — mesmo contrato de um link de planilha
+ * compartilhada. Não há login: é uma aula, e o dado aqui é o exercício dela.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-
-const CHAVE = 'treino-mba01';
 
 export type Linha = { id: string; toBe: string; asIs: string };
 export type Swot = { forcas: string[]; fraquezas: string[]; oportunidades: string[]; ameacas: string[] };
@@ -121,12 +120,14 @@ export function todasAsAcoes(mapa: MapaObjetivos): AcaoNaArvore[] {
 /** ids estáveis sem depender de libs */
 export const novoId = () => `l${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
-function ler(): Treino {
-  if (typeof window === 'undefined') return VAZIO;
-  try {
-    const cru = window.localStorage.getItem(CHAVE);
-    if (!cru) return VAZIO;
-    const d = JSON.parse(cru) as Partial<Treino>;
+/**
+ * O que vem do banco é jsonb — pode ter sido gravado por uma versão anterior da
+ * tela. Cada campo tem um padrão, então dado antigo/incompleto abre em vez de
+ * quebrar o exercício do aluno no meio da aula.
+ */
+function normalizar(d: Partial<Treino> | null | undefined): Treino {
+  if (!d || typeof d !== 'object') return VAZIO;
+  {
     return {
       nome: d.nome ?? '',
       empresa: d.empresa ?? '',
@@ -149,41 +150,68 @@ function ler(): Treino {
       // formato cai aqui e começa vazio em vez de quebrar a tela
       mapa: Array.isArray(d.mapa) ? d.mapa : [],
     };
-  } catch {
-    return VAZIO;
   }
 }
 
 /**
- * Estado do exercício + salvar explícito.
- * `carregado` evita piscar o formulário vazio antes de o localStorage responder.
+ * Estado do exercício de UMA empresa + salvar explícito.
+ *
+ * `carregado` evita piscar o formulário vazio antes de o banco responder.
+ * `naoEncontrado` é o link errado/apagado — a tela mostra recado em vez de
+ * deixar o aluno preencher tudo e só descobrir no salvar.
  */
-export function useTreino() {
+export function useTreino(slug: string) {
   const [dados, setDados] = useState<Treino>(VAZIO);
   const [carregado, setCarregado] = useState(false);
+  const [naoEncontrado, setNaoEncontrado] = useState(false);
   const [sujo, setSujo] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [salvoEm, setSalvoEm] = useState<string | null>(null);
 
   useEffect(() => {
-    setDados(ler());
-    setCarregado(true);
-  }, []);
+    let vivo = true;
+    (async () => {
+      try {
+        const r = await fetch(`/api/treino-mba01/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+        if (!vivo) return;
+        if (r.status === 404) { setNaoEncontrado(true); setCarregado(true); return; }
+        if (!r.ok) throw new Error('falha');
+        const j = await r.json();
+        if (!vivo) return;
+        // o nome da empresa é do cadastro, não do exercício: sempre o do banco
+        setDados({ ...normalizar(j.dados), empresa: j.empresa ?? '' });
+      } catch {
+        // rede caiu: abre vazio em vez de travar. O salvar avisa se falhar.
+      } finally {
+        if (vivo) setCarregado(true);
+      }
+    })();
+    return () => { vivo = false; };
+  }, [slug]);
 
   const alterar = useCallback((mudanca: Partial<Treino>) => {
     setDados((d) => ({ ...d, ...mudanca }));
     setSujo(true);
   }, []);
 
-  const salvar = useCallback(() => {
+  const salvar = useCallback(async () => {
+    setSalvando(true);
     try {
-      window.localStorage.setItem(CHAVE, JSON.stringify(dados));
+      const r = await fetch(`/api/treino-mba01/${encodeURIComponent(slug)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dados }),
+      });
+      if (!r.ok) return false;
       setSujo(false);
       setSalvoEm(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
       return true;
     } catch {
       return false;
+    } finally {
+      setSalvando(false);
     }
-  }, [dados]);
+  }, [dados, slug]);
 
   // rede de segurança: avisa se fechar a aba com coisa não salva
   useEffect(() => {
@@ -193,5 +221,5 @@ export function useTreino() {
     return () => window.removeEventListener('beforeunload', aviso);
   }, [sujo]);
 
-  return { dados, alterar, salvar, carregado, sujo, salvoEm };
+  return { dados, alterar, salvar, carregado, naoEncontrado, sujo, salvando, salvoEm, slug };
 }

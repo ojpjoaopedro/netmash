@@ -4,10 +4,11 @@
  * Pilar 2 — SWOT. Página PÚBLICA (sem login): é o exercício do aluno.
  */
 
+import { useParams } from 'next/navigation';
 import { LayoutGrid, Zap, AlertTriangle, TrendingUp, ShieldAlert } from 'lucide-react';
-import { Topo, FaixaPilar, ListaEditavel, AvisoLocal } from '../Chrome';
-import { useTreino, type Swot } from '../store';
-import '../print.css';
+import { Topo, FaixaPilar, ListaEditavel, AvisoLocal, LinkNaoEncontrado } from '../../Chrome';
+import { useTreino, type Swot } from '../../store';
+import '../../print.css';
 
 const AZUL = '#3B82F6';
 
@@ -22,10 +23,12 @@ const QUADRANTES: {
 ];
 
 export default function SwotPage() {
-  const t = useTreino();
+  const { slug } = useParams<{ slug: string }>();
+  const t = useTreino(slug);
   const { dados, alterar } = t;
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
+  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">
@@ -81,7 +84,7 @@ export default function SwotPage() {
           </p>
         </div>
 
-        <AvisoLocal />
+        <AvisoLocal slug={t.slug} />
       </main>
     </div>
   );

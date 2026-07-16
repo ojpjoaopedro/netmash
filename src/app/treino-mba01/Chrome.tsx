@@ -14,12 +14,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Check, Download, GitCompareArrows, LayoutGrid, Rocket, Save, Plus, Trash2, Network, ListChecks, AlertTriangle } from 'lucide-react';
 import type { Treino } from './store';
 
+/** `sufixo` é o que vem depois do link da empresa: /treino-mba01/<slug><sufixo>. */
 export const PILARES = [
-  { n: 1, href: '/treino-mba01', titulo: 'To be / As is', icon: GitCompareArrows, cor: '#10B981' },
-  { n: 2, href: '/treino-mba01/swot', titulo: 'SWOT', icon: LayoutGrid, cor: '#3B82F6' },
-  { n: 3, href: '/treino-mba01/motivadores', titulo: 'Motivadores Estratégicos', icon: Rocket, cor: '#8B5CF6' },
-  { n: 4, href: '/treino-mba01/mapa-objetivos', titulo: 'Mapa de Objetivos', icon: Network, cor: '#EC4899' },
-  { n: 5, href: '/treino-mba01/iniciativas', titulo: 'Iniciativas do Ano', icon: ListChecks, cor: '#0EA5E9' },
+  { n: 1, sufixo: '', titulo: 'To be / As is', icon: GitCompareArrows, cor: '#10B981' },
+  { n: 2, sufixo: '/swot', titulo: 'SWOT', icon: LayoutGrid, cor: '#3B82F6' },
+  { n: 3, sufixo: '/motivadores', titulo: 'Motivadores Estratégicos', icon: Rocket, cor: '#8B5CF6' },
+  { n: 4, sufixo: '/mapa-objetivos', titulo: 'Mapa de Objetivos', icon: Network, cor: '#EC4899' },
+  { n: 5, sufixo: '/iniciativas', titulo: 'Iniciativas do Ano', icon: ListChecks, cor: '#0EA5E9' },
 ];
 
 /** Quantos exercícios existem — a faixa de cada pilar mostra "Pilar N de TOTAL". */
@@ -27,16 +28,20 @@ export const TOTAL_PILARES = PILARES.length;
 
 /* ── Cabeçalho fixo: quem é o aluno + ações ─────────────────────────────── */
 export function Topo({
-  dados, alterar, salvar, sujo, salvoEm,
+  dados, alterar, salvar, sujo, salvando, salvoEm, slug,
 }: {
   dados: Treino;
   alterar: (m: Partial<Treino>) => void;
-  salvar: () => boolean;
+  salvar: () => Promise<boolean>;
   sujo: boolean;
+  salvando: boolean;
   salvoEm: string | null;
+  slug: string;
 }) {
   const caminho = usePathname();
   const router = useRouter();
+  /** Cada empresa tem o seu conjunto de pilares, debaixo do link dela. */
+  const href = (sufixo: string) => `/treino-mba01/${slug}${sufixo}`;
 
   /**
    * Cada exercício recarrega os dados do localStorage ao abrir. Então trocar de
@@ -81,11 +86,12 @@ export function Topo({
             )}
             {sujo && <span className="text-[11px] text-amber-600 font-medium">alterações não salvas</span>}
             <button
-              onClick={() => salvar()}
-              className="flex items-center gap-1.5 text-xs font-bold text-white rounded-lg px-3.5 py-2 transition-all hover:brightness-110"
+              onClick={async () => { if (!(await salvar())) window.alert('Não deu para salvar agora. Verifique a internet e tente de novo.'); }}
+              disabled={salvando}
+              className="flex items-center gap-1.5 text-xs font-bold text-white rounded-lg px-3.5 py-2 transition-all hover:brightness-110 disabled:opacity-60"
               style={{ background: '#10B981' }}
             >
-              <Save className="w-4 h-4" /> Salvar
+              <Save className="w-4 h-4" /> {salvando ? 'Salvando…' : 'Salvar'}
             </button>
             <button
               onClick={() => window.print()}
@@ -99,11 +105,12 @@ export function Topo({
         {/* navegação entre os pilares */}
         <nav className="flex items-center gap-1.5 mt-3 print:hidden">
           {PILARES.map((p) => {
-            const ativo = caminho === p.href;
+            const destinoP = href(p.sufixo);
+            const ativo = caminho === destinoP;
             return (
               <button
-                key={p.href}
-                onClick={() => irPara(p.href)}
+                key={p.sufixo}
+                onClick={() => irPara(destinoP)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors border"
                 style={
                   ativo
@@ -122,7 +129,12 @@ export function Topo({
 
       {destino && (
         <AvisoNaoSalvo
-          onSalvar={() => { const ok = salvar(); if (ok) { router.push(destino); setDestino(null); } }}
+          salvando={salvando}
+          onSalvar={async () => {
+            // só sai se o banco confirmou — senão o aluno sairia achando que salvou
+            const ok = await salvar();
+            if (ok) { router.push(destino); setDestino(null); }
+          }}
           onDescartar={() => { router.push(destino); setDestino(null); }}
           onCancelar={() => setDestino(null)}
         />
@@ -133,7 +145,8 @@ export function Topo({
 
 /* ── Porteiro: aparece ao trocar de pilar com alteração não salva ────────── */
 
-function AvisoNaoSalvo({ onSalvar, onDescartar, onCancelar }: {
+function AvisoNaoSalvo({ salvando, onSalvar, onDescartar, onCancelar }: {
+  salvando: boolean;
   onSalvar: () => void;
   onDescartar: () => void;
   onCancelar: () => void;
@@ -160,10 +173,11 @@ function AvisoNaoSalvo({ onSalvar, onDescartar, onCancelar }: {
         <div className="flex flex-col gap-2.5">
           <button
             onClick={onSalvar}
-            className="w-full rounded-xl px-4 py-3 text-sm font-black text-white transition-all hover:brightness-110"
+            disabled={salvando}
+            className="w-full rounded-xl px-4 py-3 text-sm font-black text-white transition-all hover:brightness-110 disabled:opacity-60"
             style={{ background: '#10B981' }}
           >
-            Salvar e sair
+            {salvando ? 'Salvando…' : 'Salvar e sair'}
           </button>
           <button
             onClick={onDescartar}
@@ -250,11 +264,39 @@ export function ListaEditavel({
 }
 
 /* ── Aviso de onde os dados moram ───────────────────────────────────────── */
-export function AvisoLocal() {
+/** Link errado ou apagado. Melhor dizer na cara do que deixar preencher à toa. */
+export function LinkNaoEncontrado() {
+  return (
+    <div className="min-h-screen bg-slate-50 grid place-items-center px-5">
+      <div className="w-full max-w-[420px] rounded-2xl bg-white border border-slate-200 p-7 text-center shadow-sm">
+        <span className="grid place-items-center w-12 h-12 rounded-xl mx-auto mb-4 bg-amber-50 text-amber-500">
+          <AlertTriangle className="w-6 h-6" />
+        </span>
+        <p className="text-lg font-black text-slate-800 mb-2">Não achamos esse exercício</p>
+        <p className="text-[13px] text-slate-500 leading-relaxed mb-6">
+          O link pode estar com um erro de digitação — confira o endereço. Se você ainda não criou o seu,
+          é rapidinho.
+        </p>
+        <a
+          href="/treino-mba01"
+          className="inline-block rounded-xl px-5 py-3 text-sm font-black text-white transition-all hover:brightness-110"
+          style={{ background: '#10B981' }}
+        >
+          Criar meu exercício
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/** Diz onde o exercício mora. Antes era "neste navegador"; agora é o link. */
+export function AvisoLocal({ slug }: { slug?: string }) {
   return (
     <p className="text-[11px] text-slate-400 text-center mt-10 print:hidden">
-      Seu exercício fica salvo <strong className="text-slate-500">neste navegador</strong> — não enviamos
-      nada para nenhum servidor. Para levar embora, use <strong className="text-slate-500">Baixar PDF</strong>.
+      Seu exercício fica salvo no link{' '}
+      <strong className="text-slate-500">minhasmetricas.com/treino-mba01/{slug ?? '…'}</strong> — guarde
+      esse endereço para voltar de qualquer aparelho. Para levar embora, use{' '}
+      <strong className="text-slate-500">Baixar PDF</strong>.
     </p>
   );
 }

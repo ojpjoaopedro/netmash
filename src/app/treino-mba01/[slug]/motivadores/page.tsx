@@ -16,11 +16,12 @@
  * acrescentar itens próprios em qualquer quadrante.
  */
 
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Rocket, GitCompareArrows, LayoutGrid } from 'lucide-react';
-import { Topo, FaixaPilar, ListaEditavel, AvisoLocal } from '../Chrome';
-import { useTreino, buscarDoToBe, preservarDasForcas, eliminarDasFraquezas, type Motivadores, type Derivado } from '../store';
-import '../print.css';
+import {Topo, FaixaPilar, ListaEditavel, AvisoLocal, LinkNaoEncontrado } from '../../Chrome';
+import { useTreino, buscarDoToBe, preservarDasForcas, eliminarDasFraquezas, type Motivadores, type Derivado } from '../../store';
+import '../../print.css';
 
 const ROXO = '#8B5CF6';
 const AZUL = '#3B82F6';
@@ -42,10 +43,12 @@ type Quadrante = {
 };
 
 export default function MotivadoresPage() {
-  const t = useTreino();
+  const { slug } = useParams<{ slug: string }>();
+  const t = useTreino(slug);
   const { dados, alterar } = t;
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
+  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   // editar o derivado escreve na origem: o mesmo fato continua com um dono só
   const editarToBe = (i: number, v: string) =>
@@ -208,7 +211,7 @@ export default function MotivadoresPage() {
           </p>
         </div>
 
-        <AvisoLocal />
+        <AvisoLocal slug={t.slug} />
       </main>
     </div>
   );

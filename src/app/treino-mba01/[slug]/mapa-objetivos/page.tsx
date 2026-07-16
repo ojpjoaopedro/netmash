@@ -8,13 +8,14 @@
  * solta: ela nasce dentro de uma iniciativa, que nasce dentro de um sub-objetivo.
  */
 
+import { useParams } from 'next/navigation';
 import { Network, Plus, Trash2 } from 'lucide-react';
-import { Topo, FaixaPilar, AvisoLocal } from '../Chrome';
+import {Topo, FaixaPilar, AvisoLocal, LinkNaoEncontrado } from '../../Chrome';
 import {
   useTreino, novoObjetivo, novoSubObjetivo, novaIniciativa, novaAcao, AREAS,
   type Objetivo, type SubObjetivo, type Iniciativa, type Acao,
-} from '../store';
-import '../print.css';
+} from '../../store';
+import '../../print.css';
 
 const ROSA = '#EC4899';
 const DOURADO = '#F59E0B';
@@ -128,10 +129,12 @@ function BotaoAdd({ onClick, texto, cor, cheio = false }: {
 }
 
 export default function MapaObjetivosPage() {
-  const t = useTreino();
+  const { slug } = useParams<{ slug: string }>();
+  const t = useTreino(slug);
   const { dados, alterar } = t;
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
+  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   /* ── edições na árvore: sempre devolvem um mapa novo ── */
   const setMapa = (m: Objetivo[]) => alterar({ mapa: m });
@@ -286,7 +289,7 @@ export default function MapaObjetivosPage() {
           </p>
         </div>
 
-        <AvisoLocal />
+        <AvisoLocal slug={t.slug} />
       </main>
     </div>
   );

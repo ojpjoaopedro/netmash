@@ -1,111 +1,99 @@
 'use client';
 
 /**
- * Pilar 1 — To be / As is. Página PÚBLICA (sem login): é o exercício do aluno.
- * Precisa estar em PUBLIC_PATHS no middleware.ts.
+ * Entrada do treino: a pessoa põe o nome da empresa e ganha o link dela.
+ *
+ * Só o nome da empresa — é uma aula, não um cadastro. O nome da pessoa e o
+ * exercício vêm depois, já dentro do link. Sem senha: quem tem o link, edita.
  */
 
-import { GitCompareArrows, ArrowRight, Plus, Trash2 } from 'lucide-react';
-import { Topo, FaixaPilar, AvisoLocal } from '../treino-mba01/Chrome';
-import { useTreino, novoId, type Linha } from './store';
-import './print.css';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { GitCompareArrows, ArrowRight, Loader2 } from 'lucide-react';
 
-const VERDE = '#10B981';
-const AMBAR = '#F59E0B';
+export default function CadastroTreinoPage() {
+  const router = useRouter();
+  const [empresa, setEmpresa] = useState('');
+  const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
-export default function ToBeAsIs() {
-  const t = useTreino();
-  const { dados, alterar } = t;
-
-  const editar = (id: string, campo: keyof Omit<Linha, 'id'>, valor: string) =>
-    alterar({ tobe: dados.tobe.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)) });
-  const remover = (id: string) => alterar({ tobe: dados.tobe.filter((l) => l.id !== id) });
-  const adicionar = () => alterar({ tobe: [...dados.tobe, { id: novoId(), toBe: '', asIs: '' }] });
-
-  if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
+  async function cadastrar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!empresa.trim() || enviando) return;
+    setEnviando(true);
+    setErro('');
+    try {
+      const r = await fetch('/api/treino-mba01', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empresa: empresa.trim() }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.slug) {
+        setErro(j.erro || 'Não deu para criar agora. Tente de novo.');
+        setEnviando(false);
+        return;
+      }
+      // não solta o "enviando": a navegação já está a caminho
+      router.push(`/treino-mba01/${j.slug}`);
+    } catch {
+      setErro('Sem conexão. Verifique a internet e tente de novo.');
+      setEnviando(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 print:bg-white">
-      <Topo {...t} />
-
-      <main className="mx-auto max-w-[1180px] px-5 py-8 print:py-2">
-        <FaixaPilar
-          n={1}
-          titulo="To be / As is"
-          desc="Onde estamos hoje × onde queremos chegar."
-          icon={GitCompareArrows}
-          cor={VERDE}
-        />
-
-        {/* rótulos das colunas */}
-        <div className="hidden sm:grid grid-cols-[1fr_auto_1fr] gap-3 px-1 mb-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: VERDE }}>Queremos ser</p>
-          <span className="w-5" />
-          <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: AMBAR }}>Somos hoje</p>
-        </div>
-
-        <div className="space-y-2.5">
-          {dados.tobe.map((l) => (
-            <div key={l.id} className="group grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
-              <div className="rounded-xl border-l-4 bg-white border border-slate-200 p-3" style={{ borderLeftColor: VERDE }}>
-                <textarea
-                  value={l.toBe}
-                  onChange={(e) => editar(l.id, 'toBe', e.target.value)}
-                  placeholder="Ex: Empresa com MRR de R$ 30 mil"
-                  rows={2}
-                  className="w-full resize-none text-[14px] text-slate-800 placeholder:text-slate-400 placeholder:italic focus:outline-none bg-transparent"
-                />
-              </div>
-
-              <div className="flex items-center justify-center">
-                <ArrowRight className="w-4 h-4 text-slate-300 rotate-90 sm:rotate-0" />
-              </div>
-
-              <div className="relative rounded-xl border-l-4 bg-white border border-slate-200 p-3" style={{ borderLeftColor: AMBAR }}>
-                <textarea
-                  value={l.asIs}
-                  onChange={(e) => editar(l.id, 'asIs', e.target.value)}
-                  placeholder="Ex: MRR de R$ 5 mil por mês"
-                  rows={2}
-                  className="w-full resize-none text-[14px] text-slate-800 placeholder:text-slate-400 placeholder:italic focus:outline-none bg-transparent"
-                />
-                <button
-                  onClick={() => remover(l.id)}
-                  className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 shadow-sm transition-all print:hidden"
-                  aria-label="remover linha"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {dados.tobe.length === 0 && (
-          <div className="rounded-xl border-2 border-dashed border-slate-200 py-10 text-center print:hidden">
-            <p className="text-sm text-slate-400">Comece adicionando o primeiro bloco.</p>
+    <div className="min-h-screen bg-slate-50 grid place-items-center px-5 py-12">
+      <div className="w-full max-w-[460px]">
+        <div className="flex items-center gap-2.5 mb-7">
+          <span className="grid place-items-center w-10 h-10 rounded-xl shrink-0 text-white" style={{ background: '#10B981' }}>
+            <GitCompareArrows className="w-5 h-5" />
+          </span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA</p>
+            <h1 className="text-xl font-black tracking-tight text-slate-800">Plano comercial da sua empresa</h1>
           </div>
-        )}
-
-        <button
-          onClick={adicionar}
-          className="mt-4 flex items-center gap-2 text-[12px] font-bold px-4 py-2.5 rounded-xl border-2 border-dashed transition-colors hover:bg-white print:hidden"
-          style={{ color: VERDE, borderColor: `${VERDE}55` }}
-        >
-          <Plus className="w-4 h-4" /> adicionar bloco
-        </button>
-
-        <div className="mt-8 rounded-xl bg-white border border-slate-200 px-5 py-4 print:hidden">
-          <p className="text-[13px] text-slate-600 leading-relaxed">
-            <strong className="text-slate-800">Como preencher:</strong> escreva primeiro o{' '}
-            <strong style={{ color: VERDE }}>queremos ser</strong> — sem se prender ao que é possível hoje.
-            Só depois preencha o <strong style={{ color: AMBAR }}>somos hoje</strong>, com honestidade.
-            A distância entre os dois é o <strong>gap</strong> que o seu plano comercial vai ter que fechar.
-          </p>
         </div>
 
-        <AvisoLocal />
-      </main>
+        <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+          <p className="text-[14px] text-slate-600 leading-relaxed mb-6">
+            Escreva o nome da sua empresa. Vamos criar um <strong className="text-slate-800">link só seu</strong>,
+            onde o exercício fica salvo — dá para fechar, trocar de aparelho e voltar depois.
+          </p>
+
+          <form onSubmit={cadastrar}>
+            <label className="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">
+              Nome da empresa
+            </label>
+            <input
+              value={empresa}
+              onChange={(e) => { setEmpresa(e.target.value); setErro(''); }}
+              placeholder="Ex: Padaria do João"
+              maxLength={80}
+              autoFocus
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+            />
+
+            {erro && <p className="mt-3 text-[13px] font-medium text-red-600">{erro}</p>}
+
+            <button
+              type="submit"
+              disabled={!empresa.trim() || enviando}
+              className="mt-5 w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black text-white transition-all hover:brightness-110 disabled:opacity-40"
+              style={{ background: '#10B981' }}
+            >
+              {enviando
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Criando…</>
+                : <>Criar meu exercício <ArrowRight className="w-4 h-4" /></>}
+            </button>
+          </form>
+        </div>
+
+        <p className="text-[11px] text-slate-400 text-center mt-6 leading-relaxed">
+          Já começou antes? É só abrir o <strong className="text-slate-500">link da sua empresa</strong> de novo —
+          ele continua de onde parou.
+        </p>
+      </div>
     </div>
   );
 }

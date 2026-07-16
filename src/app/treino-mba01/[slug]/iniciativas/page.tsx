@@ -13,15 +13,16 @@
  * Sem bloco "como preencher": a explicação vem no slide da apresentação.
  */
 
+import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import {
   ListChecks, ShoppingCart, HeartHandshake, DollarSign, Megaphone, Briefcase, Cpu,
   CheckCircle2, Clock, CalendarPlus, ArrowRight, User, CalendarDays, Network,
 } from 'lucide-react';
 import Link from 'next/link';
-import { Topo, FaixaPilar, AvisoLocal } from '../Chrome';
-import { useTreino, todasAsAcoes, AREAS, type StatusAcao, type Objetivo } from '../store';
-import '../print.css';
+import {Topo, FaixaPilar, AvisoLocal, LinkNaoEncontrado } from '../../Chrome';
+import { useTreino, todasAsAcoes, AREAS, type StatusAcao, type Objetivo } from '../../store';
+import '../../print.css';
 
 const CIANO = '#0EA5E9';
 
@@ -47,11 +48,13 @@ const fmtData = (iso: string) =>
   iso ? iso.split('-').reverse().join('/') : '';
 
 export default function IniciativasAnoPage() {
-  const t = useTreino();
+  const { slug } = useParams<{ slug: string }>();
+  const t = useTreino(slug);
   const { dados, alterar } = t;
   const [filtro, setFiltro] = useState<string | null>(null);
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
+  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   const acoes = todasAsAcoes(dados.mapa);
   const comArea = acoes.filter((a) => a.area);
@@ -210,7 +213,7 @@ export default function IniciativasAnoPage() {
           )}
         </div>
 
-        <AvisoLocal />
+        <AvisoLocal slug={t.slug} />
       </main>
     </div>
   );
