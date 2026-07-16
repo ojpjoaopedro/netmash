@@ -51,7 +51,7 @@ function Campo({ valor, onChange, onRemover, placeholder, cor, forte = false }: 
       </p>
       <button
         onClick={onRemover}
-        className="absolute right-1.5 top-1.5 opacity-0 group-hover:opacity-100 p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all print:hidden"
+        className="absolute right-1.5 top-1.5 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all print:hidden"
         aria-label="remover"
       >
         <Trash2 className="w-3 h-3" />
@@ -71,7 +71,7 @@ function CampoAcao({ acao, onChange, onRemover }: {
       <textarea
         value={acao.texto}
         onChange={(e) => onChange({ ...acao, texto: e.target.value })}
-        placeholder="Ex: Criar descritivo de cargo e abrir a vaga"
+        placeholder="A tarefa concreta — se não tem dono e prazo, ainda é desejo"
         rows={2}
         className="w-full resize-none bg-transparent text-[12px] leading-snug text-slate-800 placeholder:text-slate-400 placeholder:italic focus:outline-none print:hidden"
       />
@@ -79,7 +79,7 @@ function CampoAcao({ acao, onChange, onRemover }: {
 
       <button
         onClick={onRemover}
-        className="absolute right-1.5 top-1.5 opacity-0 group-hover:opacity-100 p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all print:hidden"
+        className="absolute right-1.5 top-1.5 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all print:hidden"
         aria-label="remover ação"
       >
         <Trash2 className="w-3 h-3" />
@@ -103,7 +103,7 @@ function CampoAcao({ acao, onChange, onRemover }: {
         <input
           value={acao.responsavel}
           onChange={(e) => onChange({ ...acao, responsavel: e.target.value })}
-          placeholder="responsável"
+          placeholder="quem faz"
           className="w-[92px] text-[10px] text-slate-600 placeholder:text-slate-400 placeholder:italic bg-transparent border-b border-slate-200 focus:outline-none focus:border-slate-400 print:border-0"
         />
         <input
@@ -208,7 +208,7 @@ export default function MapaObjetivosPage() {
                     valor={obj.texto}
                     onChange={(v) => mapObj(oi, (o) => ({ ...o, texto: v }))}
                     onRemover={() => setMapa(dados.mapa.filter((_, i) => i !== oi))}
-                    placeholder="Ex: Faturar R$ 600 mil no ano"
+                    placeholder="Onde a empresa quer chegar — sai do gap do seu To be / As is"
                     cor={DOURADO}
                     forte
                   />
@@ -225,7 +225,7 @@ export default function MapaObjetivosPage() {
                           valor={sub.texto}
                           onChange={(v) => mapSub(oi, si, (s) => ({ ...s, texto: v }))}
                           onRemover={() => mapObj(oi, (o) => ({ ...o, subObjetivos: o.subObjetivos.filter((_, i) => i !== si) }))}
-                          placeholder="Ex: R$ 30 mil/mês até Q3"
+                          placeholder="Um pedaço do objetivo — os pedaços somados têm que fechar a conta"
                           cor={AZUL}
                         />
                       </div>
@@ -241,7 +241,7 @@ export default function MapaObjetivosPage() {
                                 valor={ini.texto}
                                 onChange={(v) => mapIni(oi, si, ii, (x) => ({ ...x, texto: v }))}
                                 onRemover={() => mapSub(oi, si, (s) => ({ ...s, iniciativas: s.iniciativas.filter((_, i) => i !== ii) }))}
-                                placeholder="Ex: Recrutar e treinar closers"
+                                placeholder="O que a empresa vai fazer para entregar esse pedaço"
                                 cor={VERDE}
                               />
                             </div>

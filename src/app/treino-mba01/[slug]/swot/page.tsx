@@ -16,10 +16,10 @@ const QUADRANTES: {
   chave: keyof Swot; letra: string; rotulo: string; origem: string;
   placeholder: string; cor: string; icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { chave: 'forcas', letra: 'S', rotulo: 'Forças', origem: 'dentro', placeholder: 'Ex: Produto transformador', cor: '#10B981', icon: Zap },
-  { chave: 'fraquezas', letra: 'W', rotulo: 'Fraquezas', origem: 'dentro', placeholder: 'Ex: Comercial inexperiente', cor: '#EF4444', icon: AlertTriangle },
-  { chave: 'oportunidades', letra: 'O', rotulo: 'Oportunidades', origem: 'fora', placeholder: 'Ex: Mercado B2B em expansão', cor: '#3B82F6', icon: TrendingUp },
-  { chave: 'ameacas', letra: 'T', rotulo: 'Ameaças', origem: 'fora', placeholder: 'Ex: Concorrente com mais capital', cor: '#F59E0B', icon: ShieldAlert },
+  { chave: 'forcas', letra: 'S', rotulo: 'Forças', origem: 'dentro', placeholder: 'O que a sua empresa já faz bem hoje', cor: '#10B981', icon: Zap },
+  { chave: 'fraquezas', letra: 'W', rotulo: 'Fraquezas', origem: 'dentro', placeholder: 'O que trava a sua empresa — e depende de você resolver', cor: '#EF4444', icon: AlertTriangle },
+  { chave: 'oportunidades', letra: 'O', rotulo: 'Oportunidades', origem: 'fora', placeholder: 'O que está mudando no mercado e pode te favorecer', cor: '#3B82F6', icon: TrendingUp },
+  { chave: 'ameacas', letra: 'T', rotulo: 'Ameaças', origem: 'fora', placeholder: 'O que vem de fora e pode te atrapalhar — você não controla', cor: '#F59E0B', icon: ShieldAlert },
 ];
 
 export default function SwotPage() {

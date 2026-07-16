@@ -246,17 +246,22 @@ export function ListaEditavel({
   return (
     <div className="space-y-2">
       {itens.map((item, i) => (
-        <div key={i} className="group flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: cor }} />
-          <input
+        <div key={i} className="group flex items-start gap-2">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-4" style={{ background: cor }} />
+          {/* textarea, e não input: o placeholder aqui explica o campo, e num
+              input de uma linha a explicação sairia cortada no celular */}
+          <textarea
             value={item}
             onChange={(e) => editar(i, e.target.value)}
             placeholder={placeholder}
-            className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[13px] text-slate-700 placeholder:text-slate-400 placeholder:italic focus:outline-none focus:bg-white focus:border-slate-400 print:border-0 print:bg-transparent print:px-0"
+            rows={2}
+            className="flex-1 resize-none px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[13px] leading-snug text-slate-700 placeholder:text-slate-400 placeholder:italic focus:outline-none focus:bg-white focus:border-slate-400 print:border-0 print:bg-transparent print:px-0"
           />
+          {/* no celular não existe passar o mouse: lá o botão fica sempre visível,
+              senão não há como apagar um item */}
           <button
             onClick={() => remover(i)}
-            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all print:hidden"
+            className="mt-2 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all print:hidden"
             aria-label="remover"
           >
             <Trash2 className="w-3.5 h-3.5" />

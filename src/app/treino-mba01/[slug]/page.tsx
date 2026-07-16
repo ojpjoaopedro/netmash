@@ -18,12 +18,15 @@ const AMBAR = '#F59E0B';
  * Lixeira do canto do card. Vai nos dois lados: os dois são a MESMA linha, então
  * apagar por qualquer um tira o par — a pessoa não precisa procurar de que lado
  * fica o botão.
+ *
+ * No celular fica sempre visível: lá não existe passar o mouse, e escondê-la
+ * deixaria o aluno sem como apagar.
  */
 function BotaoRemover({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 shadow-sm transition-all print:hidden"
+      className="absolute -right-2 -top-2 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 shadow-sm transition-all print:hidden"
       aria-label="remover linha"
     >
       <Trash2 className="w-3.5 h-3.5" />
@@ -70,7 +73,7 @@ export default function ToBeAsIs() {
                 <textarea
                   value={l.toBe}
                   onChange={(e) => editar(l.id, 'toBe', e.target.value)}
-                  placeholder="Ex: Empresa com MRR de R$ 30 mil"
+                  placeholder="Onde você quer chegar — sem se prender ao que é possível hoje"
                   rows={2}
                   className="w-full resize-none text-[14px] text-slate-800 placeholder:text-slate-400 placeholder:italic focus:outline-none bg-transparent"
                 />
@@ -85,7 +88,7 @@ export default function ToBeAsIs() {
                 <textarea
                   value={l.asIs}
                   onChange={(e) => editar(l.id, 'asIs', e.target.value)}
-                  placeholder="Ex: MRR de R$ 5 mil por mês"
+                  placeholder="Como isso está hoje, com honestidade — a distância é o seu gap"
                   rows={2}
                   className="w-full resize-none text-[14px] text-slate-800 placeholder:text-slate-400 placeholder:italic focus:outline-none bg-transparent"
                 />
