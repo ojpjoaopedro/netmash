@@ -2850,14 +2850,42 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
     try {
       const [{ default: html2canvas }, jspdf] = await Promise.all([import('html2canvas'), import('jspdf')]);
       const JsPDF = jspdf.jsPDF;
-      // o html2canvas não entende as cores do Tailwind (rgb com barra/alpha):
-      // resolvemos cada uma para o formato que ele lê
+
+      /**
+       * O html2canvas só entende cor no formato antigo (rgb/rgba). O Tailwind v4
+       * escreve transparência como `color-mix(in oklab, ...)` — é no que
+       * `bg-white/5` e `border-white/10` viram —, e nisso ele engasga e derruba
+       * o PDF inteiro. (No Hub não acontece: lá é Tailwind v3, que gera rgba.)
+       *
+       * Copiar o getComputedStyle não resolve: o navegador devolve a cor ainda
+       * em oklab. Então pedimos para ele PINTAR a cor num canvas 1×1 e lemos o
+       * pixel — o que volta é rgba() puro, que o html2canvas lê.
+       */
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 1;
+      const cx = cv.getContext('2d', { willReadFrequently: true });
+      const paraRgba = (cor: string): string => {
+        if (!cx || !cor) return cor;
+        cx.clearRect(0, 0, 1, 1);
+        cx.fillStyle = '#000';
+        cx.fillStyle = cor;              // se o navegador não entender, fica no #000
+        cx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = cx.getImageData(0, 0, 1, 1).data;
+        return `rgba(${r}, ${g}, ${b}, ${(a / 255).toFixed(3)})`;
+      };
+
       const container = document.getElementById('deck-capture');
       container?.querySelectorAll<HTMLElement>('*').forEach((el) => {
         const cs = getComputedStyle(el);
-        el.style.color = cs.color;
-        el.style.borderColor = cs.borderColor;
-        if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') el.style.backgroundColor = cs.backgroundColor;
+        el.style.color = paraRgba(cs.color);
+        // lado a lado: o atalho borderColor não cobre bordas de cores diferentes
+        el.style.borderTopColor = paraRgba(cs.borderTopColor);
+        el.style.borderRightColor = paraRgba(cs.borderRightColor);
+        el.style.borderBottomColor = paraRgba(cs.borderBottomColor);
+        el.style.borderLeftColor = paraRgba(cs.borderLeftColor);
+        const fundo = paraRgba(cs.backgroundColor);
+        // fundo invisível continua invisível — pintar por cima taparia o slide
+        if (!fundo.endsWith(', 0.000)')) el.style.backgroundColor = fundo;
       });
       const pages = Array.from(document.querySelectorAll('#deck-capture .deck-capture-page')) as HTMLElement[];
       const W = 1280, H = 720;
@@ -2871,7 +2899,10 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
         await new Promise((r) => setTimeout(r, 0)); // devolve o fôlego pro navegador redesenhar o botão
       }
       pdf.save('Aula-Planejamento-Comercial-Budget-Forecast.pdf');
-    } catch {
+    } catch (e) {
+      // sem isto o erro some e sobra só o alerta genérico — foi o que atrasou o
+      // diagnóstico da primeira vez que o PDF quebrou
+      console.error('[deck] falhou ao gerar o PDF:', e);
       alert('Não consegui gerar o PDF automaticamente. Tente de novo em alguns segundos.');
     } finally {
       setImprimindo(false);
