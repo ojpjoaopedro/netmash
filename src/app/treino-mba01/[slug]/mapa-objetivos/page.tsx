@@ -10,7 +10,7 @@
 
 import { useParams } from 'next/navigation';
 import { Network, Plus, Trash2 } from 'lucide-react';
-import {Topo, FaixaPilar, AvisoLocal, LinkNaoEncontrado } from '../../Chrome';
+import { Topo, FaixaPilar, AvisoLocal } from '../../Chrome';
 import {
   useTreino, novoObjetivo, novoSubObjetivo, novaIniciativa, novaAcao, AREAS,
   type Objetivo, type SubObjetivo, type Iniciativa, type Acao,
@@ -134,7 +134,6 @@ export default function MapaObjetivosPage() {
   const { dados, alterar } = t;
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
-  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   /* ── edições na árvore: sempre devolvem um mapa novo ── */
   const setMapa = (m: Objetivo[]) => alterar({ mapa: m });
@@ -289,7 +288,7 @@ export default function MapaObjetivosPage() {
           </p>
         </div>
 
-        <AvisoLocal slug={t.slug} />
+        <AvisoLocal />
       </main>
     </div>
   );

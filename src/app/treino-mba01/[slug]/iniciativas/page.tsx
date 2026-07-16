@@ -20,7 +20,7 @@ import {
   CheckCircle2, Clock, CalendarPlus, ArrowRight, User, CalendarDays, Network,
 } from 'lucide-react';
 import Link from 'next/link';
-import {Topo, FaixaPilar, AvisoLocal, LinkNaoEncontrado } from '../../Chrome';
+import { Topo, FaixaPilar, AvisoLocal } from '../../Chrome';
 import { useTreino, todasAsAcoes, AREAS, type StatusAcao, type Objetivo } from '../../store';
 import '../../print.css';
 
@@ -54,7 +54,6 @@ export default function IniciativasAnoPage() {
   const [filtro, setFiltro] = useState<string | null>(null);
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
-  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   const acoes = todasAsAcoes(dados.mapa);
   const comArea = acoes.filter((a) => a.area);
@@ -213,7 +212,7 @@ export default function IniciativasAnoPage() {
           )}
         </div>
 
-        <AvisoLocal slug={t.slug} />
+        <AvisoLocal />
       </main>
     </div>
   );

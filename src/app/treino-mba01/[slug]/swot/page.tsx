@@ -6,7 +6,7 @@
 
 import { useParams } from 'next/navigation';
 import { LayoutGrid, Zap, AlertTriangle, TrendingUp, ShieldAlert } from 'lucide-react';
-import { Topo, FaixaPilar, ListaEditavel, AvisoLocal, LinkNaoEncontrado } from '../../Chrome';
+import { Topo, FaixaPilar, ListaEditavel, AvisoLocal } from '../../Chrome';
 import { useTreino, type Swot } from '../../store';
 import '../../print.css';
 
@@ -28,7 +28,6 @@ export default function SwotPage() {
   const { dados, alterar } = t;
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
-  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">
@@ -84,7 +83,7 @@ export default function SwotPage() {
           </p>
         </div>
 
-        <AvisoLocal slug={t.slug} />
+        <AvisoLocal />
       </main>
     </div>
   );

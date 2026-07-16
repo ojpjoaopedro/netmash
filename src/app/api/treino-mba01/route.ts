@@ -4,12 +4,15 @@
  * POST → { empresa } cria o registro e devolve { slug }, que vira o link
  *        /treino-mba01/<slug>.
  *
- * Só o nome da empresa é pedido: é uma aula, não um cadastro. Nome de pessoa,
- * e-mail e o resto do exercício entram depois, já dentro do link.
+ * ⚠️ HOJE ESTA ROTA NÃO É CHAMADA. A tabela treino_mba01 não existe no Supabase,
+ * então o exercício roda no localStorage e a tela avisa o aluno que nada é
+ * salvo em servidor. Rode o supabase/treino-mba01.sql e ligue o store de volta
+ * nesta rota para o exercício voltar a seguir a pessoa entre aparelhos.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { paraSlug } from "@/app/treino-mba01/slug";
 
 export const runtime = "nodejs";
 
@@ -36,15 +39,6 @@ export function explicar(error: { code?: string; message?: string }): string {
     : "não deu para cadastrar";
 }
 
-/** "Padaria do João" -> "padaria-do-joao". Sem acento, sem espaço, sem surpresa na URL. */
-export function paraSlug(texto: string): string {
-  return texto
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")   // tira acento
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")                        // o resto vira hífen
-    .replace(/^-+|-+$/g, "")                            // sem hífen nas pontas
-    .slice(0, 40);
-}
 
 export async function POST(request: NextRequest) {
   const s = svc();

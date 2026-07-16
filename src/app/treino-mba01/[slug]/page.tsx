@@ -7,7 +7,7 @@
 
 import { useParams } from 'next/navigation';
 import { GitCompareArrows, ArrowRight, Plus, Trash2 } from 'lucide-react';
-import { Topo, FaixaPilar, AvisoLocal, LinkNaoEncontrado } from '../Chrome';
+import { Topo, FaixaPilar, AvisoLocal } from '../Chrome';
 import { useTreino, novoId, type Linha } from '../store';
 import '../print.css';
 
@@ -25,7 +25,6 @@ export default function ToBeAsIs() {
   const adicionar = () => alterar({ tobe: [...dados.tobe, { id: novoId(), toBe: '', asIs: '' }] });
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
-  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">
@@ -107,7 +106,7 @@ export default function ToBeAsIs() {
           </p>
         </div>
 
-        <AvisoLocal slug={t.slug} />
+        <AvisoLocal />
       </main>
     </div>
   );

@@ -19,7 +19,7 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Rocket, GitCompareArrows, LayoutGrid } from 'lucide-react';
-import {Topo, FaixaPilar, ListaEditavel, AvisoLocal, LinkNaoEncontrado } from '../../Chrome';
+import { Topo, FaixaPilar, ListaEditavel, AvisoLocal } from '../../Chrome';
 import { useTreino, buscarDoToBe, preservarDasForcas, eliminarDasFraquezas, type Motivadores, type Derivado } from '../../store';
 import '../../print.css';
 
@@ -48,7 +48,6 @@ export default function MotivadoresPage() {
   const { dados, alterar } = t;
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
-  if (t.naoEncontrado) return <LinkNaoEncontrado />;
 
   // editar o derivado escreve na origem: o mesmo fato continua com um dono só
   const editarToBe = (i: number, v: string) =>
@@ -211,7 +210,7 @@ export default function MotivadoresPage() {
           </p>
         </div>
 
-        <AvisoLocal slug={t.slug} />
+        <AvisoLocal />
       </main>
     </div>
   );

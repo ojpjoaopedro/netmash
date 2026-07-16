@@ -264,39 +264,19 @@ export function ListaEditavel({
 }
 
 /* ── Aviso de onde os dados moram ───────────────────────────────────────── */
-/** Link errado ou apagado. Melhor dizer na cara do que deixar preencher à toa. */
-export function LinkNaoEncontrado() {
+/**
+ * O mesmo recado do cadastro, de novo no rodapé de cada pilar — a pessoa chega
+ * aqui minutos depois de ter lido o aviso, e é aqui que ela decide fechar a aba.
+ */
+export function AvisoLocal() {
   return (
-    <div className="min-h-screen bg-slate-50 grid place-items-center px-5">
-      <div className="w-full max-w-[420px] rounded-2xl bg-white border border-slate-200 p-7 text-center shadow-sm">
-        <span className="grid place-items-center w-12 h-12 rounded-xl mx-auto mb-4 bg-amber-50 text-amber-500">
-          <AlertTriangle className="w-6 h-6" />
-        </span>
-        <p className="text-lg font-black text-slate-800 mb-2">Não achamos esse exercício</p>
-        <p className="text-[13px] text-slate-500 leading-relaxed mb-6">
-          O link pode estar com um erro de digitação — confira o endereço. Se você ainda não criou o seu,
-          é rapidinho.
-        </p>
-        <a
-          href="/treino-mba01"
-          className="inline-block rounded-xl px-5 py-3 text-sm font-black text-white transition-all hover:brightness-110"
-          style={{ background: '#10B981' }}
-        >
-          Criar meu exercício
-        </a>
-      </div>
+    <div className="mt-10 flex items-start justify-center gap-2.5 print:hidden">
+      <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
+      <p className="text-[11px] text-slate-500 leading-relaxed max-w-[520px]">
+        Este simulador <strong className="text-amber-600">não salva</strong> os seus dados em nenhum
+        servidor. Antes de sair, use <strong className="text-slate-700">Baixar PDF</strong> — é a única
+        forma de levar o seu plano.
+      </p>
     </div>
-  );
-}
-
-/** Diz onde o exercício mora. Antes era "neste navegador"; agora é o link. */
-export function AvisoLocal({ slug }: { slug?: string }) {
-  return (
-    <p className="text-[11px] text-slate-400 text-center mt-10 print:hidden">
-      Seu exercício fica salvo no link{' '}
-      <strong className="text-slate-500">minhasmetricas.com/treino-mba01/{slug ?? '…'}</strong> — guarde
-      esse endereço para voltar de qualquer aparelho. Para levar embora, use{' '}
-      <strong className="text-slate-500">Baixar PDF</strong>.
-    </p>
   );
 }

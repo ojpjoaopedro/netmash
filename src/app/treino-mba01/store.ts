@@ -1,17 +1,21 @@
 'use client';
 
 /**
- * Exercício do aluno — guardado no banco, uma linha por empresa.
+ * Exercício do aluno — mora no navegador dele (localStorage), uma chave por
+ * empresa: `treino-mba01:<slug>`.
  *
- * Antes morava no localStorage: era do navegador, então trocar de computador ou
- * limpar o histórico perdia tudo. Agora cada empresa se cadastra e ganha um link
- * (/treino-mba01/<slug>); o link é a chave, e o exercício segue a pessoa.
+ * Chegou a ser escrito para o banco, mas a tabela não existe no Supabase e a
+ * aula não pode depender disso. Então o simulador funciona sozinho e a tela
+ * avisa, na cara, que o jeito de levar o trabalho embora é o PDF.
  *
- * Quem tem o link mexe no exercício — mesmo contrato de um link de planilha
- * compartilhada. Não há login: é uma aula, e o dado aqui é o exercício dela.
+ * Consequência aceita: limpar o navegador ou trocar de aparelho perde o que foi
+ * preenchido. As rotas /api/treino-mba01 e o supabase/treino-mba01.sql seguem no
+ * projeto, prontos, para quando alguém criar a tabela.
  */
 
 import { useCallback, useEffect, useState } from 'react';
+
+const CHAVE = (slug: string) => `treino-mba01:${slug}`;
 
 export type Linha = { id: string; toBe: string; asIs: string };
 export type Swot = { forcas: string[]; fraquezas: string[]; oportunidades: string[]; ameacas: string[] };
@@ -155,38 +159,23 @@ function normalizar(d: Partial<Treino> | null | undefined): Treino {
 
 /**
  * Estado do exercício de UMA empresa + salvar explícito.
- *
- * `carregado` evita piscar o formulário vazio antes de o banco responder.
- * `naoEncontrado` é o link errado/apagado — a tela mostra recado em vez de
- * deixar o aluno preencher tudo e só descobrir no salvar.
+ * `carregado` evita piscar o formulário vazio antes de o localStorage responder.
  */
 export function useTreino(slug: string) {
   const [dados, setDados] = useState<Treino>(VAZIO);
   const [carregado, setCarregado] = useState(false);
-  const [naoEncontrado, setNaoEncontrado] = useState(false);
   const [sujo, setSujo] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [salvoEm, setSalvoEm] = useState<string | null>(null);
 
   useEffect(() => {
-    let vivo = true;
-    (async () => {
-      try {
-        const r = await fetch(`/api/treino-mba01/${encodeURIComponent(slug)}`, { cache: 'no-store' });
-        if (!vivo) return;
-        if (r.status === 404) { setNaoEncontrado(true); setCarregado(true); return; }
-        if (!r.ok) throw new Error('falha');
-        const j = await r.json();
-        if (!vivo) return;
-        // o nome da empresa é do cadastro, não do exercício: sempre o do banco
-        setDados({ ...normalizar(j.dados), empresa: j.empresa ?? '' });
-      } catch {
-        // rede caiu: abre vazio em vez de travar. O salvar avisa se falhar.
-      } finally {
-        if (vivo) setCarregado(true);
-      }
-    })();
-    return () => { vivo = false; };
+    try {
+      const cru = window.localStorage.getItem(CHAVE(slug));
+      setDados(cru ? normalizar(JSON.parse(cru)) : { ...VAZIO, empresa: nomeDoSlug(slug) });
+    } catch {
+      setDados({ ...VAZIO, empresa: nomeDoSlug(slug) });
+    }
+    setCarregado(true);
   }, [slug]);
 
   const alterar = useCallback((mudanca: Partial<Treino>) => {
@@ -197,17 +186,12 @@ export function useTreino(slug: string) {
   const salvar = useCallback(async () => {
     setSalvando(true);
     try {
-      const r = await fetch(`/api/treino-mba01/${encodeURIComponent(slug)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dados }),
-      });
-      if (!r.ok) return false;
+      window.localStorage.setItem(CHAVE(slug), JSON.stringify(dados));
       setSujo(false);
       setSalvoEm(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
       return true;
     } catch {
-      return false;
+      return false;   // aba anônima com storage bloqueado cai aqui
     } finally {
       setSalvando(false);
     }
@@ -221,5 +205,10 @@ export function useTreino(slug: string) {
     return () => window.removeEventListener('beforeunload', aviso);
   }, [sujo]);
 
-  return { dados, alterar, salvar, carregado, naoEncontrado, sujo, salvando, salvoEm, slug };
+  return { dados, alterar, salvar, carregado, sujo, salvando, salvoEm, slug };
+}
+
+/** Abriu o link direto, sem passar pelo cadastro: "padaria-do-joao" -> "Padaria Do Joao". */
+function nomeDoSlug(slug: string): string {
+  return slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
