@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { explicar } from "../route";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
     .eq("slug", slug)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ erro: "falha ao carregar" }, { status: 500 });
+  if (error) return NextResponse.json({ erro: explicar(error) }, { status: 500 });
   if (!data) return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
 
   return NextResponse.json(data);
@@ -63,7 +64,7 @@ export async function PUT(request: NextRequest, ctx: { params: Promise<{ slug: s
     .select("slug")
     .maybeSingle();
 
-  if (error) return NextResponse.json({ erro: "não deu para salvar" }, { status: 500 });
+  if (error) return NextResponse.json({ erro: explicar(error) }, { status: 500 });
   if (!data) return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
 
   return NextResponse.json({ ok: true });

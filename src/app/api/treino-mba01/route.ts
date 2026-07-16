@@ -21,6 +21,21 @@ function svc(): SupabaseClient | null {
   return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+/**
+ * Erro do banco em português, e o de verdade no log do servidor.
+ *
+ * "Tabela não existe" é o erro mais provável aqui até alguém rodar o
+ * supabase/treino-mba01.sql — e é chato de descobrir se a tela só diz
+ * "não deu para cadastrar". Então ele fala o próprio nome.
+ */
+export function explicar(error: { code?: string; message?: string }): string {
+  console.error("[treino-mba01] erro do supabase:", error);
+  const faltaTabela = error.code === "42P01" || error.code === "PGRST205" || /treino_mba01/.test(error.message ?? "");
+  return faltaTabela
+    ? "A tabela treino_mba01 ainda não existe no banco. Rode o supabase/treino-mba01.sql no Supabase."
+    : "não deu para cadastrar";
+}
+
 /** "Padaria do João" -> "padaria-do-joao". Sem acento, sem espaço, sem surpresa na URL. */
 export function paraSlug(texto: string): string {
   return texto
@@ -57,7 +72,7 @@ export async function POST(request: NextRequest) {
     const { error } = await s.from("treino_mba01").insert({ slug, empresa: nome, dados: {} });
     if (!error) return NextResponse.json({ slug });
     if (error.code !== "23505") {  // 23505 = slug já existe; qualquer outro erro é real
-      return NextResponse.json({ erro: "não deu para cadastrar" }, { status: 500 });
+      return NextResponse.json({ erro: explicar(error) }, { status: 500 });
     }
   }
   return NextResponse.json({ erro: "muitas empresas com esse nome — tente um nome mais específico" }, { status: 409 });
