@@ -31,20 +31,27 @@ export type Motivadores = {
   eliminar: string[];   // não quero · tenho
 };
 
-/** O que o "queremos ser" manda para o BUSCAR, ignorando as linhas em branco. */
-export const buscarDoToBe = (tobe: Linha[]): string[] =>
-  tobe.map((l) => l.toBe.trim()).filter(Boolean);
+/**
+ * Item que desceu de outro exercício. Leva junto o índice de onde ele mora na
+ * origem — é isso que deixa editar o item na matriz e a mudança voltar para o
+ * exercício de origem, em vez de virar uma cópia solta.
+ */
+export type Derivado = { texto: string; i: number };
+
+/** Ignora as linhas em branco, mas preserva o índice real de cada uma. */
+const naoVazios = (lista: string[]): Derivado[] =>
+  lista.map((texto, i) => ({ texto, i })).filter((d) => d.texto.trim());
+
+/** O que o "queremos ser" manda para o BUSCAR. */
+export const buscarDoToBe = (tobe: Linha[]): Derivado[] =>
+  tobe.map((l, i) => ({ texto: l.toBe, i })).filter((d) => d.texto.trim());
 
 /**
  * A SWOT desce sozinha para a matriz pela mesma lógica do BUSCAR: força é o que
- * eu quero e JÁ tenho; fraqueza é o que eu tenho e NÃO quero. Redigitar aqui só
- * criaria duas verdades para o mesmo fato.
+ * eu quero e JÁ tenho; fraqueza é o que eu tenho e NÃO quero.
  */
-export const preservarDasForcas = (swot: Swot): string[] =>
-  swot.forcas.map((s) => s.trim()).filter(Boolean);
-
-export const eliminarDasFraquezas = (swot: Swot): string[] =>
-  swot.fraquezas.map((s) => s.trim()).filter(Boolean);
+export const preservarDasForcas = (swot: Swot): Derivado[] => naoVazios(swot.forcas);
+export const eliminarDasFraquezas = (swot: Swot): Derivado[] => naoVazios(swot.fraquezas);
 
 /**
  * Cascata de 4 níveis: a meta descendo até virar tarefa com dono.

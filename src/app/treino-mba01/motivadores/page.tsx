@@ -11,14 +11,15 @@
  * ELIMINAR  = não quero · tenho  ← as fraquezas da SWOT
  * EVITAR    = não quero · não tenho — só existe aqui.
  *
- * O que vem de fora é só de leitura (edita-se na origem, senão haveria duas
- * verdades para o mesmo fato) e o aluno ainda acrescenta o que quiser.
+ * O que vem de fora é editável aqui, mas a edição escreve DE VOLTA na origem —
+ * assim o mesmo fato nunca fica com dois textos diferentes. O aluno também pode
+ * acrescentar itens próprios em qualquer quadrante.
  */
 
 import Link from 'next/link';
 import { Rocket, GitCompareArrows, LayoutGrid } from 'lucide-react';
 import { Topo, FaixaPilar, ListaEditavel, AvisoLocal } from '../Chrome';
-import { useTreino, buscarDoToBe, preservarDasForcas, eliminarDasFraquezas, type Motivadores } from '../store';
+import { useTreino, buscarDoToBe, preservarDasForcas, eliminarDasFraquezas, type Motivadores, type Derivado } from '../store';
 import '../print.css';
 
 const ROXO = '#8B5CF6';
@@ -34,8 +35,10 @@ type Quadrante = {
   sub: string;
   cor: string;
   placeholder: string;
-  derivados: string[];
+  derivados: Derivado[];
   origem: Origem | null;
+  /** Editar o item derivado escreve de volta na origem — não vira cópia solta. */
+  editarNaOrigem: ((i: number, valor: string) => void) | null;
 };
 
 export default function MotivadoresPage() {
@@ -43,6 +46,12 @@ export default function MotivadoresPage() {
   const { dados, alterar } = t;
 
   if (!t.carregado) return <div className="min-h-screen bg-slate-50" />;
+
+  // editar o derivado escreve na origem: o mesmo fato continua com um dono só
+  const editarToBe = (i: number, v: string) =>
+    alterar({ tobe: dados.tobe.map((l, j) => (j === i ? { ...l, toBe: v } : l)) });
+  const editarSwot = (campo: 'forcas' | 'fraquezas') => (i: number, v: string) =>
+    alterar({ swot: { ...dados.swot, [campo]: dados.swot[campo].map((s, j) => (j === i ? v : s)) } });
 
   // matriz 2×2: linha de cima = quero · linha de baixo = não quero
   //             coluna esquerda = não tenho · coluna direita = tenho
@@ -55,6 +64,7 @@ export default function MotivadoresPage() {
       placeholder: 'Ex: Empresa com MRR de R$ 30 mil',
       derivados: buscarDoToBe(dados.tobe),
       origem: { href: '/treino-mba01', rotulo: '“Queremos ser”', Icone: GitCompareArrows, dica: 'veio do To be / As is' },
+      editarNaOrigem: editarToBe,
     },
     {
       chave: 'preservar',
@@ -64,6 +74,7 @@ export default function MotivadoresPage() {
       placeholder: 'Ex: Comunidade engajada',
       derivados: preservarDasForcas(dados.swot),
       origem: { href: '/treino-mba01/swot', rotulo: 'Forças', Icone: LayoutGrid, dica: 'veio das forças da SWOT' },
+      editarNaOrigem: editarSwot('forcas'),
     },
     {
       chave: 'evitar',
@@ -73,6 +84,7 @@ export default function MotivadoresPage() {
       placeholder: 'Ex: Depender de um cliente só',
       derivados: [],
       origem: null,
+      editarNaOrigem: null,
     },
     {
       chave: 'eliminar',
@@ -82,6 +94,7 @@ export default function MotivadoresPage() {
       placeholder: 'Ex: Venda por indicação apenas',
       derivados: eliminarDasFraquezas(dados.swot),
       origem: { href: '/treino-mba01/swot', rotulo: 'Fraquezas', Icone: LayoutGrid, dica: 'veio das fraquezas da SWOT' },
+      editarNaOrigem: editarSwot('fraquezas'),
     },
   ];
 
@@ -128,15 +141,17 @@ export default function MotivadoresPage() {
                       <p className="text-[11px] text-slate-400 mt-0.5">{c.sub}</p>
                     </div>
 
-                    {/* o que desceu do exercício anterior — só de leitura, edita-se lá */}
+                    {/* o que desceu do exercício anterior — editável, escrevendo de volta lá */}
                     {origem && c.derivados.length > 0 && (
                       <div className="space-y-2 mb-3">
-                        {c.derivados.map((item, i) => (
-                          <div key={i} className="flex items-center gap-2" title={origem.dica}>
+                        {c.derivados.map((d) => (
+                          <div key={d.i} className="flex items-center gap-2" title={origem.dica}>
                             <origem.Icone className="w-3 h-3 shrink-0" style={{ color: c.cor }} />
-                            <p className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[13px] text-slate-700 print:border-0 print:bg-transparent print:px-0">
-                              {item}
-                            </p>
+                            <input
+                              value={d.texto}
+                              onChange={(e) => c.editarNaOrigem?.(d.i, e.target.value)}
+                              className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[13px] text-slate-700 focus:outline-none focus:bg-white focus:border-slate-400 print:border-0 print:bg-transparent print:px-0"
+                            />
                           </div>
                         ))}
                         <p className="text-[10px] text-slate-400 italic pl-5 print:hidden">
@@ -144,7 +159,7 @@ export default function MotivadoresPage() {
                           <Link href={origem.href} className="font-bold hover:underline" style={{ color: c.cor }}>
                             {origem.rotulo}
                           </Link>
-                          {' '}— para editar, é lá
+                          {' '}— editar aqui muda lá também
                         </p>
                       </div>
                     )}

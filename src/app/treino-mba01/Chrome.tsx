@@ -9,9 +9,9 @@
  * dependência nova no projeto. O CSS de impressão está em print.css.
  */
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Check, Download, GitCompareArrows, LayoutGrid, Rocket, Save, Plus, Trash2, Network, ListChecks } from 'lucide-react';
+import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Check, Download, GitCompareArrows, LayoutGrid, Rocket, Save, Plus, Trash2, Network, ListChecks, AlertTriangle } from 'lucide-react';
 import type { Treino } from './store';
 
 export const PILARES = [
@@ -36,6 +36,20 @@ export function Topo({
   salvoEm: string | null;
 }) {
   const caminho = usePathname();
+  const router = useRouter();
+
+  /**
+   * Cada exercício recarrega os dados do localStorage ao abrir. Então trocar de
+   * pilar com coisa não salva jogava o trabalho fora, calado. O beforeunload do
+   * store não pega isso — ele só cobre fechar a aba.
+   * Aqui a troca de pilar passa por este porteiro: se está sujo, pergunta antes.
+   */
+  const [destino, setDestino] = useState<string | null>(null);
+  const irPara = (href: string) => {
+    if (href === caminho) return;
+    if (sujo) { setDestino(href); return; }
+    router.push(href);
+  };
 
   return (
     <header className="sticky top-0 z-20 bg-white border-b border-slate-200 print:static print:border-0">
@@ -87,9 +101,9 @@ export function Topo({
           {PILARES.map((p) => {
             const ativo = caminho === p.href;
             return (
-              <Link
+              <button
                 key={p.href}
-                href={p.href}
+                onClick={() => irPara(p.href)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors border"
                 style={
                   ativo
@@ -100,12 +114,72 @@ export function Topo({
                 <p.icon className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{p.n}. {p.titulo}</span>
                 <span className="sm:hidden">{p.n}</span>
-              </Link>
+              </button>
             );
           })}
         </nav>
       </div>
+
+      {destino && (
+        <AvisoNaoSalvo
+          onSalvar={() => { const ok = salvar(); if (ok) { router.push(destino); setDestino(null); } }}
+          onDescartar={() => { router.push(destino); setDestino(null); }}
+          onCancelar={() => setDestino(null)}
+        />
+      )}
     </header>
+  );
+}
+
+/* ── Porteiro: aparece ao trocar de pilar com alteração não salva ────────── */
+
+function AvisoNaoSalvo({ onSalvar, onDescartar, onCancelar }: {
+  onSalvar: () => void;
+  onDescartar: () => void;
+  onCancelar: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5 print:hidden"
+      onClick={onCancelar}
+    >
+      <div
+        className="w-full max-w-[420px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <span className="grid place-items-center w-10 h-10 rounded-xl shrink-0 bg-amber-50 text-amber-500">
+            <AlertTriangle className="w-5 h-5" />
+          </span>
+          <p className="text-base font-black text-slate-800">Você tem alterações não salvas</p>
+        </div>
+        <p className="text-[13px] text-slate-500 leading-relaxed mb-6">
+          Se sair agora sem salvar, o que você escreveu neste exercício será perdido.
+          O que deseja fazer?
+        </p>
+        <div className="flex flex-col gap-2.5">
+          <button
+            onClick={onSalvar}
+            className="w-full rounded-xl px-4 py-3 text-sm font-black text-white transition-all hover:brightness-110"
+            style={{ background: '#10B981' }}
+          >
+            Salvar e sair
+          </button>
+          <button
+            onClick={onDescartar}
+            className="w-full rounded-xl px-4 py-3 text-sm font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors"
+          >
+            Descartar e sair
+          </button>
+          <button
+            onClick={onCancelar}
+            className="w-full rounded-xl px-4 py-3 text-sm font-bold text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
