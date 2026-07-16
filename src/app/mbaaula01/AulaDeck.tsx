@@ -2270,79 +2270,9 @@ function S19() {
   );
 }
 
-// 28 — Budget não é sentença
-function S20() {
-  return (
-    <Slide bg="dark">
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="w-full max-w-[900px] grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-4 items-center">
-          <Card className="p-7 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-3">Budget</p>
-            <p className="text-2xl font-black text-slate-100">O que planejamos</p>
-            <p className="text-[11px] text-slate-600 mt-2">Novembro do ano passado</p>
-          </Card>
-          <p className="text-sm font-black uppercase tracking-widest text-slate-600 text-center py-2">versus</p>
-          <Card className="p-7 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-3">Realidade</p>
-            <p className="text-2xl font-black text-slate-100">O que está acontecendo</p>
-            <p className="text-[11px] text-slate-600 mt-2">Agora</p>
-          </Card>
-        </div>
-
-        <div className="flex flex-col items-center mt-2">
-          <span className="text-[10px]" style={{ color: BLUE }}>▼</span>
-          <p className="text-[10px] uppercase tracking-widest text-slate-600 my-1">Entre os dois</p>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6, ease: 'backOut' }}
-          className="rounded-2xl border px-14 py-6 text-center"
-          style={{ borderColor: `${BLUE}66`, background: 'rgba(26,173,226,0.08)' }}
-        >
-          <p className="text-4xl sm:text-6xl font-black tracking-tight" style={{ color: BLUE, textShadow: '0 0 60px rgba(26,173,226,0.35)' }}>FORECAST</p>
-        </motion.div>
-      </div>
-    </Slide>
-  );
-}
 
 /* ═══════════════ BLOCO 4 — FORECAST E PIPELINE ═══════════════ */
 
-// 30 — Planejamento sem atualização vira ficção
-function S22() {
-  const linha = [
-    { mes: 'JANEIRO', ev: 'Budget aprovado: R$ 10 mil/mês', cor: BLUE },
-    { mes: 'MARÇO', ev: 'O mercado mudou', cor: '#94A3B8' },
-    { mes: 'JUNHO', ev: 'A conversão caiu', cor: AMBER },
-    { mes: 'AGOSTO', ev: 'Grandes contratos atrasaram', cor: RED },
-  ];
-  return (
-    <Slide bg="dark">
-      {/* só o rótulo — o título grande saiu */}
-      <div className="shrink-0 mb-6">
-        <p className="text-[11px] font-black uppercase tracking-[0.3em]" style={{ color: BLUE }}>O ano de uma empresa qualquer</p>
-      </div>
-      <div className="flex-1 flex items-center min-h-0">
-        <div className="w-full relative pl-6">
-          <div className="absolute left-[7px] top-2 bottom-2 w-px bg-gradient-to-b from-[#1AADE2] via-[#F59E0B] to-[#EF4444]" />
-          {linha.map((l, i) => (
-            <motion.div key={l.mes} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.22 }} className="relative pb-6 last:pb-0">
-              <div className="absolute -left-6 top-1.5 w-3.5 h-3.5 rounded-full border-2" style={{ borderColor: l.cor, background: NAVY }} />
-              <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: l.cor }}>{l.mes}</p>
-              <p className="text-xl font-bold text-slate-100 mt-0.5">{l.ev}</p>
-            </motion.div>
-          ))}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }} className="mt-2 rounded-xl border-l-[3px] px-5 py-3.5" style={{ borderColor: RED, background: 'rgba(239,68,68,0.06)' }}>
-            <p className="text-base font-semibold text-slate-100">
-              Em agosto, continuar repetindo que a meta é R$ 50 mil/mês ajuda a tomar <strong style={{ color: RED }}>alguma decisão</strong>?
-            </p>
-          </motion.div>
-        </div>
-      </div>
-      <SeloMagna />
-    </Slide>
-  );
-}
 
 // 31 — O pipeline
 function S23() {
@@ -2873,9 +2803,7 @@ const SLIDES = [
   { id: 's29-o-que-entra', titulo: 'O que entra no budget', bloco: 'Budget', node: <S17 /> },
   { id: 's30-budget-alpha', titulo: 'Budget da Alpha', bloco: 'Budget', node: <S18 /> },
   { id: 's31-cenarios', titulo: 'Três cenários', bloco: 'Budget', node: <S19 /> },
-  { id: 's32-budget-nao-e-sentenca', titulo: 'Budget não é sentença', bloco: 'Budget', node: <S20 /> },
-  { id: 's33-plano-desatualizado', titulo: 'Sem atualização vira ficção', bloco: 'Forecast', node: <S22 /> },
-  { id: 's34-mapa-pipeline', titulo: 'O mapa · próximo: EXECUÇÃO + PIPELINE', bloco: 'Forecast', node: <MapaReceita foco="EXECUÇÃO + PIPELINE" /> },
+  { id: 's34-mapa-pipeline', titulo: 'O mapa · próximo: EXECUÇÃO + PIPELINE', bloco: 'Forecast', node: <MapaReceita foco="EXECUÇÃO + PIPELINE" selo /> },
   { id: 's35-pipeline', titulo: 'O pipeline', bloco: 'Forecast', node: <S23 /> },
   { id: 's36-pipeline-nao-e-forecast', titulo: 'Pipeline não é forecast', bloco: 'Forecast', node: <S24 /> },
   { id: 's37-mapa-forecast', titulo: 'O mapa · próximo: FORECAST', bloco: 'Forecast', node: <MapaReceita foco="FORECAST" /> },
