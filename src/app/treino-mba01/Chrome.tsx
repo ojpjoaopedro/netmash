@@ -11,8 +11,10 @@
 
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Check, Download, GitCompareArrows, LayoutGrid, Rocket, Save, Plus, Trash2, Network, ListChecks, AlertTriangle } from 'lucide-react';
+import { Check, Download, GitCompareArrows, LayoutGrid, Rocket, Save, Plus, Trash2, Network, ListChecks, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import type { Treino } from './store';
+import { exportarExcel } from './exportar';
+import ResumoTudo from './ResumoTudo';
 
 /** `sufixo` é o que vem depois do link da empresa: /treino-mba01/<slug><sufixo>. */
 export const PILARES = [
@@ -93,11 +95,20 @@ export function Topo({
             >
               <Save className="w-4 h-4" /> {salvando ? 'Salvando…' : 'Salvar'}
             </button>
+            {/* os dois levam o exercício INTEIRO, não só o pilar aberto */}
             <button
               onClick={() => window.print()}
+              title="Baixa os 5 pilares num PDF só"
               className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-3.5 py-2 transition-colors"
             >
-              <Download className="w-4 h-4" /> Baixar PDF
+              <Download className="w-4 h-4" /> Baixar tudo (PDF)
+            </button>
+            <button
+              onClick={() => exportarExcel(dados)}
+              title="Baixa o exercício em Excel, uma aba por pilar"
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg px-3.5 py-2 transition-colors"
+            >
+              <FileSpreadsheet className="w-4 h-4" /> Excel
             </button>
           </div>
         </div>
@@ -126,6 +137,9 @@ export function Topo({
           })}
         </nav>
       </div>
+
+      {/* invisível na tela; é o que sai no "Baixar tudo" (ver print.css) */}
+      <ResumoTudo dados={dados} />
 
       {destino && (
         <AvisoNaoSalvo

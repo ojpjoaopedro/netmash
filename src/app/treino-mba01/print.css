@@ -1,57 +1,50 @@
 /* Impressão → "Salvar como PDF" no diálogo do navegador.
-   Some com botões e navegação, e força as cores dos cards a saírem no papel. */
+   O que sai no papel é o <ResumoTudo>: o exercício inteiro, os 5 pilares numa
+   folha só. A tela em si (botões, abas, campos) não sai.
+
+   Antes o PDF saía do pilar aberto, então a pessoa precisava imprimir 5 vezes
+   e juntar — e cada pilar é uma rota, não dava para pegar os outros. */
+
+/* na tela, o resumo não existe */
+.resumo-tudo {
+  display: none;
+}
 
 @media print {
   @page {
     size: A4;
-    margin: 14mm;
+    margin: 12mm;
   }
 
-  /* ⚠️ O globals.css do Hub tem uma regra global para o PDF do pitch deck:
-       body * { visibility: hidden }  +  .deck-print * { visibility: visible }
-     Ou seja, tudo que não estiver dentro de .deck-print some na impressão —
-     era isso que fazia o PDF do treino sair em branco.
-     As três regras abaixo desfazem isso só para esta página. */
-  body,
+  /* Some com tudo e traz de volta só o resumo. É `visibility` (e não `display`)
+     porque o resumo mora dentro do cabeçalho da página — escondendo os pais por
+     display, ele iria junto. */
   body * {
-    visibility: visible !important;
+    visibility: hidden;
+  }
+  .resumo-tudo,
+  .resumo-tudo * {
+    visibility: visible;
   }
 
-  /* o mesmo globals esconde <header> na impressão; aqui o header é o nome e a
-     empresa do aluno, que PRECISAM sair no PDF */
-  header {
-    display: block !important;
+  /* solto no topo da folha: sem isto ele sairia na posição em que está na tela */
+  .resumo-tudo {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
   }
 
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* nada de sombra nem fundo cinza no papel — o globals força #0A1A2E (tema do
-     deck) no body; aqui a folha é branca */
+  /* o fundo cinza da tela não vai para o papel */
   html,
   body {
     background: #fff !important;
   }
 
-  /* campos de texto viram texto normal */
-  input,
-  textarea {
-    border: 0 !important;
-    background: transparent !important;
-    resize: none !important;
-  }
-
-  /* placeholder não deve ser impresso — senão o PDF sai cheio de "Ex: ..." */
-  input::placeholder,
-  textarea::placeholder {
-    color: transparent !important;
-  }
-
-  /* não quebrar um bloco no meio da página */
-  .print-bloco {
-    break-inside: avoid;
-    page-break-inside: avoid;
+  /* as cores dos quadros e cabeçalhos precisam sair impressas */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
