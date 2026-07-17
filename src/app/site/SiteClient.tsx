@@ -275,7 +275,7 @@ function TelaCalendario() {
           {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => { const m = marca.includes(d); return <span key={d} style={{ fontSize: 6.5, textAlign: "center", padding: "3px 0", borderRadius: 5, color: m ? "#fff" : C.muted, fontWeight: m ? 800 : 400, background: m ? "linear-gradient(135deg,#ef4444,#b91c1c)" : "transparent" }}>{d}</span>; })}
         </div>
       </div>
-      <div style={{ marginTop: 6, fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>Em vermelho, as contas a vencer — você é avisado antes de cada vencimento.</div>
+      <div style={{ marginTop: 6, fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>Em vermelho, as contas a vencer, você é avisado antes de cada vencimento.</div>
     </div>
   );
 }
@@ -303,11 +303,13 @@ const NAV_ITENS: { idx: number; Icon: typeof Home; label: string }[] = [
 function DemoPhone({ big = false, float = false }: { big?: boolean; float?: boolean }) {
   const [i, setI] = useState(0);
   const [manual, setManual] = useState(false);
+  const stripRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (manual) return;
     const id = setInterval(() => setI((v) => (v + 1) % DEMO.length), 2900);
     return () => clearInterval(id);
   }, [manual]);
+  useEffect(() => { (stripRef.current?.children[i] as HTMLElement | undefined)?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }); }, [i]);
   const ir = (k: number) => { setI(k); setManual(true); };
 
   const nav = (
@@ -338,7 +340,7 @@ function DemoPhone({ big = false, float = false }: { big?: boolean; float?: bool
       </div>
       {/* pílulas: linha única, rola no mobile */}
       <div className="pills-strip" style={{ overflowX: "auto", marginTop: 16 }}>
-        <div style={{ display: "flex", gap: 6, width: "max-content", margin: "0 auto", padding: "0 4px 4px" }}>
+        <div ref={stripRef} style={{ display: "flex", gap: 6, width: "max-content", padding: "0 44px 4px" }}>
           {DEMO.map((d, k) => (
             <button key={k} onClick={() => ir(k)} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 11.5, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transition: ".2s" }}>{d.label}</button>
           ))}
@@ -359,9 +361,9 @@ function SectionTitle({ eyebrow, title, sub }: { eyebrow: string; title: string;
 }
 
 const DORES = [
-  { Icon: EyeOff, t: "Não sabe o lucro real", d: "Olha o saldo do banco e acha que está tudo bem — mas o dinheiro ali já tem dono." },
+  { Icon: EyeOff, t: "Não sabe o lucro real", d: "Olha o saldo do banco e acha que está tudo bem, mas o dinheiro ali já tem dono." },
   { Icon: HelpCircle, t: "Decide no achismo", d: "Sem número na mão, cada decisão de preço, contratação ou corte é um chute." },
-  { Icon: FolderX, t: "Dados espalhados", d: "Uma planilha aqui, um caderno ali, o extrato no banco — e nada conversa entre si." },
+  { Icon: FolderX, t: "Dados espalhados", d: "Uma planilha aqui, um caderno ali, o extrato no banco, e nada conversa entre si." },
   { Icon: AlarmClock, t: "Descobre tarde demais", d: "O problema só aparece quando o caixa já está no vermelho e não dá mais pra reagir." },
   { Icon: Coins, t: "Não sabe pra onde vai o dinheiro", d: "Custos invisíveis comendo a margem todo mês, sem ninguém perceber." },
   { Icon: FileWarning, t: "Fechar o mês é um pesadelo", d: "Horas montando relatório na mão, e mesmo assim sem confiança no resultado." },
@@ -372,7 +374,7 @@ const FEATURES = [
   { Icon: Table2, t: "Planilha mês a mês", d: "Digite os indicadores como numa planilha; os gráficos aparecem na hora." },
   { Icon: Sparkles, t: "Assistente inteligente", d: "Pergunte “como está meu caixa?” e receba a resposta com o que fazer essa semana." },
   { Icon: BarChart3, t: "Gráficos e metas", d: "Anéis de progresso vs. meta do ano e evolução mês a mês de cada número." },
-  { Icon: Megaphone, t: "Comercial & Marketing", d: "Leads, conversão, ROI e ticket médio — acompanhe o que traz dinheiro pra dentro." },
+  { Icon: Megaphone, t: "Comercial & Marketing", d: "Leads, conversão, ROI e ticket médio, acompanhe o que traz dinheiro pra dentro." },
 ];
 const PARCEIROS = [
   { src: "/parceiros/araguaia.svg", alt: "Colégio Araguaia", h: 46 },
@@ -472,7 +474,9 @@ function HeroStats() {
       </div>
     </>) },
   ];
+  const stripRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (manual) return; const id = setInterval(() => setI((v) => (v + 1) % PAN.length), 3400); return () => clearInterval(id); }, [manual, PAN.length]);
+  useEffect(() => { (stripRef.current?.children[i] as HTMLElement | undefined)?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }); }, [i]);
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ ...heroCard, minHeight: 340 }}>
@@ -480,7 +484,7 @@ function HeroStats() {
         <div key={i} style={{ position: "relative", animation: "swap .5s ease" }}>{PAN[i].el}</div>
       </div>
       <div className="pills-strip" style={{ overflowX: "auto" }}>
-        <div style={{ display: "flex", gap: 6, width: "max-content", margin: "0 auto", paddingBottom: 4 }}>
+        <div ref={stripRef} style={{ display: "flex", gap: 6, width: "max-content", padding: "0 44px 4px" }}>
           {PAN.map((p, k) => <button key={k} onClick={() => { setI(k); setManual(true); }} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 12, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transition: ".2s" }}>{p.label}</button>)}
         </div>
       </div>
@@ -535,7 +539,7 @@ function DonutCustos() {
 const SEM = ["Decisões no achismo, sem número na mão", "Planilhas soltas que ninguém atualiza", "Descobre o rombo quando o caixa já apertou", "Não sabe o lucro real do mês", "Fechar o mês leva horas de trabalho manual"];
 const COM = ["Decisões com o número real na tela", "Tudo num painel que se monta sozinho", "Alertas antes do caixa ficar no vermelho", "Lucro e margem atualizados toda semana", "Relatório e DRE prontos em 1 clique"];
 const FAQS: { q: string; a: string }[] = [
-  { q: "Preciso entender de finanças pra usar?", a: "Não. Você lança receitas e despesas (ou importa uma planilha) e o app monta os gráficos, o DRE e os indicadores sozinho — em linguagem simples." },
+  { q: "Preciso entender de finanças pra usar?", a: "Não. Você lança receitas e despesas (ou importa uma planilha) e o app monta os gráficos, o DRE e os indicadores sozinho, em linguagem simples." },
   { q: "Funciona no celular?", a: "Sim. Roda no celular, tablet e computador direto no navegador, sem instalar nada." },
   { q: "Consigo importar minha planilha atual?", a: "Sim. Dá pra importar sua planilha e também digitar mês a mês, como numa planilha, dentro do app." },
   { q: "Meus dados ficam seguros?", a: "Sim. Cada empresa acessa apenas os próprios dados, com login protegido por senha." },
@@ -583,7 +587,7 @@ function Simulador() {
       <div style={{ position: "relative" }}>
         <span style={chip}>Faça o teste</span>
         <h3 style={{ fontSize: "clamp(22px,3.5vw,30px)", fontWeight: 900, margin: "16px 0 6px", lineHeight: 1.15 }}>Quanto sua empresa movimenta por ano?</h3>
-        <p style={{ color: C.muted, fontSize: 15, lineHeight: 1.6, margin: 0 }}>Arraste e veja o tamanho do que você deveria estar acompanhando de perto — todo mês.</p>
+        <p style={{ color: C.muted, fontSize: 15, lineHeight: 1.6, margin: 0 }}>Arraste e veja o tamanho do que você deveria estar acompanhando de perto, todo mês.</p>
         <div style={{ marginTop: 26 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ color: C.muted, fontSize: 13 }}>Faturamento por mês</span><b style={{ color: C.cyan, fontSize: 16 }}>{brl0(fat)}</b></div>
           <input type="range" min={5000} max={200000} step={1000} value={fat} onChange={(e) => setFat(Number(e.target.value))} className="range" style={{ width: "100%" }} aria-label="Faturamento por mês" />
@@ -604,7 +608,7 @@ function Simulador() {
             <b style={{ fontSize: 20, marginTop: 4, display: "block" }}>{brl0(lucro)}</b>
           </div>
         </div>
-        <p style={{ fontSize: 11.5, color: C.muted, margin: 0, lineHeight: 1.5 }}>* Estimativa ilustrativa. No {MARCA} você vê o número <b style={{ color: C.txt }}>real</b> do seu negócio — não uma média.</p>
+        <p style={{ fontSize: 11.5, color: C.muted, margin: 0, lineHeight: 1.5 }}>* Estimativa ilustrativa. No {MARCA} você vê o número <b style={{ color: C.txt }}>real</b> do seu negócio, não uma média.</p>
       </div>
     </div>
   );
@@ -668,7 +672,7 @@ export default function SiteClient() {
 
       {/* DOR */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
-        <Reveal><SectionTitle eyebrow="O problema" title="A maioria dos empresários vive no escuro" sub="Trabalha muito, fatura — mas não sabe se lucra. Você se reconhece em alguma dessas?" /></Reveal>
+        <Reveal><SectionTitle eyebrow="O problema" title="A maioria dos empresários vive no escuro" sub="Trabalha muito, fatura, mas não sabe se lucra. Você se reconhece em alguma dessas?" /></Reveal>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {DORES.map(({ Icon, t, d }, i) => (
             <Reveal key={i} delay={i * 70}>
@@ -703,7 +707,7 @@ export default function SiteClient() {
           {([
             { Icon: Coins, t: "Sem fluxo de caixa", d: "Não registrar o que entra e sai deixa a empresa sem capital de giro para pagar fornecedores e funcionários.", s: "Entradas, saídas e saldo sempre atualizados." },
             { Icon: Shuffle, t: "Contas misturadas", d: "Tirar dinheiro do caixa da empresa para despesa pessoal mascara a lucratividade real do negócio.", s: "Você enxerga o resultado real, separado." },
-            { Icon: Compass, t: "Decisão no achismo", d: "Sem estudar mercado, concorrência e público, cada decisão vira um chute — não um plano.", s: "Indicadores e metas para decidir com dados." },
+            { Icon: Compass, t: "Decisão no achismo", d: "Sem estudar mercado, concorrência e público, cada decisão vira um chute, não um plano.", s: "Indicadores e metas para decidir com dados." },
           ]).map(({ Icon, t, d, s }, i) => (
             <Reveal key={i} delay={i * 70}>
               <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, height: "100%" }}>
@@ -721,7 +725,7 @@ export default function SiteClient() {
 
       {/* VEJA EM AÇÃO (demo/vídeo) */}
       <section id="acao" style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
-        <Reveal><SectionTitle eyebrow="Veja em ação" title="O app rodando, de verdade" sub="Do resumo do dia à planilha mês a mês — passe pelas telas e veja como é simples." /></Reveal>
+        <Reveal><SectionTitle eyebrow="Veja em ação" title="O app rodando, de verdade" sub="Do resumo do dia à planilha mês a mês, passe pelas telas e veja como é simples." /></Reveal>
         <Reveal delay={120}>
           <div style={{ display: "flex", justifyContent: "center", position: "relative" }}>
             <div style={{ position: "absolute", width: 340, height: 340, borderRadius: "50%", background: "radial-gradient(circle, rgba(34,184,240,.25), transparent 65%)", filter: "blur(20px)", animation: "pulseGlow 4s ease-in-out infinite" }} />
@@ -736,7 +740,7 @@ export default function SiteClient() {
 
       {/* GRÁFICOS */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
-        <Reveal><SectionTitle eyebrow="Gráficos" title="Do dado ao gráfico, automático" sub="Você lança os números; o app transforma em gráficos claros na hora — sem fórmula, sem montar planilha." /></Reveal>
+        <Reveal><SectionTitle eyebrow="Gráficos" title="Do dado ao gráfico, automático" sub="Você lança os números; o app transforma em gráficos claros na hora, sem fórmula, sem montar planilha." /></Reveal>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: 16 }}>
           <Reveal><BarsFaturamento /></Reveal>
           <Reveal delay={120}><DonutCustos /></Reveal>
@@ -903,7 +907,7 @@ export default function SiteClient() {
         @keyframes growUp { from{transform:scaleY(0)} to{transform:scaleY(1)} }
         @keyframes growX { from{clip-path:inset(0 100% 0 0)} to{clip-path:inset(0 0 0 0)} }
         @keyframes spinIn { from{transform:rotate(-50deg); opacity:0} to{transform:rotate(0); opacity:1} }
-        .pills-strip{ scrollbar-width:none; }
+        .pills-strip{ scrollbar-width:none; -webkit-mask:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
         .pills-strip::-webkit-scrollbar{ display:none; }
         @keyframes pulseGlow { 0%,100%{opacity:.45; transform:scale(1)} 50%{opacity:.85; transform:scale(1.06)} }
         .parc{ filter: brightness(0) invert(1); opacity:.5; transition: opacity .25s ease, filter .25s ease; }
