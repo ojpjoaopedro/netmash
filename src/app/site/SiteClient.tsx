@@ -814,12 +814,12 @@ export default function SiteClient() {
 
       {/* STATS */}
       <section style={{ ...container, padding: "clamp(20px,4vw,40px) 20px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 16, textAlign: "center" }}>
-          {([["1", "painel pra tudo", C.cyan], ["5 min", "pra começar", C.green], ["mês a mês", "sem planilha manual", C.violet], ["24/7", "no celular", C.amber]] as [string, string, string][]).map(([v, l, cor], i) => (
-            <Reveal key={i} delay={i * 70}>
-              <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: "26px 16px" }}>
-                <div style={{ fontSize: 30, fontWeight: 900, color: cor }}>{v}</div>
-                <div style={{ color: C.muted, fontSize: 13.5, marginTop: 4 }}>{l}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: "clamp(8px,2vw,16px)", textAlign: "center" }}>
+          {([["1", "painel pra tudo", C.cyan], ["5 min", "pra começar", C.green], ["mês a mês", "sem planilha", C.violet], ["24/7", "no celular", C.amber]] as [string, string, string][]).map(([v, l, cor], i) => (
+            <Reveal key={i} delay={i * 70} style={{ height: "100%" }}>
+              <div className="lift" style={{ height: "100%", minHeight: 104, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: "clamp(12px,3vw,24px) 6px" }}>
+                <div style={{ fontSize: "clamp(17px,4.6vw,30px)", fontWeight: 900, color: cor, lineHeight: 1.05 }}>{v}</div>
+                <div style={{ color: C.muted, fontSize: "clamp(9px,2.3vw,13.5px)", marginTop: 5, lineHeight: 1.3 }}>{l}</div>
               </div>
             </Reveal>
           ))}
