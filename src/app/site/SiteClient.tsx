@@ -638,7 +638,7 @@ export default function SiteClient() {
             Sua empresa não pode <span className="glow-accent" style={{ color: C.cyan }}>viver no escuro.</span>
           </h1>
           <p style={{ color: C.muted, fontSize: "clamp(16px,2.4vw,20px)", lineHeight: 1.6, margin: "18px 0 0", maxWidth: 500 }}>
-            Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo — veja o número <b style={{ color: C.txt }}>real</b> do seu negócio.
+            Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo. Veja o número <b style={{ color: C.txt }}>real</b> do seu negócio.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 28 }}>
             <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "14px 26px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Testar agora <ArrowRight size={18} /></Link>
@@ -701,7 +701,7 @@ export default function SiteClient() {
             <div>
               <span style={{ ...chip, color: C.amber, background: "rgba(245,158,11,.1)", borderColor: "rgba(245,158,11,.28)" }}><TriangleAlert size={13} style={{ verticalAlign: "-2px", marginRight: 6 }} />Dados do mercado</span>
               <h2 style={{ fontSize: "clamp(22px,3.6vw,32px)", fontWeight: 900, letterSpacing: "-.02em", margin: "14px 0 0", lineHeight: 1.2 }}>Empresas não quebram por falta de lucro. <span style={{ color: C.cyan }}>Quebram por falta de gestão.</span></h2>
-              <p style={{ color: C.muted, fontSize: 16, lineHeight: 1.6, margin: "12px 0 0" }}>A má gestão financeira, a falta de planejamento e a mistura entre contas pessoais e da empresa criam um efeito bola de neve — e metade dos pequenos negócios não passa dos 5 anos.</p>
+              <p style={{ color: C.muted, fontSize: 16, lineHeight: 1.6, margin: "12px 0 0" }}>A má gestão financeira, a falta de planejamento e a mistura entre contas pessoais e da empresa criam um efeito bola de neve. É por isso que metade dos pequenos negócios não passa dos 5 anos.</p>
             </div>
           </div>
         </Reveal>
