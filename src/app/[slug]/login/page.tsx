@@ -52,7 +52,7 @@ export default function SlugLogin() {
       if (modo === "login") {
         await login(email.trim(), senha);
         aplicarMarca();
-        router.push("/");
+        router.push("/minhasmetricas");
       } else {
         await enviarReset(email.trim(), `${window.location.origin}/senha`);
         setMsg("✅ Enviamos um link para o seu e-mail. Abra-o para criar sua senha.");
