@@ -700,7 +700,7 @@ export default function SiteClient() {
             </div>
             <div>
               <span style={{ ...chip, color: C.amber, background: "rgba(245,158,11,.1)", borderColor: "rgba(245,158,11,.28)" }}><TriangleAlert size={13} style={{ verticalAlign: "-2px", marginRight: 6 }} />Dados do mercado</span>
-              <h2 style={{ fontSize: "clamp(22px,3.6vw,32px)", fontWeight: 900, letterSpacing: "-.02em", margin: "14px 0 0", lineHeight: 1.2 }}>Empresas não quebram por falta de lucro. <span style={{ color: C.cyan }}>Quebram por falta de caixa.</span></h2>
+              <h2 style={{ fontSize: "clamp(22px,3.6vw,32px)", fontWeight: 900, letterSpacing: "-.02em", margin: "14px 0 0", lineHeight: 1.2 }}>Empresas não quebram por falta de lucro. <span style={{ color: C.cyan }}>Quebram por falta de gestão.</span></h2>
               <p style={{ color: C.muted, fontSize: 16, lineHeight: 1.6, margin: "12px 0 0" }}>A má gestão financeira, a falta de planejamento e a mistura entre contas pessoais e da empresa criam um efeito bola de neve — e metade dos pequenos negócios não passa dos 5 anos.</p>
             </div>
           </div>
