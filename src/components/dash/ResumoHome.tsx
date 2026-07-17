@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { DollarSign, TrendingUp, Wallet, ClipboardList, Cake, Pencil, Check } from "lucide-react";
 import { Lancamento, Cliente } from "@/lib/db";
-import { brl } from "@/lib/format";
 import { resumo } from "@/lib/calc";
+import { fmt } from "./Kit";
 
 function saudacao() { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; }
 function dataHoje() {
@@ -42,9 +42,9 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
   const novos = clientes.filter((c) => (c.criado_em || "").slice(0, 4) === ano).length || clientes.length;
 
   const KPIS = [
-    { icon: <DollarSign size={17} />, cor: "#10B981", val: brl(r.faturamento), label: "Faturamento", destaque: false },
+    { icon: <DollarSign size={17} />, cor: "#10B981", val: fmt(r.faturamento, "BRL"), label: "Faturamento", destaque: false },
     { icon: <TrendingUp size={17} />, cor: "#8b5cf6", val: String(novos), label: "Novos clientes", destaque: false },
-    { icon: <Wallet size={17} />, cor: "#1AADE2", val: brl(r.saldo), label: "Saldo em caixa", destaque: true },
+    { icon: <Wallet size={17} />, cor: "#1AADE2", val: fmt(r.saldo, "BRL"), label: "Saldo em caixa", destaque: true },
   ];
 
   return (
@@ -56,18 +56,19 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
       </div>
 
       {/* 3 KPIs do mesmo tamanho (3º destacado) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+      {/* minmax(0,1fr) é essencial: com "1fr" as colunas não encolhem e o 3º card vaza */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
         {KPIS.map((k, i) => (
           <div key={i} style={{
-            padding: 15, borderRadius: 16, minHeight: 116, display: "flex", flexDirection: "column", gap: 8,
+            padding: 13, borderRadius: 16, minHeight: 116, minWidth: 0, display: "flex", flexDirection: "column", gap: 8,
             border: k.destaque ? "0" : "1px solid var(--line)",
             background: k.destaque ? "linear-gradient(150deg, #1AADE2, #0c6e9e)" : "rgba(255,255,255,.025)",
             boxShadow: k.destaque ? "0 12px 28px -12px rgba(26,173,226,.6)" : "none",
             color: k.destaque ? "#fff" : "var(--txt)",
           }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: k.destaque ? "rgba(255,255,255,.2)" : k.cor + "22", color: k.destaque ? "#fff" : k.cor, flexShrink: 0 }}>{k.icon}</span>
-            <b style={{ fontSize: 18, letterSpacing: "-.02em", lineHeight: 1.1, marginTop: "auto" }}>{k.val}</b>
-            <small style={{ textTransform: "uppercase", letterSpacing: ".05em", fontSize: 9.5, fontWeight: 700, color: k.destaque ? "rgba(255,255,255,.9)" : "var(--muted)" }}>{k.label}</small>
+            <span style={{ width: 32, height: 32, borderRadius: 10, display: "grid", placeItems: "center", background: k.destaque ? "rgba(255,255,255,.2)" : k.cor + "22", color: k.destaque ? "#fff" : k.cor, flexShrink: 0 }}>{k.icon}</span>
+            <b style={{ fontSize: "clamp(13px, 3.7vw, 18px)", letterSpacing: "-.02em", lineHeight: 1.15, marginTop: "auto", minWidth: 0, overflowWrap: "anywhere" }}>{k.val}</b>
+            <small style={{ textTransform: "uppercase", letterSpacing: ".04em", fontSize: 9, fontWeight: 700, lineHeight: 1.3, color: k.destaque ? "rgba(255,255,255,.9)" : "var(--muted)" }}>{k.label}</small>
           </div>
         ))}
       </div>
