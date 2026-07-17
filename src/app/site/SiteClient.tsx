@@ -618,13 +618,13 @@ export default function SiteClient() {
 
       {/* NAV */}
       <header style={{ position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(16px)", background: "rgba(8,9,12,.7)", borderBottom: `1px solid ${C.line}` }}>
-        <div style={{ ...container, display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, fontWeight: 800, fontSize: 17 }}>
-            <img src="/icon.svg" alt="" style={{ width: 30, height: 30, borderRadius: 8 }} />
+        <div className="site-nav" style={{ ...container, display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
+          <div className="nav-logo" style={{ display: "flex", alignItems: "center", gap: 9, fontWeight: 800, fontSize: 17 }}>
+            <img src="/icon.svg" alt="" style={{ width: 28, height: 28, borderRadius: 8 }} />
             Minhas <span style={{ color: C.cyan }}>Métricas</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Link href={ENTRAR_URL} style={{ color: C.muted, fontSize: 14, fontWeight: 600 }}>Entrar</Link>
+            <Link href={ENTRAR_URL} className="nav-entrar" style={{ color: C.muted, fontSize: 14, fontWeight: 600 }}>Entrar</Link>
             <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "9px 16px", borderRadius: 99, boxShadow: "0 8px 20px -8px rgba(34,184,240,.6)" }}>Começar <ArrowRight size={15} /></Link>
           </div>
         </div>
@@ -929,8 +929,10 @@ export default function SiteClient() {
         .glow-accent{ animation: glowpulse 3.2s ease-in-out infinite; }
         @keyframes glowpulse { 0%,100%{ text-shadow: 0 0 0 rgba(34,184,240,0) } 50%{ text-shadow: 0 0 28px rgba(34,184,240,.55) } }
         .range{ accent-color: #22b8f0; height: 6px; cursor: pointer; }
-        @media (max-width: 860px){ .site-hero{ grid-template-columns: 1fr !important; } }
+        html{ scroll-padding-top: 72px; }
+        @media (max-width: 860px){ .site-hero{ grid-template-columns: 1fr !important; gap: 30px !important; } }
         @media (max-width: 700px){ .cmp{ grid-template-columns: 1fr !important; } }
+        @media (max-width: 430px){ .nav-entrar{ display: none; } .nav-logo{ font-size: 15px; } }
         @media (prefers-reduced-motion: reduce){ *{animation:none !important} }
       `}</style>
     </div>
