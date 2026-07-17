@@ -342,7 +342,7 @@ function DemoPhone({ big = false, float = false }: { big?: boolean; float?: bool
       <div className="pills-strip" style={{ overflowX: "auto", marginTop: 16 }}>
         <div ref={stripRef} style={{ display: "flex", gap: 6, width: "max-content", padding: "0 44px 4px" }}>
           {DEMO.map((d, k) => (
-            <button key={k} onClick={() => ir(k)} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 11.5, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transition: ".2s" }}>{d.label}</button>
+            <button key={k} onClick={() => ir(k)} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 11.5, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transform: i === k ? "scale(1.1)" : "scale(1)", boxShadow: i === k ? "0 6px 18px -4px rgba(34,184,240,.75)" : "none", transition: "all .3s cubic-bezier(.2,.9,.3,1)" }}>{d.label}</button>
           ))}
         </div>
       </div>
@@ -485,7 +485,7 @@ function HeroStats() {
       </div>
       <div className="pills-strip" style={{ overflowX: "auto" }}>
         <div ref={stripRef} style={{ display: "flex", gap: 6, width: "max-content", padding: "0 44px 4px" }}>
-          {PAN.map((p, k) => <button key={k} onClick={() => { setI(k); setManual(true); }} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 12, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transition: ".2s" }}>{p.label}</button>)}
+          {PAN.map((p, k) => <button key={k} onClick={() => { setI(k); setManual(true); }} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 12, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transform: i === k ? "scale(1.1)" : "scale(1)", boxShadow: i === k ? "0 6px 18px -4px rgba(34,184,240,.75)" : "none", transition: "all .3s cubic-bezier(.2,.9,.3,1)" }}>{p.label}</button>)}
         </div>
       </div>
     </div>
@@ -812,7 +812,7 @@ export default function SiteClient() {
       {/* STATS */}
       <section style={{ ...container, padding: "clamp(20px,4vw,40px) 20px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: "clamp(8px,2vw,16px)", textAlign: "center" }}>
-          {([["1", "painel pra tudo", C.cyan], ["5 min", "pra começar", C.green], ["mês a mês", "sem planilha", C.violet], ["24/7", "no celular", C.amber]] as [string, string, string][]).map(([v, l, cor], i) => (
+          {([["1", "painel pra tudo", C.cyan], ["5 min", "pra começar", C.green], ["Mensal", "sem planilha", C.violet], ["24/7", "no celular", C.amber]] as [string, string, string][]).map(([v, l, cor], i) => (
             <Reveal key={i} delay={i * 70} style={{ height: "100%" }}>
               <div className="lift" style={{ height: "100%", minHeight: 104, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: "clamp(12px,3vw,24px) 6px" }}>
                 <div style={{ fontSize: "clamp(17px,4.6vw,30px)", fontWeight: 900, color: cor, lineHeight: 1.05 }}>{v}</div>
