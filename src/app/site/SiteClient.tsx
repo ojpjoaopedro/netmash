@@ -5,7 +5,7 @@ import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3, Megaphone,
   EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
   Check, Rocket, Play, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
-  CheckCircle2, Calendar, Home, Hand, Shuffle, Tag, Compass, TriangleAlert,
+  CheckCircle2, Calendar, Home, Hand, Shuffle, Compass, TriangleAlert,
 } from "lucide-react";
 
 const ENTRAR_URL = "/login";
@@ -711,7 +711,6 @@ export default function SiteClient() {
             { Icon: Coins, t: "Sem fluxo de caixa", d: "Não registrar o que entra e sai deixa a empresa sem capital de giro para pagar fornecedores e funcionários.", s: "Entradas, saídas e saldo sempre atualizados." },
             { Icon: Shuffle, t: "Contas misturadas", d: "Tirar dinheiro do caixa da empresa para despesa pessoal mascara a lucratividade real do negócio.", s: "Você enxerga o resultado real, separado." },
             { Icon: Compass, t: "Decisão no achismo", d: "Sem estudar mercado, concorrência e público, cada decisão vira um chute — não um plano.", s: "Indicadores e metas para decidir com dados." },
-            { Icon: Tag, t: "Preço errado", d: "Cobrar abaixo do custo real: vende muito e tem prejuízo em cada venda, sem perceber.", s: "Veja a margem e o custo por trás de cada venda." },
           ]).map(({ Icon, t, d, s }, i) => (
             <Reveal key={i} delay={i * 70}>
               <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, height: "100%" }}>
