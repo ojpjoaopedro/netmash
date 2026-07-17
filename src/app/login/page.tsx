@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { login, cadastrarComCodigo, enviarReset, definirSenha } from "@/lib/db";
 import { supabaseReady } from "@/lib/supabase";
 
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [modo, setModo] = useState<Modo>("login");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [verSenha, setVerSenha] = useState(false);   // olho do campo de senha do login
   const [senha2, setSenha2] = useState("");
   const [nome, setNome] = useState("");
   const [empresa, setEmpresa] = useState("");
@@ -101,7 +103,16 @@ export default function LoginPage() {
           )}
 
           {(modo === "login" || modo === "cadastro") && (
-            <div className="field"><label className="f">Senha</label><input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6} /></div>
+            <div className="field"><label className="f">Senha</label>
+              <div style={{ position: "relative" }}>
+                <input type={verSenha ? "text" : "password"} value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6} style={{ paddingRight: 44, width: "100%" }} />
+                <button type="button" onClick={() => setVerSenha((v) => !v)}
+                  aria-label={verSenha ? "Ocultar senha" : "Mostrar senha"} title={verSenha ? "Ocultar senha" : "Mostrar senha"}
+                  style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: 0, padding: 6, cursor: "pointer", color: "#64748b", display: "grid", placeItems: "center" }}>
+                  {verSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
           )}
 
           {modo === "cadastro" && (
