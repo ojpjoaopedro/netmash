@@ -309,7 +309,16 @@ function DemoPhone({ big = false, float = false }: { big?: boolean; float?: bool
     const id = setInterval(() => setI((v) => (v + 1) % DEMO.length), 2900);
     return () => clearInterval(id);
   }, [manual]);
-  useEffect(() => { (stripRef.current?.children[i] as HTMLElement | undefined)?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }); }, [i]);
+  useEffect(() => {
+    const strip = stripRef.current;
+    const container = strip?.parentElement as HTMLElement | null;
+    const btn = strip?.children[i] as HTMLElement | undefined;
+    if (!strip || !container || !btn) return;
+    const cRect = container.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    // rola apenas a faixa na horizontal — nunca a página
+    container.scrollBy({ left: (bRect.left + bRect.width / 2) - (cRect.left + cRect.width / 2), behavior: "smooth" });
+  }, [i]);
   const ir = (k: number) => { setI(k); setManual(true); };
 
   const nav = (
@@ -342,7 +351,7 @@ function DemoPhone({ big = false, float = false }: { big?: boolean; float?: bool
       <div className="pills-strip" style={{ overflowX: "auto", marginTop: 16 }}>
         <div ref={stripRef} style={{ display: "flex", gap: 6, width: "max-content", padding: "0 44px 4px" }}>
           {DEMO.map((d, k) => (
-            <button key={k} onClick={() => ir(k)} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 11.5, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transition: ".2s" }}>{d.label}</button>
+            <button key={k} onClick={() => ir(k)} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 11.5, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transform: i === k ? "scale(1.1)" : "scale(1)", boxShadow: i === k ? "0 6px 18px -4px rgba(34,184,240,.75)" : "none", transition: "all .3s cubic-bezier(.2,.9,.3,1)" }}>{d.label}</button>
           ))}
         </div>
       </div>
@@ -476,7 +485,16 @@ function HeroStats() {
   ];
   const stripRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (manual) return; const id = setInterval(() => setI((v) => (v + 1) % PAN.length), 3400); return () => clearInterval(id); }, [manual, PAN.length]);
-  useEffect(() => { (stripRef.current?.children[i] as HTMLElement | undefined)?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }); }, [i]);
+  useEffect(() => {
+    const strip = stripRef.current;
+    const container = strip?.parentElement as HTMLElement | null;
+    const btn = strip?.children[i] as HTMLElement | undefined;
+    if (!strip || !container || !btn) return;
+    const cRect = container.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    // rola apenas a faixa na horizontal — nunca a página
+    container.scrollBy({ left: (bRect.left + bRect.width / 2) - (cRect.left + cRect.width / 2), behavior: "smooth" });
+  }, [i]);
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ ...heroCard, minHeight: 340 }}>
@@ -485,7 +503,7 @@ function HeroStats() {
       </div>
       <div className="pills-strip" style={{ overflowX: "auto" }}>
         <div ref={stripRef} style={{ display: "flex", gap: 6, width: "max-content", padding: "0 44px 4px" }}>
-          {PAN.map((p, k) => <button key={k} onClick={() => { setI(k); setManual(true); }} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 12, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transition: ".2s" }}>{p.label}</button>)}
+          {PAN.map((p, k) => <button key={k} onClick={() => { setI(k); setManual(true); }} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 12, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transform: i === k ? "scale(1.1)" : "scale(1)", boxShadow: i === k ? "0 6px 18px -4px rgba(34,184,240,.75)" : "none", transition: "all .3s cubic-bezier(.2,.9,.3,1)" }}>{p.label}</button>)}
         </div>
       </div>
     </div>
@@ -642,7 +660,7 @@ export default function SiteClient() {
             Sua empresa não pode viver <span className="dark-light" style={{ color: C.cyan }}>no escuro.</span>
           </h1>
           <p style={{ color: C.muted, fontSize: "clamp(16px,2.4vw,20px)", lineHeight: 1.6, margin: "18px 0 0", maxWidth: 500 }}>
-            Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo. <b style={{ color: C.txt }}>Veja o número real do seu negócio.</b>
+            Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo. <br /><b style={{ color: C.txt }}>Veja o número real do seu negócio.</b>
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 28 }}>
             <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "14px 26px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Testar agora <ArrowRight size={18} /></Link>
@@ -692,7 +710,7 @@ export default function SiteClient() {
           <div style={{ background: "linear-gradient(135deg, rgba(239,68,68,.12), rgba(245,158,11,.06))", border: "1px solid rgba(239,68,68,.22)", borderRadius: 24, padding: "clamp(28px,4vw,44px)", display: "grid", gridTemplateColumns: "auto 1fr", gap: "clamp(20px,4vw,44px)", alignItems: "center" }} className="cmp">
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "clamp(56px,11vw,96px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1, color: C.red }}><CountUp to={50} suffix="%" /></div>
-              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: C.muted, marginTop: 6 }}>das pequenas empresas fecham em até 5 anos</div>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: C.muted, marginTop: 6 }}>das empresas que abrem fecham em até 5 anos</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>Fonte: Sebrae</div>
             </div>
             <div>
@@ -812,7 +830,7 @@ export default function SiteClient() {
       {/* STATS */}
       <section style={{ ...container, padding: "clamp(20px,4vw,40px) 20px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: "clamp(8px,2vw,16px)", textAlign: "center" }}>
-          {([["1", "painel pra tudo", C.cyan], ["5 min", "pra começar", C.green], ["mês a mês", "sem planilha", C.violet], ["24/7", "no celular", C.amber]] as [string, string, string][]).map(([v, l, cor], i) => (
+          {([["1", "painel pra tudo", C.cyan], ["5 min", "pra começar", C.green], ["Mensal", "sem planilha", C.violet], ["24/7", "no celular", C.amber]] as [string, string, string][]).map(([v, l, cor], i) => (
             <Reveal key={i} delay={i * 70} style={{ height: "100%" }}>
               <div className="lift" style={{ height: "100%", minHeight: 104, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: "clamp(12px,3vw,24px) 6px" }}>
                 <div style={{ fontSize: "clamp(17px,4.6vw,30px)", fontWeight: 900, color: cor, lineHeight: 1.05 }}>{v}</div>
