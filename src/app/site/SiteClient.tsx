@@ -5,7 +5,7 @@ import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3, Megaphone,
   EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
   Check, Rocket, Play, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
-  CheckCircle2, Calendar, Home, Hand, Shuffle, Compass, TriangleAlert,
+  Calendar, Home, Hand, Shuffle, Compass, TriangleAlert,
 } from "lucide-react";
 
 const ENTRAR_URL = "/login";
@@ -643,13 +643,6 @@ export default function SiteClient() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 28 }}>
             <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "14px 26px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Testar agora <ArrowRight size={18} /></Link>
             <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.05)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}><Play size={16} color={C.cyan} /> Ver o app em ação</a>
-          </div>
-          <div style={{ display: "flex", gap: 7, marginTop: 22, flexWrap: "wrap" }}>
-            {["Pronto em minutos", "Funciona no celular", "Assistente com IA"].map((c) => (
-              <span key={c} className="chip-i" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: "rgba(255,255,255,.04)", border: `1px solid ${C.line}`, borderRadius: 99, padding: "5px 11px" }}>
-                <CheckCircle2 size={13} color={C.green} /> {c}
-              </span>
-            ))}
           </div>
         </Reveal>
         <Reveal delay={150}><HeroStats /></Reveal>
