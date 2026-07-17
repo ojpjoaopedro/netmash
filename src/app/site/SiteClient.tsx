@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3, Megaphone,
   EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
-  Check, Rocket, Play, DollarSign, TrendingUp, Award,
+  Check, Rocket, Play, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
 } from "lucide-react";
 
 const ENTRAR_URL = "/login";
@@ -134,11 +134,73 @@ function TelaPlanilha() {
   );
 }
 
+function MiniRing({ pct, cor }: { pct: number; cor: string }) {
+  const R = 15, CC = 2 * Math.PI * R, off = CC - (Math.min(100, pct) / 100) * CC;
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" style={{ flexShrink: 0 }}>
+      <circle cx="20" cy="20" r={R} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="4" />
+      <circle cx="20" cy="20" r={R} fill="none" stroke={cor} strokeWidth="4" strokeLinecap="round" strokeDasharray={CC} strokeDashoffset={off} transform="rotate(-90 20 20)" />
+      <text x="20" y="23" textAnchor="middle" fontSize="9" fontWeight="800" fill="#fff">{pct}%</text>
+    </svg>
+  );
+}
+function TelaIndicadores() {
+  const cards: [string, string, number, string][] = [["Faturam.", "R$ 297k", 68, C.green], ["Lucro", "R$ 42k", 54, C.cyan], ["Margem", "18,4%", 52, C.violet], ["Clientes", "108", 45, C.amber]];
+  return (
+    <div style={{ height: "100%" }}>
+      <div style={{ fontSize: 9, fontWeight: 800, marginBottom: 8 }}>Indicadores · no ano</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+        {cards.map(([l, v, p, cor], i) => (
+          <div key={i} style={{ ...miniCard, display: "flex", alignItems: "center", gap: 8 }}>
+            <MiniRing pct={p} cor={cor} />
+            <div style={{ minWidth: 0 }}><div style={{ fontSize: 6.5, color: C.muted, textTransform: "uppercase", fontWeight: 700 }}>{l}</div><b style={{ fontSize: 9.5 }}>{v}</b></div>
+          </div>
+        ))}
+      </div>
+      <div style={{ ...miniCard, marginTop: 6, fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>Cada anel mostra quanto já bateu da meta do ano.</div>
+    </div>
+  );
+}
+function TelaComercial() {
+  const bars: [string, string, string, string][] = [["Leads", "520", C.violet, "100%"], ["Reuniões", "180", C.cyan, "52%"], ["Vendas", "64", C.green, "22%"]];
+  return (
+    <div style={{ height: "100%" }}>
+      <div style={{ fontSize: 9, fontWeight: 800, marginBottom: 8 }}>Comercial · funil</div>
+      <div style={{ ...miniCard, display: "grid", gap: 9 }}>
+        {bars.map(([l, v, cor, w], i) => (
+          <div key={i}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 7.5, marginBottom: 3 }}><span style={{ color: C.muted }}>{l}</span><b>{v}</b></div>
+            <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,.05)", overflow: "hidden" }}><div style={{ height: "100%", width: w, borderRadius: 6, background: cor }} /></div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
+        <div style={miniCard}><div style={{ fontSize: 7, color: C.muted }}>CONVERSÃO</div><b style={{ fontSize: 10, color: C.cyan }}>12,3%</b></div>
+        <div style={miniCard}><div style={{ fontSize: 7, color: C.muted }}>TICKET</div><b style={{ fontSize: 10, color: C.green }}>R$ 2.140</b></div>
+      </div>
+    </div>
+  );
+}
+function TelaAssistente() {
+  const bolha = (txt: string) => <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}><div style={{ background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", color: "#fff", fontSize: 8, padding: "6px 9px", borderRadius: "10px 10px 2px 10px", maxWidth: "80%", lineHeight: 1.4 }}>{txt}</div></div>;
+  return (
+    <div style={{ height: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}><span style={{ width: 22, height: 22, borderRadius: 7, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)" }}><Sparkles size={12} color="#fff" /></span><b style={{ fontSize: 9 }}>Assistente</b></div>
+      {bolha("Como está meu caixa este mês?")}
+      <div style={{ display: "flex", marginBottom: 6 }}><div style={{ ...miniCard, fontSize: 8, padding: 9, maxWidth: "90%", lineHeight: 1.55 }}>Seu caixa está <b style={{ color: C.green }}>positivo</b>: sobraram <b>R$ 42.180</b> (margem 18,4%). ⚠️ 3 contas vencem semana que vem.</div></div>
+      {bolha("O que eu corto primeiro?")}
+    </div>
+  );
+}
+
 /* Demo que roda sozinha (como um vídeo do app) */
 const DEMO = [
   { el: (a: boolean) => <TelaFinancas animar={a} />, label: "Finanças" },
   { el: () => <TelaHome />, label: "Resumo" },
+  { el: () => <TelaIndicadores />, label: "Indicadores" },
   { el: () => <TelaPlanilha />, label: "Planilha" },
+  { el: () => <TelaComercial />, label: "Comercial" },
+  { el: () => <TelaAssistente />, label: "Assistente" },
 ];
 function DemoPhone({ big = false, float = false }: { big?: boolean; float?: boolean }) {
   const [i, setI] = useState(0);
@@ -148,7 +210,7 @@ function DemoPhone({ big = false, float = false }: { big?: boolean; float?: bool
       <Phone big={big} float={float}>
         <div key={i} style={{ height: "100%", animation: "swap .55s ease" }}>{DEMO[i].el(true)}</div>
       </Phone>
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 16 }}>
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 16, flexWrap: "wrap", maxWidth: 340, marginInline: "auto" }}>
         {DEMO.map((d, k) => (
           <button key={k} onClick={() => setI(k)} style={{ cursor: "pointer", border: 0, fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)" }}>{d.label}</button>
         ))}
@@ -194,6 +256,143 @@ const PASSOS = [
   { n: "3", t: "Acompanhe e decida", d: "Os indicadores, gráficos e alertas se montam sozinhos. Você enfim enxerga o negócio." },
 ];
 
+/* ─── animações de dados ───────────────────────────────────────────────── */
+function useInView<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setInView(true); io.disconnect(); } }, { threshold: 0.25 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return [ref, inView] as const;
+}
+
+function CountUp({ to, dur = 1300, prefix = "", suffix = "" }: { to: number; dur?: number; prefix?: string; suffix?: string }) {
+  const [ref, inView] = useInView<HTMLSpanElement>();
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!inView) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (t: number) => { const p = Math.min(1, (t - start) / dur); setVal(Math.round(to * (1 - Math.pow(1 - p, 3)))); if (p < 1) raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, to, dur]);
+  return <span ref={ref}>{prefix}{val.toLocaleString("pt-BR")}{suffix}</span>;
+}
+
+const heroCard: React.CSSProperties = { background: "linear-gradient(160deg,#0e1622,#0b0f16)", border: `1px solid ${C.line}`, borderRadius: 20, padding: 20, position: "relative", overflow: "hidden" };
+function HeroStats() {
+  const [ref, inView] = useInView<HTMLDivElement>();
+  return (
+    <div ref={ref} style={{ display: "grid", gap: 14 }}>
+      <div className="lift" style={heroCard}>
+        <div style={{ position: "absolute", right: -40, top: -40, width: 170, height: 170, borderRadius: "50%", background: "radial-gradient(circle, rgba(34,184,240,.28), transparent 60%)", animation: "pulseGlow 4s ease-in-out infinite" }} />
+        <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(34,184,240,.14)", color: C.cyan }}><TrendingUp size={22} /></span>
+            <div><b style={{ fontSize: 15 }}>Faturamento do ano</b><div style={{ fontSize: 12, color: C.muted }}>Atualiza sozinho</div></div>
+          </div>
+          <span style={{ fontSize: 10.5, fontWeight: 800, color: C.cyan, background: "rgba(34,184,240,.12)", border: "1px solid rgba(34,184,240,.25)", borderRadius: 99, padding: "4px 10px" }}>YTD</span>
+        </div>
+        <div style={{ position: "relative", fontSize: "clamp(36px,6vw,50px)", fontWeight: 900, letterSpacing: "-.02em", marginTop: 16, lineHeight: 1 }}>R$ <CountUp to={297} />k</div>
+        <div style={{ height: 8, borderRadius: 99, background: "rgba(255,255,255,.06)", marginTop: 16, overflow: "hidden" }}>
+          <div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#22b8f0,#0c6e9e)", width: inView ? "68%" : "0%", transition: "width 1.4s cubic-bezier(.2,.8,.2,1)" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: C.muted }}><span>Meta R$ 700k</span><b style={{ color: C.txt }}>68% da meta</b></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="lift" style={heroCard}>
+          <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(16,185,129,.14)", color: C.green }}><Wallet size={19} /></span>
+          <div style={{ fontSize: 30, fontWeight: 900, marginTop: 12 }}>R$ <CountUp to={42} />k</div>
+          <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>Lucro · margem 18,4%</div>
+        </div>
+        <div className="lift" style={heroCard}>
+          <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(139,92,246,.14)", color: C.violet }}><TrendingUp size={19} /></span>
+          <div style={{ fontSize: 30, fontWeight: 900, marginTop: 12 }}><CountUp to={108} /></div>
+          <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>Novos clientes no ano</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── gráficos ─────────────────────────────────────────────────────────── */
+function BarsFaturamento() {
+  const [ref, inView] = useInView<HTMLDivElement>();
+  const data: [string, number][] = [["Jan", 40], ["Fev", 48], ["Mar", 39], ["Abr", 43], ["Mai", 56], ["Jun", 71]];
+  const max = 78;
+  return (
+    <div ref={ref} className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <b style={{ fontSize: 16 }}>Faturamento mês a mês</b><span style={{ color: C.green, fontWeight: 800 }}>R$ 297k</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 150 }}>
+        {data.map(([m, v], i) => (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, height: "100%", justifyContent: "flex-end" }}>
+            <div style={{ width: "100%", maxWidth: 34, borderRadius: "6px 6px 0 0", background: "linear-gradient(180deg,#38BDF8,#0c6e9e)", height: inView ? `${(v / max) * 100}%` : "0%", transition: `height .9s cubic-bezier(.2,.8,.2,1) ${i * 0.08}s`, boxShadow: "0 -4px 14px rgba(34,184,240,.3)" }} />
+            <span style={{ fontSize: 11.5, color: C.muted }}>{m}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function DonutCustos() {
+  const [ref, inView] = useInView<HTMLDivElement>();
+  const segs: [string, number, string][] = [["Folha", 38, C.cyan], ["Fornecedores", 24, C.violet], ["Marketing", 18, C.amber], ["Impostos", 12, C.green], ["Outros", 8, "#64748B"]];
+  let acc = 0;
+  const stops = segs.map(([, p, cor]) => { const from = acc; acc += p; return `${cor} ${from}% ${acc}%`; }).join(",");
+  return (
+    <div ref={ref} className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22 }}>
+      <b style={{ fontSize: 16 }}>Para onde vai o dinheiro</b>
+      <div style={{ display: "flex", gap: 18, alignItems: "center", marginTop: 16 }}>
+        <div style={{ width: 128, height: 128, flexShrink: 0, borderRadius: "50%", background: `conic-gradient(${stops})`, position: "relative", opacity: inView ? 1 : 0, transform: inView ? "rotate(0) scale(1)" : "rotate(-40deg) scale(.85)", transition: ".8s cubic-bezier(.2,.8,.2,1)" }}>
+          <div style={{ position: "absolute", inset: 15, borderRadius: "50%", background: C.card }} />
+        </div>
+        <div style={{ display: "grid", gap: 7, flex: 1 }}>
+          {segs.map(([l, p, cor], i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}><span style={{ width: 10, height: 10, borderRadius: 99, background: cor, flexShrink: 0 }} /><span style={{ color: C.muted, flex: 1 }}>{l}</span><b>{p}%</b></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── sem × com / FAQ ──────────────────────────────────────────────────── */
+const SEM = ["Decisões no achismo, sem número na mão", "Planilhas soltas que ninguém atualiza", "Descobre o rombo quando o caixa já apertou", "Não sabe o lucro real do mês", "Fechar o mês leva horas de trabalho manual"];
+const COM = ["Decisões com o número real na tela", "Tudo num painel que se monta sozinho", "Alertas antes do caixa ficar no vermelho", "Lucro e margem atualizados toda semana", "Relatório e DRE prontos em 1 clique"];
+const FAQS: { q: string; a: string }[] = [
+  { q: "Preciso entender de finanças pra usar?", a: "Não. Você lança receitas e despesas (ou importa uma planilha) e o app monta os gráficos, o DRE e os indicadores sozinho — em linguagem simples." },
+  { q: "Funciona no celular?", a: "Sim. Roda no celular, tablet e computador direto no navegador, sem instalar nada." },
+  { q: "Consigo importar minha planilha atual?", a: "Sim. Dá pra importar sua planilha e também digitar mês a mês, como numa planilha, dentro do app." },
+  { q: "Meus dados ficam seguros?", a: "Sim. Cada empresa acessa apenas os próprios dados, com login protegido por senha." },
+  { q: "Serve pro meu tipo de negócio?", a: "Serve pra comércio, serviços, clínicas, escolas e qualquer empresa que queira enxergar faturamento, custos e lucro num lugar só." },
+];
+function Faq() {
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <div style={{ display: "grid", gap: 12, maxWidth: 760, margin: "0 auto" }}>
+      {FAQS.map((f, i) => {
+        const o = open === i;
+        return (
+          <div key={i} style={{ background: C.card, border: `1px solid ${o ? "rgba(34,184,240,.3)" : C.line}`, borderRadius: 16, padding: "18px 20px", transition: "border-color .2s" }}>
+            <button onClick={() => setOpen(o ? null : i)} style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: 12, background: "none", border: 0, color: C.txt, cursor: "pointer", textAlign: "left", fontSize: 16, fontWeight: 700, padding: 0, fontFamily: "inherit" }}>
+              {f.q}
+              <ChevronDown size={18} color={C.cyan} style={{ transform: o ? "rotate(180deg)" : "none", transition: ".2s", flexShrink: 0 }} />
+            </button>
+            {o && <p style={{ color: C.muted, fontSize: 14.5, lineHeight: 1.6, margin: "12px 0 0" }}>{f.a}</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function SiteClient() {
   return (
     <div style={{ background: C.bg, color: C.txt, fontFamily: "Inter, system-ui, sans-serif", minHeight: "100vh", overflowX: "hidden" }}>
@@ -233,9 +432,7 @@ export default function SiteClient() {
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} color={C.green} /> Pronto em minutos</span>
           </div>
         </Reveal>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <Phone tilt={3} float><TelaHome /></Phone>
-        </div>
+        <Reveal delay={150}><HeroStats /></Reveal>
       </section>
 
       {/* PARCEIROS */}
@@ -287,6 +484,15 @@ export default function SiteClient() {
         </Reveal>
       </section>
 
+      {/* GRÁFICOS */}
+      <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
+        <Reveal><SectionTitle eyebrow="Gráficos" title="Do dado ao gráfico, automático" sub="Você lança os números; o app transforma em gráficos claros na hora — sem fórmula, sem montar planilha." /></Reveal>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 }}>
+          <Reveal><BarsFaturamento /></Reveal>
+          <Reveal delay={120}><DonutCustos /></Reveal>
+        </div>
+      </section>
+
       {/* VIRADA */}
       <section style={{ ...container, padding: "clamp(20px,4vw,44px) 20px" }}>
         <Reveal>
@@ -310,6 +516,37 @@ export default function SiteClient() {
               </div>
             </Reveal>
           ))}
+        </div>
+      </section>
+
+      {/* SEM x COM */}
+      <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
+        <Reveal><SectionTitle eyebrow="Antes e depois" title="Sua empresa sem e com o Minhas Métricas" /></Reveal>
+        <div className="cmp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <Reveal>
+            <div style={{ background: C.card, border: "1px solid rgba(239,68,68,.22)", borderRadius: 20, padding: 26, height: "100%" }}>
+              <h3 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 18px", color: "#fca5a5" }}>Sem Minhas Métricas</h3>
+              <div style={{ display: "grid", gap: 14 }}>
+                {SEM.map((t, i) => (
+                  <div key={i} style={{ display: "flex", gap: 11, alignItems: "flex-start", fontSize: 15, color: C.muted }}>
+                    <span style={{ width: 22, height: 22, borderRadius: 99, background: "rgba(239,68,68,.15)", color: C.red, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}><XIcon size={13} /></span>{t}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+          <Reveal delay={120}>
+            <div style={{ background: "linear-gradient(160deg, rgba(34,184,240,.1), rgba(16,185,129,.06))", border: "1px solid rgba(34,184,240,.32)", borderRadius: 20, padding: 26, height: "100%", boxShadow: "0 24px 60px -30px rgba(34,184,240,.5)" }}>
+              <h3 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 18px", color: C.cyan }}>Com Minhas Métricas</h3>
+              <div style={{ display: "grid", gap: 14 }}>
+                {COM.map((t, i) => (
+                  <div key={i} style={{ display: "flex", gap: 11, alignItems: "flex-start", fontSize: 15, color: C.txt }}>
+                    <span style={{ width: 22, height: 22, borderRadius: 99, background: "rgba(16,185,129,.18)", color: C.green, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}><Check size={13} /></span>{t}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -343,20 +580,27 @@ export default function SiteClient() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
+        <Reveal><SectionTitle eyebrow="Dúvidas" title="Perguntas frequentes" /></Reveal>
+        <Reveal delay={80}><Faq /></Reveal>
+      </section>
+
       {/* DEPOIMENTOS */}
       <section style={{ ...container, padding: "clamp(30px,5vw,56px) 20px" }}>
-        <Reveal><SectionTitle eyebrow="Quem usa" title="Empresários que saíram do escuro" /></Reveal>
+        <Reveal><SectionTitle eyebrow="Quem usa" title="Quem já saiu do escuro" /></Reveal>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
           {[
-            { q: "Pela primeira vez eu sei o lucro real do mês sem quebrar a cabeça com planilha.", n: "— Dono de comércio" },
-            { q: "Descobri custos que estavam comendo minha margem havia meses.", n: "— Prestador de serviço" },
-            { q: "Agora decido no número, não no achismo. Mudou minha rotina.", n: "— Dona de clínica" },
+            { q: "Pela primeira vez eu enxergo o número real da operação sem quebrar a cabeça com planilha.", n: "Diogo Rodrigues", c: "CEO · Dynamis" },
+            { q: "Acompanho meus resultados e minhas metas na palma da mão, direto do celular.", n: "João Paulo", c: "Representante comercial · Stone" },
+            { q: "Agora decido no número, não no achismo. Mudou a gestão da nossa escola.", n: "Paulo Serra", c: "Colégio Araguaia" },
           ].map((t, i) => (
             <Reveal key={i} delay={i * 70}>
               <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 24, height: "100%" }}>
                 <div style={{ color: C.cyan, fontSize: 30, fontWeight: 900, lineHeight: 1 }}>&ldquo;</div>
-                <p style={{ fontSize: 16, lineHeight: 1.6, margin: "6px 0 14px" }}>{t.q}</p>
-                <div style={{ color: C.muted, fontSize: 13.5, fontWeight: 700 }}>{t.n}</div>
+                <p style={{ fontSize: 16, lineHeight: 1.6, margin: "6px 0 16px" }}>{t.q}</p>
+                <div style={{ fontSize: 14.5, fontWeight: 800, color: C.txt }}>{t.n}</div>
+                <div style={{ color: C.muted, fontSize: 12.5, marginTop: 2 }}>{t.c}</div>
               </div>
             </Reveal>
           ))}
@@ -414,6 +658,7 @@ export default function SiteClient() {
         .cta-shine::after{ content:""; position:absolute; inset:0; background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%); transform:translateX(-120%); animation: shine 3.4s ease-in-out infinite; }
         @keyframes shine { 0%,60%{transform:translateX(-120%)} 100%{transform:translateX(120%)} }
         @media (max-width: 860px){ .site-hero{ grid-template-columns: 1fr !important; } }
+        @media (max-width: 700px){ .cmp{ grid-template-columns: 1fr !important; } }
         @media (prefers-reduced-motion: reduce){ *{animation:none !important} }
       `}</style>
     </div>
