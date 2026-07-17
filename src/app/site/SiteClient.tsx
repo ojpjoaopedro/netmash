@@ -740,7 +740,7 @@ export default function SiteClient() {
 
       {/* SEM x COM */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
-        <Reveal><SectionTitle eyebrow="Antes e depois" title="Sua empresa sem e com o Minhas Métricas" /></Reveal>
+        <Reveal><div style={{ textAlign: "center", marginBottom: 36 }}><span style={chip}>Antes e depois</span></div></Reveal>
         <div className="cmp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <Reveal>
             <div style={{ background: C.card, border: "1px solid rgba(239,68,68,.22)", borderRadius: 20, padding: 26, height: "100%" }}>
