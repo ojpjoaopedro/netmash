@@ -202,12 +202,12 @@ export default function Home() {
   const ehDono = !supabaseReady || (perfil?.papel ?? "dono") !== "colaborador";
   const areasPerm = perfil?.areas ?? [];
   const ehSuper = ["minhasmetricas@gmail.com"].includes((perfil?.email || "").toLowerCase());
-  // Marca exibida na barra lateral. Super Admin (plataforma) = Minhas Métricas; clientes = sua própria logo.
-  const marcaInterna = ehSuper ? (
-    <>
-      <img src="/icon.svg" alt="Minhas Métricas" style={{ height: logoH, width: logoH, borderRadius: 9, flexShrink: 0 }} />
-      <span className="fallback">Minhas <b>Métricas</b></span>
-    </>
+  // Marca da barra lateral. A logo do painel vale para a plataforma (Super Admin)
+  // e para o modo demonstração — que é como o localhost roda, sem banco.
+  // Cliente real logado continua vendo a própria logo.
+  const marcaPainel = ehSuper || !supabaseReady;
+  const marcaInterna = marcaPainel ? (
+    <img src="/logo-painel.png" alt="Minhas Métricas" style={{ height: logoH + 8, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
   ) : (
     brand.logo
       ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
@@ -314,7 +314,6 @@ export default function Home() {
             )}
             <div className="navgroup"><nav className="nav">
               {podeApresentar && <button onClick={() => { setApresOpen(true); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>}
-              {ehSuper && <button onClick={() => { setMenuAberto(false); router.push("/admin"); }}><ShieldCheck size={18} /> Super Admin</button>}
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
             </nav></div>
           </div>
@@ -411,7 +410,6 @@ export default function Home() {
       <main className="main">
         <div className="topctrls">
           {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
-          {ehSuper && <a className="btn ghost sm desk-only" href="/admin"><ShieldCheck size={14} /> Super Admin</a>}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
           <button className="btn ghost sm desk-only" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
         </div>

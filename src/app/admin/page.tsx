@@ -5,10 +5,10 @@ import {
   ShieldCheck, Building2, Users, Ban, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Settings, Pencil, Eye, Send,
   ArrowLeft, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText, Ticket,
-  HeartPulse, ShoppingCart, Megaphone, Package,
+  HeartPulse, ShoppingCart, Megaphone, Package, GitCompareArrows,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
-import { dataBR, brl } from "@/lib/format";
+import { dataBR, dataHoraBR, brl } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
 import AdminProdutos from "@/components/AdminProdutos";
 import AdminCupons from "@/components/AdminCupons";
@@ -290,6 +290,9 @@ export default function Admin() {
   ];
 
   const detalhe = detalheId ? (data?.empresas.find((e) => e.id === detalheId) ?? null) : null;
+  // A empresa "Metricas" (conta minhasmetricas@gmail.com) é o modelo: é dela que
+  // as outras devem herdar. Aqui só a marcamos; a herança em si é decisão à parte.
+  const ehPadrao = (e: Empresa) => (e.dono?.email || "").toLowerCase() === "minhasmetricas@gmail.com";
 
   return (
     <div className="adm">
@@ -310,6 +313,7 @@ export default function Admin() {
               <button key={k} className={aba === k ? "on" : ""} onClick={() => setAba(k)}><Icon size={18} /> {label}</button>
             ))}
             <button onClick={() => window.open("/gerarproposta", "_blank", "noopener")}><FileText size={18} /> Gerar proposta</button>
+            <button onClick={() => window.open("/treino-mba01", "_blank", "noopener")}><GitCompareArrows size={18} /> Simulador</button>
           </nav>
           <div className="adm-side-foot">
             <button onClick={entrarComOutra}><LogOut size={15} /> Sair</button>
@@ -321,7 +325,6 @@ export default function Admin() {
             <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onSalvarCor={salvarCor} onSalvarDados={salvarDados} equipe={{ acessos, novoAcesso, setNovoAcesso, criar: criarAcesso, criarUm: criarAcessoDireto, remover: removerAcesso, toggleArea, salvando: salvAcesso, erro: erroAcesso, ok: okAcesso }} />
           ) : (
           <>
-          {demo && <div className="adm-demo"><Eye size={14} /> Modo demonstração — dados de exemplo (no site no ar aparecem os clientes reais).</div>}
 
           {aba === "visao" && (
             <>
@@ -335,12 +338,18 @@ export default function Admin() {
               <h3 className="adm-h3">Últimos clientes</h3>
               <div className="adm-tablewrap">
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>Dono</th><th>Plano</th><th>Criada</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>E-mail de acesso</th><th>Plano</th><th>Mensal</th><th>Criada</th></tr></thead>
                   <tbody>
                     {data?.empresas.slice(0, 6).map((e) => (
-                      <tr key={e.id} className="adm-clickrow" onClick={() => setDetalheId(e.id)} title="Ver detalhes"><td><b>{e.nome}</b></td><td className="adm-sub">{e.dono?.email || "—"}</td><td>{e.plano || "—"}</td><td className="adm-sub">{dataBR(e.criado_em)}</td></tr>
+                      <tr key={e.id} className="adm-clickrow" onClick={() => setDetalheId(e.id)} title="Ver detalhes">
+                        <td><b>{e.nome}</b>{ehPadrao(e) && <span className="adm-badge-padrao">Padrão</span>}</td>
+                        <td className="adm-sub">{e.dono?.email || "—"}</td>
+                        <td>{e.plano || "—"}</td>
+                        <td>{brl(e.valor)}</td>
+                        <td className="adm-sub">{dataHoraBR(e.criado_em)}</td>
+                      </tr>
                     ))}
-                    {!data?.empresas.length && <tr><td colSpan={4} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={5} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -718,6 +727,7 @@ const CSS = `
 .adm-badge{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:99px;border:1px solid}
 .adm-badge.ativo{color:#10B981;border-color:#10B98155;background:#10B9811a}
 .adm-badge.cortado{color:#EF4444;border-color:#EF444455;background:#EF44441a}
+.adm-badge-padrao{margin-left:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:99px;color:#1AADE2;border:1px solid #1AADE255;background:#1AADE214;vertical-align:middle}
 .adm-btn{display:inline-flex;align-items:center;gap:7px;background:#1AADE2;color:#06222e;border:0;border-radius:99px;padding:10px 16px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
 .adm-btn:hover{filter:brightness(1.08)}
 .adm-btn:disabled{opacity:.5;cursor:default}

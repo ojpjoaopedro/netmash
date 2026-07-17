@@ -40,6 +40,25 @@ export function dataBR(iso: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
+/**
+ * Data + hora no fuso de Brasília: "29/06/2026 09:03".
+ *
+ * O banco guarda em UTC; o toLocaleString com timeZone converte na hora certa,
+ * então dá igual em qualquer computador, independente do fuso de quem abre.
+ * Sem a parte de hora (data "seca"), volta só a data — não inventamos horário.
+ */
+export function dataHoraBR(iso: string | null): string {
+  if (!iso) return "—";
+  if (!iso.includes("T")) return dataBR(iso);
+  const dt = new Date(iso);
+  if (isNaN(dt.getTime())) return dataBR(iso);
+  return dt.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  }).replace(",", "");
+}
+
 /** Lista de meses "YYYY-MM" entre duas datas (inclusive). Aceita "YYYY-MM" ou ISO. */
 export function mesesEntre(de: string, ate: string): string[] {
   const a = (de || "").slice(0, 7);
