@@ -535,7 +535,7 @@ export default function SiteClient() {
             <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.05)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}><Play size={16} color={C.cyan} /> Ver o app em ação</a>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 26, flexWrap: "wrap" }}>
-            {["Sem instalar nada", "Funciona no celular", "Pronto em minutos", "Importa sua planilha", "Assistente com IA"].map((c) => (
+            {["Pronto em minutos", "Funciona no celular", "Assistente com IA"].map((c) => (
               <span key={c} className="chip-i" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.txt, background: "rgba(255,255,255,.04)", border: `1px solid ${C.line}`, borderRadius: 99, padding: "8px 15px" }}>
                 <CheckCircle2 size={15} color={C.green} /> {c}
               </span>
