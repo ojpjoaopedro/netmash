@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, ShoppingCart, Megaphone,
   ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2, Volume2, VolumeX, ChevronDown,
+  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2, Volume2, VolumeX, ChevronDown, Image as ImageIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -202,12 +202,32 @@ export default function Home() {
   const ehDono = !supabaseReady || (perfil?.papel ?? "dono") !== "colaborador";
   const areasPerm = perfil?.areas ?? [];
   const ehSuper = ["minhasmetricas@gmail.com"].includes((perfil?.email || "").toLowerCase());
-  // Marca da barra lateral. A logo do painel vale para a plataforma (Super Admin)
-  // e para o modo demonstração — que é como o localhost roda, sem banco.
-  // Cliente real logado continua vendo a própria logo.
+  // Marca da barra lateral. No painel modelo (Super Admin / demonstração) mostramos
+  // um placeholder desenhado na tela — sem depender de arquivo de imagem — que ocupa
+  // o espaço todo e leva de volta ao início. Cliente real segue com a própria logo.
   const marcaPainel = ehSuper || !supabaseReady;
+  const irParaHome = () => { setView("dashboard"); setMenuAberto(false); };
   const marcaInterna = marcaPainel ? (
-    <img src="/logo-painel.png" alt="Minhas Métricas" style={{ height: logoH + 8, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
+    <button
+      onClick={irParaHome}
+      title="Sua logomarca aqui — clique para voltar ao início"
+      style={{
+        width: "100%", display: "flex", alignItems: "center", gap: 11,
+        background: "#fff", border: "2px dashed #cbd5e1", borderRadius: 12,
+        padding: "9px 12px", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+        transition: "border-color .15s, box-shadow .15s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1AADE2"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(26,173,226,.12)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "none"; }}
+    >
+      <span style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, #1AADE2, #0c6e9e)", color: "#fff" }}>
+        <ImageIcon size={19} />
+      </span>
+      <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15, minWidth: 0 }}>
+        <b style={{ fontSize: 13.5, color: "#0f172a", fontWeight: 800, letterSpacing: "-.01em" }}>Sua logomarca</b>
+        <small style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em" }}>aqui</small>
+      </span>
+    </button>
   ) : (
     brand.logo
       ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
@@ -283,7 +303,7 @@ export default function Home() {
         <div className="drawer-overlay" onClick={() => setMenuAberto(false)}>
           <div className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="brand" style={{ justifyContent: "space-between" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{marcaInterna}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>{marcaInterna}</span>
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
             <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
