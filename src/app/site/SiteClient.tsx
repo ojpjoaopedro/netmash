@@ -5,6 +5,7 @@ import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3, Megaphone,
   EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
   Check, Rocket, Play, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
+  CheckCircle2, Calendar,
 } from "lucide-react";
 
 const ENTRAR_URL = "/login";
@@ -193,13 +194,70 @@ function TelaAssistente() {
   );
 }
 
+function TelaMarketing() {
+  const kpis: [string, string, string][] = [["Leads", "1.240", C.violet], ["CPL", "R$ 4,80", C.cyan], ["ROI", "312%", C.green]];
+  const orig: [string, string, string][] = [["Instagram", "58%", C.violet], ["Google", "30%", C.cyan], ["Indicação", "12%", C.green]];
+  return (
+    <div style={{ height: "100%" }}>
+      <div style={{ fontSize: 9, fontWeight: 800, marginBottom: 8 }}>Marketing · tráfego</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 }}>
+        {kpis.map(([l, v, cor], i) => <div key={i} style={{ ...miniCard, padding: 7 }}><div style={{ fontSize: 6, color: C.muted, fontWeight: 700 }}>{l}</div><b style={{ fontSize: 9, color: cor }}>{v}</b></div>)}
+      </div>
+      <div style={{ ...miniCard, marginTop: 6 }}>
+        <div style={{ fontSize: 7, color: C.muted, marginBottom: 6, fontWeight: 700 }}>ORIGEM DOS LEADS</div>
+        {orig.map(([l, w, cor], i) => (
+          <div key={i} style={{ marginBottom: 5 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 7, marginBottom: 2 }}><span style={{ color: C.muted }}>{l}</span><b>{w}</b></div>
+            <div style={{ height: 6, borderRadius: 4, background: "rgba(255,255,255,.05)", overflow: "hidden" }}><div style={{ height: "100%", width: w, borderRadius: 4, background: cor }} /></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function TelaDRE() {
+  return (
+    <div style={{ height: "100%" }}>
+      <div style={{ fontSize: 9, fontWeight: 800, marginBottom: 8 }}>DRE · Julho</div>
+      <div style={{ ...miniCard, display: "grid", gap: 7 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8 }}><span style={{ color: C.muted }}>Receitas</span><b style={{ color: C.green }}>R$ 72.000</b></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8 }}><span style={{ color: C.muted }}>Custos totais</span><b style={{ color: C.red }}>− R$ 30.000</b></div>
+        <div style={{ height: 7, borderRadius: 4, background: "rgba(255,255,255,.05)", overflow: "hidden", display: "flex" }}><div style={{ width: "58%", background: "linear-gradient(90deg,#f43f5e,#e11d48)" }} /><div style={{ width: "42%", background: "linear-gradient(90deg,#10b981,#059669)" }} /></div>
+      </div>
+      <div style={{ marginTop: 6, borderRadius: 12, padding: 10, background: "linear-gradient(135deg,#059669,#047857)", color: "#fff" }}>
+        <div style={{ fontSize: 7, opacity: .9, fontWeight: 700 }}>RESULTADO DO MÊS</div>
+        <b style={{ fontSize: 16 }}>+ R$ 42.000</b>
+        <div style={{ fontSize: 7, opacity: .9 }}>Margem líquida 18,4%</div>
+      </div>
+    </div>
+  );
+}
+function TelaCalendario() {
+  const marca = [5, 12, 18, 25, 28];
+  return (
+    <div style={{ height: "100%" }}>
+      <div style={{ fontSize: 9, fontWeight: 800, marginBottom: 8 }}>Contas a pagar · Julho</div>
+      <div style={miniCard}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+          {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => <span key={i} style={{ fontSize: 6, color: C.muted, textAlign: "center", fontWeight: 700 }}>{d}</span>)}
+          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => { const m = marca.includes(d); return <span key={d} style={{ fontSize: 6.5, textAlign: "center", padding: "3px 0", borderRadius: 5, color: m ? "#fff" : C.muted, fontWeight: m ? 800 : 400, background: m ? "linear-gradient(135deg,#ef4444,#b91c1c)" : "transparent" }}>{d}</span>; })}
+        </div>
+      </div>
+      <div style={{ marginTop: 6, fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>Em vermelho, as contas a vencer — você é avisado antes de cada vencimento.</div>
+    </div>
+  );
+}
+
 /* Demo que roda sozinha (como um vídeo do app) */
 const DEMO = [
   { el: (a: boolean) => <TelaFinancas animar={a} />, label: "Finanças" },
   { el: () => <TelaHome />, label: "Resumo" },
   { el: () => <TelaIndicadores />, label: "Indicadores" },
+  { el: () => <TelaDRE />, label: "DRE" },
   { el: () => <TelaPlanilha />, label: "Planilha" },
   { el: () => <TelaComercial />, label: "Comercial" },
+  { el: () => <TelaMarketing />, label: "Marketing" },
+  { el: () => <TelaCalendario />, label: "Contas" },
   { el: () => <TelaAssistente />, label: "Assistente" },
 ];
 function DemoPhone({ big = false, float = false }: { big?: boolean; float?: boolean }) {
@@ -393,9 +451,59 @@ function Faq() {
   );
 }
 
+function ScrollProgress() {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    const on = () => { const h = document.documentElement; const max = h.scrollHeight - h.clientHeight; setP(max > 0 ? (h.scrollTop / max) * 100 : 0); };
+    on(); window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
+  return <div style={{ position: "fixed", top: 0, left: 0, height: 3, width: `${p}%`, background: "linear-gradient(90deg,#22b8f0,#8b5cf6)", zIndex: 50, transition: "width .08s linear", boxShadow: "0 0 10px rgba(34,184,240,.6)" }} />;
+}
+
+const brl0 = (n: number) => "R$ " + Math.round(n).toLocaleString("pt-BR");
+function Simulador() {
+  const [fat, setFat] = useState(30000);
+  const anual = fat * 12;
+  const custos = anual * 0.72;
+  const lucro = anual - custos;
+  return (
+    <div className="cmp" style={{ background: "linear-gradient(160deg,#0e1622,#0b0f16)", border: `1px solid ${C.line}`, borderRadius: 24, padding: "clamp(24px,4vw,40px)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "center", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", left: -60, bottom: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(34,184,240,.18), transparent 60%)", animation: "pulseGlow 5s ease-in-out infinite" }} />
+      <div style={{ position: "relative" }}>
+        <span style={chip}>Faça o teste</span>
+        <h3 style={{ fontSize: "clamp(22px,3.5vw,30px)", fontWeight: 900, margin: "16px 0 6px", lineHeight: 1.15 }}>Quanto sua empresa movimenta por ano?</h3>
+        <p style={{ color: C.muted, fontSize: 15, lineHeight: 1.6, margin: 0 }}>Arraste e veja o tamanho do que você deveria estar acompanhando de perto — todo mês.</p>
+        <div style={{ marginTop: 26 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ color: C.muted, fontSize: 13 }}>Faturamento por mês</span><b style={{ color: C.cyan, fontSize: 16 }}>{brl0(fat)}</b></div>
+          <input type="range" min={5000} max={200000} step={1000} value={fat} onChange={(e) => setFat(Number(e.target.value))} className="range" style={{ width: "100%" }} aria-label="Faturamento por mês" />
+        </div>
+      </div>
+      <div style={{ position: "relative", display: "grid", gap: 12 }}>
+        <div className="lift" style={{ ...heroCard }}>
+          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".1em", color: C.muted }}>FATURAMENTO ANUAL</div>
+          <b style={{ display: "block", fontSize: "clamp(28px,5vw,40px)", fontWeight: 900, color: C.cyan, marginTop: 6, letterSpacing: "-.02em" }}>{brl0(anual)}</b>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ ...heroCard, padding: 16 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 800, color: "#fca5a5" }}>CUSTOS ESTIMADOS</div>
+            <b style={{ fontSize: 20, marginTop: 4, display: "block" }}>{brl0(custos)}</b>
+          </div>
+          <div className="lift" style={{ padding: 16, borderRadius: 20, background: "linear-gradient(150deg,#059669,#047857)", color: "#fff" }}>
+            <div style={{ fontSize: 9.5, fontWeight: 800, opacity: .9 }}>LUCRO PRA ACOMPANHAR</div>
+            <b style={{ fontSize: 20, marginTop: 4, display: "block" }}>{brl0(lucro)}</b>
+          </div>
+        </div>
+        <p style={{ fontSize: 11.5, color: C.muted, margin: 0, lineHeight: 1.5 }}>* Estimativa ilustrativa. No {MARCA} você vê o número <b style={{ color: C.txt }}>real</b> do seu negócio — não uma média.</p>
+      </div>
+    </div>
+  );
+}
+
 export default function SiteClient() {
   return (
     <div style={{ background: C.bg, color: C.txt, fontFamily: "Inter, system-ui, sans-serif", minHeight: "100vh", overflowX: "hidden" }}>
+      <ScrollProgress />
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", animation: "bgshift 16s ease-in-out infinite", background: "radial-gradient(1100px 620px at 100% -8%, rgba(34,184,240,.16), transparent 60%), radial-gradient(900px 620px at -10% 45%, rgba(139,92,246,.12), transparent 60%)" }} />
 
       {/* NAV */}
@@ -417,7 +525,7 @@ export default function SiteClient() {
         <Reveal>
           <span style={chip}>Para donos de pequenas e médias empresas</span>
           <h1 style={{ fontSize: "clamp(34px,6vw,58px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, margin: "20px 0 0" }}>
-            Sua empresa não pode <span style={{ color: C.cyan }}>viver no escuro.</span>
+            Sua empresa não pode <span className="glow-accent" style={{ color: C.cyan }}>viver no escuro.</span>
           </h1>
           <p style={{ color: C.muted, fontSize: "clamp(16px,2.4vw,20px)", lineHeight: 1.6, margin: "20px 0 0", maxWidth: 520 }}>
             {MARCA} reúne faturamento, custos, lucro e indicadores da sua empresa num painel que se monta sozinho. Pare de decidir no achismo e veja o número <b style={{ color: C.txt }}>real</b> do seu negócio.
@@ -426,10 +534,12 @@ export default function SiteClient() {
             <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "14px 26px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Testar agora <ArrowRight size={18} /></Link>
             <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.05)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}><Play size={16} color={C.cyan} /> Ver o app em ação</a>
           </div>
-          <div style={{ display: "flex", gap: 20, marginTop: 28, color: C.muted, fontSize: 13.5, flexWrap: "wrap" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} color={C.green} /> Sem instalar nada</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} color={C.green} /> Funciona no celular</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} color={C.green} /> Pronto em minutos</span>
+          <div style={{ display: "flex", gap: 10, marginTop: 26, flexWrap: "wrap" }}>
+            {["Sem instalar nada", "Funciona no celular", "Pronto em minutos", "Importa sua planilha", "Assistente com IA"].map((c) => (
+              <span key={c} className="chip-i" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.txt, background: "rgba(255,255,255,.04)", border: `1px solid ${C.line}`, borderRadius: 99, padding: "8px 15px" }}>
+                <CheckCircle2 size={15} color={C.green} /> {c}
+              </span>
+            ))}
           </div>
         </Reveal>
         <Reveal delay={150}><HeroStats /></Reveal>
@@ -521,7 +631,6 @@ export default function SiteClient() {
 
       {/* SEM x COM */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
-        <Reveal><SectionTitle eyebrow="Antes e depois" title="Sua empresa sem e com o Minhas Métricas" /></Reveal>
         <div className="cmp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <Reveal>
             <div style={{ background: C.card, border: "1px solid rgba(239,68,68,.22)", borderRadius: 20, padding: 26, height: "100%" }}>
@@ -548,6 +657,11 @@ export default function SiteClient() {
             </div>
           </Reveal>
         </div>
+      </section>
+
+      {/* SIMULADOR / TESTE */}
+      <section style={{ ...container, padding: "clamp(20px,4vw,44px) 20px" }}>
+        <Reveal><Simulador /></Reveal>
       </section>
 
       {/* STATS */}
@@ -657,6 +771,11 @@ export default function SiteClient() {
         .cta-shine{ position:relative; overflow:hidden; }
         .cta-shine::after{ content:""; position:absolute; inset:0; background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%); transform:translateX(-120%); animation: shine 3.4s ease-in-out infinite; }
         @keyframes shine { 0%,60%{transform:translateX(-120%)} 100%{transform:translateX(120%)} }
+        .chip-i{ transition: transform .2s ease, border-color .2s ease, background .2s ease; }
+        .chip-i:hover{ transform: translateY(-2px); border-color: rgba(34,184,240,.4); background: rgba(34,184,240,.08); }
+        .glow-accent{ animation: glowpulse 3.2s ease-in-out infinite; }
+        @keyframes glowpulse { 0%,100%{ text-shadow: 0 0 0 rgba(34,184,240,0) } 50%{ text-shadow: 0 0 28px rgba(34,184,240,.55) } }
+        .range{ accent-color: #22b8f0; height: 6px; cursor: pointer; }
         @media (max-width: 860px){ .site-hero{ grid-template-columns: 1fr !important; } }
         @media (max-width: 700px){ .cmp{ grid-template-columns: 1fr !important; } }
         @media (prefers-reduced-motion: reduce){ *{animation:none !important} }
