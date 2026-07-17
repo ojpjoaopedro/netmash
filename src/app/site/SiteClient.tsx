@@ -309,7 +309,16 @@ function DemoPhone({ big = false, float = false }: { big?: boolean; float?: bool
     const id = setInterval(() => setI((v) => (v + 1) % DEMO.length), 2900);
     return () => clearInterval(id);
   }, [manual]);
-  useEffect(() => { (stripRef.current?.children[i] as HTMLElement | undefined)?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }); }, [i]);
+  useEffect(() => {
+    const strip = stripRef.current;
+    const container = strip?.parentElement as HTMLElement | null;
+    const btn = strip?.children[i] as HTMLElement | undefined;
+    if (!strip || !container || !btn) return;
+    const cRect = container.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    // rola apenas a faixa na horizontal — nunca a página
+    container.scrollBy({ left: (bRect.left + bRect.width / 2) - (cRect.left + cRect.width / 2), behavior: "smooth" });
+  }, [i]);
   const ir = (k: number) => { setI(k); setManual(true); };
 
   const nav = (
@@ -476,7 +485,16 @@ function HeroStats() {
   ];
   const stripRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (manual) return; const id = setInterval(() => setI((v) => (v + 1) % PAN.length), 3400); return () => clearInterval(id); }, [manual, PAN.length]);
-  useEffect(() => { (stripRef.current?.children[i] as HTMLElement | undefined)?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }); }, [i]);
+  useEffect(() => {
+    const strip = stripRef.current;
+    const container = strip?.parentElement as HTMLElement | null;
+    const btn = strip?.children[i] as HTMLElement | undefined;
+    if (!strip || !container || !btn) return;
+    const cRect = container.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    // rola apenas a faixa na horizontal — nunca a página
+    container.scrollBy({ left: (bRect.left + bRect.width / 2) - (cRect.left + cRect.width / 2), behavior: "smooth" });
+  }, [i]);
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ ...heroCard, minHeight: 340 }}>
