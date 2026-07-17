@@ -635,7 +635,7 @@ export default function SiteClient() {
         <Reveal>
           <span style={chip}>Para pequenas e médias empresas</span>
           <h1 style={{ fontSize: "clamp(34px,6vw,58px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, margin: "18px 0 0" }}>
-            Sua empresa não pode <span className="glow-accent" style={{ color: C.cyan }}>viver no escuro.</span>
+            Sua empresa não pode viver <span className="dark-light" style={{ color: C.cyan }}>no escuro.</span>
           </h1>
           <p style={{ color: C.muted, fontSize: "clamp(16px,2.4vw,20px)", lineHeight: 1.6, margin: "18px 0 0", maxWidth: 500 }}>
             Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo. <b style={{ color: C.txt }}>Veja o número real do seu negócio.</b>
@@ -919,8 +919,8 @@ export default function SiteClient() {
         @keyframes shine { 0%,60%{transform:translateX(-120%)} 100%{transform:translateX(120%)} }
         .chip-i{ transition: transform .2s ease, border-color .2s ease, background .2s ease; }
         .chip-i:hover{ transform: translateY(-2px); border-color: rgba(34,184,240,.4); background: rgba(34,184,240,.08); }
-        .glow-accent{ animation: glowpulse 3.2s ease-in-out infinite; }
-        @keyframes glowpulse { 0%,100%{ text-shadow: 0 0 0 rgba(34,184,240,0) } 50%{ text-shadow: 0 0 28px rgba(34,184,240,.55) } }
+        .dark-light{ animation: darkToLight 3.6s ease-in-out infinite; }
+        @keyframes darkToLight { 0%,100%{ color:#24404a; text-shadow:none } 50%{ color:#22B8F0; text-shadow:0 0 34px rgba(34,184,240,.7) } }
         .range{ accent-color: #22b8f0; height: 6px; cursor: pointer; }
         html{ scroll-padding-top: 72px; }
         @media (max-width: 860px){ .site-hero{ grid-template-columns: 1fr !important; gap: 30px !important; } }
