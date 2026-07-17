@@ -409,6 +409,19 @@ export default function Home() {
       {/* Main */}
       <main className="main">
         <div className="topctrls">
+          {marcaPainel && (
+            <span
+              title="Este é o painel modelo, usado para demonstração."
+              style={{
+                marginRight: "auto", display: "inline-flex", alignItems: "center", gap: 7,
+                fontSize: 12, fontWeight: 700, color: "#1AADE2",
+                background: "rgba(26,173,226,.10)", border: "1px solid rgba(26,173,226,.35)",
+                padding: "6px 13px", borderRadius: 999,
+              }}
+            >
+              <ShieldCheck size={13} /> Painel demonstrativo
+            </span>
+          )}
           {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
           <button className="btn ghost sm desk-only" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>

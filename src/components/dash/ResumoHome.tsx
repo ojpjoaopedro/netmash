@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { DollarSign, TrendingUp, Wallet, ClipboardList, Cake, Pencil, Check } from "lucide-react";
+import { DollarSign, TrendingUp, Wallet, ClipboardList, Cake } from "lucide-react";
 import { Lancamento, Cliente } from "@/lib/db";
 import { resumo } from "@/lib/calc";
 import { fmt } from "./Kit";
@@ -11,26 +11,69 @@ function dataHoje() {
   catch { return ""; }
 }
 
-/** Bloco editável (Pulso / Aniversários) — dentro do painel, sem borda de card. */
-function NotaEditavel({ chave, icon, titulo, placeholder }: { chave: string; icon: React.ReactNode; titulo: string; placeholder: string }) {
-  const [txt, setTxt] = useState("");
-  const [editando, setEditando] = useState(false);
-  const [rasc, setRasc] = useState("");
-  useEffect(() => { if (typeof window !== "undefined") setTxt(localStorage.getItem(chave) || ""); }, [chave]);
-  function salvar() { localStorage.setItem(chave, rasc); setTxt(rasc); setEditando(false); }
+const CABECALHO = { fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--accent)" } as const;
+
+/**
+ * Frases do "Pulso do dia". Gira uma por dia (índice = dias desde 1970 % total),
+ * então muda sozinha à meia-noite e só repete depois de passar por todas.
+ * Provérbios curtos de gestão/finanças — texto próprio, sem citação de terceiros.
+ */
+const FRASES_PULSO = [
+  "Número que você não acompanha é decisão que alguém toma no seu lugar.",
+  "Caixa não é lucro. Confira os dois antes de comemorar.",
+  "O que cresce sem margem só adia o problema.",
+  "Meta sem plano é só um desejo com prazo.",
+  "Cliente que não volta custa o dobro do que entra.",
+  "Cada real de custo fixo é uma promessa que você faz todo mês.",
+  "Antes de vender mais, descubra por que o dinheiro está saindo.",
+  "Previsão errada assumida cedo vale mais que acerto tardio.",
+  "O que não tem dono não acontece.",
+  "Preço é a decisão financeira mais rápida de mudar — e a que menos gente revisa.",
+  "Faturamento enche o ego; margem paga a conta.",
+  "Um mês bom não paga um trimestre ruim. Olhe a tendência.",
+  "Corte o que não te aproxima da meta, inclusive o que dá orgulho.",
+  "Todo indicador conta uma história. Pergunte qual.",
+  "Vender para quem não paga é doar com etapa extra.",
+  "O tempo entre a venda e o caixa é onde a empresa quebra.",
+  "Reserva não é dinheiro parado. É sono tranquilo.",
+  "Se você não sabe quanto custa conquistar um cliente, não sabe se pode crescer.",
+  "A planilha aceita qualquer número; a execução, não.",
+  "Reduzir despesa é lucro na hora. Aumentar receita é aposta.",
+  "Foque no indicador que, ao melhorar, arruma vários de uma vez.",
+  "Decisão sem dado é palpite de gravata.",
+  "O cliente antigo é o mais barato de crescer e o mais fácil de esquecer.",
+  "Meta boa cabe numa frase e assusta um pouquinho.",
+];
+
+/** Pulso do dia — frase automática, troca sozinha a cada dia. Sem edição. */
+function PulsoDoDia() {
+  const [frase, setFrase] = useState<string | null>(null);
+  useEffect(() => {
+    const dia = Math.floor(new Date().setHours(0, 0, 0, 0) / 86_400_000);
+    setFrase(FRASES_PULSO[dia % FRASES_PULSO.length]);
+  }, []);
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>{icon}<b style={{ fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--accent)" }}>{titulo}</b></div>
-        {editando
-          ? <button className="btn sm" onClick={salvar}><Check size={13} /> Salvar</button>
-          : <button className="btn ghost sm" onClick={() => { setRasc(txt); setEditando(true); }}><Pencil size={12} /> Editar</button>}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <ClipboardList size={16} color="var(--accent)" /><b style={CABECALHO}>Pulso do dia</b>
       </div>
-      {editando ? (
-        <textarea value={rasc} onChange={(e) => setRasc(e.target.value)} rows={3} placeholder={placeholder}
-          style={{ width: "100%", background: "rgba(255,255,255,.03)", border: "1px solid var(--line-2)", color: "var(--txt)", borderRadius: 12, padding: "12px 14px", fontSize: 14, fontFamily: "inherit", resize: "vertical" }} />
-      ) : txt ? <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: 14 }}>{txt}</p>
-        : <p className="sub" style={{ fontStyle: "italic" }}>{placeholder}</p>}
+      {/* null no 1º render evita divergência de hidratação: a data é lida só no cliente */}
+      <p style={{ lineHeight: 1.7, fontSize: 15, fontStyle: "italic" }}>{frase ?? "…"}</p>
+    </div>
+  );
+}
+
+/** Aniversários do mês — mostra o que estiver salvo (sem botão de editar). */
+function Aniversarios() {
+  const [txt, setTxt] = useState("");
+  useEffect(() => { if (typeof window !== "undefined") setTxt(localStorage.getItem("me_aniversarios") || ""); }, []);
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <Cake size={16} color="#EC4899" /><b style={CABECALHO}>Aniversários do mês</b>
+      </div>
+      {txt ? <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: 14 }}>{txt}</p>
+        : <p className="sub" style={{ fontStyle: "italic" }}>Nenhum aniversariante cadastrado.</p>}
     </div>
   );
 }
@@ -74,12 +117,10 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
       </div>
 
       <div style={{ height: 1, background: "var(--line)", margin: "18px 0" }} />
-      <NotaEditavel chave="me_pulso" icon={<ClipboardList size={16} color="var(--accent)" />} titulo="Pulso da semana"
-        placeholder="Nenhum lembrete ainda. Clique em “Editar” para adicionar os avisos da semana." />
+      <PulsoDoDia />
 
       <div style={{ height: 1, background: "var(--line)", margin: "18px 0" }} />
-      <NotaEditavel chave="me_aniversarios" icon={<Cake size={16} color="#EC4899" />} titulo="Aniversários do mês"
-        placeholder="Adicione os aniversariantes do mês. Ex: 🎂 João — 16/07" />
+      <Aniversarios />
     </div>
   );
 }
