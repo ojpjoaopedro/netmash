@@ -134,12 +134,11 @@ export default function LoginPage() {
         {modo === "login" && (
           <button type="button" onClick={() => { setModo("reset"); setErro(""); setMsg(""); }}
             style={{ marginTop: 12, background: "none", border: 0, color: "var(--accent)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
-            Esqueci minha senha · Primeiro acesso
+            Esqueci minha senha
           </button>
         )}
 
         <div className="auth-switch">
-          {modo === "login" && <>Não tem conta? <button onClick={() => { setModo("cadastro"); setErro(""); }}>Cadastre-se</button></>}
           {modo === "cadastro" && <>Já tem conta? <button onClick={() => { setModo("login"); setErro(""); }}>Entrar</button></>}
           {(modo === "reset" || modo === "novasenha") && <>Lembrou? <button onClick={() => { setModo("login"); setErro(""); setMsg(""); }}>Voltar ao login</button></>}
         </div>
