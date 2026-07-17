@@ -415,34 +415,73 @@ function CountUp({ to, dur = 1300, prefix = "", suffix = "" }: { to: number; dur
 
 const heroCard: React.CSSProperties = { background: "linear-gradient(160deg,#0e1622,#0b0f16)", border: `1px solid ${C.line}`, borderRadius: 20, padding: 20, position: "relative", overflow: "hidden" };
 function HeroStats() {
-  const [ref, inView] = useInView<HTMLDivElement>();
-  return (
-    <div ref={ref} style={{ display: "grid", gap: 14 }}>
-      <div className="lift" style={heroCard}>
-        <div style={{ position: "absolute", right: -40, top: -40, width: 170, height: 170, borderRadius: "50%", background: "radial-gradient(circle, rgba(34,184,240,.28), transparent 60%)", animation: "pulseGlow 4s ease-in-out infinite" }} />
-        <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(34,184,240,.14)", color: C.cyan }}><TrendingUp size={22} /></span>
-            <div><b style={{ fontSize: 15 }}>Faturamento do ano</b><div style={{ fontSize: 12, color: C.muted }}>Atualiza sozinho</div></div>
-          </div>
-          <span style={{ fontSize: 10.5, fontWeight: 800, color: C.cyan, background: "rgba(34,184,240,.12)", border: "1px solid rgba(34,184,240,.25)", borderRadius: 99, padding: "4px 10px" }}>YTD</span>
-        </div>
-        <div style={{ position: "relative", fontSize: "clamp(36px,6vw,50px)", fontWeight: 900, letterSpacing: "-.02em", marginTop: 16, lineHeight: 1 }}>R$ <CountUp to={297} />k</div>
-        <div style={{ height: 8, borderRadius: 99, background: "rgba(255,255,255,.06)", marginTop: 16, overflow: "hidden" }}>
-          <div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#22b8f0,#0c6e9e)", width: inView ? "68%" : "0%", transition: "width 1.4s cubic-bezier(.2,.8,.2,1)" }} />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: C.muted }}><span>Meta R$ 700k</span><b style={{ color: C.txt }}>68% da meta</b></div>
+  const [i, setI] = useState(0);
+  const [manual, setManual] = useState(false);
+  const box: React.CSSProperties = { background: "rgba(255,255,255,.03)", border: `1px solid ${C.line}`, borderRadius: 12, padding: 12 };
+  const head = (icon: React.ReactNode, titulo: string, sub: string, badge: string, cor: string) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 11, alignItems: "center" }}>
+        <span style={{ width: 40, height: 40, borderRadius: 11, display: "grid", placeItems: "center", background: cor + "22", color: cor }}>{icon}</span>
+        <div><b style={{ fontSize: 14 }}>{titulo}</b><div style={{ fontSize: 11.5, color: C.muted }}>{sub}</div></div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <div className="lift" style={heroCard}>
-          <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(16,185,129,.14)", color: C.green }}><Wallet size={19} /></span>
-          <div style={{ fontSize: 30, fontWeight: 900, marginTop: 12 }}>R$ <CountUp to={42} />k</div>
-          <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>Lucro · margem 18,4%</div>
+      <span style={{ fontSize: 10, fontWeight: 800, color: cor, background: cor + "1f", border: `1px solid ${cor}44`, borderRadius: 99, padding: "4px 10px" }}>{badge}</span>
+    </div>
+  );
+  const PAN: { label: string; el: React.ReactNode }[] = [
+    { label: "Faturamento", el: (<>
+      {head(<TrendingUp size={20} />, "Faturamento do ano", "Atualiza sozinho", "YTD", C.cyan)}
+      <div style={{ fontSize: "clamp(34px,6vw,46px)", fontWeight: 900, letterSpacing: "-.02em", lineHeight: 1 }}>R$ <CountUp to={297} />k</div>
+      <div style={{ height: 8, borderRadius: 99, background: "rgba(255,255,255,.06)", marginTop: 14, overflow: "hidden" }}><div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#22b8f0,#0c6e9e)", width: "68%", animation: "growX 1.3s cubic-bezier(.2,.8,.2,1)" }} /></div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12, color: C.muted }}><span>Meta R$ 700k</span><b style={{ color: C.txt }}>68%</b></div>
+      <div style={{ ...box, marginTop: 14 }}><div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginBottom: 8 }}>MÊS A MÊS</div><MiniBars vals={[40, 48, 39, 43, 56, 71]} cor={C.cyan} h={62} /></div>
+    </>) },
+    { label: "Custos", el: (<>
+      {head(<Wallet size={20} />, "Para onde vai o dinheiro", "Composição de custos", "Julho", C.red)}
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        <div style={{ width: 116, height: 116, flexShrink: 0, borderRadius: "50%", position: "relative", background: `conic-gradient(${C.cyan} 0% 38%, ${C.violet} 38% 62%, ${C.amber} 62% 80%, ${C.green} 80% 92%, #64748B 92% 100%)`, animation: "spinIn .8s ease" }}><div style={{ position: "absolute", inset: 14, borderRadius: "50%", background: "#0d1017" }} /></div>
+        <div style={{ display: "grid", gap: 8, flex: 1 }}>
+          {([["Folha", "38%", C.cyan], ["Fornecedores", "24%", C.violet], ["Marketing", "18%", C.amber], ["Impostos", "12%", C.green], ["Outros", "8%", "#64748B"]] as [string, string, string][]).map(([l, p, c], k) => <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}><span style={{ width: 9, height: 9, borderRadius: 99, background: c }} /><span style={{ color: C.muted, flex: 1 }}>{l}</span><b>{p}</b></div>)}
         </div>
-        <div className="lift" style={heroCard}>
-          <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(139,92,246,.14)", color: C.violet }}><TrendingUp size={19} /></span>
-          <div style={{ fontSize: 30, fontWeight: 900, marginTop: 12 }}><CountUp to={108} /></div>
-          <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>Novos clientes no ano</div>
+      </div>
+      <div style={{ ...box, marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: C.muted }}>Custos totais no mês</span><b style={{ fontSize: 16, color: C.red }}>R$ 30.000</b></div>
+    </>) },
+    { label: "Marketing", el: (<>
+      {head(<Megaphone size={20} />, "Marketing", "Tráfego & leads", "Mês", C.violet)}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        {([["Leads", "1.240", C.violet], ["CPL", "R$ 4,80", C.cyan], ["ROI", "312%", C.green]] as [string, string, string][]).map(([l, v, c], k) => <div key={k} style={box}><div style={{ fontSize: 10, color: C.muted }}>{l}</div><b style={{ fontSize: 16, color: c }}>{v}</b></div>)}
+      </div>
+      <div style={{ ...box, marginTop: 12 }}><div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginBottom: 8 }}>LEADS POR MÊS</div><MiniBars vals={[600, 720, 840, 910, 1080, 1240]} cor={C.violet} h={60} /></div>
+    </>) },
+    { label: "DRE", el: (<>
+      {head(<LineChart size={20} />, "DRE do mês", "Receitas − Custos", "Julho", C.green)}
+      <div style={{ ...box, display: "grid", gap: 9 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span style={{ color: C.muted }}>Receitas</span><b style={{ color: C.green }}>R$ 72.000</b></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span style={{ color: C.muted }}>Custos totais</span><b style={{ color: C.red }}>− R$ 30.000</b></div>
+        <div style={{ height: 9, borderRadius: 5, overflow: "hidden", display: "flex", background: "rgba(255,255,255,.05)" }}><div style={{ width: "58%", background: "linear-gradient(90deg,#f43f5e,#e11d48)", animation: "growX 1s ease" }} /><div style={{ width: "42%", background: "linear-gradient(90deg,#10b981,#059669)", animation: "growX 1s ease .2s both" }} /></div>
+      </div>
+      <div style={{ marginTop: 12, borderRadius: 14, padding: 16, background: "linear-gradient(135deg,#059669,#047857)", color: "#fff" }}><div style={{ fontSize: 10, opacity: .9, fontWeight: 700 }}>RESULTADO DO MÊS</div><b style={{ fontSize: 26 }}>+ R$ 42.000</b><div style={{ fontSize: 11, opacity: .9 }}>Margem líquida 18,4%</div></div>
+    </>) },
+    { label: "Comercial", el: (<>
+      {head(<BarChart3 size={20} />, "Comercial", "Funil de vendas", "Mês", C.cyan)}
+      <div style={{ ...box, display: "grid", gap: 11 }}>
+        {([["Leads", "520", "100%", C.violet], ["Reuniões", "180", "52%", C.cyan], ["Vendas", "64", "22%", C.green]] as [string, string, string, string][]).map(([l, v, w, c], k) => <div key={k}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 4 }}><span style={{ color: C.muted }}>{l}</span><b>{v}</b></div><div style={{ height: 9, borderRadius: 6, background: "rgba(255,255,255,.05)", overflow: "hidden" }}><div style={{ height: "100%", width: w, borderRadius: 6, background: c, animation: "growX 1s cubic-bezier(.2,.8,.2,1)" }} /></div></div>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
+        <div style={box}><div style={{ fontSize: 10, color: C.muted }}>CONVERSÃO</div><b style={{ fontSize: 16, color: C.cyan }}>12,3%</b></div>
+        <div style={box}><div style={{ fontSize: 10, color: C.muted }}>TICKET</div><b style={{ fontSize: 16, color: C.green }}>R$ 2.140</b></div>
+      </div>
+    </>) },
+  ];
+  useEffect(() => { if (manual) return; const id = setInterval(() => setI((v) => (v + 1) % PAN.length), 3400); return () => clearInterval(id); }, [manual, PAN.length]);
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ ...heroCard, minHeight: 340 }}>
+        <div style={{ position: "absolute", right: -40, top: -40, width: 170, height: 170, borderRadius: "50%", background: "radial-gradient(circle, rgba(34,184,240,.22), transparent 60%)", animation: "pulseGlow 4s ease-in-out infinite", pointerEvents: "none" }} />
+        <div key={i} style={{ position: "relative", animation: "swap .5s ease" }}>{PAN[i].el}</div>
+      </div>
+      <div className="pills-strip" style={{ overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: 6, width: "max-content", margin: "0 auto", paddingBottom: 4 }}>
+          {PAN.map((p, k) => <button key={k} onClick={() => { setI(k); setManual(true); }} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 12, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transition: ".2s" }}>{p.label}</button>)}
         </div>
       </div>
     </div>
@@ -871,6 +910,7 @@ export default function SiteClient() {
         @keyframes swap { from{opacity:0; transform:translateY(10px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)} }
         @keyframes growUp { from{transform:scaleY(0)} to{transform:scaleY(1)} }
         @keyframes growX { from{clip-path:inset(0 100% 0 0)} to{clip-path:inset(0 0 0 0)} }
+        @keyframes spinIn { from{transform:rotate(-50deg); opacity:0} to{transform:rotate(0); opacity:1} }
         .pills-strip{ scrollbar-width:none; }
         .pills-strip::-webkit-scrollbar{ display:none; }
         @keyframes pulseGlow { 0%,100%{opacity:.45; transform:scale(1)} 50%{opacity:.85; transform:scale(1.06)} }
