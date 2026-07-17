@@ -184,8 +184,9 @@ const FEATURES = [
   { Icon: Megaphone, t: "Comercial & Marketing", d: "Leads, conversão, ROI e ticket médio — acompanhe o que traz dinheiro pra dentro." },
 ];
 const PARCEIROS = [
-  { src: "/parceiros/araguaia.svg", alt: "Colégio Araguaia", h: 44 },
-  { src: "/parceiros/stone.png", alt: "Stone", h: 30 },
+  { src: "/parceiros/araguaia.svg", alt: "Colégio Araguaia", h: 46 },
+  { src: "/parceiros/stone.png", alt: "Stone", h: 34 },
+  { src: "/parceiros/dynamis.webp", alt: "Dynamis Family", h: 40 },
 ];
 const PASSOS = [
   { n: "1", t: "Cadastre a empresa", d: "Nome, logo e saldo inicial. Leva 2 minutos e o painel já fica com a sua cara." },
@@ -244,10 +245,12 @@ export default function SiteClient() {
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: C.muted }}>
               <Award size={15} color={C.amber} /> Empresas que confiam em nós
             </div>
-            <div style={{ display: "flex", gap: "clamp(28px,6vw,64px)", justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginTop: 24 }}>
-              {PARCEIROS.map((p) => (
-                <img key={p.alt} src={p.src} alt={p.alt} title={p.alt} className="parc" style={{ height: p.h, width: "auto", maxWidth: 170, objectFit: "contain" }} />
-              ))}
+            <div className="marquee" style={{ marginTop: 24 }}>
+              <div className="marquee-track">
+                {[...PARCEIROS, ...PARCEIROS, ...PARCEIROS, ...PARCEIROS].map((p, i) => (
+                  <img key={i} src={p.src} alt={p.alt} title={p.alt} className="parc" style={{ height: p.h, width: "auto", maxWidth: 190, objectFit: "contain", flexShrink: 0 }} />
+                ))}
+              </div>
             </div>
           </div>
         </Reveal>
@@ -401,6 +404,10 @@ export default function SiteClient() {
         @keyframes pulseGlow { 0%,100%{opacity:.45; transform:scale(1)} 50%{opacity:.85; transform:scale(1.06)} }
         .parc{ filter: brightness(0) invert(1); opacity:.5; transition: opacity .25s ease, filter .25s ease; }
         .parc:hover{ filter:none; opacity:1; }
+        .marquee{ overflow:hidden; -webkit-mask:linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); mask:linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+        .marquee-track{ display:flex; align-items:center; gap: clamp(40px,7vw,88px); width:max-content; animation: marquee 26s linear infinite; }
+        .marquee:hover .marquee-track{ animation-play-state: paused; }
+        @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
         .lift{ transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
         .lift:hover{ transform: translateY(-4px); border-color: rgba(34,184,240,.35); box-shadow: 0 22px 46px -24px rgba(0,0,0,.9); }
         .cta-shine{ position:relative; overflow:hidden; }
