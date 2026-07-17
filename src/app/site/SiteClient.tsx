@@ -633,21 +633,21 @@ export default function SiteClient() {
       {/* HERO */}
       <section style={{ ...container, position: "relative", padding: "clamp(40px,7vw,80px) 20px", display: "grid", gridTemplateColumns: "1.1fr .9fr", gap: 40, alignItems: "center" }} className="site-hero">
         <Reveal>
-          <span style={chip}>Para donos de pequenas e médias empresas</span>
-          <h1 style={{ fontSize: "clamp(34px,6vw,58px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, margin: "20px 0 0" }}>
+          <span style={chip}>Para pequenas e médias empresas</span>
+          <h1 style={{ fontSize: "clamp(34px,6vw,58px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, margin: "18px 0 0" }}>
             Sua empresa não pode <span className="glow-accent" style={{ color: C.cyan }}>viver no escuro.</span>
           </h1>
-          <p style={{ color: C.muted, fontSize: "clamp(16px,2.4vw,20px)", lineHeight: 1.6, margin: "20px 0 0", maxWidth: 520 }}>
-            {MARCA} reúne faturamento, custos, lucro e indicadores da sua empresa num painel que se monta sozinho. Pare de decidir no achismo e veja o número <b style={{ color: C.txt }}>real</b> do seu negócio.
+          <p style={{ color: C.muted, fontSize: "clamp(16px,2.4vw,20px)", lineHeight: 1.6, margin: "18px 0 0", maxWidth: 500 }}>
+            Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo — veja o número <b style={{ color: C.txt }}>real</b> do seu negócio.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 28 }}>
             <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "14px 26px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Testar agora <ArrowRight size={18} /></Link>
             <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.05)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}><Play size={16} color={C.cyan} /> Ver o app em ação</a>
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 26, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 7, marginTop: 22, flexWrap: "wrap" }}>
             {["Pronto em minutos", "Funciona no celular", "Assistente com IA"].map((c) => (
-              <span key={c} className="chip-i" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.txt, background: "rgba(255,255,255,.04)", border: `1px solid ${C.line}`, borderRadius: 99, padding: "8px 15px" }}>
-                <CheckCircle2 size={15} color={C.green} /> {c}
+              <span key={c} className="chip-i" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: "rgba(255,255,255,.04)", border: `1px solid ${C.line}`, borderRadius: 99, padding: "5px 11px" }}>
+                <CheckCircle2 size={13} color={C.green} /> {c}
               </span>
             ))}
           </div>
