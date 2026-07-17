@@ -692,7 +692,7 @@ export default function SiteClient() {
           <div style={{ background: "linear-gradient(135deg, rgba(239,68,68,.12), rgba(245,158,11,.06))", border: "1px solid rgba(239,68,68,.22)", borderRadius: 24, padding: "clamp(28px,4vw,44px)", display: "grid", gridTemplateColumns: "auto 1fr", gap: "clamp(20px,4vw,44px)", alignItems: "center" }} className="cmp">
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "clamp(56px,11vw,96px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1, color: C.red }}><CountUp to={50} suffix="%" /></div>
-              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: C.muted, marginTop: 6 }}>fecham em até 5 anos</div>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: C.muted, marginTop: 6 }}>das pequenas empresas fecham em até 5 anos</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>Fonte: Sebrae</div>
             </div>
             <div>
