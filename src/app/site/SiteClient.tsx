@@ -5,7 +5,7 @@ import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3, Megaphone,
   EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
   Check, Rocket, Play, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
-  CheckCircle2, Calendar,
+  CheckCircle2, Calendar, Home, Hand,
 } from "lucide-react";
 
 const ENTRAR_URL = "/login";
@@ -39,14 +39,15 @@ function Reveal({ children, delay = 0, style }: { children: React.ReactNode; del
 }
 
 /* ─── Celular ──────────────────────────────────────────────────────────── */
-function Phone({ children, float = false, tilt = 0, big = false }: { children: React.ReactNode; float?: boolean; tilt?: number; big?: boolean }) {
-  const w = big ? 288 : 246, h = big ? 528 : 452;
+function Phone({ children, float = false, tilt = 0, big = false, nav }: { children: React.ReactNode; float?: boolean; tilt?: number; big?: boolean; nav?: React.ReactNode }) {
+  const w = big ? "min(288px, 82vw)" : "min(246px, 78vw)", h = big ? 528 : 452;
   return (
     <div style={{ width: w, flexShrink: 0, animation: float ? "floaty 6s ease-in-out infinite" : undefined, transform: `rotate(${tilt}deg)` }}>
       <div style={{ borderRadius: big ? 40 : 34, padding: 9, background: "linear-gradient(160deg,#23252e,#0e0f14)", border: "1px solid rgba(255,255,255,.1)", boxShadow: "0 40px 80px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.03)" }}>
         <div style={{ borderRadius: big ? 32 : 26, overflow: "hidden", background: C.bg, height: h, position: "relative" }}>
           <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: 78, height: 18, borderRadius: 99, background: "#000", zIndex: 3 }} />
-          <div style={{ padding: "26px 12px 12px", height: "100%" }}>{children}</div>
+          <div style={{ padding: "26px 12px", paddingBottom: nav ? 54 : 12, height: "100%" }}>{children}</div>
+          {nav && <div style={{ position: "absolute", left: 8, right: 8, bottom: 8, height: 42, borderRadius: 16, background: "rgba(18,19,26,.9)", backdropFilter: "blur(10px)", border: `1px solid ${C.line}`, display: "flex", justifyContent: "space-around", alignItems: "center", zIndex: 4, boxShadow: "0 8px 20px -8px rgba(0,0,0,.7)" }}>{nav}</div>}
         </div>
       </div>
     </div>
@@ -72,7 +73,8 @@ function TelaHome() {
           </div>
         ))}
       </div>
-      <div style={{ ...miniCard, marginTop: 10 }}>
+      <ChartCard titulo="FATURAMENTO · 6 MESES" vals={[40, 48, 39, 43, 56, 71]} cor={C.cyan} />
+      <div style={{ ...miniCard, marginTop: 8 }}>
         <div style={{ fontSize: 8, fontWeight: 800, color: C.cyan, letterSpacing: ".08em" }}>PULSO DA SEMANA</div>
         <div style={{ fontSize: 8, color: C.muted, marginTop: 5, lineHeight: 1.5 }}>Cobrar 3 clientes · Fechar folha até sexta · Renegociar fornecedor</div>
       </div>
@@ -110,6 +112,15 @@ function TelaFinancas({ animar = false }: { animar?: boolean }) {
         <div style={miniCard}><div style={{ fontSize: 7, color: C.muted }}>LUCRO</div><b style={{ fontSize: 10, color: C.green }}>R$ 42k</b></div>
         <div style={miniCard}><div style={{ fontSize: 7, color: C.muted }}>MARGEM</div><b style={{ fontSize: 10, color: C.cyan }}>18,4%</b></div>
       </div>
+      <div style={{ ...miniCard, marginTop: 8 }}>
+        <div style={{ fontSize: 7.5, color: C.muted, fontWeight: 700, marginBottom: 6, letterSpacing: ".06em" }}>COMPOSIÇÃO POR CANAL</div>
+        {([["Comercial", "58%", C.cyan], ["Escolas", "26%", C.violet], ["Renovações", "16%", C.green]] as [string, string, string][]).map(([l, w, cor], i) => (
+          <div key={i} style={{ marginBottom: 5 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 7, marginBottom: 2 }}><span style={{ color: C.muted }}>{l}</span><b>{w}</b></div>
+            <div style={{ height: 6, borderRadius: 4, background: "rgba(255,255,255,.05)", overflow: "hidden" }}><div style={{ height: "100%", width: w, borderRadius: 4, background: cor, animation: `growX .8s cubic-bezier(.2,.8,.2,1) ${i * 0.08}s both` }} /></div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -130,7 +141,8 @@ function TelaPlanilha() {
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 8, fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>Digite os números direto, como numa planilha — os gráficos se montam sozinhos.</div>
+      <ChartCard titulo="…VIRAM GRÁFICO NA HORA" vals={[40, 48, 39, 43, 56, 71]} cor={C.cyan} />
+      <div style={{ marginTop: 7, fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>Digite os números; os gráficos se montam sozinhos.</div>
     </div>
   );
 }
@@ -143,6 +155,24 @@ function MiniRing({ pct, cor }: { pct: number; cor: string }) {
       <circle cx="20" cy="20" r={R} fill="none" stroke={cor} strokeWidth="4" strokeLinecap="round" strokeDasharray={CC} strokeDashoffset={off} transform="rotate(-90 20 20)" />
       <text x="20" y="23" textAnchor="middle" fontSize="9" fontWeight="800" fill="#fff">{pct}%</text>
     </svg>
+  );
+}
+function MiniBars({ vals, cor, h = 46 }: { vals: number[]; cor: string; h?: number }) {
+  const max = Math.max(...vals, 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: h }}>
+      {vals.map((v, i) => (
+        <div key={i} style={{ flex: 1, borderRadius: "3px 3px 0 0", background: `linear-gradient(180deg, ${cor}, ${cor}44)`, height: `${(v / max) * 100}%`, transformOrigin: "bottom", animation: `growUp .7s cubic-bezier(.2,.8,.2,1) ${i * 0.05}s both`, boxShadow: `0 -3px 10px ${cor}44` }} />
+      ))}
+    </div>
+  );
+}
+function ChartCard({ titulo, vals, cor }: { titulo: string; vals: number[]; cor: string }) {
+  return (
+    <div style={{ ...miniCard, marginTop: 8 }}>
+      <div style={{ fontSize: 7.5, color: C.muted, fontWeight: 700, letterSpacing: ".06em", marginBottom: 6 }}>{titulo}</div>
+      <MiniBars vals={vals} cor={cor} />
+    </div>
   );
 }
 function TelaIndicadores() {
@@ -158,7 +188,8 @@ function TelaIndicadores() {
           </div>
         ))}
       </div>
-      <div style={{ ...miniCard, marginTop: 6, fontSize: 7.5, color: C.muted, lineHeight: 1.5 }}>Cada anel mostra quanto já bateu da meta do ano.</div>
+      <ChartCard titulo="EVOLUÇÃO DO FATURAMENTO" vals={[40, 48, 39, 43, 56, 71]} cor={C.green} />
+      <ChartCard titulo="NOVOS CLIENTES / MÊS" vals={[12, 18, 14, 16, 21, 27]} cor={C.amber} />
     </div>
   );
 }
@@ -179,6 +210,7 @@ function TelaComercial() {
         <div style={miniCard}><div style={{ fontSize: 7, color: C.muted }}>CONVERSÃO</div><b style={{ fontSize: 10, color: C.cyan }}>12,3%</b></div>
         <div style={miniCard}><div style={{ fontSize: 7, color: C.muted }}>TICKET</div><b style={{ fontSize: 10, color: C.green }}>R$ 2.140</b></div>
       </div>
+      <ChartCard titulo="VENDAS POR MÊS" vals={[38, 44, 40, 52, 58, 64]} cor={C.cyan} />
     </div>
   );
 }
@@ -260,18 +292,57 @@ const DEMO = [
   { el: () => <TelaCalendario />, label: "Contas" },
   { el: () => <TelaAssistente />, label: "Assistente" },
 ];
+// destinos da barra de navegação dentro do celular (como no app de verdade)
+const NAV_ITENS: { idx: number; Icon: typeof Home; label: string }[] = [
+  { idx: 1, Icon: Home, label: "Início" },
+  { idx: 0, Icon: LineChart, label: "Finanças" },
+  { idx: 4, Icon: Table2, label: "Planilha" },
+  { idx: 5, Icon: BarChart3, label: "Comercial" },
+  { idx: 8, Icon: Sparkles, label: "IA" },
+];
 function DemoPhone({ big = false, float = false }: { big?: boolean; float?: boolean }) {
   const [i, setI] = useState(0);
-  useEffect(() => { const id = setInterval(() => setI((v) => (v + 1) % DEMO.length), 2900); return () => clearInterval(id); }, []);
+  const [manual, setManual] = useState(false);
+  useEffect(() => {
+    if (manual) return;
+    const id = setInterval(() => setI((v) => (v + 1) % DEMO.length), 2900);
+    return () => clearInterval(id);
+  }, [manual]);
+  const ir = (k: number) => { setI(k); setManual(true); };
+
+  const nav = (
+    <>
+      {NAV_ITENS.map(({ idx, Icon, label }) => {
+        const on = i === idx;
+        return (
+          <button key={idx} onClick={() => ir(idx)} title={label} style={{ cursor: "pointer", border: 0, background: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "4px 6px", color: on ? C.cyan : C.muted, transition: ".2s" }}>
+            <Icon size={16} />
+            <span style={{ fontSize: 6.5, fontWeight: 700 }}>{label}</span>
+          </button>
+        );
+      })}
+    </>
+  );
+
   return (
     <div style={{ textAlign: "center" }}>
-      <Phone big={big} float={float}>
-        <div key={i} style={{ height: "100%", animation: "swap .55s ease" }}>{DEMO[i].el(true)}</div>
-      </Phone>
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 16, flexWrap: "wrap", maxWidth: 340, marginInline: "auto" }}>
-        {DEMO.map((d, k) => (
-          <button key={k} onClick={() => setI(k)} style={{ cursor: "pointer", border: 0, fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)" }}>{d.label}</button>
-        ))}
+      <div style={{ position: "relative", display: "inline-block" }}>
+        <Phone big={big} float={float} nav={nav}>
+          <div key={i} style={{ height: "100%", animation: "swap .5s ease" }}>{DEMO[i].el(true)}</div>
+        </Phone>
+        {!manual && (
+          <span style={{ position: "absolute", top: 14, right: 14, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, color: C.cyan, background: "rgba(34,184,240,.14)", border: "1px solid rgba(34,184,240,.3)", borderRadius: 99, padding: "3px 9px", zIndex: 5 }}>
+            <Hand size={11} /> toque para navegar
+          </span>
+        )}
+      </div>
+      {/* pílulas: linha única, rola no mobile */}
+      <div className="pills-strip" style={{ overflowX: "auto", marginTop: 16 }}>
+        <div style={{ display: "flex", gap: 6, width: "max-content", margin: "0 auto", padding: "0 4px 4px" }}>
+          {DEMO.map((d, k) => (
+            <button key={k} onClick={() => ir(k)} style={{ flexShrink: 0, cursor: "pointer", border: 0, fontSize: 11.5, fontWeight: 700, padding: "6px 13px", borderRadius: 99, color: i === k ? "#fff" : C.muted, background: i === k ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "rgba(255,255,255,.05)", transition: ".2s" }}>{d.label}</button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -566,7 +637,7 @@ export default function SiteClient() {
       {/* DOR */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
         <Reveal><SectionTitle eyebrow="O problema" title="A maioria dos empresários vive no escuro" sub="Trabalha muito, fatura — mas não sabe se lucra. Você se reconhece em alguma dessas?" /></Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {DORES.map(({ Icon, t, d }, i) => (
             <Reveal key={i} delay={i * 70}>
               <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, height: "100%" }}>
@@ -597,7 +668,7 @@ export default function SiteClient() {
       {/* GRÁFICOS */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
         <Reveal><SectionTitle eyebrow="Gráficos" title="Do dado ao gráfico, automático" sub="Você lança os números; o app transforma em gráficos claros na hora — sem fórmula, sem montar planilha." /></Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: 16 }}>
           <Reveal><BarsFaturamento /></Reveal>
           <Reveal delay={120}><DonutCustos /></Reveal>
         </div>
@@ -617,7 +688,7 @@ export default function SiteClient() {
       {/* FEATURES */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
         <Reveal><SectionTitle eyebrow="Recursos" title="Tudo que sua empresa precisa enxergar" /></Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: 16 }}>
           {FEATURES.map(({ Icon, t, d }, i) => (
             <Reveal key={i} delay={i * 60}>
               <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, display: "flex", gap: 14, height: "100%" }}>
@@ -631,6 +702,7 @@ export default function SiteClient() {
 
       {/* SEM x COM */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
+        <Reveal><SectionTitle eyebrow="Antes e depois" title="Sua empresa sem e com o Minhas Métricas" /></Reveal>
         <div className="cmp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <Reveal>
             <div style={{ background: C.card, border: "1px solid rgba(239,68,68,.22)", borderRadius: 20, padding: 26, height: "100%" }}>
@@ -681,7 +753,7 @@ export default function SiteClient() {
       {/* COMO FUNCIONA */}
       <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
         <Reveal><SectionTitle eyebrow="Como funciona" title="Do zero ao painel em 3 passos" /></Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {PASSOS.map(({ n, t, d }, i) => (
             <Reveal key={n} delay={i * 80}>
               <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 24, height: "100%" }}>
@@ -703,7 +775,7 @@ export default function SiteClient() {
       {/* DEPOIMENTOS */}
       <section style={{ ...container, padding: "clamp(30px,5vw,56px) 20px" }}>
         <Reveal><SectionTitle eyebrow="Quem usa" title="Quem já saiu do escuro" /></Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: 16 }}>
           {[
             { q: "Pela primeira vez eu enxergo o número real da operação sem quebrar a cabeça com planilha.", n: "Diogo Rodrigues", c: "CEO · Dynamis" },
             { q: "Acompanho meus resultados e minhas metas na palma da mão, direto do celular.", n: "João Paulo", c: "Representante comercial · Stone" },
@@ -759,6 +831,10 @@ export default function SiteClient() {
         @keyframes fadeArea { to { opacity: 1 } }
         @keyframes dot { to { opacity: 1 } }
         @keyframes swap { from{opacity:0; transform:translateY(10px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)} }
+        @keyframes growUp { from{transform:scaleY(0)} to{transform:scaleY(1)} }
+        @keyframes growX { from{clip-path:inset(0 100% 0 0)} to{clip-path:inset(0 0 0 0)} }
+        .pills-strip{ scrollbar-width:none; }
+        .pills-strip::-webkit-scrollbar{ display:none; }
         @keyframes pulseGlow { 0%,100%{opacity:.45; transform:scale(1)} 50%{opacity:.85; transform:scale(1.06)} }
         .parc{ filter: brightness(0) invert(1); opacity:.5; transition: opacity .25s ease, filter .25s ease; }
         .parc:hover{ filter:none; opacity:1; }
