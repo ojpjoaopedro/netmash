@@ -5,7 +5,7 @@ import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3, Megaphone,
   EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
   Check, Rocket, Play, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
-  CheckCircle2, Calendar, Home, Hand,
+  CheckCircle2, Calendar, Home, Hand, Shuffle, Tag, Compass, TriangleAlert,
 } from "lucide-react";
 
 const ENTRAR_URL = "/login";
@@ -644,6 +644,44 @@ export default function SiteClient() {
                 <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.12)", color: C.red }}><Icon size={22} /></span>
                 <h3 style={{ fontSize: 18, fontWeight: 800, margin: "14px 0 6px" }}>{t}</h3>
                 <p style={{ color: C.muted, fontSize: 14.5, lineHeight: 1.55, margin: 0 }}>{d}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* DADOS DO MERCADO */}
+      <section style={{ ...container, padding: "clamp(30px,5vw,60px) 20px" }}>
+        <Reveal>
+          <div style={{ background: "linear-gradient(135deg, rgba(239,68,68,.12), rgba(245,158,11,.06))", border: "1px solid rgba(239,68,68,.22)", borderRadius: 24, padding: "clamp(28px,4vw,44px)", display: "grid", gridTemplateColumns: "auto 1fr", gap: "clamp(20px,4vw,44px)", alignItems: "center" }} className="cmp">
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "clamp(56px,11vw,96px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1, color: C.red }}><CountUp to={50} suffix="%" /></div>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: C.muted, marginTop: 6 }}>fecham em até 5 anos</div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>Fonte: Sebrae</div>
+            </div>
+            <div>
+              <span style={{ ...chip, color: C.amber, background: "rgba(245,158,11,.1)", borderColor: "rgba(245,158,11,.28)" }}><TriangleAlert size={13} style={{ verticalAlign: "-2px", marginRight: 6 }} />Dados do mercado</span>
+              <h2 style={{ fontSize: "clamp(22px,3.6vw,32px)", fontWeight: 900, letterSpacing: "-.02em", margin: "14px 0 0", lineHeight: 1.2 }}>Empresas não quebram por falta de lucro. <span style={{ color: C.cyan }}>Quebram por falta de caixa.</span></h2>
+              <p style={{ color: C.muted, fontSize: 16, lineHeight: 1.6, margin: "12px 0 0" }}>A má gestão financeira, a falta de planejamento e a mistura entre contas pessoais e da empresa criam um efeito bola de neve — e metade dos pequenos negócios não passa dos 5 anos.</p>
+            </div>
+          </div>
+        </Reveal>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 16, marginTop: 16 }}>
+          {([
+            { Icon: Coins, t: "Sem fluxo de caixa", d: "Não registrar o que entra e sai deixa a empresa sem capital de giro para pagar fornecedores e funcionários.", s: "Entradas, saídas e saldo sempre atualizados." },
+            { Icon: Shuffle, t: "Contas misturadas", d: "Tirar dinheiro do caixa da empresa para despesa pessoal mascara a lucratividade real do negócio.", s: "Você enxerga o resultado real, separado." },
+            { Icon: Compass, t: "Decisão no achismo", d: "Sem estudar mercado, concorrência e público, cada decisão vira um chute — não um plano.", s: "Indicadores e metas para decidir com dados." },
+            { Icon: Tag, t: "Preço errado", d: "Cobrar abaixo do custo real: vende muito e tem prejuízo em cada venda, sem perceber.", s: "Veja a margem e o custo por trás de cada venda." },
+          ]).map(({ Icon, t, d, s }, i) => (
+            <Reveal key={i} delay={i * 70}>
+              <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, height: "100%" }}>
+                <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(245,158,11,.12)", color: C.amber }}><Icon size={22} /></span>
+                <h3 style={{ fontSize: 17, fontWeight: 800, margin: "14px 0 6px" }}>{t}</h3>
+                <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.55, margin: 0 }}>{d}</p>
+                <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}`, fontSize: 13, color: C.txt }}>
+                  <Check size={15} color={C.green} style={{ flexShrink: 0, marginTop: 2 }} /><span><b style={{ color: C.green }}>No app:</b> {s}</span>
+                </div>
               </div>
             </Reveal>
           ))}
