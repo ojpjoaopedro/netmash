@@ -4,12 +4,12 @@ import Link from "next/link";
 import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3, Megaphone,
   EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
-  Check, Rocket, Play, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
+  Check, Rocket, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
   Calendar, Home, Hand, Shuffle, Compass, TriangleAlert,
 } from "lucide-react";
 
 const ENTRAR_URL = "/login";
-const PLANOS_URL = "/vendas";
+const PLANOS_URL = "/login";
 const MARCA = "Minhas Métricas";
 /* Quando tiver um screencast do app, coloque o caminho aqui (ex.: "/videos/app-demo.mp4")
    e a seção "Veja em ação" passa a tocar o vídeo real no lugar da demo animada. */
@@ -646,8 +646,7 @@ export default function SiteClient() {
             Minhas <span style={{ color: C.cyan }}>Métricas</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Link href={ENTRAR_URL} className="nav-entrar" style={{ color: C.muted, fontSize: 14, fontWeight: 600 }}>Entrar</Link>
-            <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "9px 16px", borderRadius: 99, boxShadow: "0 8px 20px -8px rgba(34,184,240,.6)" }}>Começar <ArrowRight size={15} /></Link>
+            <Link href={ENTRAR_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "9px 18px", borderRadius: 99, boxShadow: "0 8px 20px -8px rgba(34,184,240,.6)" }}>Entrar <ArrowRight size={15} /></Link>
           </div>
         </div>
       </header>
@@ -664,7 +663,6 @@ export default function SiteClient() {
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 28 }}>
             <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "14px 26px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Testar agora <ArrowRight size={18} /></Link>
-            <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.05)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}><Play size={16} color={C.cyan} /> Ver o app em ação</a>
           </div>
         </Reveal>
         <Reveal delay={150}><HeroStats /></Reveal>
@@ -906,9 +904,8 @@ export default function SiteClient() {
             <img src="/icon.svg" alt="" style={{ width: 22, height: 22, borderRadius: 6 }} /> Minhas Métricas
           </div>
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-            <Link href={ENTRAR_URL} style={{ color: C.muted }}>Entrar</Link>
-            <Link href={PLANOS_URL} style={{ color: C.muted }}>Planos</Link>
             <a href="#acao" style={{ color: C.muted }}>O app</a>
+            <Link href={ENTRAR_URL} style={{ color: C.muted }}>Entrar</Link>
           </div>
           <div>© {MARCA}</div>
         </div>
