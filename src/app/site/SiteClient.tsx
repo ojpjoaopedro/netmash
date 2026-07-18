@@ -661,9 +661,6 @@ export default function SiteClient() {
           <p style={{ color: C.muted, fontSize: "clamp(16px,2.4vw,20px)", lineHeight: 1.6, margin: "18px 0 0", maxWidth: 500 }}>
             Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo. <br /><b style={{ color: C.txt }}>Veja o número real do seu negócio.</b>
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 28 }}>
-            <Link href={PLANOS_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "14px 26px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Testar agora <ArrowRight size={18} /></Link>
-          </div>
         </Reveal>
         <Reveal delay={150}><HeroStats /></Reveal>
       </section>
