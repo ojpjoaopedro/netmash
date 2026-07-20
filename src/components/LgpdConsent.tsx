@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ShieldCheck, Check } from "lucide-react";
+import { registrarConsentimentoLgpd } from "@/lib/db";
 
 /**
  * Consentimento LGPD — aparece uma vez para quem entra na plataforma.
@@ -20,6 +21,7 @@ export default function LgpdConsent({ userKey, onSair }: { userKey: string; onSa
   function aceitar() {
     if (!ok) return;
     localStorage.setItem(chave, new Date().toISOString());
+    registrarConsentimentoLgpd().catch(() => { /* best-effort */ });
     setAberto(false);
   }
 

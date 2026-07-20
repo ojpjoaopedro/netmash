@@ -21,7 +21,7 @@ type Empresa = {
   cidade: string | null; estado: string | null;
   logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number } };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[] };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 function seatsDePlano(plano: string | null): { qs: number; qa: number } {
@@ -36,7 +36,8 @@ function mascaraCnpj(v: string): string {
   if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return d;
 }
-type Aba = "visao" | "empresas" | "produtos" | "cupons" | "vendas" | "permissoes" | "config";
+type Aba = "visao" | "empresas" | "produtos" | "cupons" | "vendas" | "permissoes" | "config" | "documentos";
+type LgpdRow = { id: string; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null };
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
@@ -286,6 +287,7 @@ export default function Admin() {
     { k: "produtos", label: "Produtos", Icon: Package },
     { k: "cupons", label: "Cupons", Icon: Ticket },
     { k: "vendas", label: "Vendas", Icon: Receipt },
+    { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
     { k: "config", label: "Configurações", Icon: Settings },
   ];
 
@@ -407,7 +409,32 @@ export default function Admin() {
 
           {aba === "cupons" && <AdminCupons />}
 
-          {aba === "vendas" && <AdminVendas />}
+          {aba === "documentos" && (
+            <>
+              <h1>Documentos · Consentimentos LGPD</h1>
+              <p className="adm-sub">Registro de quem aceitou a proteção de dados ao entrar na plataforma. {(data?.lgpd?.length ?? 0)} aceite(s).</p>
+              {(!data?.lgpd || data.lgpd.length === 0) ? (
+                <div className="adm-card" style={{ padding: 22 }}>Nenhum consentimento registrado ainda. Assim que os usuários aceitarem a LGPD no app, os registros aparecem aqui.</div>
+              ) : (
+                <div className="adm-card" style={{ padding: 0, overflowX: "auto" }}>
+                  <table className="adm-table">
+                    <thead><tr><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Aceito em</th><th>Versão</th></tr></thead>
+                    <tbody>
+                      {data.lgpd.map((r) => (
+                        <tr key={r.id}>
+                          <td>{r.nome || "—"}</td>
+                          <td>{r.email || "—"}</td>
+                          <td>{r.empresaNome || "—"}</td>
+                          <td className="mono">{dataHoraBR(r.aceito_em)}</td>
+                          <td>{r.versao || "1.0"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
 
           {aba === "config" && (
             <>

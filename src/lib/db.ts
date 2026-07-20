@@ -174,6 +174,24 @@ export async function getPerfil(): Promise<Perfil | null> {
   return data as Perfil | null;
 }
 
+/** Registra o aceite da LGPD do usuário logado no banco (auditável). Best-effort. */
+export async function registrarConsentimentoLgpd(): Promise<void> {
+  if (!supabaseReady || !supabase) return;
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) return;
+  const perfil = await getPerfil();
+  try {
+    await supabase.from("lgpd_consentimentos").insert({
+      user_id: auth.user.id,
+      email: auth.user.email ?? perfil?.email ?? null,
+      nome: perfil?.nome ?? null,
+      empresa_id: perfil?.empresa_id ?? null,
+      versao: "1.0",
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 300) : null,
+    });
+  } catch { /* tabela pode não existir ainda */ }
+}
+
 export async function getEmpresa(): Promise<Empresa | null> {
   if (!supabaseReady || !supabase) {
     seedDemo();

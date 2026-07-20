@@ -113,7 +113,15 @@ export async function GET(req: NextRequest) {
   const faturamento = lista.reduce((acc, e) => acc + (e.valor || 0), 0);
   const ativos = lista.filter((e) => !e.acessoCortado).length;
   const precos = await getPrecos(s);
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos });
+
+  // Consentimentos LGPD (retorna [] se a tabela ainda não existir)
+  const nomeEmp = new Map(empresas.map((e) => [e.id, e.nome]));
+  const { data: lgRows } = await s.from("lgpd_consentimentos").select("id,email,nome,empresa_id,aceito_em,versao").order("aceito_em", { ascending: false });
+  const lgpd = (lgRows ?? []).map((r: { id: string; email: string | null; nome: string | null; empresa_id: string | null; aceito_em: string; versao: string | null }) => ({
+    ...r, empresaNome: r.empresa_id ? (nomeEmp.get(r.empresa_id) ?? null) : null,
+  }));
+
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd });
 }
 
 export async function POST(req: NextRequest) {
