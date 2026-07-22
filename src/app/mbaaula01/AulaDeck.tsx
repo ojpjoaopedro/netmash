@@ -2596,10 +2596,12 @@ function S24() {
   ];
   const totalPipe = deals.reduce((s, d) => s + d.valor, 0);
   const totalFcst = deals.reduce((s, d) => s + d.valor * d.prob, 0);
+  // 0 = a tabela; 1 = os dois totais, que a turma tenta somar antes de aparecer
+  const { revelar, visivel, faltam } = useRevelar(2);
   return (
     <Slide bg="dark">
       <Titulo>Pipeline não é forecast</Titulo>
-      <div className="flex-1 flex flex-col justify-center min-h-0">
+      <div onClick={revelar} className="flex-1 flex flex-col justify-center min-h-0 cursor-pointer">
         <div className="rounded-2xl border border-white/10 overflow-hidden">
           <div className="grid grid-cols-4 px-5 py-2.5 bg-white/[0.04] text-[10px] font-black uppercase tracking-widest text-slate-500">
             <span>Oportunidade</span><span className="text-right">Valor</span><span className="text-right">Probabilidade</span><span className="text-right">Valor ponderado</span>
@@ -2616,16 +2618,20 @@ function S24() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
           <Card className="px-6 py-5 text-center">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pipeline total</p>
-            <p className="text-4xl font-black mt-1.5 text-slate-200">{fmtK(totalPipe)}</p>
+            {/* o número some, o card fica: sem isso o slide pula na hora do clique */}
+            <motion.p animate={{ opacity: visivel(1) ? 1 : 0, y: visivel(1) ? 0 : 8 }} transition={{ duration: 0.4 }}
+              className="text-4xl font-black mt-1.5 text-slate-200">{fmtK(totalPipe)}</motion.p>
             <p className="text-[10px] text-slate-600 mt-1">potencial</p>
           </Card>
           <Card className="px-6 py-5 text-center" style={{ borderColor: `${BLUE}55`, background: 'rgba(26,173,226,0.07)' }}>
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BLUE }}>Forecast ponderado</p>
-            <p className="text-4xl font-black mt-1.5" style={{ color: BLUE }}>{fmtK(totalFcst)}</p>
+            <motion.p animate={{ opacity: visivel(1) ? 1 : 0, y: visivel(1) ? 0 : 8 }} transition={{ duration: 0.4, delay: 0.12 }}
+              className="text-4xl font-black mt-1.5" style={{ color: BLUE }}>{fmtK(totalFcst)}</motion.p>
             <p className="text-[10px] text-slate-600 mt-1">provável</p>
           </Card>
         </div>
       </div>
+      <DicaClique faltam={faltam} />
     </Slide>
   );
 }
@@ -2676,10 +2682,14 @@ function S25() {
 
 // 34 — Pipeline coverage
 function S26() {
+  // 0 = o caso da esquerda; 1 = a conta do win rate, que entra no clique
+  const { revelar, visivel, faltam } = useRevelar(2);
   return (
     <Slide bg="dark">
       <Titulo sub="Você tem munição suficiente?">Pipeline coverage</Titulo>
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-center min-h-0">
+      {/* a conta do win rate só entra no comando: primeiro a turma responde
+          "isso é suficiente?", depois o slide mostra */}
+      <div onClick={revelar} className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-center min-h-0 cursor-pointer">
         <div className="space-y-3">
           <Card className="px-5 py-4 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Meta do trimestre</span>
@@ -2699,7 +2709,7 @@ function S26() {
           </div>
         </div>
 
-        <div>
+        <motion.div animate={{ opacity: visivel(1) ? 1 : 0, y: visivel(1) ? 0 : 12 }} transition={{ duration: 0.45 }}>
           <Card className="p-6">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Se o win rate é 25%</p>
             <div className="space-y-2.5 font-mono text-[15px]">
@@ -2717,8 +2727,9 @@ function S26() {
               </div>
             </div>
           </Card>
-        </div>
+        </motion.div>
       </div>
+      <DicaClique faltam={faltam} />
     </Slide>
   );
 }
@@ -2850,6 +2861,82 @@ function S29() {
   );
 }
 
+/**
+ * A definição, logo depois do slide dos silos: primeiro o problema, aí o nome
+ * de quem resolve. Slide de uma frase só — o peso está na leitura em voz alta.
+ */
+function SDefinicaoRevOps() {
+  return (
+    <Slide bg="dark">
+      <div className="flex-1 flex flex-col justify-center min-h-0">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          className="text-4xl sm:text-6xl font-black tracking-tight mb-8"
+          style={{ color: BLUE, textShadow: '0 0 50px rgba(26,173,226,0.35)' }}>
+          RevOps
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }}
+          className="max-w-[900px] text-xl sm:text-[28px] font-semibold leading-[1.45] text-slate-200">
+          O departamento responsável por <strong className="font-black text-white">integrar as áreas da empresa</strong>,
+          com o grande objetivo de <strong className="font-black" style={{ color: GREEN }}>aumentar receita com eficiência</strong>,
+          focando em <strong className="font-black" style={{ color: GOLD }}>margem</strong>, não em crescer a qualquer custo.
+        </motion.p>
+      </div>
+    </Slide>
+  );
+}
+
+/**
+ * O que RevOps faz, e a proporção que ninguém espera: metade do trabalho é
+ * conversa. Processo integrado não se implanta por decreto, se negocia.
+ */
+function SResponsabilidadeRevOps() {
+  const frentes = [
+    { t: 'Análise de dados', d: 'uma fonte da verdade para todos', icon: BarChart3, cor: BLUE },
+    { t: 'Ferramentas em conjunto', d: 'sistemas que conversam entre si', icon: Cpu, cor: GOLD },
+    { t: 'Clareza de processo', d: 'cada etapa com definição comum', icon: CheckCheck, cor: GREEN },
+    { t: 'Estratégia', d: 'onde crescer e a que custo', icon: Target, cor: AMBER },
+  ];
+  return (
+    <Slide bg="dark">
+      <Titulo sub="O que está na mesa dele">Responsabilidade do Revenue Operations</Titulo>
+
+      <div className="flex-1 flex flex-col justify-center gap-6 min-h-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {frentes.map((f, i) => (
+            <motion.div key={f.t} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.12 }}>
+              <Card className="px-5 py-4 h-full flex items-start gap-4" style={{ borderColor: `${f.cor}2e` }}>
+                <span className="grid place-items-center w-10 h-10 rounded-xl shrink-0" style={{ background: `${f.cor}1a` }}>
+                  <f.icon className="w-5 h-5" style={{ color: f.cor }} />
+                </span>
+                <div>
+                  <p className="text-lg font-black text-slate-100 leading-tight">{f.t}</p>
+                  <p className="text-[12.5px] text-slate-400 mt-0.5">{f.d}</p>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* a divisão do trabalho, em barra: os dois lados pesam igual */}
+        <motion.div initial={{ opacity: 0, scaleX: 0.9 }} animate={{ opacity: 1, scaleX: 1 }} transition={{ delay: 0.65, duration: 0.5 }}
+          className="flex rounded-2xl overflow-hidden border border-white/10">
+          <div className="flex-1 text-center py-5" style={{ background: 'rgba(26,173,226,0.10)' }}>
+            <p className="text-2xl sm:text-3xl font-black" style={{ color: BLUE }}>50% analítico</p>
+            <p className="text-[12px] text-slate-400 mt-1">dado, número, sistema</p>
+          </div>
+          <div className="flex-1 text-center py-5" style={{ background: 'rgba(196,138,87,0.10)' }}>
+            <p className="text-2xl sm:text-3xl font-black" style={{ color: GOLD }}>50% relacional</p>
+            <p className="text-[12px] text-slate-400 mt-1">gente, acordo, cadência</p>
+          </div>
+        </motion.div>
+      </div>
+    </Slide>
+  );
+}
+
 // 38 — O que é Revenue Operations?
 function S30() {
   const orbita = [
@@ -2976,28 +3063,32 @@ function S34() {
           <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 text-[10px] font-black uppercase tracking-[0.25em] rounded-full z-10" style={{ background: NAVY, color: GOLD }}>
             Revenue Operations
           </span>
-          <div className="relative flex flex-col items-center py-3">
+          {/* seis elos empilhados estouravam a altura do palco: a cadeia agora é
+              compacta e a seta virou um traço fino entre os cartões */}
+          <div className="relative flex flex-col items-center py-2">
             {cadeia.map((c, i) => (
               <div key={c.e} className="w-full flex flex-col items-center">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 + i * 0.14 }}
-                  className="w-full max-w-[440px] rounded-xl px-6 py-3 flex items-center justify-between border"
+                  className="w-full max-w-[440px] rounded-lg px-5 py-2 flex items-center justify-between border"
                   style={{ borderColor: `${BLUE}44`, background: `rgba(26,173,226,${0.04 + i * 0.012})` }}
                 >
-                  <span className="text-lg font-black tracking-wide" style={{ color: BLUE }}>{c.e}</span>
+                  <span className="text-base font-black tracking-wide" style={{ color: BLUE }}>{c.e}</span>
                   <span className="text-[10px] text-slate-500">{c.d}</span>
                 </motion.div>
-                {i < cadeia.length - 1 && <Seta />}
+                {i < cadeia.length - 1 && (
+                  <span className="text-[9px] leading-none py-1" style={{ color: BLUE }}>▼</span>
+                )}
               </div>
             ))}
           </div>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.8 }} className="mt-9 text-center max-w-[780px]">
-          <p className="text-lg sm:text-2xl font-bold leading-snug text-slate-100">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.8 }} className="mt-6 text-center max-w-[780px]">
+          <p className="text-base sm:text-xl font-bold leading-snug text-slate-100">
             Empresas previsíveis não são aquelas que <span className="text-slate-500">acertam o futuro</span>.
           </p>
-          <p className="text-lg sm:text-2xl font-bold leading-snug mt-2" style={{ color: BLUE }}>
+          <p className="text-base sm:text-xl font-bold leading-snug mt-1.5" style={{ color: BLUE }}>
             São aquelas que percebem as mudanças cedo o suficiente para agir.
           </p>
         </motion.div>
@@ -3054,6 +3145,8 @@ const SLIDES = [
   { id: 's40-treinar-pratica', titulo: 'Vamos treinar na prática', bloco: 'Forecast', node: <S27 /> },
   { id: 's42-mapa-revops', titulo: 'O mapa · próximo: REVENUE OPERATIONS', bloco: 'RevOps', node: <MapaReceita foco="REVOPS" selo /> },
   { id: 's43-silos', titulo: 'O problema dos silos', bloco: 'RevOps', node: <S29 /> },
+  { id: 's43b-definicao-revops', titulo: 'RevOps, a definição', bloco: 'RevOps', node: <SDefinicaoRevOps /> },
+  { id: 's43c-responsabilidade-revops', titulo: 'Responsabilidade do RevOps', bloco: 'RevOps', node: <SResponsabilidadeRevOps /> },
   { id: 's44-revops', titulo: 'O que é RevOps?', bloco: 'RevOps', node: <S30 /> },
   { id: 's45-ciclo-gestao', titulo: 'O ciclo de gestão', bloco: 'RevOps', node: <S32 /> },
   { id: 's47-sintese', titulo: 'A grande síntese', bloco: 'Fechamento', node: <S34 /> },
