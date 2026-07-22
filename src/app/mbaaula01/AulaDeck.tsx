@@ -2737,31 +2737,98 @@ function S26() {
   );
 }
 
-// 35 — Sinais de saúde do pipeline
+// 35 — Vamos treinar na prática (o simulador de CRM)
+const LINK_SIMULADOR = 'minhasmetricas.com/treino_pipeline';
+
 function S27() {
-  const kpis = [
-    { l: 'Pipeline total', v: fmtK(PIPELINE_NECESSARIO), s: 'volume absoluto', c: '#94A3B8' },
-    { l: 'Pipeline coverage', v: '4,0x', s: 'volume vs. meta', c: BLUE },
-    { l: 'Win rate', v: '25%', s: 'eficiência', c: GREEN },
-    { l: 'Ticket médio', v: 'R$ 500', s: 'valor por venda', c: BLUE },
-    { l: 'Ciclo de vendas', v: '? dias', s: 'velocidade', c: '#64748B' },
-    { l: 'Aging', v: '? dias parado', s: 'deal morto infla o forecast', c: AMBER },
-    { l: 'Conversão por estágio', v: 'onde vaza', s: 'o mais acionável', c: GREEN },
-    { l: 'Velocidade do pipeline', v: 'R$/dia', s: '(opp × ticket × win) ÷ ciclo', c: GOLD },
+  // prévia do quadro: a última coluna é a de fechamento, por isso verde
+  const colunas = [
+    { nome: 'Lead', cards: 3, ganho: false },
+    { nome: 'Qualificado', cards: 2, ganho: false },
+    { nome: 'Proposta', cards: 2, ganho: false },
+    { nome: 'Fechamento', cards: 2, ganho: true },
   ];
+  const passos = [
+    'Defina a meta do mês',
+    'Monte as etapas do seu funil',
+    'Gere negócios e classifique temperatura, tempo parado e nota',
+    'Peça o forecast e veja a cobertura da meta',
+  ];
+
   return (
     <Slide bg="dark">
-      <Titulo sub="Gerenciar por dado, não por opinião">Os sinais de saúde do pipeline</Titulo>
-      <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-3 content-center">
-        {kpis.map((k, i) => (
-          <motion.div key={k.l} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.07 }}>
-            <Card className="px-4 py-4 h-full">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{k.l}</p>
-              <p className="text-xl font-black mt-1.5" style={{ color: k.c }}>{k.v}</p>
-              <p className="text-[10px] text-slate-600 mt-1 leading-snug">{k.s}</p>
-            </Card>
-          </motion.div>
-        ))}
+      <Titulo sub="Sua vez">Vamos treinar na prática</Titulo>
+
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[0.82fr_1.18fr] gap-8 items-center min-h-0">
+        <div>
+          <p className="text-[15px] text-slate-400 leading-relaxed">
+            Um CRM de treino para fazer com as suas mãos o que acabamos de ver — do
+            funil vazio até o forecast do mês.
+          </p>
+          <ul className="mt-5 space-y-2.5">
+            {passos.map((p, i) => (
+              <li key={p} className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-md shrink-0 grid place-items-center text-[10px] font-black mt-0.5"
+                  style={{ background: `${BLUE}22`, color: BLUE }}>{i + 1}</span>
+                <span className="text-[13.5px] text-slate-300 leading-snug">{p}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-7 rounded-xl border px-5 py-4" style={{ borderColor: `${GOLD}44`, background: 'rgba(196,138,87,0.06)' }}>
+            <p className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: GOLD }}>Abra e treine</p>
+            <p className="text-lg font-black text-slate-100 mt-1">
+              minhasmetricas.com<span style={{ color: GOLD }}>/treino_pipeline</span>
+            </p>
+          </div>
+        </div>
+
+        {/* prévia da tela, para o aluno reconhecer onde está entrando */}
+        <motion.div
+          initial={{ opacity: 0, y: 18, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="rounded-2xl overflow-hidden bg-[#F1F5F9] border border-black/20"
+          style={{ boxShadow: '0 30px 70px -20px rgba(0,0,0,0.65)' }}
+        >
+          <div className="flex items-center gap-2 px-3 py-2 bg-[#E2E8F0] border-b border-black/10">
+            <span className="flex gap-1.5">
+              {['#EF4444', '#F59E0B', '#10B981'].map((c) => <span key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />)}
+            </span>
+            <span className="flex-1 mx-2 px-2.5 py-1 rounded-md bg-white text-[9px] text-slate-500 truncate">{LINK_SIMULADOR}</span>
+          </div>
+
+          {/* topo do simulador */}
+          <div className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between">
+            <p className="text-[11px] font-black text-slate-800">Pipeline &amp; Forecast</p>
+            <div className="flex gap-3 text-[8px] font-black uppercase tracking-wider">
+              <span className="text-slate-400">Realizado <b className="text-emerald-600">R$ 12 mil</b></span>
+              <span className="text-slate-400">Forecast <b style={{ color: BLUE }}>R$ 21 mil</b></span>
+              <span className="text-slate-400">Meta <b className="text-slate-700">40%</b></span>
+            </div>
+          </div>
+
+          {/* quadro */}
+          <div className="p-3 flex gap-2">
+            {colunas.map((c) => (
+              <div key={c.nome} className="flex-1 rounded-lg border p-2"
+                style={c.ganho ? { background: '#f0fdf4', borderColor: '#86efac' } : { background: '#fff', borderColor: '#e2e8f0' }}>
+                <p className="text-[8.5px] font-black mb-1.5" style={{ color: c.ganho ? '#047857' : '#334155' }}>{c.nome}</p>
+                <div className="space-y-1.5">
+                  {Array.from({ length: c.cards }).map((_, k) => (
+                    <div key={k} className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="flex-1 h-1 rounded-full bg-slate-300" />
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ background: ['#EF4444', '#F59E0B', '#3B82F6'][k % 3] }} />
+                      </div>
+                      <span className="block mt-1 h-1.5 w-2/3 rounded-full" style={{ background: c.ganho ? '#6ee7b7' : '#7dd3fc' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </Slide>
   );
@@ -3081,7 +3148,7 @@ const SLIDES = [
   { id: 's37-mapa-forecast', titulo: 'O mapa · próximo: FORECAST', bloco: 'Forecast', node: <MapaReceita foco="FORECAST" /> },
   { id: 's38-formula-forecast', titulo: 'A fórmula do ponderado', bloco: 'Forecast', node: <S25 /> },
   { id: 's39-coverage', titulo: 'Pipeline coverage', bloco: 'Forecast', node: <S26 /> },
-  { id: 's40-saude-pipeline', titulo: 'Saúde do pipeline', bloco: 'Forecast', node: <S27 /> },
+  { id: 's40-treinar-pratica', titulo: 'Vamos treinar na prática', bloco: 'Forecast', node: <S27 /> },
   { id: 's41-forecast-decisao', titulo: 'Forecast é decisão', bloco: 'Forecast', node: <S28 /> },
   { id: 's42-mapa-revops', titulo: 'O mapa · próximo: REVENUE OPERATIONS', bloco: 'RevOps', node: <MapaReceita foco="REVOPS" selo /> },
   { id: 's43-silos', titulo: 'O problema dos silos', bloco: 'RevOps', node: <S29 /> },
