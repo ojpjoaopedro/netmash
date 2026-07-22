@@ -334,12 +334,12 @@ export default function SimuladorPipeline() {
       <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
         <div className="mx-auto max-w-[1500px] px-4 sm:px-5 py-2.5 sm:py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 lg:gap-4">
           <div className="flex items-center justify-between gap-3">
-            {/* volta uma tela: dá para corrigir a meta sem apagar o quadro */}
-            <button onClick={() => setD((x) => ({ ...x, metaDefinida: false }))} title="Voltar para a meta"
-              className="shrink-0 -ml-1 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
             <div className="min-w-0 flex-1">
+              {/* volta uma tela: dá para corrigir a meta sem apagar o quadro */}
+              <button onClick={() => setD((x) => ({ ...x, metaDefinida: false }))}
+                className="flex items-center gap-1 -ml-2 mb-0.5 px-2 py-1 rounded-lg text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                <ChevronLeft className="w-3.5 h-3.5" /> voltar
+              </button>
               <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA · simulador</p>
               <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-800 truncate">
                 {d.empresa || 'Pipeline & Forecast'}
