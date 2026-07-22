@@ -1539,9 +1539,8 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
               <div>
                 <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-2">Como está hoje</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  <Mini rotulo="CAC informado" valor={brl(rev.cac)} sub="a sua premissa" />
                   <Mini rotulo="CAC real do período" valor={base.vendas > 0 ? brl(conta.cacReal) : '—'}
-                    sub="custo total ÷ vendas" cor={base.vendas > 0 && conta.cacReal > rev.cac ? '#EF4444' : '#10B981'} />
+                    sub="custo total ÷ vendas" cor={base.vendas > 0 && conta.cacReal > revEfetivo.cac ? '#EF4444' : '#10B981'} />
                   <Mini rotulo="Margem por venda" valor={brl(conta.margemVenda)} sub="ticket − CAC"
                     cor={conta.margemVenda > 0 ? '#10B981' : '#EF4444'} />
                   <Mini rotulo="Custo sobre a receita" valor={base.receita > 0 ? pct(conta.custoSobreReceita) : '—'} sub="operação ÷ receita" />
