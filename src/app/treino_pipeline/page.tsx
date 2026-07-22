@@ -237,12 +237,17 @@ export default function SimuladorPipeline() {
     setD((x) => ({ ...x, leads: [...x.leads, ...gerarLeads(x.etapas, x.meta, LOTE)] }));
   }
   const apagarLeads = () => { setD((x) => ({ ...x, leads: [] })); setConfirmandoApagar(false); };
-  // "do zero" é o funil, não a meta: quem já respondeu não responde de novo
+  /**
+   * Limpa negócios e devolve o funil sugerido. Zerar as etapas jogaria o aluno
+   * de volta para a tela de montagem no meio da aula — apagar não é sair.
+   */
   const apagarTudo = () => {
     setD((x) => ({
-      ...VAZIO, meta: x.meta, metaDefinida: x.metaDefinida,
+      ...VAZIO,
+      etapas: ETAPAS_SUGERIDAS.map((e) => ({ id: novoId(), nome: e.nome, ganho: e.ganho })),
+      meta: x.meta, metaDefinida: x.metaDefinida,
       empresa: x.empresa, responsavel: x.responsavel, identificado: x.identificado,
-      campos: x.campos,
+      campos: x.campos, revops: x.revops,
     }));
     setConfirmandoApagar(false);
   };
@@ -311,7 +316,13 @@ export default function SimuladorPipeline() {
 
   /* ── 3º: a meta, que dá escala ao exercício (ticket, cobertura, velocímetro) ── */
   if (!d.metaDefinida) {
-    return <PerguntaMeta valorInicial={d.meta} onConfirmar={(meta) => setD((x) => ({ ...x, meta, metaDefinida: true }))} />;
+    return (
+      <PerguntaMeta
+        valorInicial={d.meta}
+        onVoltar={() => setD((x) => ({ ...x, identificado: false }))}
+        onConfirmar={(meta) => setD((x) => ({ ...x, meta, metaDefinida: true }))}
+      />
+    );
   }
 
   /* ── 4º: o quadro ── */
@@ -323,7 +334,12 @@ export default function SimuladorPipeline() {
       <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
         <div className="mx-auto max-w-[1500px] px-4 sm:px-5 py-2.5 sm:py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 lg:gap-4">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
+            {/* volta uma tela: dá para corrigir a meta sem apagar o quadro */}
+            <button onClick={() => setD((x) => ({ ...x, metaDefinida: false }))} title="Voltar para a meta"
+              className="shrink-0 -ml-1 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="min-w-0 flex-1">
               <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA · simulador</p>
               <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-800 truncate">
                 {d.empresa || 'Pipeline & Forecast'}
@@ -713,11 +729,17 @@ function PerguntaIdentificacao({ empresaInicial, responsavelInicial, onConfirmar
  * dos negócios sai de uma fatia dela, e a cobertura e o velocímetro comparam
  * contra ela. Sem meta, os números do exercício não significam nada.
  */
-function PerguntaMeta({ valorInicial, onConfirmar }: { valorInicial: number; onConfirmar: (meta: number) => void }) {
+function PerguntaMeta({ valorInicial, onVoltar, onConfirmar }: {
+  valorInicial: number; onVoltar: () => void; onConfirmar: (meta: number) => void;
+}) {
   const [meta, setMeta] = useState(valorInicial);
   return (
-    <div className="min-h-screen bg-slate-50 grid place-items-center px-5 py-12">
+    <div className="min-h-screen bg-slate-50 grid place-items-center px-4 sm:px-5 py-10 sm:py-12">
       <form onSubmit={(e) => { e.preventDefault(); if (meta > 0) onConfirmar(meta); }} className="w-full max-w-[460px]">
+        <button type="button" onClick={onVoltar}
+          className="flex items-center gap-1.5 mb-3 -ml-1 px-2 py-1.5 rounded-lg text-[12px] font-bold text-slate-400 hover:text-slate-700 hover:bg-white transition-colors">
+          <ChevronLeft className="w-4 h-4" /> voltar
+        </button>
         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA</p>
         <h1 className="text-2xl font-black tracking-tight text-slate-800 mb-5">Simulador de Pipeline &amp; Forecast</h1>
 
@@ -814,7 +836,7 @@ function PainelApagar({ negocios, etapas, onSoLeads, onTudo, onCancelar }: {
           <button onClick={onTudo}
             className="w-full text-left rounded-xl border border-red-100 bg-red-50 hover:bg-red-100 px-4 py-3.5 transition-colors">
             <p className="text-[14px] font-black text-red-700">Negócios e etapas</p>
-            <p className="text-[12px] text-red-600/80 mt-0.5">Recomeça do zero: você monta o funil de novo.</p>
+            <p className="text-[12px] text-red-600/80 mt-0.5">Recomeça do zero: o funil volta a ser o sugerido.</p>
           </button>
 
           <button onClick={onCancelar}

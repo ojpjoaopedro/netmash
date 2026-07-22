@@ -9,7 +9,7 @@
  * e os cálculos derivam delas — não há número mágico solto nos slides.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, useContext, createContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X as XIcon, ChevronLeft, ChevronRight, Presentation,
@@ -2375,26 +2375,53 @@ function SNiveisProcesso() {
 }
 
 /**
+ * Ligados quando o slide é fotografado para o PDF: ali não existe clique, então
+ * tudo que é revelado por comando precisa nascer aberto — e a dica de clicar
+ * não deve aparecer no papel.
+ */
+const ModoCompleto = createContext(false);
+
+/**
+ * A seta "próximo" fala com o slide: enquanto houver item escondido, avançar
+ * revela em vez de trocar de slide. Sem isso o apresentador pula conteúdo sem
+ * perceber. Guardado em ref de propósito: registrar não pode redesenhar o deck.
+ */
+type Comando = { revelar: (() => void) | null; faltam: boolean };
+const ComandoRevelar = createContext<{ registrar: (c: Comando) => void } | null>(null);
+
+/**
  * Revelação por comando: o 1º item já entra montado e os seguintes aparecem a
  * cada clique. `visivel` decide a animação; quem ainda não veio segue ocupando
  * o lugar (opacity 0), então o layout não pula.
  */
 function useRevelar(total: number) {
   const [revelados, setRevelados] = useState(1);
-  return {
-    revelar: () => setRevelados((n) => Math.min(n + 1, total)),
-    visivel: (i: number) => i < revelados,
-    faltam: revelados < total,
-  };
+  const completo = useContext(ModoCompleto);
+  const bus = useContext(ComandoRevelar);
+  const revelar = useCallback(() => setRevelados((n) => Math.min(n + 1, total)), [total]);
+  const faltam = !completo && revelados < total;
+
+  // o slide montado na tela assume o comando; o clone do PDF nunca assume
+  useEffect(() => {
+    if (completo || !bus) return;
+    bus.registrar({ revelar, faltam });
+    return () => bus.registrar({ revelar: null, faltam: false });
+  }, [bus, completo, revelar, faltam]);
+
+  return { revelar, visivel: (i: number) => completo || i < revelados, faltam };
 }
 
-/** Dica discreta; some quando não há mais o que revelar. */
+/** Aviso de que ainda há conteúdo escondido; some quando não há mais. */
 function DicaClique({ faltam }: { faltam: boolean }) {
   return (
-    <p className="mt-7 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity duration-300"
-      style={{ opacity: faltam ? 1 : 0 }}>
-      clique para revelar
-    </p>
+    <div className="mt-6 flex justify-center transition-opacity duration-300" style={{ opacity: faltam ? 1 : 0 }}>
+      <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-[11px] font-black uppercase tracking-[0.22em]"
+        style={{ borderColor: `${BLUE}55`, background: 'rgba(26,173,226,0.08)', color: BLUE }}>
+        <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.6, repeat: Infinity }}
+          className="w-1.5 h-1.5 rounded-full" style={{ background: BLUE }} />
+        clique para revelar
+      </span>
+    </div>
   );
 }
 
@@ -2893,46 +2920,61 @@ function SDefinicaoRevOps() {
  * conversa. Processo integrado não se implanta por decreto, se negocia.
  */
 function SResponsabilidadeRevOps() {
+  // as duas primeiras frentes puxam para o lado do dado; as duas últimas, para
+  // o lado da gente — é isso que a balança lá embaixo está resumindo
   const frentes = [
-    { t: 'Análise de dados', d: 'uma fonte da verdade para todos', icon: BarChart3, cor: BLUE },
-    { t: 'Ferramentas em conjunto', d: 'sistemas que conversam entre si', icon: Cpu, cor: GOLD },
-    { t: 'Clareza de processo', d: 'cada etapa com definição comum', icon: CheckCheck, cor: GREEN },
-    { t: 'Estratégia', d: 'onde crescer e a que custo', icon: Target, cor: AMBER },
+    { t: 'Análise de dados', d: 'uma fonte da verdade', icon: BarChart3, cor: BLUE, lado: 'A' },
+    { t: 'Ferramentas em conjunto', d: 'sistemas que conversam', icon: Cpu, cor: BLUE, lado: 'A' },
+    { t: 'Clareza de processo', d: 'definição comum em cada etapa', icon: CheckCheck, cor: GOLD, lado: 'R' },
+    { t: 'Estratégia', d: 'onde crescer e a que custo', icon: Target, cor: GOLD, lado: 'R' },
   ];
+  const { revelar, visivel, faltam } = useRevelar(2);
+
   return (
     <Slide bg="dark">
       <Titulo sub="O que está na mesa dele">Responsabilidade do Revenue Operations</Titulo>
 
-      <div className="flex-1 flex flex-col justify-center gap-6 min-h-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div onClick={revelar} className="flex-1 flex flex-col justify-center gap-7 min-h-0 cursor-pointer">
+        {/* quatro pilares, cada um com a coluna de cor do lado a que pertence */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {frentes.map((f, i) => (
-            <motion.div key={f.t} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.12 }}>
-              <Card className="px-5 py-4 h-full flex items-start gap-4" style={{ borderColor: `${f.cor}2e` }}>
-                <span className="grid place-items-center w-10 h-10 rounded-xl shrink-0" style={{ background: `${f.cor}1a` }}>
-                  <f.icon className="w-5 h-5" style={{ color: f.cor }} />
-                </span>
-                <div>
-                  <p className="text-lg font-black text-slate-100 leading-tight">{f.t}</p>
-                  <p className="text-[12.5px] text-slate-400 mt-0.5">{f.d}</p>
-                </div>
-              </Card>
+            <motion.div key={f.t} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 + i * 0.13 }}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 pt-4 pb-5 text-center relative overflow-hidden">
+              <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: f.cor }} />
+              <span className="grid place-items-center w-11 h-11 rounded-2xl mx-auto mb-3" style={{ background: `${f.cor}1a` }}>
+                <f.icon className="w-5 h-5" style={{ color: f.cor }} />
+              </span>
+              <p className="text-[15px] font-black text-slate-100 leading-tight">{f.t}</p>
+              <p className="text-[11.5px] text-slate-500 mt-1 leading-snug">{f.d}</p>
             </motion.div>
           ))}
         </div>
 
-        {/* a divisão do trabalho, em barra: os dois lados pesam igual */}
-        <motion.div initial={{ opacity: 0, scaleX: 0.9 }} animate={{ opacity: 1, scaleX: 1 }} transition={{ delay: 0.65, duration: 0.5 }}
-          className="flex rounded-2xl overflow-hidden border border-white/10">
-          <div className="flex-1 text-center py-5" style={{ background: 'rgba(26,173,226,0.10)' }}>
-            <p className="text-2xl sm:text-3xl font-black" style={{ color: BLUE }}>50% analítico</p>
-            <p className="text-[12px] text-slate-400 mt-1">dado, número, sistema</p>
+        {/* a balança: os dois lados crescem do centro e param empatados */}
+        <div>
+          <div className="relative h-14 rounded-2xl overflow-hidden border border-white/10 flex">
+            <motion.div animate={{ width: visivel(1) ? '50%' : '0%' }} transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="h-full flex items-center justify-end pr-5" style={{ background: `linear-gradient(90deg, rgba(26,173,226,0.05), rgba(26,173,226,0.22))` }}>
+              <motion.span animate={{ opacity: visivel(1) ? 1 : 0 }} transition={{ delay: 0.5 }}
+                className="text-2xl sm:text-3xl font-black whitespace-nowrap" style={{ color: BLUE }}>50% analítico</motion.span>
+            </motion.div>
+
+            <motion.div animate={{ width: visivel(1) ? '50%' : '0%' }} transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="h-full flex items-center justify-start pl-5" style={{ background: `linear-gradient(90deg, rgba(196,138,87,0.22), rgba(196,138,87,0.05))` }}>
+              <motion.span animate={{ opacity: visivel(1) ? 1 : 0 }} transition={{ delay: 0.5 }}
+                className="text-2xl sm:text-3xl font-black whitespace-nowrap" style={{ color: GOLD }}>50% relacional</motion.span>
+            </motion.div>
+
+            {/* o fiel da balança fica sempre no meio */}
+            <span className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2" style={{ background: 'rgba(255,255,255,0.28)' }} />
           </div>
-          <div className="flex-1 text-center py-5" style={{ background: 'rgba(196,138,87,0.10)' }}>
-            <p className="text-2xl sm:text-3xl font-black" style={{ color: GOLD }}>50% relacional</p>
-            <p className="text-[12px] text-slate-400 mt-1">gente, acordo, cadência</p>
+          <div className="flex justify-between px-1 mt-2 text-[11.5px] text-slate-500">
+            <span>dado, número, sistema</span>
+            <span>gente, acordo, cadência</span>
           </div>
-        </motion.div>
+        </div>
       </div>
+      <DicaClique faltam={faltam} />
     </Slide>
   );
 }
@@ -3158,9 +3200,29 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
   const [imprimindo, setImprimindo] = useState(false);
   const [pct, setPct] = useState(0);
 
+  // o slide da vez registra aqui o que ainda tem para revelar
+  const comando = useRef<Comando>({ revelar: null, faltam: false });
+  const bus = useMemo(() => ({ registrar: (c: Comando) => { comando.current = c; } }), []);
+
   const go = useCallback((to: number) => {
     setIdx((cur) => {
       const next = Math.max(0, Math.min(SLIDES.length - 1, to));
+      setDir(next >= cur ? 1 : -1);
+      return next;
+    });
+  }, []);
+
+  /**
+   * Avançar revela primeiro. Só quando o slide não tem mais nada escondido é
+   * que a seta troca de slide — assim ninguém pula conteúdo sem ver.
+   */
+  const avancar = useCallback((passo: number) => {
+    if (passo > 0 && comando.current.faltam && comando.current.revelar) {
+      comando.current.revelar();
+      return;
+    }
+    setIdx((cur) => {
+      const next = Math.max(0, Math.min(SLIDES.length - 1, cur + passo));
       setDir(next >= cur ? 1 : -1);
       return next;
     });
@@ -3245,13 +3307,13 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') go(idx + 1);
-      else if (e.key === 'ArrowLeft') go(idx - 1);
+      if (e.key === 'ArrowRight' || e.key === ' ') avancar(1);
+      else if (e.key === 'ArrowLeft') avancar(-1);
       else if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [idx, go, onClose]);
+  }, [avancar, onClose]);
 
   const atual = SLIDES[idx];
 
@@ -3262,21 +3324,26 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
   const dotIni = Math.max(0, Math.min(idx - Math.floor(DOTS_VISIVEIS / 2), SLIDES.length - DOTS_VISIVEIS));
 
   return (
+    <ComandoRevelar.Provider value={bus}>
     <div className="deck-dark deck-live fixed inset-0 z-[70] overflow-hidden flex flex-col" style={{ backgroundColor: NAVY }}>
       {/* Pilha de captura: os 47 slides montados em 1280×720, jogados para fora
           da tela. Não pode ser display:none nem visibility:hidden — o
           html2canvas precisa que eles estejam realmente renderizados.
-          Só existe enquanto o PDF é gerado. */}
+          Só existe enquanto o PDF é gerado.
+          Vai em ModoCompleto: no papel não há clique, então todo slide de
+          revelação sai inteiro. */}
       {imprimindo && (
-        <div id="deck-capture" className="deck-dark" aria-hidden
-          style={{ position: 'fixed', left: '-100000px', top: 0, width: 1280, pointerEvents: 'none' }}>
-          {SLIDES.map((s) => (
-            <div key={s.id} className="deck-capture-page"
-              style={{ width: 1280, height: 720, overflow: 'hidden', position: 'relative', backgroundColor: NAVY }}>
-              {s.node}
-            </div>
-          ))}
-        </div>
+        <ModoCompleto.Provider value>
+          <div id="deck-capture" className="deck-dark" aria-hidden
+            style={{ position: 'fixed', left: '-100000px', top: 0, width: 1280, pointerEvents: 'none' }}>
+            {SLIDES.map((s) => (
+              <div key={s.id} className="deck-capture-page"
+                style={{ width: 1280, height: 720, overflow: 'hidden', position: 'relative', backgroundColor: NAVY }}>
+                {s.node}
+              </div>
+            ))}
+          </div>
+        </ModoCompleto.Provider>
       )}
 
       {/* topo */}
@@ -3319,7 +3386,7 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
 
       {/* navegação */}
       <div className="flex items-center justify-between gap-4 px-5 sm:px-8 py-3 border-t border-white/10 shrink-0">
-        <button onClick={() => go(idx - 1)} disabled={idx === 0} className="flex items-center gap-1.5 text-sm font-semibold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3.5 py-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
+        <button onClick={() => avancar(-1)} disabled={idx === 0} className="flex items-center gap-1.5 text-sm font-semibold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3.5 py-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
           <ChevronLeft className="w-4 h-4" /> Anterior
         </button>
         <div className="flex items-center gap-1.5">
@@ -3351,12 +3418,13 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
               </span>
             </button>
           ) : (
-            <button onClick={() => go(idx + 1)} className="flex items-center gap-1.5 text-sm font-bold text-white rounded-lg px-3.5 py-2 transition-all" style={{ background: `linear-gradient(to bottom right, ${BLUE}, #0c6e9e)` }}>
+            <button onClick={() => avancar(1)} className="flex items-center gap-1.5 text-sm font-bold text-white rounded-lg px-3.5 py-2 transition-all" style={{ background: `linear-gradient(to bottom right, ${BLUE}, #0c6e9e)` }}>
               Próximo <ChevronRight className="w-4 h-4" />
             </button>
           )}
         </div>
       </div>
     </div>
+    </ComandoRevelar.Provider>
   );
 }
