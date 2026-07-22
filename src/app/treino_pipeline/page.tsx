@@ -14,7 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, Trash2, X, Wand2, Calculator, Thermometer, Clock, Building2, Phone, Mail,
   User, Target, AlertTriangle, RotateCcw, Trophy, BarChart3, Sparkles,
-  GripVertical, Save, Tag, Download,
+  GripVertical, Save, Tag, Download, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import {
   CHAVE, ETAPAS_SUGERIDAS, FAIXA_TEMPERATURA, LOTE, VAZIO, brParaIso, brl, calcular,
@@ -61,6 +61,9 @@ export default function SimuladorPipeline() {
           etapas,
           leads: Array.isArray(p.leads) ? p.leads : [],
           meta: typeof p.meta === 'number' ? p.meta : VAZIO.meta,
+          empresa: p.empresa ?? '',
+          responsavel: p.responsavel ?? '',
+          identificado: p.identificado,
           metaDefinida: p.metaDefinida,
           campos: Array.isArray(p.campos) ? p.campos : [],
         });
@@ -162,6 +165,13 @@ export default function SimuladorPipeline() {
     setSobreEtapa(null);
   }
 
+  /** Mesma troca de lugar, um passo por vez: é o caminho do celular. */
+  function moverEtapa(id: string, passo: -1 | 1) {
+    const i = d.etapas.findIndex((e) => e.id === id);
+    const destino = d.etapas[i + passo];
+    if (destino) reordenarEtapas(id, destino.id);
+  }
+
   /**
    * Card e coluna viajam pelo mesmo canal ('text/plain'): tipo próprio de
    * dataTransfer nem todo navegador entrega, então a coluna vai com prefixo.
@@ -170,6 +180,13 @@ export default function SimuladorPipeline() {
     if (carga.startsWith(PREFIXO_ETAPA)) reordenarEtapas(carga.slice(PREFIXO_ETAPA.length), destinoId);
     else soltarNaEtapa(destinoId, carga);
   }
+
+  /** Identificação que vai para o cabeçalho dos painéis e dos PDFs. */
+  const quem = {
+    empresa: d.empresa ?? '',
+    responsavel: d.responsavel ?? '',
+    periodo: deTxt && ateTxt ? `${deTxt} a ${ateTxt}` : deTxt ? `a partir de ${deTxt}` : ateTxt ? `até ${ateTxt}` : 'todos os períodos',
+  };
 
   /* ── campos que o aluno cria dentro do card: valem para o quadro todo ── */
   const campos = d.campos ?? [];
@@ -217,16 +234,30 @@ export default function SimuladorPipeline() {
   const apagarLeads = () => { setD((x) => ({ ...x, leads: [] })); setConfirmandoApagar(false); };
   // "do zero" é o funil, não a meta: quem já respondeu não responde de novo
   const apagarTudo = () => {
-    setD((x) => ({ ...VAZIO, meta: x.meta, metaDefinida: x.metaDefinida }));
+    setD((x) => ({
+      ...VAZIO, meta: x.meta, metaDefinida: x.metaDefinida,
+      empresa: x.empresa, responsavel: x.responsavel, identificado: x.identificado,
+      campos: x.campos,
+    }));
     setConfirmandoApagar(false);
   };
 
   if (!carregado) return <div className="min-h-screen bg-slate-50" />;
 
-  /* ── 1º: montar o funil ── */
+  /* ── 1º: quem está treinando — o nome acompanha as telas e os PDFs ── */
+  if (!d.identificado) {
+    return (
+      <PerguntaIdentificacao
+        empresaInicial={d.empresa ?? ''} responsavelInicial={d.responsavel ?? ''}
+        onConfirmar={(empresa, responsavel) => setD((x) => ({ ...x, empresa, responsavel, identificado: true }))}
+      />
+    );
+  }
+
+  /* ── 2º: montar o funil ── */
   if (d.etapas.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 grid place-items-center px-5 py-12">
+      <div className="min-h-screen bg-slate-50 grid place-items-center px-4 sm:px-5 py-10 sm:py-12">
         <div className="w-full max-w-[560px]">
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA</p>
           <h1 className="text-2xl font-black tracking-tight text-slate-800 mb-5">Simulador de Pipeline &amp; Forecast</h1>
@@ -268,79 +299,93 @@ export default function SimuladorPipeline() {
     );
   }
 
-  /* ── 2º: a meta, que dá escala ao exercício (ticket, cobertura, velocímetro) ── */
+  /* ── 3º: a meta, que dá escala ao exercício (ticket, cobertura, velocímetro) ── */
   if (!d.metaDefinida) {
     return <PerguntaMeta valorInicial={d.meta} onConfirmar={(meta) => setD((x) => ({ ...x, meta, metaDefinida: true }))} />;
   }
 
-  /* ── 3º: o quadro ── */
+  /* ── 4º: o quadro ── */
   return (
     <div className="min-h-screen bg-slate-50">
       {/* topo */}
+      {/* No celular o topo vira três faixas empilhadas (título, período, ações);
+          a partir de lg tudo volta para uma linha só. */}
       <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
-        <div className="mx-auto max-w-[1500px] px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA · simulador</p>
-            <h1 className="text-lg font-black tracking-tight text-slate-800">Pipeline &amp; Forecast</h1>
+        <div className="mx-auto max-w-[1500px] px-4 sm:px-5 py-2.5 sm:py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 lg:gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA · simulador</p>
+              <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-800 truncate">
+                {d.empresa || 'Pipeline & Forecast'}
+              </h1>
+              {d.responsavel && <p className="text-[11px] text-slate-400 truncate">Responsável: {d.responsavel}</p>}
+            </div>
+            {/* no celular a lixeira mora aqui; no desktop, no fim da barra de ações */}
+            <button onClick={() => setConfirmandoApagar(true)} title="Apagar negócios ou recomeçar"
+              className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <label className="flex-1 lg:flex-none min-w-0 flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
               Meta
-              <span className="flex items-center rounded-lg border border-slate-200 focus-within:border-slate-400 pl-2.5">
+              <span className="flex-1 lg:flex-none min-w-0 flex items-center rounded-lg border border-slate-200 focus-within:border-slate-400 pl-2.5">
                 <span className="text-[13px] text-slate-400">R$</span>
                 <input
                   inputMode="numeric"
                   value={milhar(d.meta)}
                   onChange={(e) => setD((x) => ({ ...x, meta: soDigitos(e.target.value) }))}
-                  className="w-[92px] px-1.5 py-1.5 rounded-r-lg text-[13px] font-bold text-slate-800 border-0 focus:outline-none"
+                  className="w-full lg:w-[92px] min-w-0 px-1.5 py-1.5 rounded-r-lg text-[13px] font-bold text-slate-800 border-0 focus:outline-none"
                 />
               </span>
             </label>
             {/* texto mascarado, não <input type="date">: aquele segue o idioma do
                 navegador e apareceria mm/dd/aaaa no Chrome em inglês */}
-            <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
+            <label className="flex-1 lg:flex-none min-w-0 flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
               De
               <input inputMode="numeric" placeholder="dd/mm/aaaa" value={deTxt} maxLength={10}
                 onChange={(e) => setDeTxt(mascaraData(e.target.value))}
-                className="w-[104px] px-2.5 py-1.5 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:outline-none focus:border-slate-400" />
+                className="w-full lg:w-[104px] min-w-0 px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:outline-none focus:border-slate-400" />
             </label>
-            <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
+            <label className="flex-1 lg:flex-none min-w-0 flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
               Até
               <input inputMode="numeric" placeholder="dd/mm/aaaa" value={ateTxt} maxLength={10}
                 onChange={(e) => setAteTxt(mascaraData(e.target.value))}
-                className="w-[104px] px-2.5 py-1.5 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:outline-none focus:border-slate-400" />
+                className="w-full lg:w-[104px] min-w-0 px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:outline-none focus:border-slate-400" />
             </label>
             {(deTxt || ateTxt) && (
               <button onClick={() => { setDeTxt(''); setAteTxt(''); }} title="Ver todos os períodos"
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
                 <RotateCcw className="w-4 h-4" />
               </button>
             )}
+          </div>
 
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button onClick={encherDeLeads} title={`Acrescenta ${LOTE} negócios fictícios por clique`}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-3.5 py-2 transition-colors">
-              <Wand2 className="w-4 h-4" /> + {LOTE} leads
+              className="flex-1 lg:flex-none justify-center flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-2.5 sm:px-3.5 py-2 transition-colors">
+              <Wand2 className="w-4 h-4 shrink-0" /> + {LOTE} leads
             </button>
             <button onClick={() => setVerForecast(true)}
-              className="flex items-center gap-1.5 text-xs font-black text-white rounded-lg px-3.5 py-2 transition-all hover:brightness-110"
+              className="flex-1 lg:flex-none justify-center flex items-center gap-1.5 text-xs font-black text-white rounded-lg px-2.5 sm:px-3.5 py-2 transition-all hover:brightness-110"
               style={{ background: AZUL }}>
-              <Calculator className="w-4 h-4" /> Calcular forecast
+              <Calculator className="w-4 h-4 shrink-0" /> <span className="sm:hidden">Forecast</span><span className="hidden sm:inline">Calcular forecast</span>
             </button>
             <button onClick={() => setVerResultados(true)}
-              className="flex items-center gap-1.5 text-xs font-black text-white rounded-lg px-3.5 py-2 transition-all hover:brightness-110"
+              className="flex-1 lg:flex-none justify-center flex items-center gap-1.5 text-xs font-black text-white rounded-lg px-2.5 sm:px-3.5 py-2 transition-all hover:brightness-110"
               style={{ background: '#10B981' }}>
-              <BarChart3 className="w-4 h-4" /> Resultados
+              <BarChart3 className="w-4 h-4 shrink-0" /> Resultados
             </button>
             <button onClick={() => setConfirmandoApagar(true)} title="Apagar negócios ou recomeçar"
-              className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+              className="hidden lg:block p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* resumo sempre à vista */}
-        <div className="mx-auto max-w-[1500px] px-5 pb-3 flex gap-5 flex-wrap text-[12px]">
+        {/* resumo sempre à vista: no celular vira grade de 3, senão quebraria feio */}
+        <div className="mx-auto max-w-[1500px] px-4 sm:px-5 pb-2.5 sm:pb-3 grid grid-cols-3 gap-y-1.5 gap-x-3 sm:flex sm:gap-5 text-[12px]">
           <Resumo rotulo="Negócios" valor={String(leadsFiltrados.length)} />
           <Resumo rotulo="Realizado" valor={brl(resultado.realizado)} cor="#10B981" />
           <Resumo rotulo="Pipeline" valor={brl(resultado.pipeline)} />
@@ -350,16 +395,17 @@ export default function SimuladorPipeline() {
       </header>
 
       {/* colunas */}
-      <main className="mx-auto max-w-[1500px] px-5 py-6">
+      <main className="mx-auto max-w-[1500px] px-4 sm:px-5 py-4 sm:py-6">
         {/* barra de rolagem espelhada acima do quadro: dá para puxar as etapas
-            para o lado sem descer a página até o rodapé das colunas */}
+            para o lado sem descer a página até o rodapé das colunas. No celular
+            ela não existe — lá a barra é invisível e o dedo arrasta direto. */}
         <div ref={barraTopo} onScroll={() => sincronizar(barraTopo, quadro)}
-          className="overflow-x-auto overflow-y-hidden mb-2">
+          className="hidden sm:block overflow-x-auto overflow-y-hidden mb-2">
           <div style={{ width: larguraQuadro, height: 1 }} />
         </div>
 
         <div ref={quadro} onScroll={() => sincronizar(quadro, barraTopo)}
-          className="flex gap-4 overflow-x-auto pb-4 items-start">
+          className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 items-start snap-x">
           {d.etapas.map((etapa) => {
             const daEtapa = leadsFiltrados.filter((l) => l.etapa === etapa.id);
             const soma = daEtapa.reduce((s, l) => s + l.valor, 0);
@@ -370,7 +416,7 @@ export default function SimuladorPipeline() {
                 onDragOver={(ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; setSobreEtapa(etapa.id); }}
                 onDragLeave={() => setSobreEtapa((s) => (s === etapa.id ? null : s))}
                 onDrop={(ev) => { ev.preventDefault(); receberSolto(etapa.id, ev.dataTransfer.getData('text/plain')); }}
-                className="w-[280px] shrink-0 rounded-2xl p-3 border transition-all"
+                className="w-[min(84vw,280px)] sm:w-[280px] shrink-0 snap-start rounded-2xl p-3 border transition-all"
                 style={{
                   ...(sobreEtapa === etapa.id
                     ? { background: '#eff6ff', borderColor: AZUL, boxShadow: `0 0 0 3px ${AZUL}22` }
@@ -388,8 +434,19 @@ export default function SimuladorPipeline() {
                     }}
                     onDragEnd={() => { setEtapaArrastada(null); setSobreEtapa(null); }}
                     title="Arraste para mudar a etapa de lugar"
-                    className="shrink-0 -ml-1 p-0.5 rounded text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing">
+                    className="hidden sm:block shrink-0 -ml-1 p-0.5 rounded text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing">
                     <GripVertical className="w-3.5 h-3.5" />
+                  </span>
+                  {/* no celular não existe arrastar: as setas fazem o mesmo serviço */}
+                  <span className="sm:hidden flex items-center shrink-0 -ml-1">
+                    <button onClick={() => moverEtapa(etapa.id, -1)} title="Mover etapa para a esquerda"
+                      className="p-1 rounded text-slate-300 active:text-slate-600 disabled:opacity-30" disabled={d.etapas[0]?.id === etapa.id}>
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => moverEtapa(etapa.id, 1)} title="Mover etapa para a direita"
+                      className="p-1 rounded text-slate-300 active:text-slate-600 disabled:opacity-30" disabled={d.etapas[d.etapas.length - 1]?.id === etapa.id}>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
                   </span>
                   {etapa.ganho && <Trophy className="w-3.5 h-3.5 shrink-0 text-emerald-600" />}
                   <input value={etapa.nome} onChange={(e) => renomear(etapa.id, e.target.value)}
@@ -473,7 +530,13 @@ export default function SimuladorPipeline() {
           </button>
         </div>
 
-        <p className="text-[11px] text-slate-400 text-center mt-8 leading-relaxed">
+        {/* arrastar é coisa de mouse: no celular o caminho é pelo próprio card */}
+        <p className="sm:hidden text-[11.5px] text-slate-500 leading-relaxed mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          Arraste o quadro para o lado para ver as outras etapas. Para mover um negócio,
+          toque nele e troque a <strong>etapa do funil</strong>.
+        </p>
+
+        <p className="text-[11px] text-slate-400 text-center mt-6 sm:mt-8 leading-relaxed">
           Simulador de treino — dados fictícios, guardados só neste navegador.
         </p>
       </main>
@@ -488,7 +551,9 @@ export default function SimuladorPipeline() {
           onRemover={() => setAExcluir({ tipo: 'lead', id: aberto.id, nome: aberto.nome })}
         />
       )}
-      {verForecast && <PainelForecast r={resultado} meta={d.meta} onFechar={() => setVerForecast(false)} />}
+      {verForecast && (
+        <PainelForecast r={resultado} meta={d.meta} quem={quem} onFechar={() => setVerForecast(false)} />
+      )}
       {confirmandoApagar && (
         <PainelApagar
           negocios={d.leads.length} etapas={d.etapas.length}
@@ -497,7 +562,7 @@ export default function SimuladorPipeline() {
       )}
       {verResultados && (
         <PainelResultados
-          r={resultado} e={estatisticas(d.etapas, leadsFiltrados, resultado)} meta={d.meta}
+          r={resultado} e={estatisticas(d.etapas, leadsFiltrados, resultado)} meta={d.meta} quem={quem}
           onFechar={() => setVerResultados(false)}
         />
       )}
@@ -564,6 +629,60 @@ function Resumo({ rotulo, valor, cor }: { rotulo: string; valor: string; cor?: s
 }
 
 /**
+ * Abertura do simulador: de quem é o funil. O nome da empresa e o do responsável
+ * seguem para o topo do quadro e para o cabeçalho dos PDFs — é o que transforma
+ * o exercício num relatório que o aluno leva para a mesa dele.
+ */
+function PerguntaIdentificacao({ empresaInicial, responsavelInicial, onConfirmar }: {
+  empresaInicial: string; responsavelInicial: string;
+  onConfirmar: (empresa: string, responsavel: string) => void;
+}) {
+  const [empresa, setEmpresa] = useState(empresaInicial);
+  const [responsavel, setResponsavel] = useState(responsavelInicial);
+  const pronto = empresa.trim().length > 0 && responsavel.trim().length > 0;
+
+  return (
+    <div className="min-h-screen bg-slate-50 grid place-items-center px-4 sm:px-5 py-10 sm:py-12">
+      <form onSubmit={(e) => { e.preventDefault(); if (pronto) onConfirmar(empresa.trim(), responsavel.trim()); }}
+        className="w-full max-w-[460px]">
+        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA</p>
+        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 mb-5">Simulador de Pipeline &amp; Forecast</h1>
+
+        <div className="rounded-2xl bg-white border border-slate-200 p-5 sm:p-6 shadow-sm">
+          <span className="grid place-items-center w-11 h-11 rounded-xl mb-4 text-white" style={{ background: AZUL }}>
+            <Building2 className="w-5 h-5" />
+          </span>
+          <p className="text-lg font-black text-slate-800 mb-1">De quem é este funil?</p>
+          <p className="text-[13px] text-slate-500 leading-relaxed mb-5">
+            O nome acompanha o quadro e sai no cabeçalho dos relatórios em PDF.
+          </p>
+
+          <label className="block mb-4">
+            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Empresa</span>
+            <input autoFocus value={empresa} onChange={(e) => setEmpresa(e.target.value)} placeholder="Nome da empresa"
+              className="w-full mt-1.5 px-4 py-3 rounded-xl border-2 border-slate-200 text-[15px] font-bold text-slate-800 focus:outline-none focus:border-slate-400 placeholder:font-normal placeholder:text-slate-300" />
+          </label>
+
+          <label className="block">
+            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Responsável</span>
+            <input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Quem está conduzindo"
+              className="w-full mt-1.5 px-4 py-3 rounded-xl border-2 border-slate-200 text-[15px] font-bold text-slate-800 focus:outline-none focus:border-slate-400 placeholder:font-normal placeholder:text-slate-300" />
+          </label>
+
+          <button type="submit" disabled={!pronto}
+            className="w-full mt-5 rounded-xl px-4 py-3.5 text-sm font-black text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: AZUL }}>
+            Continuar
+          </button>
+        </div>
+
+        <p className="text-[11px] text-slate-400 text-center mt-6">Simulador de treino: os dados são fictícios.</p>
+      </form>
+    </div>
+  );
+}
+
+/**
  * A meta é a primeira pergunta da tela: é ela que dá escala a tudo — o ticket
  * dos negócios sai de uma fatia dela, e a cobertura e o velocímetro comparam
  * contra ela. Sem meta, os números do exercício não significam nada.
@@ -611,8 +730,8 @@ function ConfirmarExclusao({ tipo, nome, quantosLeads, onConfirmar, onCancelar }
   onConfirmar: () => void; onCancelar: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5" onClick={onCancelar}>
-      <div className="w-full max-w-[400px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/50 backdrop-blur-sm px-4 sm:px-5" onClick={onCancelar}>
+      <div className="w-full max-w-[400px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <span className="grid place-items-center w-10 h-10 rounded-xl shrink-0 bg-red-50 text-red-500">
             <Trash2 className="w-5 h-5" />
@@ -648,8 +767,8 @@ function PainelApagar({ negocios, etapas, onSoLeads, onTudo, onCancelar }: {
   onSoLeads: () => void; onTudo: () => void; onCancelar: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5" onClick={onCancelar}>
-      <div className="w-full max-w-[440px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-4 sm:px-5" onClick={onCancelar}>
+      <div className="w-full max-w-[440px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-5">
           <span className="grid place-items-center w-10 h-10 rounded-xl shrink-0 bg-amber-50 text-amber-500">
             <AlertTriangle className="w-5 h-5" />
@@ -718,9 +837,9 @@ function PainelLead({ lead, etapas, campos, onFechar, onSalvar, onRemover, onNov
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5 py-8 overflow-y-auto" onClick={tentarFechar}>
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={tentarFechar}>
       <div className="w-full max-w-[520px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 p-6 pb-4 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
           <div className="min-w-0 flex-1">
             <input value={r.nome} onChange={(e) => mudar({ nome: e.target.value })} placeholder="Nome do contato"
               className="w-full text-lg font-black text-slate-800 leading-tight bg-transparent rounded-md px-1 -ml-1 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none placeholder:text-slate-300" />
@@ -739,9 +858,9 @@ function PainelLead({ lead, etapas, campos, onFechar, onSalvar, onRemover, onNov
           <button onClick={tentarFechar} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 shrink-0"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5">
           {/* contato */}
-          <div className="grid grid-cols-2 gap-3 text-[12.5px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12.5px]">
             <Editavel Icone={Phone} rotulo="Telefone" valor={r.telefone} onChange={(v) => mudar({ telefone: v })} />
             <Editavel Icone={Mail} rotulo="E-mail" valor={r.email} onChange={(v) => mudar({ email: v })} />
             <Editavel Icone={User} rotulo="Responsável" valor={r.responsavel} onChange={(v) => mudar({ responsavel: v })} />
@@ -812,13 +931,14 @@ function PainelLead({ lead, etapas, campos, onFechar, onSalvar, onRemover, onNov
 
           {!crua && (
           <Campo rotulo="Temperatura" dica="O quanto este negócio está pronto para fechar.">
-            {/* só o escolhido fica colorido; os outros apagam, para o estado ficar óbvio */}
-            <div className="flex gap-2">
+            {/* só o escolhido fica colorido; os outros apagam, para o estado ficar óbvio.
+                No celular viram três linhas: lado a lado o texto da faixa não cabe. */}
+            <div className="flex flex-col sm:flex-row gap-2">
               {(['quente', 'morno', 'frio'] as Temperatura[]).map((t) => {
                 const on = r.temperatura === t;
                 return (
                   <button key={t} onClick={() => mudar({ temperatura: t })}
-                    className="flex-1 flex flex-col items-center gap-0.5 py-2.5 px-2 rounded-lg border transition-all"
+                    className="flex-1 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-0.5 py-2.5 px-3 sm:px-2 rounded-lg border transition-all"
                     style={on
                       ? { color: '#fff', background: COR_TEMP[t], borderColor: COR_TEMP[t] }
                       : { color: '#94a3b8', background: '#f8fafc', borderColor: '#e2e8f0' }}>
@@ -855,13 +975,13 @@ function PainelLead({ lead, etapas, campos, onFechar, onSalvar, onRemover, onNov
         </div>
 
         {/* barra de salvar: gruda no rodapé do painel, sempre à vista */}
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl">
+        <div className="sticky bottom-0 flex items-center justify-end gap-2 px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-100 bg-white rounded-b-2xl">
           <button onClick={tentarFechar}
-            className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-slate-500 hover:bg-slate-100 transition-colors">
+            className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-slate-500 bg-slate-50 sm:bg-transparent hover:bg-slate-100 transition-colors">
             Cancelar
           </button>
           <button onClick={() => { onSalvar(r); onFechar(); }} disabled={!sujo}
-            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-black text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-black text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: AZUL }}>
             <Save className="w-4 h-4" /> Salvar alterações
           </button>
@@ -869,8 +989,8 @@ function PainelLead({ lead, etapas, campos, onFechar, onSalvar, onRemover, onNov
       </div>
 
       {avisando && (
-        <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/60 px-5" onClick={(e) => e.stopPropagation()}>
-          <div className="w-full max-w-[400px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-6">
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/60 px-4 sm:px-5" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-[400px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-5 sm:p-6">
             <div className="flex items-start gap-3">
               <span className="grid place-items-center w-9 h-9 rounded-xl shrink-0" style={{ background: '#FEF3C7' }}>
                 <AlertTriangle className="w-4.5 h-4.5" style={{ color: '#B45309' }} />
@@ -901,8 +1021,8 @@ function PainelLead({ lead, etapas, campos, onFechar, onSalvar, onRemover, onNov
       )}
 
       {campoAExcluir && (
-        <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/60 px-5" onClick={(e) => e.stopPropagation()}>
-          <div className="w-full max-w-[400px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-6">
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/60 px-4 sm:px-5" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-[400px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-5 sm:p-6">
             <p className="text-[15px] font-black text-slate-800">Remover o campo &ldquo;{campoAExcluir.nome}&rdquo;?</p>
             <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
               Ele sai de <strong>todos</strong> os negócios do quadro, junto com o que estiver preenchido nele.
@@ -964,23 +1084,53 @@ function BotaoPdf({ alvo, arquivo }: { alvo: { current: HTMLDivElement | null };
           alert('Não consegui gerar o PDF. Tente de novo em alguns segundos.');
         } finally { setIndo(false); }
       }}
-      className="flex items-center gap-1.5 text-[12px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
-      <Download className="w-3.5 h-3.5" /> {indo ? 'Gerando...' : 'Baixar PDF'}
+      title="Baixar este relatório em PDF"
+      className="shrink-0 flex items-center gap-1.5 text-[12px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-2.5 sm:px-3 py-2 transition-colors disabled:opacity-50">
+      <Download className="w-3.5 h-3.5 shrink-0" />
+      <span className="hidden sm:inline">{indo ? 'Gerando...' : 'Baixar PDF'}</span>
+      <span className="sm:hidden">{indo ? '...' : 'PDF'}</span>
     </button>
   );
 }
 
+export type Quem = { empresa: string; responsavel: string; periodo: string };
+
+/**
+ * Cabeçalho de quem é o relatório. Fica DENTRO da área fotografada: na tela ele
+ * é a assinatura do painel, e no PDF é a primeira coisa que se lê.
+ */
+function CabecalhoRelatorio({ quem }: { quem: Quem }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 pb-4 border-b border-slate-100">
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Empresa</p>
+        <p className="text-[15px] font-black text-slate-800 truncate">{quem.empresa || '—'}</p>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Responsável</p>
+        <p className="text-[15px] font-bold text-slate-700 truncate">{quem.responsavel || '—'}</p>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Período</p>
+        <p className="text-[15px] font-bold text-slate-700 truncate">{quem.periodo}</p>
+      </div>
+    </div>
+  );
+}
+
 /** O forecast com a conta aberta — o aluno precisa ver de onde saiu o número. */
-function PainelForecast({ r, meta, onFechar }: { r: ReturnType<typeof calcular>; meta: number; onFechar: () => void }) {
+function PainelForecast({ r, meta, quem, onFechar }: {
+  r: ReturnType<typeof calcular>; meta: number; quem: Quem; onFechar: () => void;
+}) {
   const ordenadas = [...r.linhas].sort((a, b) => b.ponderado - a.ponderado);
   const batida = r.faltante === 0;
   const saudavel = batida || r.cobertura >= 3;
   const papel = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5 py-8 overflow-y-auto" onClick={onFechar}>
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
       <div className="w-full max-w-[880px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 p-6 pb-4 border-b border-slate-100">
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Resultado</p>
             <p className="text-xl font-black text-slate-800">Forecast do seu pipeline</p>
@@ -991,7 +1141,8 @@ function PainelForecast({ r, meta, onFechar }: { r: ReturnType<typeof calcular>;
           </div>
         </div>
 
-        <div ref={papel} className="p-6 space-y-6">
+        <div ref={papel} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
+          <CabecalhoRelatorio quem={quem} />
           {/* o velocímetro vive no painel Resultados; aqui o foco é a conta do forecast */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Bloco rotulo="Realizado" valor={brl(r.realizado)} sub="já fechado" cor="#10B981" />
@@ -1026,8 +1177,10 @@ function PainelForecast({ r, meta, onFechar }: { r: ReturnType<typeof calcular>;
               a <strong>temperatura</strong>, o <strong>tempo parado</strong> e a <strong>nota de quem atende</strong>.
               O forecast é a soma de (valor × chance) — não a soma do pipeline.
             </p>
-            <div className="rounded-xl border border-slate-200 overflow-hidden">
-              <table className="w-full text-[12.5px]">
+            {/* a tabela tem cinco colunas: no celular ela rola dentro da caixa,
+                em vez de espremer o nome do negócio até virar uma letra por linha */}
+            <div className="rounded-xl border border-slate-200 overflow-hidden overflow-x-auto">
+              <table className="w-full min-w-[560px] text-[12.5px]">
                 <thead className="bg-slate-50 text-slate-500">
                   <tr>
                     {['Negócio', 'Etapa', 'Valor', 'Chance', 'Ponderado'].map((h, i) => (
@@ -1062,8 +1215,8 @@ function PainelForecast({ r, meta, onFechar }: { r: ReturnType<typeof calcular>;
 }
 
 /** Painel de Resultados: a leitura do funil inteiro, em números e desenho. */
-function PainelResultados({ r, e, meta, onFechar }: {
-  r: Resultado; e: Estatisticas; meta: number; onFechar: () => void;
+function PainelResultados({ r, e, meta, quem, onFechar }: {
+  r: Resultado; e: Estatisticas; meta: number; quem: Quem; onFechar: () => void;
 }) {
   const maiorEtapa = Math.max(1, ...e.porEtapa.map((x) => x.valor));
   const totalTemp = Math.max(1, e.porTemperatura.reduce((s, x) => s + x.qtd, 0));
@@ -1071,9 +1224,9 @@ function PainelResultados({ r, e, meta, onFechar }: {
   const papel = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5 py-8 overflow-y-auto" onClick={onFechar}>
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
       <div className="w-full max-w-[920px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 p-6 pb-4 border-b border-slate-100">
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Panorama</p>
             <p className="text-xl font-black text-slate-800">Resultados do pipeline</p>
@@ -1084,7 +1237,8 @@ function PainelResultados({ r, e, meta, onFechar }: {
           </div>
         </div>
 
-        <div ref={papel} className="p-6 space-y-6">
+        <div ref={papel} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
+          <CabecalhoRelatorio quem={quem} />
           {/* velocímetro + números-chave */}
           <div className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-6 items-center">
             <Velocimetro atingimento={r.atingimento} realizado={r.realizado} meta={meta} />
@@ -1106,14 +1260,14 @@ function PainelResultados({ r, e, meta, onFechar }: {
             <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-3">Valor por etapa</p>
             <div className="space-y-2">
               {e.porEtapa.map((x) => (
-                <div key={x.nome} className="flex items-center gap-3">
-                  <span className="w-[110px] shrink-0 text-[12px] font-bold text-slate-600 truncate" title={x.nome}>{x.nome}</span>
-                  <div className="flex-1 h-6 rounded-md bg-slate-100 overflow-hidden">
+                <div key={x.nome} className="flex items-center gap-2 sm:gap-3">
+                  <span className="w-[76px] sm:w-[110px] shrink-0 text-[11px] sm:text-[12px] font-bold text-slate-600 truncate" title={x.nome}>{x.nome}</span>
+                  <div className="flex-1 min-w-0 h-6 rounded-md bg-slate-100 overflow-hidden">
                     <div className="h-full rounded-md transition-all"
                       style={{ width: `${Math.max(2, (x.valor / maiorEtapa) * 100)}%`, background: x.ganho ? '#10B981' : AZUL }} />
                   </div>
-                  <span className="w-[92px] shrink-0 text-right text-[12px] font-black text-slate-700">{brl(x.valor)}</span>
-                  <span className="w-[26px] shrink-0 text-right text-[11px] text-slate-400">{x.qtd}</span>
+                  <span className="w-[76px] sm:w-[92px] shrink-0 text-right text-[11px] sm:text-[12px] font-black text-slate-700">{brl(x.valor)}</span>
+                  <span className="w-[22px] sm:w-[26px] shrink-0 text-right text-[11px] text-slate-400">{x.qtd}</span>
                 </div>
               ))}
             </div>

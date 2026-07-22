@@ -35,9 +35,15 @@ export type Etapa = { id: string; nome: string; ganho?: boolean };
  */
 export type CampoExtra = { id: string; nome: string };
 
-/** `metaDefinida` guarda se o aluno já respondeu a meta do mês (a 1ª pergunta da tela). */
+/**
+ * `identificado` e `metaDefinida` guardam as duas perguntas de abertura: quem
+ * está treinando e qual é o alvo. Elas aparecem uma única vez, nesta ordem.
+ */
 export type Treino = {
   etapas: Etapa[]; leads: Lead[]; meta: number;
+  empresa?: string;
+  responsavel?: string;
+  identificado?: boolean;
   metaDefinida?: boolean;
   campos?: CampoExtra[];
 };
