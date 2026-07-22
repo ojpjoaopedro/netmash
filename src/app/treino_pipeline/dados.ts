@@ -391,11 +391,15 @@ export type AreaCusto = 'marketing' | 'comercial' | 'cs' | 'financeiro' | 'outro
 
 export const AREAS: AreaCusto[] = ['marketing', 'comercial', 'cs', 'financeiro', 'outros'];
 
+/**
+ * O rótulo diz o que entra no campo antes de dizer de quem é o custo: sem isso
+ * o aluno lança só o salário e o CAC sai barato demais.
+ */
 export const ROTULO_AREA: Record<AreaCusto, string> = {
-  marketing: 'Marketing',
-  comercial: 'Comercial',
-  cs: 'CS / pós-venda',
-  financeiro: 'Financeiro',
+  marketing: 'Salários + ferramentas · Marketing',
+  comercial: 'Salários + ferramentas · Comercial',
+  cs: 'Salários + ferramentas · CS / pós-venda',
+  financeiro: 'Salários + ferramentas · Financeiro',
   outros: 'Outros',
 };
 

@@ -1346,7 +1346,7 @@ function CampoMoeda({ rotulo, valor, onChange, dica }: {
 }) {
   return (
     <label className="block">
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{rotulo}</span>
+      <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400 leading-tight min-h-[2em]">{rotulo}</span>
       <span className="mt-1 flex items-center rounded-lg border border-slate-200 focus-within:border-slate-400 pl-2.5">
         <span className="text-[13px] font-bold text-slate-400">R$</span>
         <input inputMode="numeric" value={milhar(valor)} onChange={(e) => onChange(soDigitos(e.target.value))}
@@ -1363,7 +1363,7 @@ function CampoNumero({ rotulo, valor, onChange, sufixo, dica, passo = 1 }: {
 }) {
   return (
     <label className="block">
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{rotulo}</span>
+      <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400 leading-tight min-h-[2em]">{rotulo}</span>
       <span className="mt-1 flex items-center rounded-lg border border-slate-200 focus-within:border-slate-400 pr-2.5">
         <input type="number" min={0} step={passo} value={valor || ''} onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
           className="w-full min-w-0 px-2.5 py-2 rounded-l-lg text-[14px] font-bold text-slate-800 border-0 focus:outline-none" />
@@ -1390,10 +1390,18 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
   const [novasPessoas, setNovasPessoas] = useState(1);
   const papel = useRef<HTMLDivElement>(null);
 
-  const conta = contaRevOps(rev, base);
-  const midia = simularMidia(rev, base, extraMidia);
-  const equipe = simularEquipe(rev, base, novasPessoas, conta);
-  const insights = conta.pronto ? insightsRevOps(rev, base, conta, midia, equipe) : [];
+  /**
+   * A conversão já vem preenchida com a do quadro: ela é a única premissa que o
+   * próprio exercício sabe medir. O aluno sobrescreve quando quiser — e se
+   * apagar o campo, volta a valer a do quadro.
+   */
+  const conversaoQuadro = base.leads > 0 ? Math.round((base.vendas / base.leads) * 1000) / 10 : 0;
+  const revEfetivo = { ...rev, conversao: rev.conversao || conversaoQuadro };
+
+  const conta = contaRevOps(revEfetivo, base);
+  const midia = simularMidia(revEfetivo, base, extraMidia);
+  const equipe = simularEquipe(revEfetivo, base, novasPessoas, conta);
+  const insights = conta.pronto ? insightsRevOps(revEfetivo, base, conta, midia, equipe) : [];
 
   const mudar = (p: Partial<RevOps>) => onMudar({ ...rev, ...p });
   const mudarArea = (a: AreaCusto, v: number) => onMudar({ ...rev, areas: { ...rev.areas, [a]: v } });
@@ -1418,9 +1426,11 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
           {/* o que o quadro já sabe — nada aqui se digita */}
           <div>
             <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-2">Vem do seu quadro</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               <Mini rotulo="Negócios no período" valor={String(base.leads)} sub="base de leads" />
               <Mini rotulo="Vendas" valor={String(base.vendas)} sub="fecharam" cor="#10B981" />
+              <Mini rotulo="Taxa de conversão" valor={base.leads > 0 ? pctFino(conta.conversaoReal) : '—'}
+                sub="vendas ÷ negócios" cor={AZUL} />
               <Mini rotulo="Ticket da venda" valor={brl(base.ticketVenda)} sub="média do que fechou" />
               <Mini rotulo="Receita realizada" valor={brl(base.receita)} sub="no período" cor="#10B981" />
             </div>
@@ -1430,7 +1440,7 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
           <div>
             <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-1">Custo mensal por área</p>
             <p className="text-[12px] text-slate-500 leading-relaxed mb-3">
-              Tudo que existe para a receita acontecer. Some salários, ferramentas e serviços de cada área.
+              Tudo que existe para a receita acontecer, área por área.
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {AREAS.map((a) => (
@@ -1452,22 +1462,16 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
               Estes cinco números são seus, não do quadro. É a partir deles que as simulações rodam.
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <CampoNumero rotulo="Taxa de conversão" valor={revEfetivo.conversao} onChange={(v) => mudar({ conversao: Math.min(100, v) })}
+                sufixo="%" dica={conversaoQuadro > 0 ? 'preenchida com a do quadro; pode trocar' : 'lead que vira venda'} passo={0.1} />
               <CampoNumero rotulo="Pessoas na equipe" valor={rev.equipe} onChange={(v) => mudar({ equipe: v })}
                 sufixo="pes." dica="quem vende hoje" />
-              <CampoNumero rotulo="Taxa de conversão" valor={rev.conversao} onChange={(v) => mudar({ conversao: Math.min(100, v) })}
-                sufixo="%" dica={base.leads > 0 ? `o quadro fez ${pctFino(conta.conversaoReal)}` : 'lead que vira venda'} />
               <CampoMoeda rotulo="CAC" valor={rev.cac} onChange={(v) => mudar({ cac: v })} dica="custo por cliente conquistado" />
               <CampoMoeda rotulo="Custo por lead" valor={rev.custoLead} onChange={(v) => mudar({ custoLead: v })}
                 dica={base.leads > 0 && rev.publicidade > 0 ? `pela sua verba dá ${brl(conta.custoLeadReal)}` : 'quanto custa gerar um lead'} />
               <CampoMoeda rotulo="Custo por vendedor" valor={rev.custoVendedor} onChange={(v) => mudar({ custoVendedor: v })}
                 dica="salário + encargos, por mês" />
             </div>
-            {base.leads > 0 && conta.conversaoReal > 0 && (
-              <button onClick={() => mudar({ conversao: Math.round(conta.conversaoReal * 1000) / 10 })}
-                className="mt-3 text-[12px] font-bold px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-                usar a conversão real do quadro ({pctFino(conta.conversaoReal)})
-              </button>
-            )}
           </div>
 
           {/* a trava: sem premissa não há projeção */}
