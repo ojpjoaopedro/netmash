@@ -52,8 +52,13 @@ export default function SimuladorPipeline() {
       const cru = localStorage.getItem(CHAVE);
       if (cru) {
         const p = JSON.parse(cru) as Partial<Treino>;
+        // quadro salvo antes desta regra pode não ter fechamento: devolve o dele
+        const etapas = Array.isArray(p.etapas) ? p.etapas : [];
+        if (etapas.length && !etapas.some((e) => e.ganho)) {
+          etapas.push({ id: novoId(), nome: 'Fechamento', ganho: true });
+        }
         setD({
-          etapas: Array.isArray(p.etapas) ? p.etapas : [],
+          etapas,
           leads: Array.isArray(p.leads) ? p.leads : [],
           meta: typeof p.meta === 'number' ? p.meta : VAZIO.meta,
           metaDefinida: p.metaDefinida,
@@ -80,7 +85,18 @@ export default function SimuladorPipeline() {
 
   /* ── edições ── */
   const setEtapas = (etapas: Etapa[]) => setD((x) => ({ ...x, etapas }));
-  const addEtapa = () => setEtapas([...d.etapas, { id: novoId(), nome: `Etapa ${d.etapas.length + 1}` }]);
+  /**
+   * Etapa nova entra ANTES do fechamento: o funil termina em quem já comprou,
+   * e o que se acrescenta é sempre caminho até lá.
+   */
+  const addEtapa = () => {
+    const nova = { id: novoId(), nome: `Etapa ${d.etapas.length}` };
+    const iGanho = d.etapas.findIndex((e) => e.ganho);
+    if (iGanho < 0) return setEtapas([...d.etapas, nova]);
+    const lista = [...d.etapas];
+    lista.splice(iGanho, 0, nova);
+    setEtapas(lista);
+  };
   const renomear = (id: string, nome: string) => setEtapas(d.etapas.map((e) => (e.id === id ? { ...e, nome } : e)));
   const removerEtapa = (id: string) =>
     setD((x) => ({ ...x, etapas: x.etapas.filter((e) => e.id !== id), leads: x.leads.filter((l) => l.etapa !== id) }));
@@ -233,7 +249,12 @@ export default function SimuladorPipeline() {
               style={{ background: AZUL }}>
               Começar com essas etapas
             </button>
-            <button onClick={() => setEtapas([{ id: novoId(), nome: 'Etapa 1' }])}
+            {/* mesmo "do zero" nasce com as duas pontas: sem a entrada e sem o
+                fechamento não há o que medir contra a meta */}
+            <button onClick={() => setEtapas([
+              { id: novoId(), nome: 'Etapa 1' },
+              { id: novoId(), nome: 'Fechamento', ganho: true },
+            ])}
               className="w-full mt-2 rounded-xl px-4 py-3 text-sm font-bold text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors">
               Prefiro criar do zero
             </button>
@@ -373,10 +394,14 @@ export default function SimuladorPipeline() {
                   {etapa.ganho && <Trophy className="w-3.5 h-3.5 shrink-0 text-emerald-600" />}
                   <input value={etapa.nome} onChange={(e) => renomear(etapa.id, e.target.value)}
                     className={`flex-1 min-w-0 px-2 py-1 rounded-md text-[13px] font-black bg-transparent focus:outline-none ${etapa.ganho ? 'text-emerald-800 hover:bg-emerald-100/60 focus:bg-emerald-100/60' : 'text-slate-800 hover:bg-slate-50 focus:bg-slate-50'}`} />
-                  <button onClick={() => setAExcluir({ tipo: 'etapa', id: etapa.id, nome: etapa.nome })} title="Remover etapa"
-                    className="p-1 rounded text-slate-300 hover:text-red-500 transition-colors shrink-0">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {/* a etapa de fechamento não sai: é ela que diz o que virou
+                      venda, e sem ela a meta não tem contra o que ser medida */}
+                  {!etapa.ganho && (
+                    <button onClick={() => setAExcluir({ tipo: 'etapa', id: etapa.id, nome: etapa.nome })} title="Remover etapa"
+                      className="p-1 rounded text-slate-300 hover:text-red-500 transition-colors shrink-0">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <p className={`px-2 mb-3 text-[11px] font-bold ${etapa.ganho ? 'text-emerald-600' : 'text-slate-400'}`}>
                   {etapa.ganho
@@ -447,20 +472,6 @@ export default function SimuladorPipeline() {
             <Plus className="w-4 h-4" /> etapa
           </button>
         </div>
-
-        {d.leads.length === 0 && (
-          <div className="mt-4 rounded-2xl border-2 border-dashed border-slate-200 py-12 text-center">
-            <p className="text-[14px] text-slate-500 mb-3">
-              Seu funil está montado. Agora encha de negócios para treinar — vêm {LOTE} por vez,
-              clique quantas vezes quiser.
-            </p>
-            <button onClick={encherDeLeads}
-              className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-black text-white transition-all hover:brightness-110"
-              style={{ background: AZUL }}>
-              <Wand2 className="w-4 h-4" /> Preencher com {LOTE} leads de exemplo
-            </button>
-          </div>
-        )}
 
         <p className="text-[11px] text-slate-400 text-center mt-8 leading-relaxed">
           Simulador de treino — dados fictícios, guardados só neste navegador.
