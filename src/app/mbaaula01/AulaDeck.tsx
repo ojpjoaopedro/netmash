@@ -807,15 +807,19 @@ function SIceberg() {
 // O mapa volta ao longo da aula como divisor de capítulo (ver S05Foco): mesma
 // figura, com o próximo tema aceso e o resto recuado. A turma reencontra o
 // mesmo desenho e sabe onde está.
+// `destino` é o slide onde cada assunto começa: o mapa também é o índice da aula
 const ETAPAS_MAPA = [
-  { nome: 'ESTRATÉGIA', desc: 'A ambição' },
-  { nome: 'META', desc: 'O número' },
-  { nome: 'PLANEJAMENTO COMERCIAL', desc: 'A decomposição', destaque: true },
-  { nome: 'BUDGET', desc: 'O financiamento', destaque: true },
-  { nome: 'EXECUÇÃO + PIPELINE', desc: 'A realidade', destaque: true },
-  { nome: 'FORECAST', desc: 'A antecipação', destaque: true },
-  { nome: 'DECISÃO E AJUSTES', desc: 'A correção' },
+  { nome: 'ESTRATÉGIA', desc: 'A ambição', destino: 's08-diagnostico' },
+  { nome: 'META', desc: 'O número', destino: 's14-motores' },
+  { nome: 'PLANEJAMENTO COMERCIAL', desc: 'A decomposição', destaque: true, destino: 's17-realidade' },
+  { nome: 'BUDGET', desc: 'O financiamento', destaque: true, destino: 's27-transicao-budget' },
+  { nome: 'EXECUÇÃO + PIPELINE', desc: 'A realidade', destaque: true, destino: 's35-pipeline' },
+  { nome: 'FORECAST', desc: 'A antecipação', destaque: true, destino: 's38-formula-forecast' },
+  { nome: 'DECISÃO E AJUSTES', desc: 'A correção', destino: 's45-ciclo-gestao' },
 ];
+
+/** O mapa fala com o deck para pular direto ao assunto clicado. */
+const IrParaSlide = createContext<((id: string) => void) | null>(null);
 
 /**
  * @param foco  nome da etapa a destacar como próximo tema. Sem foco, é o mapa
@@ -829,6 +833,7 @@ const ETAPAS_MAPA = [
 function MapaReceita({ foco, selo }: { foco?: string; selo?: boolean }) {
   const etapas = ETAPAS_MAPA;
   const [hover, setHover] = useState<number | null>(null);
+  const irPara = useContext(IrParaSlide);
   const ENTRADA = 0.15;   // início da cascata
   const PASSO = 0.13;     // intervalo entre elos
   const FIM = ENTRADA + etapas.length * PASSO; // quando a cascata termina
@@ -936,7 +941,12 @@ function MapaReceita({ foco, selo }: { foco?: string; selo?: boolean }) {
                     }}
                     onHoverStart={() => setHover(i)}
                     onHoverEnd={() => setHover(null)}
-                    className="group relative z-10 w-full max-w-[420px] rounded-xl px-5 py-2.5 flex items-center justify-between border overflow-hidden cursor-default"
+                    // o elo leva ao assunto: o mapa é índice, não só ilustração
+                    onClick={() => irPara?.(e.destino)}
+                    role="button" tabIndex={0}
+                    onKeyDown={(ev) => { if (ev.key === 'Enter') irPara?.(e.destino); }}
+                    title={`Ir para ${e.nome}`}
+                    className="group relative z-10 w-full max-w-[420px] rounded-xl px-5 py-2.5 flex items-center justify-between border overflow-hidden cursor-pointer"
                     style={{
                       borderColor: focado ? GOLD : ativo ? cor : e.destaque ? `${BLUE}55` : 'rgba(255,255,255,0.10)',
                       background: focado
@@ -2109,9 +2119,9 @@ function S17() {
     { c: 'Parceiros e canais', d: 'Receita indireta', icon: Handshake, cor: AMBER },
   ];
   const total = cats.length + 1; // +1 = o card tracejado do fim
-  const [revelados, setRevelados] = useState(0);
-  const revelar = () => setRevelados((n) => Math.min(n + 1, total));
-  const visivel = (i: number) => (i < revelados ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.94 });
+  // +1 outra vez porque aqui a tela abre VAZIA: o passo 0 é a grade em branco
+  const { revelar, visivel, faltam } = useRevelar(total + 1);
+  const anima = (i: number) => (visivel(i + 1) ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.94 });
 
   return (
     <Slide bg="dark">
@@ -2119,7 +2129,7 @@ function S17() {
       <div onClick={revelar} className="flex-1 flex flex-col justify-center cursor-pointer">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {cats.map((c, i) => (
-            <motion.div key={c.c} initial={{ opacity: 0, scale: 0.94 }} animate={visivel(i)} transition={{ duration: 0.3, ease: 'easeOut' }}>
+            <motion.div key={c.c} initial={{ opacity: 0, scale: 0.94 }} animate={anima(i)} transition={{ duration: 0.3, ease: 'easeOut' }}>
               <Card className="p-4 h-full">
                 <c.icon className="w-5 h-5 mb-2.5" style={{ color: c.cor }} />
                 <p className="text-sm font-bold text-slate-100">{c.c}</p>
@@ -2127,7 +2137,7 @@ function S17() {
               </Card>
             </motion.div>
           ))}
-          <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={visivel(cats.length)} transition={{ duration: 0.3, ease: 'easeOut' }}>
+          <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={anima(cats.length)} transition={{ duration: 0.3, ease: 'easeOut' }}>
             <div className="rounded-2xl border border-dashed flex items-center justify-center p-4 h-full" style={{ borderColor: `${GOLD}44` }}>
               <p className="text-[11px] text-center leading-relaxed" style={{ color: GOLD }}>
                 Cortar 20% do budget =<br />reduzir X% da capacidade<br />de gerar receita.
@@ -2136,13 +2146,7 @@ function S17() {
           </motion.div>
         </div>
 
-        {/* fica no lugar mesmo invisível, senão a grade se mexe ao sumir */}
-        <p
-          className="mt-7 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity duration-300"
-          style={{ opacity: revelados === 0 ? 1 : 0 }}
-        >
-          clique para revelar
-        </p>
+        <DicaClique faltam={faltam} />
       </div>
     </Slide>
   );
@@ -2153,11 +2157,12 @@ function S17() {
 // a turma olha o quanto custa, depois é que vem o "isso faz sentido?".
 function S18() {
   const max = Math.max(...BUDGET.map((b) => b.valor));
-  const [revelado, setRevelado] = useState(false);
+  const { revelar, visivel, faltam } = useRevelar(2);
+  const revelado = visivel(1);
   return (
     <Slide bg="dark">
       <Titulo sub="Estudo de caso · Empresa Alpha">Construindo o budget</Titulo>
-      <div onClick={() => setRevelado(true)} className="flex-1 grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-6 items-center min-h-0 cursor-pointer">
+      <div onClick={revelar} className="flex-1 grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-6 items-center min-h-0 cursor-pointer">
         <div className="space-y-2.5">
           {BUDGET.map((b, i) => (
             <motion.div key={b.item} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.11 }} className="flex items-center gap-3">
@@ -2185,12 +2190,9 @@ function S18() {
 
         <div className="relative h-full">
           {/* a dica ocupa o lugar do card enquanto ele não veio */}
-          <p
-            className="absolute inset-0 grid place-items-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity duration-300"
-            style={{ opacity: revelado ? 0 : 1 }}
-          >
-            clique para revelar
-          </p>
+          <div className="absolute inset-0 grid place-items-center" style={{ opacity: faltam ? 1 : 0 }}>
+            <DicaClique faltam={faltam} />
+          </div>
           <motion.div
             className="h-full"
             initial={{ opacity: 0, scale: 0.96 }}
@@ -2330,8 +2332,7 @@ function SNiveisProcesso() {
     { n: '03', rotulo: 'Estruturado', cor: BLUE, Icon: FileText, txt: 'O processo existe e está documentado em um playbook ou guia de vendas.' },
     { n: '04', rotulo: 'Dinâmico', cor: GREEN, Icon: RefreshCw, txt: 'O processo existe e é revisado ao longo do tempo para atender melhor a jornada do cliente.' },
   ];
-  const [revelados, setRevelados] = useState(1);
-  const revelar = () => setRevelados((n) => Math.min(n + 1, niveis.length));
+  const { revelar, visivel, faltam } = useRevelar(niveis.length);
 
   return (
     <Slide bg="dark">
@@ -2344,7 +2345,7 @@ function SNiveisProcesso() {
             <motion.div
               key={x.n}
               initial={{ opacity: 0, y: 18 }}
-              animate={i < revelados ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
+              animate={visivel(i) ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
               transition={{ duration: 0.35, ease: 'easeOut' }}
               style={{ marginBottom: i * 52 }}
             >
@@ -2362,13 +2363,7 @@ function SNiveisProcesso() {
           ))}
         </div>
 
-        {/* fica no lugar mesmo invisível, senão a escada se mexe quando some */}
-        <p
-          className="mt-8 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity duration-300"
-          style={{ opacity: revelados < niveis.length ? 1 : 0 }}
-        >
-          clique para revelar
-        </p>
+        <DicaClique faltam={faltam} />
       </div>
     </Slide>
   );
@@ -3212,6 +3207,12 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
     });
   }, []);
 
+  /** Pulo direto por id de slide — é o que os elos do mapa usam. */
+  const irParaId = useCallback((id: string) => {
+    const i = SLIDES.findIndex((s) => s.id === id);
+    if (i >= 0) go(i);
+  }, [go]);
+
   /**
    * Avançar revela primeiro. Só quando o slide não tem mais nada escondido é
    * que a seta troca de slide — assim ninguém pula conteúdo sem ver.
@@ -3324,6 +3325,7 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
   const dotIni = Math.max(0, Math.min(idx - Math.floor(DOTS_VISIVEIS / 2), SLIDES.length - DOTS_VISIVEIS));
 
   return (
+    <IrParaSlide.Provider value={irParaId}>
     <ComandoRevelar.Provider value={bus}>
     <div className="deck-dark deck-live fixed inset-0 z-[70] overflow-hidden flex flex-col" style={{ backgroundColor: NAVY }}>
       {/* Pilha de captura: os 47 slides montados em 1280×720, jogados para fora
@@ -3426,5 +3428,6 @@ export default function AulaDeck({ onClose }: { onClose: () => void }) {
       </div>
     </div>
     </ComandoRevelar.Provider>
+    </IrParaSlide.Provider>
   );
 }
