@@ -1418,7 +1418,27 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
    * apagar o campo, volta a valer a do quadro.
    */
   const conversaoQuadro = base.leads > 0 ? Math.round((base.vendas / base.leads) * 1000) / 10 : 0;
-  const revEfetivo = { ...rev, conversao: rev.conversao || conversaoQuadro };
+
+  /**
+   * CAC e custo por vendedor também se preenchem sozinhos assim que há dado
+   * para isso — e cada um por um caminho diferente:
+   *
+   * o CAC sugerido é a conta clássica, o que se gasta PARA CONQUISTAR: marketing,
+   * comercial e mídia, dividido pelas vendas. De propósito ele não inclui CS,
+   * financeiro e outros — é aí que nasce a diferença para o "CAC real do
+   * período" logo abaixo, que divide a operação inteira. O confronto entre os
+   * dois é o ponto da tela.
+   */
+  const custoAquisicao = rev.areas.marketing + rev.areas.comercial + rev.publicidade;
+  const cacSugerido = base.vendas > 0 && custoAquisicao > 0 ? Math.round(custoAquisicao / base.vendas) : 0;
+  const vendedorSugerido = rev.equipe > 0 && rev.areas.comercial > 0 ? Math.round(rev.areas.comercial / rev.equipe) : 0;
+
+  const revEfetivo = {
+    ...rev,
+    conversao: rev.conversao || conversaoQuadro,
+    cac: rev.cac || cacSugerido,
+    custoVendedor: rev.custoVendedor || vendedorSugerido,
+  };
 
   const conta = contaRevOps(revEfetivo, base);
   const midia = simularMidia(revEfetivo, base, extraMidia);
@@ -1488,11 +1508,12 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
                 sufixo="%" dica={conversaoQuadro > 0 ? 'preenchida com a do quadro; pode trocar' : 'lead que vira venda'} passo={0.1} />
               <CampoNumero rotulo="Pessoas na equipe" valor={rev.equipe} onChange={(v) => mudar({ equipe: v })}
                 sufixo="pes." dica="quem vende hoje" />
-              <CampoMoeda rotulo="CAC" valor={rev.cac} onChange={(v) => mudar({ cac: v })} dica="custo por cliente conquistado" />
+              <CampoMoeda rotulo="CAC" valor={revEfetivo.cac} onChange={(v) => mudar({ cac: v })}
+                dica={cacSugerido > 0 ? 'marketing + comercial + mídia ÷ vendas; pode trocar' : 'custo por cliente conquistado'} />
               <CampoMoeda rotulo="Custo por lead" valor={rev.custoLead} onChange={(v) => mudar({ custoLead: v })}
                 dica={base.leads > 0 && rev.publicidade > 0 ? `pela sua verba dá ${brl(conta.custoLeadReal)}` : 'quanto custa gerar um lead'} />
-              <CampoMoeda rotulo="Custo por vendedor" valor={rev.custoVendedor} onChange={(v) => mudar({ custoVendedor: v })}
-                dica="salário + encargos, por mês" />
+              <CampoMoeda rotulo="Custo por vendedor" valor={revEfetivo.custoVendedor} onChange={(v) => mudar({ custoVendedor: v })}
+                dica={vendedorSugerido > 0 ? 'custo do comercial ÷ pessoas; pode trocar' : 'salário + encargos, por mês'} />
             </div>
           </div>
 
