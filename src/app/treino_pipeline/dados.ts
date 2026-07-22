@@ -55,8 +55,8 @@ export const novoId = () => `x${Date.now().toString(36)}${Math.floor(Math.random
 
 /** Sugestão de partida — o aluno renomeia, apaga e acrescenta o que quiser. */
 export const ETAPAS_SUGERIDAS: { nome: string; ganho?: boolean }[] = [
-  { nome: 'Lead' }, { nome: 'Qualificado' }, { nome: 'Diagnóstico' },
-  { nome: 'Proposta' }, { nome: 'Negociação' }, { nome: 'Fechamento', ganho: true },
+  { nome: 'Lead' }, { nome: 'Diagnóstico' }, { nome: 'Proposta' },
+  { nome: 'Negociação' }, { nome: 'Fechamento', ganho: true },
 ];
 
 export const VAZIO: Treino = { etapas: [], leads: [], meta: 30000 };
