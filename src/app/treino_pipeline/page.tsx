@@ -682,15 +682,12 @@ function PainelForecast({ r, meta, onFechar }: { r: ReturnType<typeof calcular>;
         </div>
 
         <div className="p-6 space-y-6">
-          {/* velocímetro: onde a meta está agora, só com o que já fechou */}
-          <div className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-6 items-center">
-            <Velocimetro atingimento={r.atingimento} realizado={r.realizado} meta={meta} />
-            <div className="grid grid-cols-2 gap-3">
-              <Bloco rotulo="Realizado" valor={brl(r.realizado)} sub="já fechado" cor="#10B981" />
-              <Bloco rotulo="Pipeline aberto" valor={brl(r.pipeline)} sub="ainda em negociação" />
-              <Bloco rotulo="Forecast ponderado" valor={brl(r.forecast)} sub="deve virar receita" cor={AZUL} destaque />
-              <Bloco rotulo="Projeção do mês" valor={brl(r.projecao)} sub="realizado + forecast" />
-            </div>
+          {/* o velocímetro vive no painel Resultados; aqui o foco é a conta do forecast */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Bloco rotulo="Realizado" valor={brl(r.realizado)} sub="já fechado" cor="#10B981" />
+            <Bloco rotulo="Pipeline aberto" valor={brl(r.pipeline)} sub="ainda em negociação" />
+            <Bloco rotulo="Forecast ponderado" valor={brl(r.forecast)} sub="deve virar receita" cor={AZUL} destaque />
+            <Bloco rotulo="Projeção do mês" valor={brl(r.projecao)} sub="realizado + forecast" />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
