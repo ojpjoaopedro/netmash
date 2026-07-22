@@ -2375,6 +2375,219 @@ function SNiveisProcesso() {
   );
 }
 
+/**
+ * Revelação por comando: o 1º item já entra montado e os seguintes aparecem a
+ * cada clique. `visivel` decide a animação; quem ainda não veio segue ocupando
+ * o lugar (opacity 0), então o layout não pula.
+ */
+function useRevelar(total: number) {
+  const [revelados, setRevelados] = useState(1);
+  return {
+    revelar: () => setRevelados((n) => Math.min(n + 1, total)),
+    visivel: (i: number) => i < revelados,
+    faltam: revelados < total,
+  };
+}
+
+/** Dica discreta; some quando não há mais o que revelar. */
+function DicaClique({ faltam }: { faltam: boolean }) {
+  return (
+    <p className="mt-7 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity duration-300"
+      style={{ opacity: faltam ? 1 : 0 }}>
+      clique para revelar
+    </p>
+  );
+}
+
+// 31c — Requisitos de um pipeline profissional
+function SRequisitosPipeline() {
+  const etapas = ['Etapa 1', 'Etapa 2', 'Etapa 3', 'Etapa 4', '…'];
+  const requisitos = [
+    { t: 'Gatilhos de passagem', sub: '(entre etapas)', Icon: Target, cor: BLUE },
+    { t: 'Propriedades', sub: '(dados, campos personalizados)', Icon: Database, cor: GOLD },
+    { t: 'SLA', sub: '(acordo entre funções e áreas)', Icon: Handshake, cor: GREEN },
+  ];
+  // item 0 = a régua de etapas; 1..3 = os requisitos
+  const { revelar, visivel, faltam } = useRevelar(requisitos.length + 1);
+
+  return (
+    <Slide bg="dark">
+      <Titulo sub="Etapas e gatilhos">Requisitos de um pipeline profissional</Titulo>
+
+      <div onClick={revelar} className="flex-1 flex flex-col justify-center cursor-pointer min-h-0">
+        {/* régua de etapas */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }} animate={visivel(0) ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
+          transition={{ duration: 0.35 }} className="flex items-center justify-center gap-1.5 flex-wrap"
+        >
+          {etapas.map((e, i) => (
+            <div key={e} className="flex items-center gap-1.5">
+              <span
+                className="px-5 py-2.5 rounded-lg text-sm font-black"
+                style={{
+                  // vai clareando até o "…" — o fim do funil fica em aberto
+                  background: i === etapas.length - 1 ? '#fff' : `rgba(26,173,226,${0.5 - i * 0.09})`,
+                  color: i === etapas.length - 1 ? NAVY : '#fff',
+                }}
+              >
+                {e}
+              </span>
+              {i < etapas.length - 1 && <ChevronRight className="w-4 h-4 text-slate-600" />}
+            </div>
+          ))}
+        </motion.div>
+
+        {/* os três requisitos */}
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {requisitos.map((r, i) => (
+            <motion.div
+              key={r.t}
+              initial={{ opacity: 0, y: 16 }} animate={visivel(i + 1) ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+              transition={{ duration: 0.35 }}
+            >
+              <Card className="p-5 h-full text-center" style={{ borderColor: `${r.cor}44`, background: `${r.cor}0d` }}>
+                <r.Icon className="w-5 h-5 mx-auto mb-3" style={{ color: r.cor }} />
+                <p className="text-[15px] font-black" style={{ color: r.cor }}>{r.t}</p>
+                <p className="text-[12.5px] text-slate-400 mt-1 leading-snug">{r.sub}</p>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <DicaClique faltam={faltam} />
+      </div>
+    </Slide>
+  );
+}
+
+// 31d — Princípios fundamentais do pipeline eficaz
+function SPrincipiosPipeline() {
+  const principios = [
+    { t: 'Efetivo', d: 'voltado a fechamento e conversão.', Icon: Target, cor: BLUE },
+    { t: 'Centrado no cliente', d: 'ajuda o cliente a comprar.', Icon: Users, cor: GOLD },
+    { t: 'Orientado a dados', d: 'gera e consome informações em tempo real.', Icon: BarChart3, cor: GREEN },
+  ];
+  const { revelar, visivel, faltam } = useRevelar(principios.length);
+
+  return (
+    <Slide bg="dark">
+      <Titulo sub="O que faz um pipeline funcionar">Princípios fundamentais do pipeline eficaz</Titulo>
+
+      <div onClick={revelar} className="flex-1 flex flex-col justify-center cursor-pointer min-h-0">
+        <div className="space-y-4">
+          {principios.map((p, i) => (
+            <motion.div
+              key={p.t}
+              initial={{ opacity: 0, x: -18 }} animate={visivel(i) ? { opacity: 1, x: 0 } : { opacity: 0, x: -18 }}
+              transition={{ duration: 0.35 }}
+            >
+              <Card className="px-6 py-5 flex items-center gap-4" style={{ borderColor: `${p.cor}3d`, background: `${p.cor}0d` }}>
+                <span className="w-10 h-10 rounded-xl shrink-0 grid place-items-center" style={{ background: `${p.cor}1f`, color: p.cor }}>
+                  <p.Icon className="w-5 h-5" />
+                </span>
+                <p className="text-[17px] leading-snug">
+                  <strong style={{ color: p.cor }}>{p.t}:</strong>{' '}
+                  <span className="text-slate-300">{p.d}</span>
+                </p>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <DicaClique faltam={faltam} />
+      </div>
+    </Slide>
+  );
+}
+
+// 31e — Como construir, passo a passo
+function SPassosPipeline() {
+  const passos = [
+    { t: 'Antes de começar', d: 'Mapeie a jornada de compra real do seu cliente.', cor: GOLD },
+    { t: 'Passo 1', d: 'Construa as etapas do pipeline com base nessa jornada.', cor: BLUE },
+    { t: 'Passo 2', d: 'Defina gatilhos claros para movimentar o lead.', cor: BLUE },
+    { t: 'Passo 3', d: 'Documente os campos obrigatórios por etapa.', cor: BLUE },
+    { t: 'Hack', d: 'Equilibre a complexidade.', cor: GREEN },
+  ];
+  const { revelar, visivel, faltam } = useRevelar(passos.length);
+
+  return (
+    <Slide bg="dark">
+      <Titulo sub="Mão na massa">Como construir o seu pipeline</Titulo>
+
+      <div onClick={revelar} className="flex-1 flex flex-col justify-center cursor-pointer min-h-0">
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          {passos.map((p, i) => (
+            <div key={p.t} className="flex items-center gap-2">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85 }} animate={visivel(i) ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.85 }}
+                transition={{ duration: 0.35 }}
+                // sobe/desce alternado: lembra a onda do material original
+                style={{ marginTop: i % 2 === 0 ? 0 : 46 }}
+                className="w-[164px] h-[164px] rounded-full grid place-items-center text-center px-5 shrink-0"
+              >
+                <div className="rounded-full w-full h-full grid place-items-center px-5"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: `2px solid ${p.cor}66` }}>
+                  <div>
+                    <p className="text-[13px] font-black uppercase tracking-wide" style={{ color: p.cor }}>{p.t}</p>
+                    <p className="text-[11px] text-slate-300 leading-snug mt-1.5">{p.d}</p>
+                  </div>
+                </div>
+              </motion.div>
+              {i < passos.length - 1 && <ChevronRight className="w-4 h-4 text-slate-700 shrink-0" />}
+            </div>
+          ))}
+        </div>
+
+        <DicaClique faltam={faltam} />
+      </div>
+    </Slide>
+  );
+}
+
+// 31f — O equilíbrio entre processo e adoção
+function SEquilibrioProcesso() {
+  const barras = [
+    { alt: 116, rot: 'enxuto e sem impacto', cor: 'rgba(255,255,255,0.07)', borda: 'rgba(255,255,255,0.14)', txt: '#CBD5E1' },
+    { alt: 268, rot: 'complexo demais e sem adoção — as pessoas acabam encontrando formas de não seguir o processo direito.', cor: 'rgba(255,255,255,0.07)', borda: 'rgba(255,255,255,0.14)', txt: '#CBD5E1' },
+    { alt: 186, rot: 'ideal', cor: 'rgba(26,173,226,0.22)', borda: BLUE, txt: '#fff' },
+  ];
+  const LINHA = 168;   // altura do "mínimo processo necessário"
+
+  return (
+    <Slide bg="dark">
+      <Titulo sub="Processo x adoção">Importante equilíbrio para adoção do processo</Titulo>
+
+      {/* este slide entra completo: a comparação só faz sentido com as três barras juntas */}
+      <div className="flex-1 flex flex-col justify-center min-h-0">
+        <div className="relative flex items-end justify-center gap-8 pl-[150px]" style={{ height: 300 }}>
+          {/* linha do mínimo necessário */}
+          <div className="absolute left-0 right-0 flex items-center gap-3" style={{ bottom: LINHA }}>
+            <span className="text-[12px] text-slate-400 leading-tight text-right w-[140px] shrink-0">
+              mínimo processo<br />necessário
+            </span>
+            <span className="flex-1 border-t border-dashed border-slate-600" />
+          </div>
+
+          {barras.map((b, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: b.alt }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 + i * 0.14 }}
+              className="w-[190px] rounded-t-xl grid place-items-center px-4 overflow-hidden"
+              style={{ background: b.cor, border: `1px solid ${b.borda}`, borderBottom: 0 }}
+            >
+              <p className="text-[13px] leading-snug text-center" style={{ color: b.txt }}>{b.rot}</p>
+            </motion.div>
+          ))}
+          <span className="absolute left-[150px] right-0 bottom-0 border-t border-white/20" />
+        </div>
+      </div>
+    </Slide>
+  );
+}
+
 // 32 — Pipeline não é forecast
 function S24() {
   const deals = [
@@ -2860,6 +3073,10 @@ const SLIDES = [
   { id: 's34-mapa-pipeline', titulo: 'O mapa · próximo: EXECUÇÃO + PIPELINE', bloco: 'Forecast', node: <MapaReceita foco="EXECUÇÃO + PIPELINE" selo /> },
   { id: 's35-pipeline', titulo: 'O pipeline', bloco: 'Forecast', node: <S23 /> },
   { id: 's35b-niveis-processo', titulo: 'Os 4 níveis de processo', bloco: 'Forecast', node: <SNiveisProcesso /> },
+  { id: 's35c-requisitos-pipeline', titulo: 'Requisitos de um pipeline profissional', bloco: 'Forecast', node: <SRequisitosPipeline /> },
+  { id: 's35d-principios-pipeline', titulo: 'Princípios do pipeline eficaz', bloco: 'Forecast', node: <SPrincipiosPipeline /> },
+  { id: 's35e-passos-pipeline', titulo: 'Como construir o seu pipeline', bloco: 'Forecast', node: <SPassosPipeline /> },
+  { id: 's35f-equilibrio-processo', titulo: 'Equilíbrio para adoção do processo', bloco: 'Forecast', node: <SEquilibrioProcesso /> },
   { id: 's36-pipeline-nao-e-forecast', titulo: 'Pipeline não é forecast', bloco: 'Forecast', node: <S24 /> },
   { id: 's37-mapa-forecast', titulo: 'O mapa · próximo: FORECAST', bloco: 'Forecast', node: <MapaReceita foco="FORECAST" /> },
   { id: 's38-formula-forecast', titulo: 'A fórmula do ponderado', bloco: 'Forecast', node: <S25 /> },
