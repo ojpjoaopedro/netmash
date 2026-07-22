@@ -15,7 +15,7 @@ import {
   X as XIcon, ChevronLeft, ChevronRight, Presentation,
   Target, Map, Users, RefreshCw, TrendingUp, DollarSign, Megaphone,
   Cpu, Plane, GraduationCap, Handshake, AlertTriangle, HelpCircle,
-  Gauge as GaugeIcon, Clock, Layers, Database, Settings2, BarChart3, ShieldCheck, CheckCheck, LayoutGrid, Download, Home,
+  Gauge as GaugeIcon, Clock, Layers, Database, Settings2, BarChart3, ShieldCheck, CheckCheck, LayoutGrid, Download, Home, FileText,
 } from 'lucide-react';
 
 /* ── Paleta (design system Dynamis) ──────────────────────────────────────── */
@@ -2321,6 +2321,60 @@ function S23() {
   );
 }
 
+// 31b — Os 4 níveis de processo de vendas
+// Escada: cada nível sobe um degrau em relação ao anterior. O 01 já entra montado
+// e os três seguintes aparecem no clique, para o professor conduzir um por vez.
+function SNiveisProcesso() {
+  const niveis = [
+    { n: '01', rotulo: 'Inexistente', cor: RED, Icon: AlertTriangle, txt: 'O processo não existe, ou existem apenas algumas etapas soltas dele.' },
+    { n: '02', rotulo: 'Tácito', cor: AMBER, Icon: Users, txt: 'As pessoas sabem como fazer, mas não existe um lugar onde isso esteja documentado.' },
+    { n: '03', rotulo: 'Estruturado', cor: BLUE, Icon: FileText, txt: 'O processo existe e está documentado em um playbook ou guia de vendas.' },
+    { n: '04', rotulo: 'Dinâmico', cor: GREEN, Icon: RefreshCw, txt: 'O processo existe e é revisado ao longo do tempo para atender melhor a jornada do cliente.' },
+  ];
+  const [revelados, setRevelados] = useState(1);
+  const revelar = () => setRevelados((n) => Math.min(n + 1, niveis.length));
+
+  return (
+    <Slide bg="dark">
+      <Titulo sub="Antes de desenhar o funil">Os 4 níveis de processo de vendas</Titulo>
+
+      <div onClick={revelar} className="flex-1 flex flex-col justify-center cursor-pointer min-h-0">
+        {/* items-end + marginBottom crescente = a escada subindo da esquerda para a direita */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          {niveis.map((x, i) => (
+            <motion.div
+              key={x.n}
+              initial={{ opacity: 0, y: 18 }}
+              animate={i < revelados ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              style={{ marginBottom: i * 52 }}
+            >
+              <Card className="p-5 h-full" style={{ borderColor: `${x.cor}44`, background: `${x.cor}0d` }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[11px] font-black tabular-nums" style={{ color: x.cor }}>{x.n}</span>
+                  <x.Icon className="w-3.5 h-3.5" style={{ color: x.cor }} />
+                </div>
+                <span className="inline-block px-3 py-1 rounded-full text-[12.5px] font-black mb-3" style={{ color: x.cor, background: `${x.cor}1f` }}>
+                  {x.rotulo}
+                </span>
+                <p className="text-[13px] leading-relaxed text-slate-300 italic">{x.txt}</p>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* fica no lugar mesmo invisível, senão a escada se mexe quando some */}
+        <p
+          className="mt-8 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity duration-300"
+          style={{ opacity: revelados < niveis.length ? 1 : 0 }}
+        >
+          clique para revelar
+        </p>
+      </div>
+    </Slide>
+  );
+}
+
 // 32 — Pipeline não é forecast
 function S24() {
   const deals = [
@@ -2805,6 +2859,7 @@ const SLIDES = [
   { id: 's31-cenarios', titulo: 'Três cenários', bloco: 'Budget', node: <S19 /> },
   { id: 's34-mapa-pipeline', titulo: 'O mapa · próximo: EXECUÇÃO + PIPELINE', bloco: 'Forecast', node: <MapaReceita foco="EXECUÇÃO + PIPELINE" selo /> },
   { id: 's35-pipeline', titulo: 'O pipeline', bloco: 'Forecast', node: <S23 /> },
+  { id: 's35b-niveis-processo', titulo: 'Os 4 níveis de processo', bloco: 'Forecast', node: <SNiveisProcesso /> },
   { id: 's36-pipeline-nao-e-forecast', titulo: 'Pipeline não é forecast', bloco: 'Forecast', node: <S24 /> },
   { id: 's37-mapa-forecast', titulo: 'O mapa · próximo: FORECAST', bloco: 'Forecast', node: <MapaReceita foco="FORECAST" /> },
   { id: 's38-formula-forecast', titulo: 'A fórmula do ponderado', bloco: 'Forecast', node: <S25 /> },
