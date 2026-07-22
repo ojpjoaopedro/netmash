@@ -23,13 +23,24 @@ export type Lead = {
   temperatura: Temperatura;
   diasNaEtapa: number;
   notaVendedor: number;   // 0 a 10 — a leitura de quem atende (qualitativo)
+  extras?: Record<string, string>;   // campos criados pelo aluno, por id do campo
 };
 
 /** `ganho` marca a etapa de fechamento: o que chega lá virou venda realizada. */
 export type Etapa = { id: string; nome: string; ganho?: boolean };
 
+/**
+ * Campo criado pelo aluno dentro de um card. A definição é do QUADRO, não do
+ * card: criou em um, aparece em todos — como acontece num CRM de verdade.
+ */
+export type CampoExtra = { id: string; nome: string };
+
 /** `metaDefinida` guarda se o aluno já respondeu a meta do mês (a 1ª pergunta da tela). */
-export type Treino = { etapas: Etapa[]; leads: Lead[]; meta: number; metaDefinida?: boolean };
+export type Treino = {
+  etapas: Etapa[]; leads: Lead[]; meta: number;
+  metaDefinida?: boolean;
+  campos?: CampoExtra[];
+};
 
 export const CHAVE = 'treino-pipeline';
 
@@ -159,7 +170,8 @@ export function gerarLeads(etapas: Etapa[], meta: number, quantidade = LOTE): Le
       empresa,
       telefone: `(${entre(11, 89)}) 9${entre(1000, 9999)}-${entre(1000, 9999)}`,
       email: `${nome.split(' ')[0].toLowerCase()}@${empresa.split(' ')[0].toLowerCase()}.com.br`,
-      valor: ticketDaMeta(meta),
+      // na 1ª etapa é lead cru: ainda não tem valor de negociação
+      valor: idx === 0 ? 0 : ticketDaMeta(meta),
       origem: sorteia(ORIGENS),
       responsavel: sorteia(RESPONSAVEIS),
       entrada: dataNoMes(),
@@ -174,12 +186,12 @@ export function gerarLeads(etapas: Etapa[], meta: number, quantidade = LOTE): Le
 }
 
 /** Negócio criado à mão pelo aluno: entra em branco, para ele preencher. */
-export function novoLeadManual(etapaId: string, meta: number): Lead {
+export function novoLeadManual(etapaId: string): Lead {
   const hoje = new Date();
   return {
     id: novoId(),
     nome: '', empresa: '', telefone: '', email: '',
-    valor: Math.max(100, Math.round((meta * 0.2) / 100) * 100),   // parte do ticket médio
+    valor: 0,   // lead cru: o valor aparece quando ele for qualificado
     origem: 'Prospecção ativa',
     responsavel: 'Você',
     entrada: `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`,
@@ -261,8 +273,10 @@ export function calcular(etapas: Etapa[], leads: Lead[], meta: number): Resultad
 
   const realizado = leads.filter((l) => idsGanho.has(l.etapa)).reduce((s, l) => s + l.valor, 0);
 
+  // valor 0 = lead cru da 1ª etapa: ainda não é oportunidade, fica fora do
+  // pipeline e do forecast. Lead não é negócio — é a distinção que a aula faz.
   const linhas = leads
-    .filter((l) => !idsGanho.has(l.etapa))
+    .filter((l) => !idsGanho.has(l.etapa) && l.valor > 0)
     .map((lead) => {
       const i = Math.max(0, abertas.findIndex((e) => e.id === lead.etapa));
       const prob = probabilidade(lead, i, abertas.length);

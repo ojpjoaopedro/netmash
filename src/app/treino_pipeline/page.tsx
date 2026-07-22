@@ -10,20 +10,24 @@
  * Sem banco: mora no navegador (localStorage). São dados de treino.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, Trash2, X, Wand2, Calculator, Thermometer, Clock, Building2, Phone, Mail,
   User, Target, AlertTriangle, RotateCcw, Trophy, BarChart3, Sparkles,
+  GripVertical, Save, Tag, Download,
 } from 'lucide-react';
 import {
   CHAVE, ETAPAS_SUGERIDAS, FAIXA_TEMPERATURA, LOTE, VAZIO, brParaIso, brl, calcular,
-  estatisticas, gerarLeads, mascaraData, milhar, novoId, novoLeadManual, pct, soDigitos,
-  type Estatisticas, type Etapa, type Lead, type Resultado, type Temperatura, type Treino,
+  estatisticas, gerarLeads, mascaraData, milhar, novoId, novoLeadManual, pct, soDigitos, ticketDaMeta,
+  type CampoExtra, type Estatisticas, type Etapa, type Lead, type Resultado, type Temperatura, type Treino,
 } from './dados';
+import { baixarPdf } from './pdf';
 
 const COR_TEMP: Record<Temperatura, string> = { quente: '#EF4444', morno: '#F59E0B', frio: '#3B82F6' };
 const ROTULO_TEMP: Record<Temperatura, string> = { quente: 'Quente', morno: 'Morno', frio: 'Frio' };
 const AZUL = '#1AADE2';
+/** Marca o que está sendo arrastado como coluna, e não como card. */
+const PREFIXO_ETAPA = 'etapa:';
 
 export default function SimuladorPipeline() {
   const [d, setD] = useState<Treino>(VAZIO);
@@ -40,7 +44,8 @@ export default function SimuladorPipeline() {
   const [confirmandoApagar, setConfirmandoApagar] = useState(false);
   // nenhuma exclusão acontece direto: toda lixeira passa por aqui primeiro
   const [aExcluir, setAExcluir] = useState<{ tipo: 'lead' | 'etapa'; id: string; nome: string } | null>(null);
-  const [sobreEtapa, setSobreEtapa] = useState<string | null>(null);   // coluna sob o card arrastado
+  const [sobreEtapa, setSobreEtapa] = useState<string | null>(null);     // coluna sob o card arrastado
+  const [etapaArrastada, setEtapaArrastada] = useState<string | null>(null);   // coluna sendo remanejada
 
   useEffect(() => {
     try {
@@ -51,6 +56,8 @@ export default function SimuladorPipeline() {
           etapas: Array.isArray(p.etapas) ? p.etapas : [],
           leads: Array.isArray(p.leads) ? p.leads : [],
           meta: typeof p.meta === 'number' ? p.meta : VAZIO.meta,
+          metaDefinida: p.metaDefinida,
+          campos: Array.isArray(p.campos) ? p.campos : [],
         });
       }
     } catch { /* storage bloqueado: começa vazio */ }
@@ -77,23 +84,100 @@ export default function SimuladorPipeline() {
   const renomear = (id: string, nome: string) => setEtapas(d.etapas.map((e) => (e.id === id ? { ...e, nome } : e)));
   const removerEtapa = (id: string) =>
     setD((x) => ({ ...x, etapas: x.etapas.filter((e) => e.id !== id), leads: x.leads.filter((l) => l.etapa !== id) }));
+  /**
+   * Ao sair da 1ª etapa o lead cru vira negócio: ganha um valor de negociação,
+   * que é justamente o que a qualificação descobre.
+   */
   const editarLead = (id: string, patch: Partial<Lead>) =>
-    setD((x) => ({ ...x, leads: x.leads.map((l) => (l.id === id ? { ...l, ...patch } : l)) }));
+    setD((x) => ({
+      ...x,
+      leads: x.leads.map((l) => {
+        if (l.id !== id) return l;
+        const novo = { ...l, ...patch };
+        if (novo.valor === 0 && x.etapas[0]?.id !== novo.etapa) novo.valor = ticketDaMeta(x.meta);
+        return novo;
+      }),
+    }));
   const removerLead = (id: string) => { setD((x) => ({ ...x, leads: x.leads.filter((l) => l.id !== id) })); setAbertoId(null); };
 
   /**
-   * Soltou o card numa coluna: muda de etapa e zera o contador de dias parado —
-   * o relógio é "parado NESTA etapa", então mover reinicia a contagem.
+   * Duas barras de rolagem para o mesmo quadro: a de cima é só um espaçador da
+   * largura das colunas, e cada uma empurra o scroll da outra.
+   */
+  const quadro = useRef<HTMLDivElement>(null);
+  const barraTopo = useRef<HTMLDivElement>(null);
+  const larguraQuadro = d.etapas.length * (280 + 16) + 200;   // colunas + gap + botão "etapa"
+  type Ref = { current: HTMLDivElement | null };
+  const sincronizar = (de_: Ref, para: Ref) => {
+    if (de_.current && para.current) para.current.scrollLeft = de_.current.scrollLeft;
+  };
+
+  /**
+   * Soltou o card numa coluna: muda de etapa, zera o contador de dias parado (o
+   * relógio é "parado NESTA etapa") e sobe para o TOPO da lista — o que acabou de
+   * ser movido é o que está na mão do vendedor, tem que ficar à vista.
    */
   function soltarNaEtapa(etapaId: string, leadId: string) {
-    if (leadId) editarLead(leadId, { etapa: etapaId, diasNaEtapa: 0 });
+    if (leadId) {
+      setD((x) => {
+        const atual = x.leads.find((l) => l.id === leadId);
+        if (!atual) return x;
+        const movido = { ...atual, etapa: etapaId, diasNaEtapa: 0 };
+        if (movido.valor === 0 && x.etapas[0]?.id !== etapaId) movido.valor = ticketDaMeta(x.meta);
+        // 1º da lista geral = 1º da coluna, porque a coluna só filtra e preserva a ordem
+        return { ...x, leads: [movido, ...x.leads.filter((l) => l.id !== leadId)] };
+      });
+    }
     setSobreEtapa(null);
   }
+
+  /** Arrastou a coluna inteira: a etapa vai para a posição da etapa onde soltou. */
+  function reordenarEtapas(origemId: string, destinoId: string) {
+    if (origemId === destinoId) return;
+    setD((x) => {
+      const lista = [...x.etapas];
+      const iDe = lista.findIndex((e) => e.id === origemId);
+      const iPara = lista.findIndex((e) => e.id === destinoId);
+      if (iDe < 0 || iPara < 0) return x;
+      const [movida] = lista.splice(iDe, 1);
+      lista.splice(iPara, 0, movida);
+      return { ...x, etapas: lista };
+    });
+    setSobreEtapa(null);
+  }
+
+  /**
+   * Card e coluna viajam pelo mesmo canal ('text/plain'): tipo próprio de
+   * dataTransfer nem todo navegador entrega, então a coluna vai com prefixo.
+   */
+  function receberSolto(destinoId: string, carga: string) {
+    if (carga.startsWith(PREFIXO_ETAPA)) reordenarEtapas(carga.slice(PREFIXO_ETAPA.length), destinoId);
+    else soltarNaEtapa(destinoId, carga);
+  }
+
+  /* ── campos que o aluno cria dentro do card: valem para o quadro todo ── */
+  const campos = d.campos ?? [];
+  const criarCampo = (nome: string) => {
+    const limpo = nome.trim();
+    if (!limpo) return;
+    setD((x) => ({ ...x, campos: [...(x.campos ?? []), { id: novoId(), nome: limpo }] }));
+  };
+  const removerCampo = (id: string) =>
+    setD((x) => ({
+      ...x,
+      campos: (x.campos ?? []).filter((c) => c.id !== id),
+      leads: x.leads.map((l) => {
+        if (!l.extras || !(id in l.extras)) return l;
+        const extras = { ...l.extras };
+        delete extras[id];
+        return { ...l, extras };
+      }),
+    }));
 
   function criarLead() {
     const primeira = d.etapas[0];
     if (!primeira) return;
-    const novo = novoLeadManual(primeira.id, d.meta);
+    const novo = novoLeadManual(primeira.id);
     setD((x) => ({ ...x, leads: [...x.leads, novo] }));
     setAbertoId(novo.id);   // abre já no detalhe para preencher
   }
@@ -241,26 +325,51 @@ export default function SimuladorPipeline() {
           <Resumo rotulo="Pipeline" valor={brl(resultado.pipeline)} />
           <Resumo rotulo="Forecast" valor={brl(resultado.forecast)} cor={AZUL} />
           <Resumo rotulo="Meta" valor={pct(resultado.atingimento)} cor={resultado.atingimento >= 1 ? '#10B981' : undefined} />
-          {(de || ate) && <span className="text-slate-400 self-center">· período filtrado</span>}
         </div>
       </header>
 
       {/* colunas */}
       <main className="mx-auto max-w-[1500px] px-5 py-6">
-        <div className="flex gap-4 overflow-x-auto pb-4 items-start">
+        {/* barra de rolagem espelhada acima do quadro: dá para puxar as etapas
+            para o lado sem descer a página até o rodapé das colunas */}
+        <div ref={barraTopo} onScroll={() => sincronizar(barraTopo, quadro)}
+          className="overflow-x-auto overflow-y-hidden mb-2">
+          <div style={{ width: larguraQuadro, height: 1 }} />
+        </div>
+
+        <div ref={quadro} onScroll={() => sincronizar(quadro, barraTopo)}
+          className="flex gap-4 overflow-x-auto pb-4 items-start">
           {d.etapas.map((etapa) => {
             const daEtapa = leadsFiltrados.filter((l) => l.etapa === etapa.id);
             const soma = daEtapa.reduce((s, l) => s + l.valor, 0);
+            // 1ª etapa = lead cru: sem valor e sem temperatura até ser qualificado
+            const crua = d.etapas[0]?.id === etapa.id;
             return (
               <div key={etapa.id}
                 onDragOver={(ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; setSobreEtapa(etapa.id); }}
                 onDragLeave={() => setSobreEtapa((s) => (s === etapa.id ? null : s))}
-                onDrop={(ev) => { ev.preventDefault(); soltarNaEtapa(etapa.id, ev.dataTransfer.getData('text/plain')); }}
+                onDrop={(ev) => { ev.preventDefault(); receberSolto(etapa.id, ev.dataTransfer.getData('text/plain')); }}
                 className="w-[280px] shrink-0 rounded-2xl p-3 border transition-all"
-                style={sobreEtapa === etapa.id
-                  ? { background: '#eff6ff', borderColor: AZUL, boxShadow: `0 0 0 3px ${AZUL}22` }
-                  : etapa.ganho ? { background: '#f0fdf4', borderColor: '#86efac' } : { background: '#fff', borderColor: '#e2e8f0' }}>
+                style={{
+                  ...(sobreEtapa === etapa.id
+                    ? { background: '#eff6ff', borderColor: AZUL, boxShadow: `0 0 0 3px ${AZUL}22` }
+                    : etapa.ganho ? { background: '#f0fdf4', borderColor: '#86efac' } : { background: '#fff', borderColor: '#e2e8f0' }),
+                  ...(etapaArrastada === etapa.id ? { opacity: 0.4 } : null),
+                }}>
                 <div className="flex items-center gap-1.5 mb-1">
+                  {/* a alça é só este punhado: se a coluna inteira fosse arrastável,
+                      não daria para selecionar o texto do nome da etapa */}
+                  <span draggable
+                    onDragStart={(ev) => {
+                      ev.dataTransfer.setData('text/plain', `${PREFIXO_ETAPA}${etapa.id}`);
+                      ev.dataTransfer.effectAllowed = 'move';
+                      setEtapaArrastada(etapa.id);
+                    }}
+                    onDragEnd={() => { setEtapaArrastada(null); setSobreEtapa(null); }}
+                    title="Arraste para mudar a etapa de lugar"
+                    className="shrink-0 -ml-1 p-0.5 rounded text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing">
+                    <GripVertical className="w-3.5 h-3.5" />
+                  </span>
                   {etapa.ganho && <Trophy className="w-3.5 h-3.5 shrink-0 text-emerald-600" />}
                   <input value={etapa.nome} onChange={(e) => renomear(etapa.id, e.target.value)}
                     className={`flex-1 min-w-0 px-2 py-1 rounded-md text-[13px] font-black bg-transparent focus:outline-none ${etapa.ganho ? 'text-emerald-800 hover:bg-emerald-100/60 focus:bg-emerald-100/60' : 'text-slate-800 hover:bg-slate-50 focus:bg-slate-50'}`} />
@@ -272,8 +381,18 @@ export default function SimuladorPipeline() {
                 <p className={`px-2 mb-3 text-[11px] font-bold ${etapa.ganho ? 'text-emerald-600' : 'text-slate-400'}`}>
                   {etapa.ganho
                     ? `${daEtapa.length} venda${daEtapa.length === 1 ? '' : 's'} realizada${daEtapa.length === 1 ? '' : 's'} · ${brl(soma)}`
-                    : `${daEtapa.length} negócio${daEtapa.length === 1 ? '' : 's'} · ${brl(soma)}`}
+                    : crua
+                      ? `${daEtapa.length} lead${daEtapa.length === 1 ? '' : 's'} · a qualificar`
+                      : `${daEtapa.length} negócio${daEtapa.length === 1 ? '' : 's'} · ${brl(soma)}`}
                 </p>
+
+                {/* topo do funil: é por aqui que entra negócio novo */}
+                {crua && (
+                  <button onClick={criarLead}
+                    className="mb-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-slate-300 text-[12px] font-bold text-slate-500 hover:border-slate-400 hover:text-slate-700 hover:bg-white transition-colors">
+                    <Plus className="w-3.5 h-3.5" /> cadastrar novo negócio
+                  </button>
+                )}
 
                 <div className="space-y-2">
                   {/* div, e não button: tem um botão de excluir dentro, e botão
@@ -290,8 +409,11 @@ export default function SimuladorPipeline() {
                         <p className="flex-1 min-w-0 text-[13px] font-black text-slate-800 leading-tight">
                           {l.nome || <span className="text-slate-400 italic font-bold">sem nome</span>}
                         </p>
-                        <span className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ background: COR_TEMP[l.temperatura] }}
-                          title={ROTULO_TEMP[l.temperatura]} />
+                        {/* lead cru não tem temperatura: isso nasce na qualificação */}
+                        {!crua && (
+                          <span className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ background: COR_TEMP[l.temperatura] }}
+                            title={ROTULO_TEMP[l.temperatura]} />
+                        )}
                         <button
                           onClick={(ev) => { ev.stopPropagation(); setAExcluir({ tipo: 'lead', id: l.id, nome: l.nome }); }}
                           title="Excluir negócio" aria-label="Excluir negócio"
@@ -301,7 +423,9 @@ export default function SimuladorPipeline() {
                       </div>
                       <p className="text-[11.5px] text-slate-500 mt-0.5">{l.empresa}</p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-[13px] font-black" style={{ color: AZUL }}>{brl(l.valor)}</span>
+                        <span className="text-[13px] font-black" style={{ color: crua ? '#94a3b8' : AZUL }}>
+                          {crua ? 'a qualificar' : brl(l.valor)}
+                        </span>
                         <span className="flex items-center gap-1 text-[10.5px] text-slate-400 font-bold">
                           <Clock className="w-3 h-3" /> {l.diasNaEtapa}d
                         </span>
@@ -314,14 +438,6 @@ export default function SimuladorPipeline() {
                     </p>
                   )}
                 </div>
-
-                {/* criar à mão só na primeira etapa: negócio novo entra pelo topo do funil */}
-                {d.etapas[0]?.id === etapa.id && (
-                  <button onClick={criarLead}
-                    className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-slate-300 text-[12px] font-bold text-slate-500 hover:border-slate-400 hover:text-slate-700 hover:bg-white transition-colors">
-                    <Plus className="w-3.5 h-3.5" /> novo negócio
-                  </button>
-                )}
               </div>
             );
           })}
@@ -353,9 +469,11 @@ export default function SimuladorPipeline() {
 
       {aberto && (
         <PainelLead
-          lead={aberto} etapas={d.etapas}
+          key={aberto.id} lead={aberto} etapas={d.etapas} campos={campos}
           onFechar={() => setAbertoId(null)}
-          onEditar={(p) => editarLead(aberto.id, p)}
+          onSalvar={(l) => editarLead(aberto.id, l)}
+          onNovoCampo={criarCampo}
+          onRemoverCampo={removerCampo}
           onRemover={() => setAExcluir({ tipo: 'lead', id: aberto.id, nome: aberto.nome })}
         />
       )}
@@ -553,55 +671,142 @@ function PainelApagar({ negocios, etapas, onSoLeads, onTudo, onCancelar }: {
   );
 }
 
-/** Detalhe do negócio: é aqui que o aluno classifica o que o forecast vai usar. */
-function PainelLead({ lead, etapas, onFechar, onEditar, onRemover }: {
-  lead: Lead; etapas: Etapa[];
-  onFechar: () => void; onEditar: (p: Partial<Lead>) => void; onRemover: () => void;
+/**
+ * Detalhe do negócio: é aqui que o aluno classifica o que o forecast vai usar.
+ *
+ * O painel trabalha num RASCUNHO. Nada vai para o quadro antes de salvar, e
+ * fechar com alteração pendente avisa — perder o que acabou de digitar por
+ * clicar fora seria o jeito mais rápido de o aluno desistir do exercício.
+ */
+function PainelLead({ lead, etapas, campos, onFechar, onSalvar, onRemover, onNovoCampo, onRemoverCampo }: {
+  lead: Lead; etapas: Etapa[]; campos: CampoExtra[];
+  onFechar: () => void; onSalvar: (l: Lead) => void; onRemover: () => void;
+  onNovoCampo: (nome: string) => void; onRemoverCampo: (id: string) => void;
 }) {
+  const [r, setR] = useState<Lead>(lead);
+  const [avisando, setAvisando] = useState(false);
+  const [nomeCampo, setNomeCampo] = useState('');
+  const [criandoCampo, setCriandoCampo] = useState(false);
+  const [campoAExcluir, setCampoAExcluir] = useState<CampoExtra | null>(null);
+
+  // o rascunho nasce do lead e vive enquanto o painel estiver aberto; quem
+  // recomeça ele ao trocar de card é o `key` lá em cima, não um efeito
+
+  const mudar = (p: Partial<Lead>) => setR((x) => ({ ...x, ...p }));
+  const mudarExtra = (id: string, v: string) => setR((x) => ({ ...x, extras: { ...(x.extras ?? {}), [id]: v } }));
+  const sujo = JSON.stringify(r) !== JSON.stringify(lead);
+  const crua = etapas[0]?.id === r.etapa;
+  const tentarFechar = () => (sujo ? setAvisando(true) : onFechar());
+
+  function adicionarCampo() {
+    const nome = nomeCampo.trim();
+    if (!nome) return;
+    onNovoCampo(nome);
+    setNomeCampo('');
+    setCriandoCampo(false);
+  }
+
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5 py-8 overflow-y-auto" onClick={onFechar}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5 py-8 overflow-y-auto" onClick={tentarFechar}>
       <div className="w-full max-w-[520px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 p-6 pb-4 border-b border-slate-100">
           <div className="min-w-0 flex-1">
-            <input value={lead.nome} onChange={(e) => onEditar({ nome: e.target.value })} placeholder="Nome do contato"
+            <input value={r.nome} onChange={(e) => mudar({ nome: e.target.value })} placeholder="Nome do contato"
               className="w-full text-lg font-black text-slate-800 leading-tight bg-transparent rounded-md px-1 -ml-1 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none placeholder:text-slate-300" />
             <div className="flex items-center gap-1.5 mt-1">
               <Building2 className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-              <input value={lead.empresa} onChange={(e) => onEditar({ empresa: e.target.value })} placeholder="Empresa"
+              <input value={r.empresa} onChange={(e) => mudar({ empresa: e.target.value })} placeholder="Empresa"
                 className="flex-1 min-w-0 text-[13px] text-slate-500 bg-transparent rounded-md px-1 -ml-1 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none placeholder:text-slate-300" />
             </div>
           </div>
-          <button onClick={onFechar} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 shrink-0"><X className="w-5 h-5" /></button>
+          {sujo && (
+            <span className="shrink-0 mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md"
+              style={{ color: '#B45309', background: '#FEF3C7' }}>
+              não salvo
+            </span>
+          )}
+          <button onClick={tentarFechar} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 shrink-0"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-6 space-y-5">
           {/* contato */}
           <div className="grid grid-cols-2 gap-3 text-[12.5px]">
-            <Editavel Icone={Phone} rotulo="Telefone" valor={lead.telefone} onChange={(v) => onEditar({ telefone: v })} />
-            <Editavel Icone={Mail} rotulo="E-mail" valor={lead.email} onChange={(v) => onEditar({ email: v })} />
-            <Editavel Icone={User} rotulo="Responsável" valor={lead.responsavel} onChange={(v) => onEditar({ responsavel: v })} />
-            <Editavel Icone={Target} rotulo="Origem" valor={lead.origem} onChange={(v) => onEditar({ origem: v })} />
+            <Editavel Icone={Phone} rotulo="Telefone" valor={r.telefone} onChange={(v) => mudar({ telefone: v })} />
+            <Editavel Icone={Mail} rotulo="E-mail" valor={r.email} onChange={(v) => mudar({ email: v })} />
+            <Editavel Icone={User} rotulo="Responsável" valor={r.responsavel} onChange={(v) => mudar({ responsavel: v })} />
+            <Editavel Icone={Target} rotulo="Origem" valor={r.origem} onChange={(v) => mudar({ origem: v })} />
+            {/* campo criado pelo aluno: a definição é do quadro, aparece em todo card */}
+            {campos.map((c) => (
+              <div key={c.id} className="relative group">
+                <Editavel Icone={Tag} rotulo={c.nome} valor={r.extras?.[c.id] ?? ''} onChange={(v) => mudarExtra(c.id, v)} />
+                <button onClick={() => setCampoAExcluir(c)} title="Remover este campo de todos os cards"
+                  className="absolute top-0 right-0 p-0.5 rounded text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
           </div>
 
-          <Campo rotulo="Valor da negociação">
-            <input type="number" value={lead.valor} onChange={(e) => onEditar({ valor: Number(e.target.value) || 0 })}
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[14px] font-bold text-slate-800 focus:outline-none focus:border-slate-400" />
-          </Campo>
+          {/* criar campo novo */}
+          {criandoCampo ? (
+            <div className="flex items-center gap-2">
+              <input autoFocus value={nomeCampo} onChange={(e) => setNomeCampo(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') adicionarCampo(); if (e.key === 'Escape') setCriandoCampo(false); }}
+                placeholder="Nome do campo (ex.: CNPJ, cidade, produto)"
+                className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-800 focus:outline-none focus:border-slate-400" />
+              <button onClick={adicionarCampo}
+                className="px-3 py-2 rounded-lg text-[12px] font-black text-white transition-all hover:brightness-110" style={{ background: AZUL }}>
+                Criar
+              </button>
+              <button onClick={() => { setCriandoCampo(false); setNomeCampo(''); }}
+                className="px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-100 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setCriandoCampo(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-slate-300 text-[12px] font-bold text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors">
+              <Plus className="w-3.5 h-3.5" /> cadastrar novo campo
+            </button>
+          )}
+          {campos.length === 0 && !criandoCampo && (
+            <p className="-mt-3 text-[11px] text-slate-400 italic text-center">
+              O campo criado aqui passa a existir em todos os negócios do quadro.
+            </p>
+          )}
+
+          {/* lead cru ainda não tem valor nem temperatura: isso nasce na qualificação */}
+          {crua ? (
+            <p className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-[12.5px] text-slate-500 leading-relaxed">
+              Este contato ainda está na entrada do funil. <strong className="text-slate-700">Valor da negociação
+              e temperatura só aparecem quando você move ele para a próxima etapa</strong>, porque é na qualificação
+              que você descobre o tamanho e o interesse do negócio.
+            </p>
+          ) : (
+            <Campo rotulo="Valor da negociação">
+              <span className="flex items-center rounded-lg border border-slate-200 focus-within:border-slate-400 pl-3">
+                <span className="text-[14px] font-bold text-slate-400">R$</span>
+                <input inputMode="numeric" value={milhar(r.valor)} onChange={(e) => mudar({ valor: soDigitos(e.target.value) })}
+                  className="w-full px-2 py-2 rounded-r-lg text-[14px] font-bold text-slate-800 border-0 focus:outline-none" />
+              </span>
+            </Campo>
+          )}
 
           <Campo rotulo="Etapa do funil">
-            <select value={lead.etapa} onChange={(e) => onEditar({ etapa: e.target.value })}
+            <select value={r.etapa} onChange={(e) => mudar({ etapa: e.target.value })}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:border-slate-400">
               {etapas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
           </Campo>
 
+          {!crua && (
           <Campo rotulo="Temperatura" dica="O quanto este negócio está pronto para fechar.">
             {/* só o escolhido fica colorido; os outros apagam, para o estado ficar óbvio */}
             <div className="flex gap-2">
               {(['quente', 'morno', 'frio'] as Temperatura[]).map((t) => {
-                const on = lead.temperatura === t;
+                const on = r.temperatura === t;
                 return (
-                  <button key={t} onClick={() => onEditar({ temperatura: t })}
+                  <button key={t} onClick={() => mudar({ temperatura: t })}
                     className="flex-1 flex flex-col items-center gap-0.5 py-2.5 px-2 rounded-lg border transition-all"
                     style={on
                       ? { color: '#fff', background: COR_TEMP[t], borderColor: COR_TEMP[t] }
@@ -618,25 +823,92 @@ function PainelLead({ lead, etapas, onFechar, onEditar, onRemover }: {
               })}
             </div>
           </Campo>
+          )}
 
-          <Campo rotulo={`Dias parado nesta etapa: ${lead.diasNaEtapa}`} dica="Negócio parado esfria — acima de 15 dias começa a pesar contra.">
-            <input type="range" min={0} max={90} value={lead.diasNaEtapa}
-              onChange={(e) => onEditar({ diasNaEtapa: Number(e.target.value) })} className="w-full" />
+          <Campo rotulo={`Dias parado nesta etapa: ${r.diasNaEtapa}`} dica="Negócio parado esfria — acima de 15 dias começa a pesar contra.">
+            <input type="range" min={0} max={90} value={r.diasNaEtapa}
+              onChange={(e) => mudar({ diasNaEtapa: Number(e.target.value) })} className="w-full" />
           </Campo>
 
-          <Campo rotulo={`Nota de quem atende: ${lead.notaVendedor}/10`} dica="A leitura qualitativa do vendedor sobre a chance real.">
-            <input type="range" min={0} max={10} value={lead.notaVendedor}
-              onChange={(e) => onEditar({ notaVendedor: Number(e.target.value) })} className="w-full" />
+          <Campo rotulo={`Nota de quem atende: ${r.notaVendedor}/10`} dica="A leitura qualitativa do vendedor sobre a chance real.">
+            <input type="range" min={0} max={10} value={r.notaVendedor}
+              onChange={(e) => mudar({ notaVendedor: Number(e.target.value) })} className="w-full" />
           </Campo>
 
           <div className="flex items-center justify-between pt-2">
-            <span className="text-[11px] text-slate-400">Entrou em {lead.entrada.split('-').reverse().join('/')}</span>
+            <span className="text-[11px] text-slate-400">Entrou em {r.entrada.split('-').reverse().join('/')}</span>
             <button onClick={onRemover} className="flex items-center gap-1.5 text-[12px] font-bold text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors">
               <Trash2 className="w-3.5 h-3.5" /> Remover negócio
             </button>
           </div>
         </div>
+
+        {/* barra de salvar: gruda no rodapé do painel, sempre à vista */}
+        <div className="sticky bottom-0 flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl">
+          <button onClick={tentarFechar}
+            className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-slate-500 hover:bg-slate-100 transition-colors">
+            Cancelar
+          </button>
+          <button onClick={() => { onSalvar(r); onFechar(); }} disabled={!sujo}
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-black text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: AZUL }}>
+            <Save className="w-4 h-4" /> Salvar alterações
+          </button>
+        </div>
       </div>
+
+      {avisando && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/60 px-5" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-[400px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-6">
+            <div className="flex items-start gap-3">
+              <span className="grid place-items-center w-9 h-9 rounded-xl shrink-0" style={{ background: '#FEF3C7' }}>
+                <AlertTriangle className="w-4.5 h-4.5" style={{ color: '#B45309' }} />
+              </span>
+              <div>
+                <p className="text-[15px] font-black text-slate-800">Você alterou dados e não salvou</p>
+                <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+                  Se sair agora, as alterações deste negócio se perdem.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 space-y-2">
+              <button onClick={() => { onSalvar(r); onFechar(); }}
+                className="w-full rounded-xl px-4 py-3 text-[13px] font-black text-white transition-all hover:brightness-110" style={{ background: AZUL }}>
+                Salvar e fechar
+              </button>
+              <button onClick={onFechar}
+                className="w-full rounded-xl px-4 py-3 text-[13px] font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors">
+                Sair sem salvar
+              </button>
+              <button onClick={() => setAvisando(false)}
+                className="w-full rounded-xl px-4 py-3 text-[13px] font-bold text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors">
+                Continuar editando
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {campoAExcluir && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/60 px-5" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-[400px] rounded-2xl bg-white border border-slate-200 shadow-2xl p-6">
+            <p className="text-[15px] font-black text-slate-800">Remover o campo &ldquo;{campoAExcluir.nome}&rdquo;?</p>
+            <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+              Ele sai de <strong>todos</strong> os negócios do quadro, junto com o que estiver preenchido nele.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button onClick={() => setCampoAExcluir(null)}
+                className="flex-1 rounded-xl px-4 py-3 text-[13px] font-bold text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={() => { onRemoverCampo(campoAExcluir.id); setCampoAExcluir(null); }}
+                className="flex-1 rounded-xl px-4 py-3 text-[13px] font-black text-white bg-red-600 hover:bg-red-700 transition-colors">
+                Remover campo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -664,11 +936,35 @@ function Campo({ rotulo, dica, children }: { rotulo: string; dica?: string; chil
   );
 }
 
+/**
+ * Baixa em PDF o que estiver dentro do elemento apontado. Fica ao lado do X dos
+ * painéis: é lá que o aluno termina de ler e quer levar o relatório embora.
+ */
+function BotaoPdf({ alvo, arquivo }: { alvo: { current: HTMLDivElement | null }; arquivo: string }) {
+  const [indo, setIndo] = useState(false);
+  return (
+    <button disabled={indo}
+      onClick={async () => {
+        if (!alvo.current) return;
+        setIndo(true);
+        try { await baixarPdf(alvo.current, arquivo); }
+        catch (e) {
+          console.error('[simulador] falhou ao gerar o PDF:', e);
+          alert('Não consegui gerar o PDF. Tente de novo em alguns segundos.');
+        } finally { setIndo(false); }
+      }}
+      className="flex items-center gap-1.5 text-[12px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-3 py-2 transition-colors disabled:opacity-50">
+      <Download className="w-3.5 h-3.5" /> {indo ? 'Gerando...' : 'Baixar PDF'}
+    </button>
+  );
+}
+
 /** O forecast com a conta aberta — o aluno precisa ver de onde saiu o número. */
 function PainelForecast({ r, meta, onFechar }: { r: ReturnType<typeof calcular>; meta: number; onFechar: () => void }) {
   const ordenadas = [...r.linhas].sort((a, b) => b.ponderado - a.ponderado);
   const batida = r.faltante === 0;
   const saudavel = batida || r.cobertura >= 3;
+  const papel = useRef<HTMLDivElement>(null);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5 py-8 overflow-y-auto" onClick={onFechar}>
@@ -678,10 +974,13 @@ function PainelForecast({ r, meta, onFechar }: { r: ReturnType<typeof calcular>;
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Resultado</p>
             <p className="text-xl font-black text-slate-800">Forecast do seu pipeline</p>
           </div>
-          <button onClick={onFechar} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+          <div className="flex items-center gap-2">
+            <BotaoPdf alvo={papel} arquivo="forecast-do-pipeline.pdf" />
+            <button onClick={onFechar} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+          </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div ref={papel} className="p-6 space-y-6">
           {/* o velocímetro vive no painel Resultados; aqui o foco é a conta do forecast */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Bloco rotulo="Realizado" valor={brl(r.realizado)} sub="já fechado" cor="#10B981" />
@@ -758,6 +1057,7 @@ function PainelResultados({ r, e, meta, onFechar }: {
   const maiorEtapa = Math.max(1, ...e.porEtapa.map((x) => x.valor));
   const totalTemp = Math.max(1, e.porTemperatura.reduce((s, x) => s + x.qtd, 0));
   const dias = (n: number) => `${Math.round(n)} dia${Math.round(n) === 1 ? '' : 's'}`;
+  const papel = useRef<HTMLDivElement>(null);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 backdrop-blur-sm px-5 py-8 overflow-y-auto" onClick={onFechar}>
@@ -767,10 +1067,13 @@ function PainelResultados({ r, e, meta, onFechar }: {
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Panorama</p>
             <p className="text-xl font-black text-slate-800">Resultados do pipeline</p>
           </div>
-          <button onClick={onFechar} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+          <div className="flex items-center gap-2">
+            <BotaoPdf alvo={papel} arquivo="resultados-do-pipeline.pdf" />
+            <button onClick={onFechar} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+          </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div ref={papel} className="p-6 space-y-6">
           {/* velocímetro + números-chave */}
           <div className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-6 items-center">
             <Velocimetro atingimento={r.atingimento} realizado={r.realizado} meta={meta} />
