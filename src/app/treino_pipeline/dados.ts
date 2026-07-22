@@ -46,6 +46,7 @@ export type Treino = {
   identificado?: boolean;
   metaDefinida?: boolean;
   campos?: CampoExtra[];
+  revops?: RevOps;
 };
 
 export const CHAVE = 'treino-pipeline';
@@ -382,6 +383,200 @@ export function estatisticas(etapas: Etapa[], leads: Lead[], r: Resultado): Esta
     porTemperatura,
     insights,
   };
+}
+
+/* ══════════════ revenue operations ══════════════ */
+
+export type AreaCusto = 'marketing' | 'comercial' | 'cs' | 'financeiro' | 'outros';
+
+export const AREAS: AreaCusto[] = ['marketing', 'comercial', 'cs', 'financeiro', 'outros'];
+
+export const ROTULO_AREA: Record<AreaCusto, string> = {
+  marketing: 'Marketing',
+  comercial: 'Comercial',
+  cs: 'CS / pós-venda',
+  financeiro: 'Financeiro',
+  outros: 'Outros',
+};
+
+/**
+ * Os números que só o aluno sabe. Nada aqui é calculado a partir do quadro: é
+ * de propósito. A tela só roda depois que ele assume um CAC e um custo por
+ * lead — sem isso, qualquer projeção seria chute embrulhado em gráfico.
+ */
+export type RevOps = {
+  publicidade: number;                    // mídia paga no mês
+  areas: Record<AreaCusto, number>;       // custo mensal de cada área
+  equipe: number;                         // pessoas vendendo
+  conversao: number;                      // % de leads que viram venda
+  cac: number;                            // custo de aquisição por cliente
+  custoLead: number;                      // quanto custa gerar um lead
+  custoVendedor: number;                  // custo mensal de uma pessoa no comercial
+};
+
+export const REVOPS_VAZIO: RevOps = {
+  publicidade: 0,
+  areas: { marketing: 0, comercial: 0, cs: 0, financeiro: 0, outros: 0 },
+  equipe: 0, conversao: 0, cac: 0, custoLead: 0, custoVendedor: 0,
+};
+
+/** O que o próprio quadro já entrega para a conta. */
+export type BaseRevOps = {
+  leads: number;         // negócios no período
+  vendas: number;        // os que chegaram ao fechamento
+  ticketVenda: number;   // ticket médio do que fechou
+  receita: number;       // realizado
+  pipeline: number;
+  forecast: number;
+};
+
+export type ContaRevOps = {
+  pronto: boolean;
+  faltando: string[];
+  custoAreas: number;
+  custoTotal: number;         // áreas + mídia
+  custoSobreReceita: number;
+  cacReal: number;            // custo total ÷ vendas do quadro
+  custoLeadReal: number;      // mídia ÷ leads do quadro
+  conversaoReal: number;      // vendas ÷ leads do quadro (0 a 1)
+  margemVenda: number;        // ticket − CAC informado
+  retornoPorReal: number;     // receita ÷ custo total
+  vendasPorPessoa: number;
+  receitaPorPessoa: number;
+};
+
+const div = (a: number, b: number) => (b > 0 ? a / b : 0);
+
+export function contaRevOps(rev: RevOps, base: BaseRevOps): ContaRevOps {
+  const faltando: string[] = [];
+  if (rev.publicidade <= 0) faltando.push('valor atual de publicidade');
+  if (rev.equipe <= 0) faltando.push('quantidade de pessoas na equipe');
+  if (rev.conversao <= 0) faltando.push('taxa de conversão');
+  if (rev.cac <= 0) faltando.push('CAC');
+  if (rev.custoLead <= 0) faltando.push('custo por lead');
+
+  const custoAreas = AREAS.reduce((s, a) => s + (rev.areas[a] || 0), 0);
+  const custoTotal = custoAreas + rev.publicidade;
+
+  return {
+    pronto: faltando.length === 0,
+    faltando,
+    custoAreas,
+    custoTotal,
+    custoSobreReceita: div(custoTotal, base.receita),
+    cacReal: div(custoTotal, base.vendas),
+    custoLeadReal: div(rev.publicidade, base.leads),
+    conversaoReal: div(base.vendas, base.leads),
+    margemVenda: base.ticketVenda - rev.cac,
+    retornoPorReal: div(base.receita, custoTotal),
+    vendasPorPessoa: div(base.vendas, rev.equipe),
+    receitaPorPessoa: div(base.receita, rev.equipe),
+  };
+}
+
+export type SimMidia = {
+  extra: number;
+  leadsNovos: number;
+  vendasNovas: number;
+  receitaNova: number;
+  resultado: number;    // receita nova − o que foi investido
+  retorno: number;      // quantos reais voltam por real investido
+  cacDoIncremento: number;
+};
+
+/** Mais mídia: o dinheiro vira lead, o lead vira venda pela taxa informada. */
+export function simularMidia(rev: RevOps, base: BaseRevOps, extra: number): SimMidia {
+  const leadsNovos = div(extra, rev.custoLead);
+  const vendasNovas = leadsNovos * (rev.conversao / 100);
+  const receitaNova = vendasNovas * base.ticketVenda;
+  return {
+    extra,
+    leadsNovos,
+    vendasNovas,
+    receitaNova,
+    resultado: receitaNova - extra,
+    retorno: div(receitaNova, extra),
+    cacDoIncremento: div(extra, vendasNovas),
+  };
+}
+
+export type SimEquipe = {
+  novos: number;
+  vendasNovas: number;
+  receitaNova: number;
+  custoEquipe: number;
+  leadsNecessarios: number;
+  midiaNecessaria: number;   // para alimentar quem entrou
+  custoTotalDaJogada: number;
+  resultado: number;
+};
+
+/**
+ * Mais gente vendendo. O detalhe que quase todo mundo esquece: vendedor novo
+ * precisa de lead novo. A conta soma o custo da mídia que sustenta a produção
+ * dele, senão a contratação parece barata e não é.
+ */
+export function simularEquipe(rev: RevOps, base: BaseRevOps, novos: number, conta: ContaRevOps): SimEquipe {
+  const vendasNovas = conta.vendasPorPessoa * novos;
+  const receitaNova = vendasNovas * base.ticketVenda;
+  const custoEquipe = rev.custoVendedor * novos;
+  const leadsNecessarios = div(vendasNovas, rev.conversao / 100);
+  const midiaNecessaria = leadsNecessarios * rev.custoLead;
+  const custoTotalDaJogada = custoEquipe + midiaNecessaria;
+  return {
+    novos, vendasNovas, receitaNova, custoEquipe,
+    leadsNecessarios, midiaNecessaria, custoTotalDaJogada,
+    resultado: receitaNova - custoTotalDaJogada,
+  };
+}
+
+/** A leitura em texto: o que os números acima estão dizendo na prática. */
+export function insightsRevOps(rev: RevOps, base: BaseRevOps, c: ContaRevOps, midia: SimMidia, equipe: SimEquipe): string[] {
+  const t: string[] = [];
+
+  if (c.margemVenda <= 0) {
+    t.push(`Cada venda entra ${brl(base.ticketVenda)} e custa ${brl(rev.cac)} para ser conquistada: você paga para vender. Antes de investir mais, o ticket precisa subir ou o CAC precisa cair.`);
+  } else {
+    t.push(`Sobra ${brl(c.margemVenda)} por venda depois do CAC (${Math.round((c.margemVenda / base.ticketVenda) * 100)}% do ticket). É essa sobra que banca todo o resto da operação.`);
+  }
+
+  if (base.vendas > 0 && c.cacReal > 0) {
+    const dif = c.cacReal - rev.cac;
+    if (Math.abs(dif) > rev.cac * 0.2) {
+      t.push(dif > 0
+        ? `Você trabalha com CAC de ${brl(rev.cac)}, mas dividindo TODO o custo da operação (${brl(c.custoTotal)}) pelas ${base.vendas} vendas do período dá ${brl(c.cacReal)}. O CAC real é ${brl(dif)} maior — a conta que você usa só enxerga a mídia.`
+        : `O custo por venda incluindo a operação inteira (${brl(c.cacReal)}) está abaixo do CAC que você assume (${brl(rev.cac)}). Ou o período foi bom, ou o CAC informado está conservador.`);
+    }
+  }
+
+  if (base.leads > 0) {
+    const dif = c.conversaoReal * 100 - rev.conversao;
+    if (Math.abs(dif) >= 3) {
+      t.push(dif > 0
+        ? `O quadro converteu ${pct(c.conversaoReal)} dos negócios, acima dos ${rev.conversao}% que você usa na conta. Se a taxa real se sustentar, toda projeção aqui está subestimada.`
+        : `O quadro converteu ${pct(c.conversaoReal)}, abaixo dos ${rev.conversao}% que você usa na conta. Projetar com a taxa otimista é o jeito mais comum de furar meta.`);
+    }
+  }
+
+  if (midia.extra > 0) {
+    t.push(midia.retorno >= 1
+      ? `Mais ${brl(midia.extra)} em mídia devolvem ${brl(midia.receitaNova)} (${midia.retorno.toFixed(1)}x). Enquanto o retorno passar de 1x e a equipe der conta do volume, este é o caminho mais rápido de crescer.`
+      : `Mais ${brl(midia.extra)} em mídia devolvem só ${brl(midia.receitaNova)} (${midia.retorno.toFixed(1)}x): você perderia ${brl(Math.abs(midia.resultado))}. Com esse custo por lead e essa conversão, aumentar verba não resolve.`);
+  }
+
+  if (equipe.novos > 0) {
+    t.push(equipe.resultado >= 0
+      ? `Cada pessoa a mais produz ${equipe.vendasNovas.toFixed(1)} venda(s) no ritmo atual — mas precisa de ${Math.ceil(equipe.leadsNecessarios)} lead(s), o que pede ${brl(equipe.midiaNecessaria)} de mídia além do salário. Contando os dois, sobram ${brl(equipe.resultado)}.`
+      : `Contratar ${equipe.novos} pessoa(s) custa ${brl(equipe.custoTotalDaJogada)} entre time e mídia para gerar ${brl(equipe.receitaNova)}: fecha ${brl(Math.abs(equipe.resultado))} no vermelho. Contratar antes de resolver a geração de leads é dar ao vendedor um funil vazio.`);
+  }
+
+  if (c.custoSobreReceita > 0) {
+    t.push(`A operação inteira custa ${pct(c.custoSobreReceita)} da receita realizada, e cada real investido devolve ${c.retornoPorReal.toFixed(2)}.`);
+  }
+
+  if (base.vendas === 0) t.push('Ainda não há venda fechada no período: as projeções usam o ticket do que já fechou e vão ficar em zero até a primeira venda entrar.');
+
+  return t;
 }
 
 export const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });

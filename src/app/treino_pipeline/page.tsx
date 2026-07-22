@@ -14,12 +14,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, Trash2, X, Wand2, Calculator, Thermometer, Clock, Building2, Phone, Mail,
   User, Target, AlertTriangle, RotateCcw, Trophy, BarChart3, Sparkles,
-  GripVertical, Save, Tag, Download, ChevronLeft, ChevronRight,
+  GripVertical, Save, Tag, Download, ChevronLeft, ChevronRight, Gauge,
 } from 'lucide-react';
 import {
-  CHAVE, ETAPAS_SUGERIDAS, FAIXA_TEMPERATURA, LOTE, VAZIO, brParaIso, brl, calcular,
-  estatisticas, gerarLeads, mascaraData, milhar, novoId, novoLeadManual, pct, soDigitos, ticketDaMeta,
-  type CampoExtra, type Estatisticas, type Etapa, type Lead, type Resultado, type Temperatura, type Treino,
+  AREAS, CHAVE, ETAPAS_SUGERIDAS, FAIXA_TEMPERATURA, LOTE, REVOPS_VAZIO, ROTULO_AREA, VAZIO,
+  brParaIso, brl, calcular, contaRevOps, estatisticas, gerarLeads, insightsRevOps, mascaraData,
+  milhar, novoId, novoLeadManual, pct, simularEquipe, simularMidia, soDigitos, ticketDaMeta,
+  type AreaCusto, type BaseRevOps, type CampoExtra, type Estatisticas, type Etapa, type Lead,
+  type Resultado, type RevOps, type Temperatura, type Treino,
 } from './dados';
 import { baixarPdf } from './pdf';
 
@@ -41,6 +43,7 @@ export default function SimuladorPipeline() {
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const [verForecast, setVerForecast] = useState(false);
   const [verResultados, setVerResultados] = useState(false);
+  const [verRevOps, setVerRevOps] = useState(false);
   const [confirmandoApagar, setConfirmandoApagar] = useState(false);
   // nenhuma exclusão acontece direto: toda lixeira passa por aqui primeiro
   const [aExcluir, setAExcluir] = useState<{ tipo: 'lead' | 'etapa'; id: string; nome: string } | null>(null);
@@ -66,6 +69,7 @@ export default function SimuladorPipeline() {
           identificado: p.identificado,
           metaDefinida: p.metaDefinida,
           campos: Array.isArray(p.campos) ? p.campos : [],
+          revops: { ...REVOPS_VAZIO, ...(p.revops ?? {}), areas: { ...REVOPS_VAZIO.areas, ...(p.revops?.areas ?? {}) } },
         });
       }
     } catch { /* storage bloqueado: começa vazio */ }
@@ -84,6 +88,7 @@ export default function SimuladorPipeline() {
     [d.leads, de, ate],
   );
   const resultado = useMemo(() => calcular(d.etapas, leadsFiltrados, d.meta), [d.etapas, leadsFiltrados, d.meta]);
+  const estat = useMemo(() => estatisticas(d.etapas, leadsFiltrados, resultado), [d.etapas, leadsFiltrados, resultado]);
   const aberto = d.leads.find((l) => l.id === abertoId) ?? null;
 
   /* ── edições ── */
@@ -259,6 +264,11 @@ export default function SimuladorPipeline() {
     return (
       <div className="min-h-screen bg-slate-50 grid place-items-center px-4 sm:px-5 py-10 sm:py-12">
         <div className="w-full max-w-[560px]">
+          {/* dá para voltar e corrigir quem está treinando antes de montar o funil */}
+          <button onClick={() => setD((x) => ({ ...x, identificado: false }))}
+            className="flex items-center gap-1.5 mb-3 -ml-1 px-2 py-1.5 rounded-lg text-[12px] font-bold text-slate-400 hover:text-slate-700 hover:bg-white transition-colors">
+            <ChevronLeft className="w-4 h-4" /> voltar
+          </button>
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Aula de MBA</p>
           <h1 className="text-2xl font-black tracking-tight text-slate-800 mb-5">Simulador de Pipeline &amp; Forecast</h1>
 
@@ -376,6 +386,11 @@ export default function SimuladorPipeline() {
               className="flex-1 lg:flex-none justify-center flex items-center gap-1.5 text-xs font-black text-white rounded-lg px-2.5 sm:px-3.5 py-2 transition-all hover:brightness-110"
               style={{ background: '#10B981' }}>
               <BarChart3 className="w-4 h-4 shrink-0" /> Resultados
+            </button>
+            <button onClick={() => setVerRevOps(true)} title="Custos, CAC e simulações de crescimento"
+              className="flex-1 lg:flex-none justify-center flex items-center gap-1.5 text-xs font-black text-white rounded-lg px-2.5 sm:px-3.5 py-2 transition-all hover:brightness-110"
+              style={{ background: '#7C3AED' }}>
+              <Gauge className="w-4 h-4 shrink-0" /> <span className="sm:hidden">RevOps</span><span className="hidden sm:inline">Revenue Operation</span>
             </button>
             <button onClick={() => setConfirmandoApagar(true)} title="Apagar negócios ou recomeçar"
               className="hidden lg:block p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
@@ -562,8 +577,24 @@ export default function SimuladorPipeline() {
       )}
       {verResultados && (
         <PainelResultados
-          r={resultado} e={estatisticas(d.etapas, leadsFiltrados, resultado)} meta={d.meta} quem={quem}
+          r={resultado} e={estat} meta={d.meta} quem={quem}
           onFechar={() => setVerResultados(false)}
+        />
+      )}
+      {verRevOps && (
+        <PainelRevOps
+          rev={d.revops ?? REVOPS_VAZIO}
+          base={{
+            leads: leadsFiltrados.length,
+            vendas: estat.vendas,
+            ticketVenda: estat.ticketMedioVenda,
+            receita: resultado.realizado,
+            pipeline: resultado.pipeline,
+            forecast: resultado.forecast,
+          }}
+          quem={quem}
+          onMudar={(rev) => setD((x) => ({ ...x, revops: rev }))}
+          onFechar={() => setVerRevOps(false)}
         />
       )}
       {aExcluir && (
@@ -652,11 +683,6 @@ function PerguntaIdentificacao({ empresaInicial, responsavelInicial, onConfirmar
           <span className="grid place-items-center w-11 h-11 rounded-xl mb-4 text-white" style={{ background: AZUL }}>
             <Building2 className="w-5 h-5" />
           </span>
-          <p className="text-lg font-black text-slate-800 mb-1">De quem é este funil?</p>
-          <p className="text-[13px] text-slate-500 leading-relaxed mb-5">
-            O nome acompanha o quadro e sai no cabeçalho dos relatórios em PDF.
-          </p>
-
           <label className="block mb-4">
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Empresa</span>
             <input autoFocus value={empresa} onChange={(e) => setEmpresa(e.target.value)} placeholder="Nome da empresa"
@@ -1304,6 +1330,240 @@ function PainelResultados({ r, e, meta, quem, onFechar }: {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Revenue Operation ─────────────────────────────────────────────────── */
+
+const ROXO = '#7C3AED';
+
+/** Campo de dinheiro com R$ e ponto de milhar, do jeito que o resto da tela usa. */
+function CampoMoeda({ rotulo, valor, onChange, dica }: {
+  rotulo: string; valor: number; onChange: (v: number) => void; dica?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{rotulo}</span>
+      <span className="mt-1 flex items-center rounded-lg border border-slate-200 focus-within:border-slate-400 pl-2.5">
+        <span className="text-[13px] font-bold text-slate-400">R$</span>
+        <input inputMode="numeric" value={milhar(valor)} onChange={(e) => onChange(soDigitos(e.target.value))}
+          className="w-full min-w-0 px-2 py-2 rounded-r-lg text-[14px] font-bold text-slate-800 border-0 focus:outline-none" />
+      </span>
+      {dica && <span className="block text-[10.5px] text-slate-400 mt-1 leading-tight">{dica}</span>}
+    </label>
+  );
+}
+
+/** Campo numérico simples (pessoas, porcentagem). */
+function CampoNumero({ rotulo, valor, onChange, sufixo, dica, passo = 1 }: {
+  rotulo: string; valor: number; onChange: (v: number) => void; sufixo?: string; dica?: string; passo?: number;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{rotulo}</span>
+      <span className="mt-1 flex items-center rounded-lg border border-slate-200 focus-within:border-slate-400 pr-2.5">
+        <input type="number" min={0} step={passo} value={valor || ''} onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+          className="w-full min-w-0 px-2.5 py-2 rounded-l-lg text-[14px] font-bold text-slate-800 border-0 focus:outline-none" />
+        {sufixo && <span className="text-[13px] font-bold text-slate-400 shrink-0">{sufixo}</span>}
+      </span>
+      {dica && <span className="block text-[10.5px] text-slate-400 mt-1 leading-tight">{dica}</span>}
+    </label>
+  );
+}
+
+/**
+ * Revenue Operation: junta num lugar só o custo de cada área e o que ele compra.
+ *
+ * A tela é deliberadamente burra até o aluno preencher CAC, custo por lead,
+ * conversão, verba e tamanho do time. O quadro entrega leads, vendas, ticket e
+ * receita; o resto é premissa dele. Sem premissa assumida, projeção vira chute
+ * com aparência de relatório — e o exercício da aula é justamente esse.
+ */
+function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
+  rev: RevOps; base: BaseRevOps; quem: Quem;
+  onMudar: (r: RevOps) => void; onFechar: () => void;
+}) {
+  const [extraMidia, setExtraMidia] = useState(0);
+  const [novasPessoas, setNovasPessoas] = useState(1);
+  const papel = useRef<HTMLDivElement>(null);
+
+  const conta = contaRevOps(rev, base);
+  const midia = simularMidia(rev, base, extraMidia);
+  const equipe = simularEquipe(rev, base, novasPessoas, conta);
+  const insights = conta.pronto ? insightsRevOps(rev, base, conta, midia, equipe) : [];
+
+  const mudar = (p: Partial<RevOps>) => onMudar({ ...rev, ...p });
+  const mudarArea = (a: AreaCusto, v: number) => onMudar({ ...rev, areas: { ...rev.areas, [a]: v } });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
+      <div className="w-full max-w-[920px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: ROXO }}>Revenue Operation</p>
+            <p className="text-lg sm:text-xl font-black text-slate-800 truncate">O custo da sua receita</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <BotaoPdf alvo={papel} arquivo="revenue-operation.pdf" />
+            <button onClick={onFechar} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+          </div>
+        </div>
+
+        <div ref={papel} className="p-4 sm:p-6 space-y-6">
+          <CabecalhoRelatorio quem={quem} />
+
+          {/* o que o quadro já sabe — nada aqui se digita */}
+          <div>
+            <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-2">Vem do seu quadro</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <Mini rotulo="Negócios no período" valor={String(base.leads)} sub="base de leads" />
+              <Mini rotulo="Vendas" valor={String(base.vendas)} sub="fecharam" cor="#10B981" />
+              <Mini rotulo="Ticket da venda" valor={brl(base.ticketVenda)} sub="média do que fechou" />
+              <Mini rotulo="Receita realizada" valor={brl(base.receita)} sub="no período" cor="#10B981" />
+            </div>
+          </div>
+
+          {/* custos por área */}
+          <div>
+            <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-1">Custo mensal por área</p>
+            <p className="text-[12px] text-slate-500 leading-relaxed mb-3">
+              Tudo que existe para a receita acontecer. Some salários, ferramentas e serviços de cada área.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {AREAS.map((a) => (
+                <CampoMoeda key={a} rotulo={ROTULO_AREA[a]} valor={rev.areas[a]} onChange={(v) => mudarArea(a, v)} />
+              ))}
+              <CampoMoeda rotulo="Publicidade (mídia)" valor={rev.publicidade}
+                onChange={(v) => mudar({ publicidade: v })} dica="verba paga do mês" />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <span className="text-[12px] font-bold text-slate-500">Custo total da operação de receita</span>
+              <span className="text-[18px] font-black" style={{ color: ROXO }}>{brl(conta.custoTotal)}</span>
+            </div>
+          </div>
+
+          {/* premissas do aluno */}
+          <div>
+            <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-1">Suas premissas</p>
+            <p className="text-[12px] text-slate-500 leading-relaxed mb-3">
+              Estes cinco números são seus, não do quadro. É a partir deles que as simulações rodam.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <CampoNumero rotulo="Pessoas na equipe" valor={rev.equipe} onChange={(v) => mudar({ equipe: v })}
+                sufixo="pes." dica="quem vende hoje" />
+              <CampoNumero rotulo="Taxa de conversão" valor={rev.conversao} onChange={(v) => mudar({ conversao: Math.min(100, v) })}
+                sufixo="%" dica={base.leads > 0 ? `o quadro fez ${pct(conta.conversaoReal)}` : 'lead que vira venda'} />
+              <CampoMoeda rotulo="CAC" valor={rev.cac} onChange={(v) => mudar({ cac: v })} dica="custo por cliente conquistado" />
+              <CampoMoeda rotulo="Custo por lead" valor={rev.custoLead} onChange={(v) => mudar({ custoLead: v })}
+                dica={base.leads > 0 && rev.publicidade > 0 ? `pela sua verba dá ${brl(conta.custoLeadReal)}` : 'quanto custa gerar um lead'} />
+              <CampoMoeda rotulo="Custo por vendedor" valor={rev.custoVendedor} onChange={(v) => mudar({ custoVendedor: v })}
+                dica="salário + encargos, por mês" />
+            </div>
+            {base.leads > 0 && conta.conversaoReal > 0 && (
+              <button onClick={() => mudar({ conversao: Math.round(conta.conversaoReal * 1000) / 10 })}
+                className="mt-3 text-[12px] font-bold px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+                usar a conversão real do quadro ({pct(conta.conversaoReal)})
+              </button>
+            )}
+          </div>
+
+          {/* a trava: sem premissa não há projeção */}
+          {!conta.pronto ? (
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 px-5 py-6">
+              <p className="text-[14px] font-black text-slate-700 mb-1">As simulações abrem quando você preencher:</p>
+              <p className="text-[12.5px] text-slate-500 leading-relaxed mb-4">
+                Nada aqui é chutado por conta própria. Sem esses números assumidos por você, qualquer
+                projeção seria um palpite com cara de relatório.
+              </p>
+              <ul className="space-y-1.5">
+                {conta.faltando.map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-[13px] font-bold text-slate-600">
+                    <span className="w-4 h-4 rounded-full border-2 border-slate-300 shrink-0" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <>
+              {/* leitura da operação */}
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-2">Como está hoje</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  <Mini rotulo="CAC informado" valor={brl(rev.cac)} sub="a sua premissa" />
+                  <Mini rotulo="CAC real do período" valor={base.vendas > 0 ? brl(conta.cacReal) : '—'}
+                    sub="custo total ÷ vendas" cor={base.vendas > 0 && conta.cacReal > rev.cac ? '#EF4444' : '#10B981'} />
+                  <Mini rotulo="Margem por venda" valor={brl(conta.margemVenda)} sub="ticket − CAC"
+                    cor={conta.margemVenda > 0 ? '#10B981' : '#EF4444'} />
+                  <Mini rotulo="Custo sobre a receita" valor={base.receita > 0 ? pct(conta.custoSobreReceita) : '—'} sub="operação ÷ receita" />
+                  <Mini rotulo="Retorno por real" valor={conta.custoTotal > 0 ? `${conta.retornoPorReal.toFixed(2)}x` : '—'} sub="receita ÷ custo" cor={ROXO} />
+                  <Mini rotulo="Vendas por pessoa" valor={conta.vendasPorPessoa.toFixed(1)} sub="no período" />
+                </div>
+              </div>
+
+              {/* simulação 1: mídia */}
+              <div className="rounded-2xl border border-slate-200 p-4 sm:p-5">
+                <p className="text-[14px] font-black text-slate-800 mb-1">E se eu investir mais em tráfego?</p>
+                <p className="text-[12.5px] text-slate-500 leading-relaxed mb-3">
+                  A verba vira lead pelo seu custo por lead, e o lead vira venda pela sua taxa de conversão.
+                </p>
+                <div className="max-w-[240px]">
+                  <CampoMoeda rotulo="Investimento a mais no mês" valor={extraMidia} onChange={setExtraMidia} />
+                </div>
+                {extraMidia > 0 && (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
+                      <Mini rotulo="Leads a mais" valor={midia.leadsNovos.toFixed(0)} sub="pela verba nova" />
+                      <Mini rotulo="Vendas a mais" valor={midia.vendasNovas.toFixed(1)} sub="pela sua conversão" />
+                      <Mini rotulo="Receita a mais" valor={brl(midia.receitaNova)} sub="vendas × ticket" cor="#10B981" />
+                      <Mini rotulo="Resultado" valor={brl(midia.resultado)} sub={`${midia.retorno.toFixed(1)}x o investido`}
+                        cor={midia.resultado >= 0 ? '#10B981' : '#EF4444'} />
+                    </div>
+                    <p className="text-[11.5px] text-slate-400 mt-2.5">
+                      Cada venda deste incremento sairia por {brl(midia.cacDoIncremento)}.
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* simulação 2: time */}
+              <div className="rounded-2xl border border-slate-200 p-4 sm:p-5">
+                <p className="text-[14px] font-black text-slate-800 mb-1">E se eu contratar mais vendedores?</p>
+                <p className="text-[12.5px] text-slate-500 leading-relaxed mb-3">
+                  Cada pessoa nova produz o que a equipe atual produz por cabeça. A conta soma o salário
+                  <strong> e a mídia</strong> necessária para dar funil a ela.
+                </p>
+                <div className="max-w-[240px]">
+                  <CampoNumero rotulo="Pessoas a contratar" valor={novasPessoas} onChange={setNovasPessoas} sufixo="pes." />
+                </div>
+                {novasPessoas > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
+                    <Mini rotulo="Vendas a mais" valor={equipe.vendasNovas.toFixed(1)} sub="no ritmo por cabeça" />
+                    <Mini rotulo="Receita a mais" valor={brl(equipe.receitaNova)} sub="vendas × ticket" cor="#10B981" />
+                    <Mini rotulo="Custo da jogada" valor={brl(equipe.custoTotalDaJogada)}
+                      sub={`${brl(equipe.custoEquipe)} time + ${brl(equipe.midiaNecessaria)} mídia`} cor="#EF4444" />
+                    <Mini rotulo="Resultado" valor={brl(equipe.resultado)} sub={`precisa de ${Math.ceil(equipe.leadsNecessarios)} leads`}
+                      cor={equipe.resultado >= 0 ? '#10B981' : '#EF4444'} />
+                  </div>
+                )}
+              </div>
+
+              {/* leitura em texto */}
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-3">O que isso quer dizer</p>
+                <div className="space-y-2">
+                  {insights.map((t, i) => (
+                    <div key={i} className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <Sparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: ROXO }} />
+                      <p className="text-[13px] text-slate-700 leading-relaxed">{t}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
