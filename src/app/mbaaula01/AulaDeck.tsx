@@ -45,7 +45,6 @@ const GAP = GAP_MES * MESES;                                       // 240.000/an
 const CLIENTES = GAP / ALPHA.ticket;                               // 480
 const OPORTUNIDADES = CLIENTES / ALPHA.winRate;                    // 1.920
 const LEADS = OPORTUNIDADES / ALPHA.leadParaOportunidade;          // 9.600
-const PIPELINE_NECESSARIO = GAP / ALPHA.winRate;                   // 960.000
 
 const BUDGET = [
   { item: 'Marketing e mídia', valor: 48_000, icon: Megaphone, nota: 'R$ 4 mil/mês' },
@@ -2718,21 +2717,8 @@ function S26() {
               </div>
             </div>
           </Card>
-          <Card className="p-5 mt-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2.5">A regra</p>
-            <p className="text-lg font-black mb-3" style={{ color: GOLD }}>Coverage necessário = 1 ÷ win rate</p>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              {[['25%', '4x'], ['33%', '3x'], ['50%', '2x']].map(([wr, cv]) => (
-                <div key={wr} className="rounded-lg bg-white/[0.04] py-2">
-                  <p className="text-[10px] text-slate-500">win {wr}</p>
-                  <p className="text-base font-black text-slate-200">{cv}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
         </div>
       </div>
-      <Mensagem>A cobertura ideal depende da <strong style={{ color: BLUE }}>eficiência da máquina comercial</strong> — na Alpha, {fmtK(GAP)} ÷ 25% = <strong style={{ color: GOLD }}>{fmtK(PIPELINE_NECESSARIO)} de pipeline no ano</strong>.</Mensagem>
     </Slide>
   );
 }
@@ -2830,40 +2816,6 @@ function S27() {
           </div>
         </motion.div>
       </div>
-    </Slide>
-  );
-}
-
-// 36 — Forecast é ferramenta de decisão
-function S28() {
-  const sits = [
-    { t: 'ACIMA DA META', cor: GREEN, icon: TrendingUp, qs: ['Acelerar?', 'Investir?', 'Antecipar capacidade?', 'Ou o forecast está inflado?'] },
-    { t: 'NA META', cor: BLUE, icon: Target, qs: ['Como proteger a execução?', 'Quais 3 deals derrubam o trimestre se caírem?', 'O que os blinda?'] },
-    { t: 'ABAIXO DA META', cor: RED, icon: AlertTriangle, qs: ['O que corrigir AGORA?', 'Dá tempo, dado o ciclo?', 'Acelerar pipeline, ticket ou custo?'] },
-  ];
-  return (
-    <Slide bg="dark">
-      <TituloCentral sub="Para que serve, afinal">Forecast é ferramenta de decisão</TituloCentral>
-      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center min-h-0">
-        {sits.map((s, i) => (
-          <motion.div key={s.t} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.15 }} className="h-full">
-            <div className="h-full rounded-2xl border p-5 flex flex-col" style={{ borderColor: `${s.cor}33`, background: `${s.cor}0a` }}>
-              <s.icon className="w-6 h-6 mb-3" style={{ color: s.cor }} />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Forecast</p>
-              <p className="text-lg font-black" style={{ color: s.cor }}>{s.t}</p>
-              <ul className="mt-4 pt-4 border-t border-white/10 space-y-2 flex-1">
-                {s.qs.map((q) => (
-                  <li key={q} className="text-[12px] text-slate-300 flex gap-2 leading-relaxed"><span style={{ color: s.cor }}>·</span>{q}</li>
-                ))}
-              </ul>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <Mensagem cor={GOLD}>
-        O valor do forecast não está em acertar o futuro perfeitamente.<br />
-        Está em <strong style={{ color: GOLD }}>permitir decisões antes que seja tarde</strong>.
-      </Mensagem>
     </Slide>
   );
 }
@@ -3005,55 +2957,6 @@ function S32() {
 
 /* ═══════════════════ BLOCO 6 — FECHAMENTO ═══════════════════ */
 
-// 41 — O desafio final
-function S33() {
-  const perguntas = [
-    'Quantos clientes precisa conquistar?',
-    'Quantas oportunidades precisa gerar?',
-    'Quantos leads serão necessários?',
-    'Qual pipeline será necessário?',
-    'Qual investimento será necessário?',
-    'Como acompanhará o resultado?',
-    'Quando deverá revisar o forecast?',
-  ];
-  return (
-    <Slide bg="dark">
-      <div className="shrink-0 flex items-center gap-3 mb-5">
-        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.25em]" style={{ background: `${GOLD}1a`, color: GOLD }}>Desafio final</span>
-        <h2 className="text-2xl sm:text-3xl font-black tracking-tight">EMPRESA ALPHA</h2>
-      </div>
-
-      <div className="shrink-0 flex items-center justify-center gap-6 sm:gap-10 mb-6">
-        <div className="text-center">
-          <p className="text-[10px] uppercase tracking-widest text-slate-500">Hoje</p>
-          <p className="text-3xl sm:text-4xl font-black text-slate-300">R$ 30 mil/mês</p>
-        </div>
-        <span className="text-2xl" style={{ color: BLUE }}>→</span>
-        <div className="text-center">
-          <p className="text-[10px] uppercase tracking-widest" style={{ color: BLUE }}>Meta</p>
-          <p className="text-3xl sm:text-4xl font-black" style={{ color: BLUE }}>R$ 50 mil/mês</p>
-        </div>
-      </div>
-
-      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5 content-center min-h-0">
-        {perguntas.map((p, i) => (
-          <motion.div key={p} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.09 }}>
-            <Card className="px-4 py-3.5 h-full flex items-center gap-3">
-              <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0" style={{ background: 'rgba(26,173,226,0.15)', color: BLUE }}>{i + 1}</span>
-              <p className="text-[14px] text-slate-200">{p}</p>
-            </Card>
-          </motion.div>
-        ))}
-        <div className="rounded-2xl border border-dashed flex items-center justify-center px-4 py-3.5" style={{ borderColor: `${GOLD}44` }}>
-          <p className="text-[12px] text-center leading-relaxed" style={{ color: GOLD }}>
-            5 a 7 minutos em grupos.<br />Usem só o que viram hoje.
-          </p>
-        </div>
-      </div>
-      <SeloMagna />
-    </Slide>
-  );
-}
 
 // 42 — A grande síntese
 function S34() {
@@ -3144,17 +3047,15 @@ const SLIDES = [
   { id: 's35d-principios-pipeline', titulo: 'Princípios do pipeline eficaz', bloco: 'Forecast', node: <SPrincipiosPipeline /> },
   { id: 's35e-passos-pipeline', titulo: 'Como construir o seu pipeline', bloco: 'Forecast', node: <SPassosPipeline /> },
   { id: 's35f-equilibrio-processo', titulo: 'Equilíbrio para adoção do processo', bloco: 'Forecast', node: <SEquilibrioProcesso /> },
-  { id: 's36-pipeline-nao-e-forecast', titulo: 'Pipeline não é forecast', bloco: 'Forecast', node: <S24 /> },
   { id: 's37-mapa-forecast', titulo: 'O mapa · próximo: FORECAST', bloco: 'Forecast', node: <MapaReceita foco="FORECAST" /> },
   { id: 's38-formula-forecast', titulo: 'A fórmula do ponderado', bloco: 'Forecast', node: <S25 /> },
   { id: 's39-coverage', titulo: 'Pipeline coverage', bloco: 'Forecast', node: <S26 /> },
+  { id: 's36-pipeline-nao-e-forecast', titulo: 'Pipeline não é forecast', bloco: 'Forecast', node: <S24 /> },
   { id: 's40-treinar-pratica', titulo: 'Vamos treinar na prática', bloco: 'Forecast', node: <S27 /> },
-  { id: 's41-forecast-decisao', titulo: 'Forecast é decisão', bloco: 'Forecast', node: <S28 /> },
   { id: 's42-mapa-revops', titulo: 'O mapa · próximo: REVENUE OPERATIONS', bloco: 'RevOps', node: <MapaReceita foco="REVOPS" selo /> },
   { id: 's43-silos', titulo: 'O problema dos silos', bloco: 'RevOps', node: <S29 /> },
   { id: 's44-revops', titulo: 'O que é RevOps?', bloco: 'RevOps', node: <S30 /> },
   { id: 's45-ciclo-gestao', titulo: 'O ciclo de gestão', bloco: 'RevOps', node: <S32 /> },
-  { id: 's46-desafio-final', titulo: 'O desafio final', bloco: 'Fechamento', node: <S33 /> },
   { id: 's47-sintese', titulo: 'A grande síntese', bloco: 'Fechamento', node: <S34 /> },
 ];
 
