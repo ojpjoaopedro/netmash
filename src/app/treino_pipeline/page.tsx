@@ -19,7 +19,7 @@ import {
 import {
   AREAS, CHAVE, ETAPAS_SUGERIDAS, FAIXA_TEMPERATURA, LOTE, REVOPS_VAZIO, ROTULO_AREA, VAZIO,
   brParaIso, brl, calcular, contaRevOps, estatisticas, gerarLeads, insightsRevOps, mascaraData,
-  milhar, novoId, novoLeadManual, pct, simularEquipe, simularMidia, soDigitos, ticketDaMeta,
+  milhar, novoId, novoLeadManual, pct, pctFino, simularEquipe, simularMidia, soDigitos, ticketDaMeta,
   type AreaCusto, type BaseRevOps, type CampoExtra, type Estatisticas, type Etapa, type Lead,
   type Resultado, type RevOps, type Temperatura, type Treino,
 } from './dados';
@@ -863,9 +863,9 @@ function PainelLead({ lead, etapas, campos, onFechar, onSalvar, onRemover, onNov
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={tentarFechar}>
-      <div className="w-full max-w-[520px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={tentarFechar}>
+      <div className="w-full my-auto max-w-[520px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 bg-white rounded-t-2xl flex items-start justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
           <div className="min-w-0 flex-1">
             <input value={r.nome} onChange={(e) => mudar({ nome: e.target.value })} placeholder="Nome do contato"
               className="w-full text-lg font-black text-slate-800 leading-tight bg-transparent rounded-md px-1 -ml-1 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none placeholder:text-slate-300" />
@@ -1154,9 +1154,9 @@ function PainelForecast({ r, meta, quem, onFechar }: {
   const papel = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
-      <div className="w-full max-w-[880px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
+      <div className="w-full my-auto max-w-[880px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 bg-white rounded-t-2xl flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Resultado</p>
             <p className="text-xl font-black text-slate-800">Forecast do seu pipeline</p>
@@ -1250,9 +1250,9 @@ function PainelResultados({ r, e, meta, quem, onFechar }: {
   const papel = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
-      <div className="w-full max-w-[920px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
+      <div className="w-full my-auto max-w-[920px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
+        <div className="sticky top-0 z-10 bg-white rounded-t-2xl flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Panorama</p>
             <p className="text-xl font-black text-slate-800">Resultados do pipeline</p>
@@ -1399,9 +1399,9 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
   const mudarArea = (a: AreaCusto, v: number) => onMudar({ ...rev, areas: { ...rev.areas, [a]: v } });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
-      <div className="w-full max-w-[920px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm px-3 sm:px-5 py-4 sm:py-8 overflow-y-auto" onClick={onFechar}>
+      <div className="w-full my-auto max-w-[920px] rounded-2xl bg-white border border-slate-200 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
+        <div className="sticky top-0 z-10 bg-white rounded-t-2xl flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: ROXO }}>Revenue Operation</p>
             <p className="text-lg sm:text-xl font-black text-slate-800 truncate">O custo da sua receita</p>
@@ -1455,7 +1455,7 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
               <CampoNumero rotulo="Pessoas na equipe" valor={rev.equipe} onChange={(v) => mudar({ equipe: v })}
                 sufixo="pes." dica="quem vende hoje" />
               <CampoNumero rotulo="Taxa de conversão" valor={rev.conversao} onChange={(v) => mudar({ conversao: Math.min(100, v) })}
-                sufixo="%" dica={base.leads > 0 ? `o quadro fez ${pct(conta.conversaoReal)}` : 'lead que vira venda'} />
+                sufixo="%" dica={base.leads > 0 ? `o quadro fez ${pctFino(conta.conversaoReal)}` : 'lead que vira venda'} />
               <CampoMoeda rotulo="CAC" valor={rev.cac} onChange={(v) => mudar({ cac: v })} dica="custo por cliente conquistado" />
               <CampoMoeda rotulo="Custo por lead" valor={rev.custoLead} onChange={(v) => mudar({ custoLead: v })}
                 dica={base.leads > 0 && rev.publicidade > 0 ? `pela sua verba dá ${brl(conta.custoLeadReal)}` : 'quanto custa gerar um lead'} />
@@ -1465,7 +1465,7 @@ function PainelRevOps({ rev, base, quem, onMudar, onFechar }: {
             {base.leads > 0 && conta.conversaoReal > 0 && (
               <button onClick={() => mudar({ conversao: Math.round(conta.conversaoReal * 1000) / 10 })}
                 className="mt-3 text-[12px] font-bold px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-                usar a conversão real do quadro ({pct(conta.conversaoReal)})
+                usar a conversão real do quadro ({pctFino(conta.conversaoReal)})
               </button>
             )}
           </div>

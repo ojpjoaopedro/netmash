@@ -553,8 +553,8 @@ export function insightsRevOps(rev: RevOps, base: BaseRevOps, c: ContaRevOps, mi
     const dif = c.conversaoReal * 100 - rev.conversao;
     if (Math.abs(dif) >= 3) {
       t.push(dif > 0
-        ? `O quadro converteu ${pct(c.conversaoReal)} dos negócios, acima dos ${rev.conversao}% que você usa na conta. Se a taxa real se sustentar, toda projeção aqui está subestimada.`
-        : `O quadro converteu ${pct(c.conversaoReal)}, abaixo dos ${rev.conversao}% que você usa na conta. Projetar com a taxa otimista é o jeito mais comum de furar meta.`);
+        ? `O quadro converteu ${pctFino(c.conversaoReal)} dos negócios, acima dos ${rev.conversao}% que você usa na conta. Se a taxa real se sustentar, toda projeção aqui está subestimada.`
+        : `O quadro converteu ${pctFino(c.conversaoReal)}, abaixo dos ${rev.conversao}% que você usa na conta. Projetar com a taxa otimista é o jeito mais comum de furar meta.`);
     }
   }
 
@@ -581,3 +581,11 @@ export function insightsRevOps(rev: RevOps, base: BaseRevOps, c: ContaRevOps, mi
 
 export const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 export const pct = (v: number) => `${(v * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%`;
+
+/**
+ * Porcentagem com uma casa quando ela é pequena. Taxa de conversão costuma
+ * viver abaixo de 10%: arredondar 1,3% para "1%" apaga justamente a diferença
+ * que muda a projeção.
+ */
+export const pctFino = (v: number) =>
+  `${(v * 100).toLocaleString('pt-BR', { maximumFractionDigits: v < 0.1 ? 1 : 0 })}%`;
