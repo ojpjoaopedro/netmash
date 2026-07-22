@@ -815,7 +815,7 @@ const ETAPAS_MAPA = [
   { nome: 'BUDGET', desc: 'O financiamento', destaque: true, destino: 's27-transicao-budget' },
   { nome: 'EXECUÇÃO + PIPELINE', desc: 'A realidade', destaque: true, destino: 's35-pipeline' },
   { nome: 'FORECAST', desc: 'A antecipação', destaque: true, destino: 's38-formula-forecast' },
-  { nome: 'DECISÃO E AJUSTES', desc: 'A correção', destino: 's45-ciclo-gestao' },
+  { nome: 'DECISÃO E AJUSTES', desc: 'A correção', destino: 's43-silos' },
 ];
 
 /** O mapa fala com o deck para pular direto ao assunto clicado. */
