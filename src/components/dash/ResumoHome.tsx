@@ -59,7 +59,7 @@ function PulsoDoDia() {
     setFrase(FRASES_PULSO[Math.floor(dia / 3) % FRASES_PULSO.length]);
   }, []);
 
-  const texto = frase ? `"${frase.t}"${frase.a ? ` — ${frase.a}` : ""}\n\n📊 Pulso do dia · Minhas Métricas` : "";
+  const texto = frase ? `"${frase.t.replace(/\.\s*$/, "")}"${frase.a ? ` — ${frase.a}` : ""}\n\n📊 Pulso do dia · Minhas Métricas` : "";
 
   async function copiar() {
     try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2000); } catch { /* ignore */ }
@@ -88,7 +88,14 @@ function PulsoDoDia() {
 
         {/* null no 1º render evita divergência de hidratação: a data é lida só no cliente */}
         <p style={{ lineHeight: 1.5, fontSize: 17, fontWeight: 700, letterSpacing: "-.01em", fontStyle: "italic" }}>
-          {frase ? `“${frase.t}”` : "…"}
+          {frase ? (
+            <>
+              <span style={{ fontSize: 30, fontWeight: 800, color: "#2563EB", verticalAlign: "-0.18em", marginRight: 2, lineHeight: 0 }}>“</span>
+              {/* sem o ponto final: a frase respira melhor entre as aspas */}
+              {frase.t.replace(/\.\s*$/, "")}
+              <span style={{ fontSize: 30, fontWeight: 800, color: "#2563EB", verticalAlign: "-0.35em", marginLeft: 1, lineHeight: 0 }}>”</span>
+            </>
+          ) : "…"}
         </p>
         {frase?.a && (
           <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 7 }}>

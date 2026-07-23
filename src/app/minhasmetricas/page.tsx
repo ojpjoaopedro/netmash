@@ -375,7 +375,7 @@ export default function Home() {
             {SUBTABS[view].map((t) => {
               const at = view === t.key;
               return <button key={t.key} onClick={() => { playTick(); setView(t.key); }}
-                style={{ flexShrink: 0, background: at ? "var(--accent)" : "var(--card)", color: at ? "#06222e" : "var(--txt)", border: at ? "1px solid var(--accent)" : "1px solid var(--line-2)", borderRadius: 99, padding: "6px 15px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>;
+                style={{ flexShrink: 0, background: at ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "var(--card)", color: at ? "#fff" : "var(--txt)", border: at ? "1px solid #37c6f0" : "1px solid var(--line-2)", boxShadow: at ? "0 6px 16px -8px rgba(26,173,226,.7)" : "none", borderRadius: 99, padding: "6px 15px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>;
             })}
           </div>
         )}

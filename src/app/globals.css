@@ -9,6 +9,7 @@
   --brand:#1AADE2;        /* accent ciano (assinatura) */
   --brand-light:#4DC4EB;
   --brand-dark:#0E8AB8;
+  --accent:var(--brand);  /* alias: vários componentes usam var(--accent) */
   --gold:#c48a57;         /* dourado (premium/marca) */
 
   --bg:#0A0A0A;
