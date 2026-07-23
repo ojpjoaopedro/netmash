@@ -87,7 +87,7 @@ function PulsoDoDia() {
         </div>
 
         {/* null no 1º render evita divergência de hidratação: a data é lida só no cliente */}
-        <p style={{ lineHeight: 1.5, fontSize: 19, fontWeight: 700, letterSpacing: "-.01em", fontFamily: "Georgia, 'Times New Roman', serif", fontStyle: "italic" }}>
+        <p style={{ lineHeight: 1.5, fontSize: 17, fontWeight: 700, letterSpacing: "-.01em", fontStyle: "italic" }}>
           {frase ? `“${frase.t}”` : "…"}
         </p>
         {frase?.a && (
