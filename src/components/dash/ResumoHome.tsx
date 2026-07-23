@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { DollarSign, TrendingUp, Wallet, ClipboardList, Cake } from "lucide-react";
+import { DollarSign, TrendingUp, Wallet, ClipboardList, Cake, Share2, Copy, Check } from "lucide-react";
 import { Lancamento, Cliente } from "@/lib/db";
 import { resumo } from "@/lib/calc";
 import { fmt } from "./Kit";
@@ -14,51 +14,74 @@ function dataHoje() {
 const CABECALHO = { fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--accent)" } as const;
 
 /**
- * Frases do "Pulso do dia". Gira uma por dia (índice = dias desde 1970 % total),
- * então muda sozinha à meia-noite e só repete depois de passar por todas.
- * Provérbios curtos de gestão/finanças — texto próprio, sem citação de terceiros.
+ * Frases do "Pulso do dia". Troca a cada 3 dias (índice = dias÷3 % total), então
+ * a mesma frase fica três dias no ar e só repete depois de passar por todas.
+ * Cada uma é compartilhável — é a antiga "frase da semana", agora aqui dentro.
  */
-const FRASES_PULSO = [
-  "Número que você não acompanha é decisão que alguém toma no seu lugar.",
-  "Caixa não é lucro. Confira os dois antes de comemorar.",
-  "O que cresce sem margem só adia o problema.",
-  "Meta sem plano é só um desejo com prazo.",
-  "Cliente que não volta custa o dobro do que entra.",
-  "Cada real de custo fixo é uma promessa que você faz todo mês.",
-  "Antes de vender mais, descubra por que o dinheiro está saindo.",
-  "Previsão errada assumida cedo vale mais que acerto tardio.",
-  "O que não tem dono não acontece.",
-  "Preço é a decisão financeira mais rápida de mudar — e a que menos gente revisa.",
-  "Faturamento enche o ego; margem paga a conta.",
-  "Um mês bom não paga um trimestre ruim. Olhe a tendência.",
-  "Corte o que não te aproxima da meta, inclusive o que dá orgulho.",
-  "Todo indicador conta uma história. Pergunte qual.",
-  "Vender para quem não paga é doar com etapa extra.",
-  "O tempo entre a venda e o caixa é onde a empresa quebra.",
-  "Reserva não é dinheiro parado. É sono tranquilo.",
-  "Se você não sabe quanto custa conquistar um cliente, não sabe se pode crescer.",
-  "A planilha aceita qualquer número; a execução, não.",
-  "Reduzir despesa é lucro na hora. Aumentar receita é aposta.",
-  "Foque no indicador que, ao melhorar, arruma vários de uma vez.",
-  "Decisão sem dado é palpite de gravata.",
-  "O cliente antigo é o mais barato de crescer e o mais fácil de esquecer.",
-  "Meta boa cabe numa frase e assusta um pouquinho.",
+const FRASES_PULSO: { t: string; a: string }[] = [
+  { t: "Número que você não acompanha é decisão que alguém toma no seu lugar.", a: "" },
+  { t: "Caixa não é lucro. Confira os dois antes de comemorar.", a: "" },
+  { t: "O que cresce sem margem só adia o problema.", a: "" },
+  { t: "Meta sem plano é só um desejo com prazo.", a: "" },
+  { t: "O que não é medido não pode ser melhorado.", a: "Peter Drucker" },
+  { t: "Preço é o que você paga. Valor é o que você leva.", a: "Warren Buffett" },
+  { t: "Lucro é opinião, caixa é fato.", a: "" },
+  { t: "Não é quanto você fatura, é quanto você guarda.", a: "" },
+  { t: "Quem controla os custos, controla o destino da empresa.", a: "" },
+  { t: "Antes de vender mais, descubra por que o dinheiro está saindo.", a: "" },
+  { t: "Faturamento enche o ego; margem paga a conta.", a: "" },
+  { t: "Um mês bom não paga um trimestre ruim. Olhe a tendência.", a: "" },
+  { t: "Fluxo de caixa é o oxigênio do negócio.", a: "" },
+  { t: "A margem revela a verdade que o faturamento disfarça.", a: "" },
+  { t: "Todo indicador conta uma história. Pergunte qual.", a: "" },
+  { t: "O tempo entre a venda e o caixa é onde a empresa quebra.", a: "" },
+  { t: "Reserva não é dinheiro parado. É sono tranquilo.", a: "" },
+  { t: "Se você não sabe quanto custa conquistar um cliente, não sabe se pode crescer.", a: "" },
+  { t: "Dados vencem opiniões.", a: "" },
+  { t: "Reduzir despesa é lucro na hora. Aumentar receita é aposta.", a: "" },
+  { t: "Foque no indicador que, ao melhorar, arruma vários de uma vez.", a: "" },
+  { t: "Visão sem execução é só sonho.", a: "Thomas Edison" },
+  { t: "O cliente antigo é o mais barato de crescer e o mais fácil de esquecer.", a: "" },
+  { t: "Meta boa cabe numa frase e assusta um pouquinho.", a: "" },
 ];
 
-/** Pulso do dia — frase automática, troca sozinha a cada dia. Sem edição. */
+/**
+ * Pulso do dia — a frase compartilhável, girando a cada 3 dias. Junta o que
+ * antes era "Pulso do dia" e "Frase da semana" num bloco só, com copiar e
+ * compartilhar no WhatsApp.
+ */
 function PulsoDoDia() {
-  const [frase, setFrase] = useState<string | null>(null);
+  const [frase, setFrase] = useState<{ t: string; a: string } | null>(null);
+  const [copiado, setCopiado] = useState(false);
+
   useEffect(() => {
     const dia = Math.floor(new Date().setHours(0, 0, 0, 0) / 86_400_000);
-    setFrase(FRASES_PULSO[dia % FRASES_PULSO.length]);
+    setFrase(FRASES_PULSO[Math.floor(dia / 3) % FRASES_PULSO.length]);
   }, []);
+
+  const texto = frase ? `"${frase.t}"${frase.a ? ` — ${frase.a}` : ""}\n\n📊 Pulso do dia · Minhas Métricas` : "";
+
+  async function copiar() {
+    try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2000); } catch { /* ignore */ }
+  }
+  function whatsapp() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+  }
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <ClipboardList size={16} color="var(--accent)" /><b style={CABECALHO}>Pulso do dia</b>
       </div>
       {/* null no 1º render evita divergência de hidratação: a data é lida só no cliente */}
-      <p style={{ lineHeight: 1.7, fontSize: 15, fontStyle: "italic" }}>{frase ?? "…"}</p>
+      <p style={{ lineHeight: 1.6, fontSize: 15, fontStyle: "italic" }}>{frase ? `“${frase.t}”` : "…"}</p>
+      {frase?.a && <div className="sub" style={{ fontWeight: 600, marginTop: 4 }}>— {frase.a}</div>}
+      {frase && (
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <button className="btn sm" onClick={whatsapp}><Share2 size={14} /> Compartilhar no WhatsApp</button>
+          <button className="btn ghost sm" onClick={copiar}>{copiado ? <><Check size={14} /> Copiado!</> : <><Copy size={14} /> Copiar</>}</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -117,10 +140,12 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
       </div>
 
       <div style={{ height: 1, background: "var(--line)", margin: "18px 0" }} />
-      <PulsoDoDia />
-
-      <div style={{ height: 1, background: "var(--line)", margin: "18px 0" }} />
-      <Aniversarios />
+      {/* pulso e aniversários lado a lado; empilham no celular */}
+      <div className="resumo-blocos" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, alignItems: "start" }}>
+        <PulsoDoDia />
+        <Aniversarios />
+      </div>
+      <style>{`@media (max-width: 640px){ .resumo-blocos{ grid-template-columns: 1fr !important; gap: 18px !important; } }`}</style>
     </div>
   );
 }

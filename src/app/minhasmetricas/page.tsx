@@ -43,7 +43,6 @@ import Funcionarios from "@/components/Funcionarios";
 import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
-import FraseSemana from "@/components/dash/FraseSemana";
 
 type View =
   | "dashboard" | "graficos" | "gdet" | "financas" | "analise" | "calendario" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
@@ -473,7 +472,6 @@ export default function Home() {
             </div>
           </div>
         )}
-        {view === "dashboard" && <FraseSemana />}
         {view === "dashboard" && <HomeTabs lancs={lancs} clientes={clientes} metrs={effMetrs} saldoInicial={saldoInicial} nome={saudacaoNome} onLancar={() => setView("lancamentos")} onImportar={() => setView("importar")} reload={carregarDados} />}
         {view === "graficos" && <GraficosHome mostrarMarketing={!ehSuper} onOpen={(k) => {
           if (k === "financas") { setView("financas"); }
