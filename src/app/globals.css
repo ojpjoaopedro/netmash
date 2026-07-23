@@ -62,30 +62,45 @@ button{font-family:inherit}
 
 /* ===== Shell ===== */
 .app{display:flex;min-height:100vh}
-.side{width:248px;background:var(--sidebar);border-right:1px solid var(--line);
-  padding:18px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;flex-shrink:0}
-.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 14px;min-height:48px}
+.side{width:236px;background:var(--sidebar);border-right:1px solid var(--line);
+  padding:14px 11px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 4px 12px;min-height:44px}
 .brand img{object-fit:contain;max-width:100%}
 .brand .fallback{font-weight:800;font-size:18px;color:#fff;letter-spacing:-.3px}
 .brand .fallback b{color:var(--brand)}
-.navgroup{margin-top:14px}
-.navgroup .gl{font-size:10.5px;font-weight:700;letter-spacing:1.2px;color:#52525b;
-  text-transform:uppercase;padding:0 10px 6px}
-.nav{display:flex;flex-direction:column;gap:3px}
-.nav a,.nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
-  background:transparent;border:0;color:#a1a1aa;padding:9px 11px;border-radius:11px;
-  font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+.navgroup{margin-top:8px}
+.navgroup .gl{font-size:9.5px;font-weight:700;letter-spacing:1px;color:#52525b;
+  text-transform:uppercase;padding:0 9px 4px}
+.nav{display:flex;flex-direction:column;gap:1px}
+.nav a,.nav button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  background:transparent;border:0;color:#a1a1aa;padding:6px 9px;border-radius:9px;
+  font-size:12.5px;font-weight:500;cursor:pointer;transition:.15s}
 .nav a:hover,.nav button:hover{background:var(--sidebar-hover);color:#fff}
-.nav .active{background:rgba(26,173,226,.1);color:var(--brand);font-weight:600}
+.nav .active{background:rgba(26,173,226,.12);color:var(--brand);font-weight:600;box-shadow:inset 2px 0 0 var(--brand)}
+/* menu recolhido + botão para reabrir */
+.side-oculta{display:none}
+.side-reabrir{position:fixed;top:16px;left:12px;z-index:40;width:34px;height:34px;border-radius:10px;
+  display:grid;place-items:center;background:var(--card);border:1px solid var(--line-2);color:var(--txt);
+  cursor:pointer;box-shadow:0 6px 18px -8px rgba(0,0,0,.5)}
+.side-reabrir:hover{background:var(--bg-2);border-color:var(--brand);color:var(--brand)}
 .side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);
   display:flex;align-items:center;gap:10px}
 .side-foot .av{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand-dark));
-  display:grid;place-items:center;font-weight:800;color:#fff;flex-shrink:0}
+  display:grid;place-items:center;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden}
+/* avatar clicável: cursor de mão e uma câmera que aparece ao passar o mouse */
+.side-foot .av-btn{position:relative;cursor:pointer}
+.side-foot .av-edit{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.5);
+  color:#fff;opacity:0;transition:.15s}
+.side-foot .av-btn:hover .av-edit{opacity:1}
 .side-foot .who{flex:1;min-width:0}
-.side-foot .who b{display:block;font-size:13.5px;color:#fafafa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.side-foot .who small{color:#71717a;font-size:11.5px}
-.iconbtn{background:transparent;border:0;color:#71717a;cursor:pointer;padding:6px;border-radius:9px}
-.iconbtn:hover{background:var(--sidebar-hover);color:#fff}
+.side-foot .who b{display:block;font-size:13px;color:#fafafa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconbtn{background:transparent;border:0;color:var(--muted-2);cursor:pointer;padding:6px;border-radius:9px}
+/* hover tema-aware: --line-2 clareia no escuro e escurece no claro, sem virar preto */
+.iconbtn:hover{background:var(--line-2);color:var(--txt)}
+/* o sidebar é SEMPRE escuro: seus iconbtn precisam de hover claro fixo,
+   senão no tema claro o ícone (var(--txt) escuro) some no fundo escuro */
+.side .iconbtn{color:#a1a1aa}
+.side .iconbtn:hover{background:rgba(255,255,255,.10);color:#fff}
 
 /* ===== Main ===== */
 .main{flex:1;min-width:0;padding:26px 30px 80px;max-width:1500px;width:100%;margin:0 auto}
@@ -224,7 +239,8 @@ body.theme-light .kmini{background:linear-gradient(180deg,#fff,#fafcff);box-shad
   padding:9px 15px;border-radius:11px;font-weight:600;font-size:13.5px;cursor:pointer;transition:.15s}
 .btn:hover{background:var(--brand-dark)}
 .btn.ghost{background:var(--card-2);border:1px solid var(--line);color:var(--txt)}
-.btn.ghost:hover{background:var(--sidebar-hover)}
+/* hover tema-aware: --sidebar-hover é fixo escuro e escurecia o botão no tema claro */
+.btn.ghost:hover{background:var(--bg-2);border-color:var(--line-2)}
 .btn.green{background:var(--green)} .btn.red{background:var(--red)}
 .btn.sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
 .btn:disabled{opacity:.5;cursor:not-allowed}

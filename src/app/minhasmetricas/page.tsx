@@ -2,9 +2,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X,
-  Menu, Presentation, ShieldCheck, Sparkles, BarChart3, Link2, Volume2, VolumeX, ChevronDown, Image as ImageIcon,
+  LayoutDashboard, DollarSign, Megaphone, Compass, Settings,
+  Users, Upload, Building2, LogOut, Sun, Moon, Play, X,
+  Menu, Presentation, ShieldCheck, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
+  ChevronsLeft, ChevronsRight, User, Camera,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -13,55 +14,48 @@ import {
   Perfil, Empresa, Lancamento, Funcionario, Cliente,
 } from "@/lib/db";
 import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
-import { gerarInsights } from "@/lib/insights";
 import { gerarDeck, gerarRelatorio, abrirHtml, slug, type Secao } from "@/lib/apresentacao";
 import { useBrand } from "@/lib/brand";
 import ResumoHome from "@/components/dash/ResumoHome";
-import Ferramentas from "@/components/dash/Ferramentas";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
-import Relatorios from "@/components/dash/Relatorios";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
-import Acessos from "@/components/dash/Acessos";
 import ApresentarModal from "@/components/dash/ApresentarModal";
 import Assistente from "@/components/dash/Assistente";
-import LinksImportantes from "@/components/dash/LinksImportantes";
-import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
 import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
 
 type View =
-  | "dashboard"
-  | "assistente" | "contas" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa" | "links";
+  | "dashboard" | "financas" | "marketing" | "planejamento" | "config"
+  | "assistente" | "equipe" | "apresentacao" | "importar" | "empresa";
 
 const METRICAS = [
-  { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
+  { key: "dashboard", label: "Home", Icon: LayoutDashboard },
+  { key: "financas", label: "Finanças", Icon: DollarSign },
+  { key: "marketing", label: "Marketing", Icon: Megaphone },
 ] as const;
-// vazio: as áreas de métrica saíram do app
+// sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
-// Sub-abas (pílulas) — sobrou só a área de Empresa/Equipe/Acessos
-const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }, { key: "acessos", label: "Acessos" }];
+// Sub-abas (pílulas) — Empresa e Equipe
+const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
-  empresa: PILL_EQ, equipe: PILL_EQ, acessos: PILL_EQ,
+  empresa: PILL_EQ, equipe: PILL_EQ,
 };
-// Cor de cada aba por área
-const NAV_COR: Record<string, string> = { dashboard: "#1AADE2" };
-const corDe = (k: string) => NAV_COR[k] || "var(--accent)";
-const navStyle = (ativo: boolean, k: string): React.CSSProperties | undefined =>
-  ativo ? { color: corDe(k), background: corDe(k) + "1f", boxShadow: `inset 0 0 0 1px ${corDe(k)}3d` } : undefined;
+// Azul é a cor padrão do app: todos os ícones do menu usam ela.
+// (depois cada empresa poderá trocar essa cor.)
+const NAV_COR: Record<string, string> = {};
+const AZUL = "#1AADE2";
+const corDe = (k: string) => NAV_COR[k] || AZUL;
 const grupoDe = (v: string) => v;
-// Só o essencial do dia a dia fica visível; o resto vai pra "Sistema" (recolhível)
-const SISTEMA_KEYS = ["contas", "equipe", "links", "relatorios", "apresentacao", "ferramentas", "importar", "acessos", "empresa"];
+// SISTEMA fica oculto (recolhível): tudo que não é o essencial do dia a dia
+const SISTEMA_KEYS = ["apresentacao", "importar", "empresa"];
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
-  { key: "contas", label: "Contas a pagar/receber", Icon: CalendarClock },
+  { key: "planejamento", label: "Planejamento", Icon: Compass },
   { key: "equipe", label: "Equipe", Icon: Users },
-  { key: "links", label: "Links importantes", Icon: Link2 },
-  { key: "ferramentas", label: "Ferramentas", Icon: Wrench },
-  { key: "relatorios", label: "Relatórios / PDF", Icon: FileText },
+  { key: "config", label: "Configurações", Icon: Settings },
   { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
-  { key: "acessos", label: "Acessos & permissões", Icon: ShieldCheck },
   { key: "importar", label: "Importar planilha", Icon: Upload },
   { key: "empresa", label: "Empresa & marca", Icon: Building2 },
 ] as const;
@@ -78,11 +72,12 @@ export default function Home() {
   const [metrs, setMetrs] = useState<Metrica[]>([]);
   const [view, setView] = useState<View>("dashboard");
   const [editor, setEditor] = useState<Categoria | null>(null);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [apresOpen, setApresOpen] = useState(false);
   const [sistemaAberto, setSistemaAberto] = useState(false);
   const [maisAberto, setMaisAberto] = useState(false);
+  const [sideOculta, setSideOculta] = useState(false);   // recolher o sidebar (desktop)
+  const [fotoPerfil, setFotoPerfil] = useState("");      // foto do avatar (fica no navegador)
   const [bemVindoFechado, setBemVindoFechado] = useState(false);
   const [som, setSomState] = useState(true);
   useEffect(() => { setSomState(somLigado()); }, []);
@@ -108,8 +103,25 @@ export default function Home() {
   }, [router, carregarDados]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
+    if (typeof window !== "undefined") {
+      setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
+      setFotoPerfil(localStorage.getItem("me_foto_perfil") || "");
+    }
   }, []);
+
+  /** Troca a foto do avatar: lê o arquivo escolhido e guarda no navegador. */
+  function escolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const arq = e.target.files?.[0];
+    if (!arq) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const url = String(r.result);
+      setFotoPerfil(url);
+      try { localStorage.setItem("me_foto_perfil", url); } catch { /* imagem grande demais: fica só na sessão */ }
+    };
+    r.readAsDataURL(arq);
+    e.target.value = "";
+  }
 
   // Interliga a identidade: aplica logo/cor da empresa logada (banco) na marca do painel.
   useEffect(() => {
@@ -136,8 +148,6 @@ export default function Home() {
   const saldoInicial = empresa?.saldo_inicial ?? 0;
   const effMetrs = aplicarReais(metrs, lancs, clientes);
   const brandObj = { nome: nomeMarca, logo: brand.logo };
-  const insights = gerarInsights(effMetrs, lancs, saldoInicial);
-  const alertas = insights.filter((i) => i.tone === "bad" || i.tone === "warn");
 
   // Controle de acesso: dono vê tudo; colaborador vê só as áreas liberadas.
   const ehDono = !supabaseReady || (perfil?.papel ?? "dono") !== "colaborador";
@@ -153,20 +163,17 @@ export default function Home() {
       onClick={irParaHome}
       title="Sua logomarca aqui — clique para voltar ao início"
       style={{
-        width: "100%", display: "flex", alignItems: "center", gap: 11,
-        background: "#fff", border: "2px dashed #cbd5e1", borderRadius: 12,
-        padding: "9px 12px", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-        transition: "border-color .15s, box-shadow .15s",
+        width: "100%", display: "flex", alignItems: "center", gap: 10,
+        background: "transparent", border: 0, borderRadius: 12,
+        padding: "4px 6px", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1AADE2"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(26,173,226,.12)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "none"; }}
     >
-      <span style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, #1AADE2, #0c6e9e)", color: "#fff" }}>
-        <ImageIcon size={19} />
+      <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, #1AADE2, #0c6e9e)", color: "#fff" }}>
+        <ImageIcon size={17} />
       </span>
       <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15, minWidth: 0 }}>
-        <b style={{ fontSize: 13.5, color: "#0f172a", fontWeight: 800, letterSpacing: "-.01em" }}>Sua logomarca</b>
-        <small style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em" }}>aqui</small>
+        <b style={{ fontSize: 13, color: "#f4f5f7", fontWeight: 800, letterSpacing: "-.01em" }}>Sua logomarca</b>
+        <small style={{ fontSize: 9.5, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em" }}>aqui</small>
       </span>
     </button>
   ) : (
@@ -214,28 +221,11 @@ export default function Home() {
           {marcaInterna}
         </div>
         <div className="mt-actions">
-          <button className="iconbtn" style={{ position: "relative" }} onClick={() => setNotifOpen((v) => !v)} title="Notificações">
-            <Bell size={18} />
-            {alertas.length > 0 && <span style={{ position: "absolute", top: 0, right: 0, minWidth: 14, height: 14, padding: "0 3px", borderRadius: 99, background: "var(--red)", color: "#fff", fontSize: 9, fontWeight: 800, display: "grid", placeItems: "center" }}>{alertas.length}</span>}
-          </button>
+          {/* notificações desativadas por enquanto */}
           <button className="iconbtn" onClick={toggleTheme} title="Tema">{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button>
           <button className="iconbtn" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button className="iconbtn" onClick={() => setMenuAberto(true)} title="Menu"><Menu size={22} /></button>
         </div>
-        {notifOpen && (
-          <div style={{ position: "fixed", top: 54, right: 8, left: 8, maxWidth: 360, marginLeft: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, padding: 12, boxShadow: "0 16px 40px -12px rgba(0,0,0,.6)", zIndex: 60 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <b style={{ fontSize: 13 }}>Notificações</b>
-              <button className="iconbtn" onClick={() => setNotifOpen(false)}><X size={14} /></button>
-            </div>
-            {insights.length === 0 ? <p className="sub">Tudo tranquilo ✅</p> : insights.map((ins, i) => (
-              <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : undefined }}>
-                <b style={{ fontSize: 12.5, color: ins.tone === "bad" ? "var(--red)" : ins.tone === "warn" ? "var(--amber)" : "var(--txt)" }}>{ins.titulo}</b>
-                <div className="sub" style={{ fontSize: 11.5, marginTop: 2 }}>{ins.texto}</div>
-              </div>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* Drawer (mobile) */}
@@ -248,27 +238,27 @@ export default function Home() {
             </div>
             <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
               {metricasVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
-                <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => navClick(key as View)}><Icon size={18} color={corDe(key)} /> {label}</button>
+                <button key={key} className={at ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={16} color={corDe(key)} /> {label}</button>
               ); })}
               {metricasMaisVis.length > 0 && (maisAberto || maisTemAtivo) && metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
-                <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => navClick(key as View)}><Icon size={18} color={corDe(key)} /> {label}</button>
+                <button key={key} className={at ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={16} color={corDe(key)} /> {label}</button>
               ); })}
               {metricasMaisVis.length > 0 && !maisTemAtivo && (
                 <button onClick={() => setMaisAberto((v) => !v)} style={{ color: "var(--muted)", justifyContent: "flex-start" }}><ChevronDown size={16} style={{ transform: maisAberto ? "none" : "rotate(-90deg)", transition: ".15s" }} /> {maisAberto ? "Menos" : "Mais métricas"}</button>
               )}
             </nav></div>
             <div className="navgroup"><div className="gl">Operações</div><nav className="nav">
-              {opsCore.map(({ key, label, Icon }) => (
-                <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
-              ))}
+              {opsCore.map(({ key, label, Icon }) => { const at = view === key; return (
+                <button key={key} className={at ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={16} color={corDe(key)} /> {label}</button>
+              ); })}
             </nav></div>
             {opsSistema.length > 0 && (
               <div className="navgroup">
-                <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Mais opções <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
+                <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Sistema <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
                 {(sistemaAberto || sistemaTemAtivo) && <nav className="nav">
-                  {opsSistema.map(({ key, label, Icon }) => (
-                    <button key={key} className={view === key ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={18} /> {label}</button>
-                  ))}
+                  {opsSistema.map(({ key, label, Icon }) => { const at = view === key; return (
+                    <button key={key} className={at ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={16} color={corDe(key)} /> {label}</button>
+                  ); })}
                 </nav>}
               </div>
             )}
@@ -281,22 +271,25 @@ export default function Home() {
       )}
 
       {/* Sidebar */}
-      <aside className="side">
-        <div className="brand">
-          {marcaInterna}
+      <aside className={`side${sideOculta ? " side-oculta" : ""}`}>
+        <div className="brand" style={{ justifyContent: "space-between", gap: 6 }}>
+          <span style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>{marcaInterna}</span>
+          <button className="iconbtn" title="Recolher menu" onClick={() => setSideOculta(true)} style={{ flexShrink: 0 }}>
+            <ChevronsLeft size={18} />
+          </button>
         </div>
 
         <div className="navgroup">
           <div className="gl">Métricas</div>
           <nav className="nav">
             {metricasVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
-              <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => { playTick(); setView(key as View); }}>
-                <Icon size={18} color={corDe(key)} /> {label}
+              <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
+                <Icon size={16} color={corDe(key)} /> {label}
               </button>
             ); })}
             {metricasMaisVis.length > 0 && (maisAberto || maisTemAtivo) && metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
-              <button key={key} className={at ? "active" : ""} style={navStyle(at, key)} onClick={() => { playTick(); setView(key as View); }}>
-                <Icon size={18} color={corDe(key)} /> {label}
+              <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
+                <Icon size={16} color={corDe(key)} /> {label}
               </button>
             ); })}
             {metricasMaisVis.length > 0 && !maisTemAtivo && (
@@ -310,61 +303,52 @@ export default function Home() {
         <div className="navgroup">
           <div className="gl">Operações</div>
           <nav className="nav">
-            {opsCore.map(({ key, label, Icon }) => (
-              <button key={key} className={view === key ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
-                <Icon size={18} /> {label}
+            {opsCore.map(({ key, label, Icon }) => { const at = view === key; return (
+              <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
+                <Icon size={16} color={corDe(key)} /> {label}
               </button>
-            ))}
+            ); })}
           </nav>
         </div>
 
         {opsSistema.length > 0 && (
           <div className="navgroup">
-            <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Mais opções <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
+            <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Sistema <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
             {(sistemaAberto || sistemaTemAtivo) && (
               <nav className="nav">
-                {opsSistema.map(({ key, label, Icon }) => (
-                  <button key={key} className={view === key ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
-                    <Icon size={18} /> {label}
+                {opsSistema.map(({ key, label, Icon }) => { const at = view === key; return (
+                  <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
+                    <Icon size={16} color={corDe(key)} /> {label}
                   </button>
-                ))}
+                ); })}
               </nav>
             )}
           </div>
         )}
 
         <div className="side-foot">
-          <div className="av">{(saudacaoNome || nomeMarca).charAt(0).toUpperCase()}</div>
+          {/* avatar clicável: troca a foto. Sem foto, mostra um genérico de pessoa. */}
+          <label className="av av-btn" title="Clique para alterar sua foto">
+            {fotoPerfil
+              ? <img src={fotoPerfil} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : <User size={20} />}
+            <span className="av-edit"><Camera size={14} /></span>
+            <input type="file" accept="image/*" onChange={escolherFoto} style={{ display: "none" }} />
+          </label>
           <div className="who">
             <b>{perfil?.nome || saudacaoNome || nomeMarca}</b>
-            <small>{supabaseReady ? (perfil?.papel || "dono") : "demonstração"}</small>
-          </div>
-          <div style={{ position: "relative" }}>
-            <button className="iconbtn" title="Notificações" onClick={() => setNotifOpen((v) => !v)}>
-              <Bell size={17} />
-              {alertas.length > 0 && (
-                <span style={{ position: "absolute", top: 2, right: 2, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 99, background: "var(--red)", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "grid", placeItems: "center" }}>{alertas.length}</span>
-              )}
-            </button>
-            {notifOpen && (
-              <div style={{ position: "absolute", bottom: 44, right: 0, width: 290, background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, padding: 12, boxShadow: "0 16px 40px -12px rgba(0,0,0,.6)", zIndex: 60 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <b style={{ fontSize: 13 }}>Notificações</b>
-                  <button className="iconbtn" onClick={() => setNotifOpen(false)}><X size={14} /></button>
-                </div>
-                {insights.length === 0 ? <p className="sub">Tudo tranquilo por aqui ✅</p> : insights.map((ins, i) => (
-                  <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : undefined }}>
-                    <b style={{ fontSize: 12.5, color: ins.tone === "bad" ? "var(--red)" : ins.tone === "warn" ? "var(--amber)" : "var(--txt)" }}>{ins.titulo}</b>
-                    <div className="sub" style={{ fontSize: 11.5, marginTop: 2 }}>{ins.texto}</div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
           <button className="iconbtn" title={supabaseReady ? "Sair" : "Login"}
             onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={17} /></button>
         </div>
       </aside>
+
+      {/* botão flutuante para reabrir o menu recolhido (desktop) */}
+      {sideOculta && (
+        <button className="side-reabrir desk-only" title="Expandir menu" onClick={() => setSideOculta(false)}>
+          <ChevronsRight size={18} />
+        </button>
+      )}
 
       {/* Main */}
       <main className="main">
@@ -410,14 +394,14 @@ export default function Home() {
           </div>
         )}
         {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} />}
+        {/* telas ainda em construção — o conteúdo o Diogo define depois */}
+        {view === "financas" && <EmConstrucao titulo="Finanças" />}
+        {view === "marketing" && <EmConstrucao titulo="Marketing" />}
+        {view === "planejamento" && <EmConstrucao titulo="Planejamento" />}
+        {view === "config" && <EmConstrucao titulo="Configurações" />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
-        {view === "ferramentas" && <Ferramentas lancs={lancs} />}
-        {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
-        {view === "contas" && <Contas lancs={lancs} reload={carregarDados} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
-        {view === "acessos" && <Acessos />}
-        {view === "links" && <LinksImportantes />}
         {view === "importar" && <Importar reload={carregarDados} />}
         {view === "empresa" && <Config empresa={empresa} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
       </main>
@@ -438,8 +422,23 @@ export default function Home() {
       <nav className="bottomnav">
         <button className={view === "dashboard" ? "active" : ""} onClick={() => { playTick(); setView("dashboard"); }}><LayoutDashboard size={20} />Home</button>
         <button className={view === "assistente" ? "active" : ""} onClick={() => { playTick(); setView("assistente"); }}><Sparkles size={20} />Assistente</button>
-        <button className={view === "contas" ? "active" : ""} onClick={() => { playTick(); setView("contas"); }}><CalendarClock size={20} />Contas</button>
+        <button className={view === "equipe" ? "active" : ""} onClick={() => { playTick(); setView("equipe"); }}><Users size={20} />Equipe</button>
       </nav>
+    </div>
+  );
+}
+
+/** Tela ainda sem conteúdo definido — placeholder padrão de "em construção". */
+function EmConstrucao({ titulo }: { titulo: string }) {
+  return (
+    <div className="card" style={{ padding: "56px 32px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+      <span style={{ width: 64, height: 64, borderRadius: 18, display: "grid", placeItems: "center", background: "rgba(245,158,11,.14)", color: "#F59E0B" }}>
+        <HardHat size={30} />
+      </span>
+      <div>
+        <h2 style={{ margin: 0, fontSize: 22 }}>{titulo}</h2>
+        <p className="sub" style={{ marginTop: 6 }}>Em construção. Esta área está sendo preparada e chega em breve.</p>
+      </div>
     </div>
   );
 }

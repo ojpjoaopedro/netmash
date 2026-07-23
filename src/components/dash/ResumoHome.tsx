@@ -92,10 +92,10 @@ function Aniversarios() {
   const [txt, setTxt] = useState("");
   useEffect(() => { if (typeof window !== "undefined") setTxt(localStorage.getItem("me_aniversarios") || ""); }, []);
   return (
-    <div style={{ borderRadius: 16, padding: 16, background: "linear-gradient(150deg, rgba(236,72,153,.10), transparent)", border: "1px solid rgba(236,72,153,.18)" }}>
+    <div style={{ borderRadius: 16, padding: 16, background: "linear-gradient(150deg, rgba(37,99,235,.10), transparent)", border: "1px solid rgba(37,99,235,.18)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <span style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(236,72,153,.18)", color: "#EC4899", flexShrink: 0 }}><Cake size={15} /></span>
-        <b style={{ ...CABECALHO, color: "#EC4899" }}>Aniversários do mês</b>
+        <span style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(37,99,235,.16)", color: "#2563EB", flexShrink: 0 }}><Cake size={15} /></span>
+        <b style={{ ...CABECALHO, color: "#2563EB" }}>Aniversários do mês</b>
       </div>
       {txt ? <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: 14 }}>{txt}</p>
         : <p className="sub" style={{ fontStyle: "italic" }}>Nenhum aniversariante cadastrado.</p>}
@@ -109,11 +109,11 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
   const r = resumo(lancs, meses, saldoInicial);
   const novos = clientes.filter((c) => (c.criado_em || "").slice(0, 4) === ano).length || clientes.length;
 
-  // cada KPI ganha o próprio degradê; todos os três impactam, não só o saldo
+  // azul é a cor do app: os três KPIs usam degradês de azul, do claro ao profundo
   const KPIS = [
-    { icon: <DollarSign size={19} />, g1: "#10B981", g2: "#047857", sombra: "rgba(16,185,129,.55)", val: fmt(r.faturamento, "BRL"), label: "Faturamento" },
-    { icon: <TrendingUp size={19} />, g1: "#8b5cf6", g2: "#6d28d9", sombra: "rgba(139,92,246,.55)", val: String(novos), label: "Novos clientes" },
-    { icon: <Wallet size={19} />, g1: "#1AADE2", g2: "#0c6e9e", sombra: "rgba(26,173,226,.6)", val: fmt(r.saldo, "BRL"), label: "Saldo em caixa" },
+    { icon: <DollarSign size={19} />, g1: "#38BDF8", g2: "#0284C7", sombra: "rgba(56,189,248,.5)", val: fmt(r.faturamento, "BRL"), label: "Faturamento" },
+    { icon: <TrendingUp size={19} />, g1: "#1AADE2", g2: "#0c6e9e", sombra: "rgba(26,173,226,.55)", val: String(novos), label: "Novos clientes" },
+    { icon: <Wallet size={19} />, g1: "#2563EB", g2: "#1E3A8A", sombra: "rgba(37,99,235,.55)", val: fmt(r.saldo, "BRL"), label: "Saldo em caixa" },
   ];
 
   return (
