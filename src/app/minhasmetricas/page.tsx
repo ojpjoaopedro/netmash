@@ -2,9 +2,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard, DollarSign, ShoppingCart, Megaphone,
-  ListChecks, CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X, Receipt,
-  Menu, Presentation, Contact, ShieldCheck, Sparkles, BarChart3, Target, Filter, Link2, Table2, Volume2, VolumeX, ChevronDown, Image as ImageIcon,
+  LayoutDashboard,
+  CalendarClock, Users, Upload, Building2, Bell, LogOut, Sun, Moon, Play, Wrench, FileText, X,
+  Menu, Presentation, ShieldCheck, Sparkles, BarChart3, Link2, Volume2, VolumeX, ChevronDown, Image as ImageIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -16,28 +16,15 @@ import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicado
 import { gerarInsights } from "@/lib/insights";
 import { gerarDeck, gerarRelatorio, abrirHtml, slug, type Secao } from "@/lib/apresentacao";
 import { useBrand } from "@/lib/brand";
-import AreaOverview, { AreaConfig } from "@/components/dash/AreaOverview";
-import MarketingFull from "@/components/dash/MarketingFull";
+import ResumoHome from "@/components/dash/ResumoHome";
 import Ferramentas from "@/components/dash/Ferramentas";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
 import Relatorios from "@/components/dash/Relatorios";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
-import Custos from "@/components/dash/Custos";
-import Clientes from "@/components/dash/Clientes";
 import Acessos from "@/components/dash/Acessos";
 import ApresentarModal from "@/components/dash/ApresentarModal";
 import Assistente from "@/components/dash/Assistente";
 import LinksImportantes from "@/components/dash/LinksImportantes";
-import PlanilhaDados from "@/components/dash/PlanilhaDados";
-import AnaliseResultados from "@/components/dash/AnaliseResultados";
-import GestaoComercial from "@/components/dash/GestaoComercial";
-import MarketingTrafego from "@/components/dash/MarketingTrafego";
-import HomeTabs from "@/components/dash/HomeTabs";
-import GraficosHome from "@/components/dash/GraficosHome";
-import FinancasDashboard from "@/components/dash/FinancasDashboard";
-import AreaGraficos from "@/components/dash/AreaGraficos";
-import CalendarioPgto from "@/components/dash/CalendarioPgto";
-import Lancamentos from "@/components/Lancamentos";
 import Contas from "@/components/Contas";
 import Funcionarios from "@/components/Funcionarios";
 import Importar from "@/components/Importar";
@@ -45,49 +32,29 @@ import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
 
 type View =
-  | "dashboard" | "graficos" | "gdet" | "financas" | "analise" | "calendario" | "saude" | "comercial" | "gestaovista" | "marketing" | "trafego"
-  | "assistente" | "lancamentos" | "planilha" | "contas" | "custos" | "clientes" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa" | "links";
+  | "dashboard"
+  | "assistente" | "contas" | "equipe" | "ferramentas" | "relatorios" | "apresentacao" | "importar" | "acessos" | "empresa" | "links";
 
 const METRICAS = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { key: "financas", label: "Finanças", Icon: DollarSign },
 ] as const;
-// Recolhidas num "Mais" — foco do app é Finanças
-const METRICAS_MAIS = [
-  { key: "comercial", label: "Comercial", Icon: ShoppingCart },
-  { key: "marketing", label: "Marketing", Icon: Megaphone },
-] as const;
-// Sub-abas (pílulas) dentro de cada área — enxuga o menu principal
-const PILL_FIN: { key: View; label: string }[] = [
-  { key: "financas", label: "Dashboard" }, { key: "analise", label: "Receitas • Despesas" }, { key: "calendario", label: "Calendário de Pgto" },
-];
-const PILL_COM: { key: View; label: string }[] = [{ key: "comercial", label: "Visão geral" }, { key: "gestaovista", label: "Gestão à Vista" }];
-const PILL_MKT: { key: View; label: string }[] = [{ key: "marketing", label: "Visão geral" }, { key: "trafego", label: "Tráfego Pago" }];
+// vazio: as áreas de métrica saíram do app
+const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
+// Sub-abas (pílulas) — sobrou só a área de Empresa/Equipe/Acessos
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }, { key: "acessos", label: "Acessos" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
-  financas: PILL_FIN, analise: PILL_FIN, calendario: PILL_FIN,
-  comercial: PILL_COM, gestaovista: PILL_COM,
-  marketing: PILL_MKT, trafego: PILL_MKT,
   empresa: PILL_EQ, equipe: PILL_EQ, acessos: PILL_EQ,
 };
-// Cor de cada aba por área (estilo Hub)
-const NAV_COR: Record<string, string> = {
-  dashboard: "#1AADE2", financas: "#10B981", analise: "#10B981", saude: "#EF4444",
-  comercial: "#1AADE2", gestaovista: "#1AADE2", marketing: "#8b5cf6", trafego: "#EC4899",
-};
+// Cor de cada aba por área
+const NAV_COR: Record<string, string> = { dashboard: "#1AADE2" };
 const corDe = (k: string) => NAV_COR[k] || "var(--accent)";
 const navStyle = (ativo: boolean, k: string): React.CSSProperties | undefined =>
   ativo ? { color: corDe(k), background: corDe(k) + "1f", boxShadow: `inset 0 0 0 1px ${corDe(k)}3d` } : undefined;
-// Sub-view -> área pai (pra o menu pai acender quando você está numa sub-aba)
-const grupoDe = (v: string) => v === "analise" ? "financas" : v === "gestaovista" ? "comercial" : v === "trafego" ? "marketing" : v;
+const grupoDe = (v: string) => v;
 // Só o essencial do dia a dia fica visível; o resto vai pra "Sistema" (recolhível)
 const SISTEMA_KEYS = ["contas", "equipe", "links", "relatorios", "apresentacao", "ferramentas", "importar", "acessos", "empresa"];
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
-  { key: "lancamentos", label: "Lançamentos", Icon: ListChecks },
-  { key: "planilha", label: "Planilha", Icon: Table2 },
-  { key: "custos", label: "Custos & Despesas", Icon: Receipt },
-  { key: "clientes", label: "Clientes & Vendas", Icon: Contact },
   { key: "contas", label: "Contas a pagar/receber", Icon: CalendarClock },
   { key: "equipe", label: "Equipe", Icon: Users },
   { key: "links", label: "Links importantes", Icon: Link2 },
@@ -98,32 +65,6 @@ const OPERACOES = [
   { key: "importar", label: "Importar planilha", Icon: Upload },
   { key: "empresa", label: "Empresa & marca", Icon: Building2 },
 ] as const;
-
-const AREAS: Record<string, AreaConfig> = {
-  financas: {
-    categoria: "financeiro", titulo: "Finanças", icon: "DollarSign", cor: "#10B981",
-    principal: "faturamento", secundarias: ["mrr", "margem"], unidadePrincipalLabel: "faturamento",
-    analises: [
-      { icon: "Sparkles", titulo: "Consolidado do ano", sub: "Evolução mês a mês do ano inteiro", cor: "#F59E0B" },
-      { icon: "Scale", titulo: "Ponto de equilíbrio", sub: "Quanto precisa faturar para dar lucro", cor: "#8b5cf6" },
-      { icon: "PiggyBank", titulo: "Saldo de caixa", sub: "DRE: receitas, custos e resultado", cor: "#10B981" },
-    ],
-  },
-  saude: {
-    categoria: "cliente", titulo: "Saúde do Cliente", icon: "HeartPulse", cor: "#8b5cf6",
-    principal: "clientes_ativos", secundarias: ["nps", "cross_sell"], unidadePrincipalLabel: "base ativa",
-    analises: [
-      { icon: "Sparkles", titulo: "Consolidado do ano", sub: "Evolução mês a mês de todos os indicadores", cor: "#F59E0B" },
-    ],
-  },
-  comercial: {
-    categoria: "comercial", titulo: "Comercial", icon: "ShoppingCart", cor: "#1AADE2",
-    principal: "novos_clientes", secundarias: ["ticket_medio", "conversao"], unidadePrincipalLabel: "vendas",
-    analises: [
-      { icon: "Sparkles", titulo: "Consolidado do ano", sub: "Evolução mês a mês de todos os indicadores", cor: "#F59E0B" },
-    ],
-  },
-};
 
 export default function Home() {
   const router = useRouter();
@@ -142,7 +83,6 @@ export default function Home() {
   const [apresOpen, setApresOpen] = useState(false);
   const [sistemaAberto, setSistemaAberto] = useState(false);
   const [maisAberto, setMaisAberto] = useState(false);
-  const [gCat, setGCat] = useState<Categoria>("cliente");
   const [bemVindoFechado, setBemVindoFechado] = useState(false);
   const [som, setSomState] = useState(true);
   useEffect(() => { setSomState(somLigado()); }, []);
@@ -241,17 +181,16 @@ export default function Home() {
     ? OPERACOES.map((o) => o.key)
     : (() => {
         const ops = new Set<string>(["assistente", "relatorios", "apresentacao"]);
-        if (areasPerm.includes("financas")) ["lancamentos", "custos", "contas", "ferramentas"].forEach((k) => ops.add(k));
-        if (areasPerm.includes("comercial")) ops.add("clientes");
+        if (areasPerm.includes("financas")) ["contas", "ferramentas"].forEach((k) => ops.add(k));
         return [...ops];
       })();
-  const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key)).filter((o) => !ehSuper || (o.key !== "clientes" && o.key !== "equipe"));
+  const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key)).filter((o) => !ehSuper || o.key !== "equipe");
   const opsCore = opsVis.filter((o) => !SISTEMA_KEYS.includes(o.key));
   const opsSistema = opsVis.filter((o) => SISTEMA_KEYS.includes(o.key));
   const sistemaTemAtivo = opsSistema.some((o) => o.key === view);
 
   const VIEW_SECAO: Partial<Record<View, Secao>> = {
-    financas: "financeiro", saude: "cliente", comercial: "comercial", marketing: "marketing", equipe: "colaboradores",
+    equipe: "colaboradores",
   };
   function gerarApres(meses: string[], tipo: "deck" | "relatorio") {
     const sec = view === "dashboard" ? null : VIEW_SECAO[view];
@@ -462,37 +401,19 @@ export default function Home() {
               <h3 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>👋 Bem-vindo ao seu painel!</h3>
               <button className="iconbtn" title="Fechar" onClick={() => { setBemVindoFechado(true); if (typeof window !== "undefined") localStorage.setItem("me_bemvindo_fechado", "1"); }}>✕</button>
             </div>
-            <p className="sub" style={{ marginBottom: 14 }}>Comece configurando sua empresa e lançando os primeiros dados — os gráficos e indicadores se montam sozinhos.</p>
+            <p className="sub" style={{ marginBottom: 14 }}>Comece configurando sua empresa. O restante do painel se monta a partir daí.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <a className="btn" href="/guia" target="_blank" rel="noopener">📖 Como usar o app</a>
               <button className="btn ghost" onClick={() => setView("empresa")}>🎨 Configurar empresa / logo</button>
-              <button className="btn ghost" onClick={() => setView("lancamentos")}>💸 Adicionar lançamento</button>
-              <button className="btn ghost" onClick={() => setView("custos")}>📌 Cadastrar custos</button>
-              <button className="btn ghost" onClick={() => setEditor("financeiro")}>📊 Editar indicadores</button>
+              <button className="btn ghost" onClick={() => setView("importar")}>📥 Importar planilha</button>
             </div>
           </div>
         )}
-        {view === "dashboard" && <HomeTabs lancs={lancs} clientes={clientes} metrs={effMetrs} saldoInicial={saldoInicial} nome={saudacaoNome} onLancar={() => setView("lancamentos")} onImportar={() => setView("importar")} reload={carregarDados} />}
-        {view === "graficos" && <GraficosHome mostrarMarketing={!ehSuper} onOpen={(k) => {
-          if (k === "financas") { setView("financas"); }
-          else { setGCat((k === "saude" ? "cliente" : k) as Categoria); setView("gdet"); }
-        }} />}
-        {view === "gdet" && <AreaGraficos metrs={effMetrs} categoria={gCat} cor={gCat === "cliente" ? "#EF4444" : gCat === "comercial" ? "#1AADE2" : gCat === "marketing" ? "#8b5cf6" : "#10B981"} onBack={() => setView("graficos")} />}
-        {view === "financas" && <FinancasDashboard lancs={lancs} saldoInicial={saldoInicial} onLancar={() => setView("lancamentos")} onImportar={() => setView("importar")} reload={carregarDados} />}
-        {view === "calendario" && <CalendarioPgto lancs={lancs} />}
-        {AREAS[view] && view !== "financas" && <AreaOverview metrs={effMetrs} cfg={AREAS[view]} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} onEditar={setEditor} />}
-        {view === "marketing" && <MarketingFull metrs={effMetrs} onEditar={() => setEditor("marketing")} />}
-        {view === "analise" && <AnaliseResultados lancs={lancs} saldoInicial={saldoInicial} onLancar={() => setView("lancamentos")} onImportar={() => setView("importar")} />}
-        {view === "gestaovista" && <GestaoComercial metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} onEditar={() => setEditor("comercial")} />}
-        {view === "trafego" && <MarketingTrafego metrs={effMetrs} lancs={lancs} saldoInicial={saldoInicial} onEditar={() => setEditor("marketing")} />}
+        {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} />}
+        {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
         {view === "ferramentas" && <Ferramentas lancs={lancs} />}
         {view === "relatorios" && <Relatorios metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
-        {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
-        {view === "lancamentos" && <Lancamentos lancs={lancs} reload={carregarDados} />}
-        {view === "planilha" && <PlanilhaDados reload={carregarDados} />}
-        {view === "clientes" && <Clientes clientes={clientes} lancs={lancs} reload={carregarDados} />}
-        {view === "custos" && <Custos lancs={lancs} funcs={funcs} reload={carregarDados} />}
         {view === "contas" && <Contas lancs={lancs} reload={carregarDados} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
         {view === "acessos" && <Acessos />}
@@ -515,11 +436,11 @@ export default function Home() {
 
       {/* Bottom nav (mobile) — estilo Hub: atalhos fixos + Menu */}
       <nav className="bottomnav">
-        <button className={grupoDe(view) === "dashboard" ? "active" : ""} onClick={() => { playTick(); setView("dashboard"); }}><LayoutDashboard size={20} />Home</button>
-        <button className={view === "graficos" ? "active" : ""} onClick={() => { playTick(); setView("graficos"); }}><BarChart3 size={20} />Gráficos</button>
-        <button className={grupoDe(view) === "financas" ? "active" : ""} onClick={() => { playTick(); setView("financas"); }}><DollarSign size={20} />Finanças</button>
-        <button className={view === "planilha" ? "active" : ""} onClick={() => { playTick(); setView("planilha"); }}><Table2 size={20} />Planilha</button>
+        <button className={view === "dashboard" ? "active" : ""} onClick={() => { playTick(); setView("dashboard"); }}><LayoutDashboard size={20} />Home</button>
+        <button className={view === "assistente" ? "active" : ""} onClick={() => { playTick(); setView("assistente"); }}><Sparkles size={20} />Assistente</button>
+        <button className={view === "contas" ? "active" : ""} onClick={() => { playTick(); setView("contas"); }}><CalendarClock size={20} />Contas</button>
       </nav>
     </div>
   );
 }
+

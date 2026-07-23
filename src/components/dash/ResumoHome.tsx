@@ -69,12 +69,13 @@ function PulsoDoDia() {
   }
 
   return (
-    <div>
+    <div style={{ borderRadius: 16, padding: 16, background: "linear-gradient(150deg, rgba(26,173,226,.10), transparent)", border: "1px solid rgba(26,173,226,.18)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <ClipboardList size={16} color="var(--accent)" /><b style={CABECALHO}>Pulso do dia</b>
+        <span style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(26,173,226,.18)", color: "var(--accent)", flexShrink: 0 }}><ClipboardList size={15} /></span>
+        <b style={CABECALHO}>Pulso do dia</b>
       </div>
       {/* null no 1º render evita divergência de hidratação: a data é lida só no cliente */}
-      <p style={{ lineHeight: 1.6, fontSize: 15, fontStyle: "italic" }}>{frase ? `“${frase.t}”` : "…"}</p>
+      <p style={{ lineHeight: 1.6, fontSize: 16, fontStyle: "italic", fontWeight: 600 }}>{frase ? `“${frase.t}”` : "…"}</p>
       {frase?.a && <div className="sub" style={{ fontWeight: 600, marginTop: 4 }}>— {frase.a}</div>}
       {frase && (
         <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
@@ -91,9 +92,10 @@ function Aniversarios() {
   const [txt, setTxt] = useState("");
   useEffect(() => { if (typeof window !== "undefined") setTxt(localStorage.getItem("me_aniversarios") || ""); }, []);
   return (
-    <div>
+    <div style={{ borderRadius: 16, padding: 16, background: "linear-gradient(150deg, rgba(236,72,153,.10), transparent)", border: "1px solid rgba(236,72,153,.18)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <Cake size={16} color="#EC4899" /><b style={CABECALHO}>Aniversários do mês</b>
+        <span style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(236,72,153,.18)", color: "#EC4899", flexShrink: 0 }}><Cake size={15} /></span>
+        <b style={{ ...CABECALHO, color: "#EC4899" }}>Aniversários do mês</b>
       </div>
       {txt ? <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: 14 }}>{txt}</p>
         : <p className="sub" style={{ fontStyle: "italic" }}>Nenhum aniversariante cadastrado.</p>}
@@ -107,41 +109,46 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
   const r = resumo(lancs, meses, saldoInicial);
   const novos = clientes.filter((c) => (c.criado_em || "").slice(0, 4) === ano).length || clientes.length;
 
+  // cada KPI ganha o próprio degradê; todos os três impactam, não só o saldo
   const KPIS = [
-    { icon: <DollarSign size={17} />, cor: "#10B981", val: fmt(r.faturamento, "BRL"), label: "Faturamento", destaque: false },
-    { icon: <TrendingUp size={17} />, cor: "#8b5cf6", val: String(novos), label: "Novos clientes", destaque: false },
-    { icon: <Wallet size={17} />, cor: "#1AADE2", val: fmt(r.saldo, "BRL"), label: "Saldo em caixa", destaque: true },
+    { icon: <DollarSign size={19} />, g1: "#10B981", g2: "#047857", sombra: "rgba(16,185,129,.55)", val: fmt(r.faturamento, "BRL"), label: "Faturamento" },
+    { icon: <TrendingUp size={19} />, g1: "#8b5cf6", g2: "#6d28d9", sombra: "rgba(139,92,246,.55)", val: String(novos), label: "Novos clientes" },
+    { icon: <Wallet size={19} />, g1: "#1AADE2", g2: "#0c6e9e", sombra: "rgba(26,173,226,.6)", val: fmt(r.saldo, "BRL"), label: "Saldo em caixa" },
   ];
 
   return (
-    <div className="card" style={{ padding: 20 }}>
+    <div className="card" style={{ padding: 22, position: "relative", overflow: "hidden", border: "1px solid rgba(26,173,226,.18)", background: "linear-gradient(160deg, rgba(26,173,226,.10), rgba(139,92,246,.05) 55%, transparent)" }}>
+      {/* brilho decorativo no canto — dá profundidade sem pesar */}
+      <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(26,173,226,.18), transparent 70%)", pointerEvents: "none" }} />
+
       {/* Saudação */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ color: "rgba(122,208,234,.85)", fontSize: 12, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase" }}>{saudacao()}{nome ? `, ${nome}` : ""}</div>
+      <div style={{ marginBottom: 18, position: "relative" }}>
+        <div style={{ color: "rgba(122,208,234,.9)", fontSize: 12, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase" }}>{saudacao()}{nome ? `, ${nome}` : ""}</div>
         <div className="sub" style={{ textTransform: "capitalize", fontStyle: "italic", marginTop: 3 }}>{dataHoje()}</div>
       </div>
 
-      {/* 3 KPIs do mesmo tamanho (3º destacado) */}
+      {/* 3 KPIs em degradê, todos com o mesmo peso visual */}
       {/* minmax(0,1fr) é essencial: com "1fr" as colunas não encolhem e o 3º card vaza */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, position: "relative" }}>
         {KPIS.map((k, i) => (
           <div key={i} style={{
-            padding: 13, borderRadius: 16, minHeight: 116, minWidth: 0, display: "flex", flexDirection: "column", gap: 8,
-            border: k.destaque ? "0" : "1px solid var(--line)",
-            background: k.destaque ? "linear-gradient(150deg, #1AADE2, #0c6e9e)" : "rgba(255,255,255,.025)",
-            boxShadow: k.destaque ? "0 12px 28px -12px rgba(26,173,226,.6)" : "none",
-            color: k.destaque ? "#fff" : "var(--txt)",
+            padding: 15, borderRadius: 18, minHeight: 124, minWidth: 0, display: "flex", flexDirection: "column", gap: 8,
+            background: `linear-gradient(150deg, ${k.g1}, ${k.g2})`,
+            boxShadow: `0 14px 30px -14px ${k.sombra}`,
+            color: "#fff", position: "relative", overflow: "hidden",
           }}>
-            <span style={{ width: 32, height: 32, borderRadius: 10, display: "grid", placeItems: "center", background: k.destaque ? "rgba(255,255,255,.2)" : k.cor + "22", color: k.destaque ? "#fff" : k.cor, flexShrink: 0 }}>{k.icon}</span>
-            <b style={{ fontSize: "clamp(13px, 3.7vw, 18px)", letterSpacing: "-.02em", lineHeight: 1.15, marginTop: "auto", minWidth: 0, overflowWrap: "anywhere" }}>{k.val}</b>
-            <small style={{ textTransform: "uppercase", letterSpacing: ".04em", fontSize: 9, fontWeight: 700, lineHeight: 1.3, color: k.destaque ? "rgba(255,255,255,.9)" : "var(--muted)" }}>{k.label}</small>
+            {/* leve textura de luz no topo do card */}
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(255,255,255,.18), transparent 45%)", pointerEvents: "none" }} />
+            <span style={{ width: 36, height: 36, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.22)", color: "#fff", flexShrink: 0, position: "relative" }}>{k.icon}</span>
+            <b style={{ fontSize: "clamp(14px, 3.9vw, 20px)", letterSpacing: "-.02em", lineHeight: 1.15, marginTop: "auto", minWidth: 0, overflowWrap: "anywhere", position: "relative" }}>{k.val}</b>
+            <small style={{ textTransform: "uppercase", letterSpacing: ".05em", fontSize: 9.5, fontWeight: 800, lineHeight: 1.3, color: "rgba(255,255,255,.92)", position: "relative" }}>{k.label}</small>
           </div>
         ))}
       </div>
 
-      <div style={{ height: 1, background: "var(--line)", margin: "18px 0" }} />
+      <div style={{ height: 1, background: "linear-gradient(90deg, transparent, var(--line), transparent)", margin: "20px 0", position: "relative" }} />
       {/* pulso e aniversários lado a lado; empilham no celular */}
-      <div className="resumo-blocos" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, alignItems: "start" }}>
+      <div className="resumo-blocos" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, alignItems: "start", position: "relative" }}>
         <PulsoDoDia />
         <Aniversarios />
       </div>
