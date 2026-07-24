@@ -95,6 +95,7 @@ button{font-family:inherit}
 .side-foot .av-btn:hover .av-edit{opacity:1}
 .side-foot .who{flex:1;min-width:0}
 .side-foot .who b{display:block;font-size:13px;color:#fafafa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-foot .who small{display:block;font-size:11px;color:#8a8f98;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .iconbtn{background:transparent;border:0;color:var(--muted-2);cursor:pointer;padding:6px;border-radius:9px}
 /* hover tema-aware: --line-2 clareia no escuro e escurece no claro, sem virar preto */
 .iconbtn:hover{background:var(--line-2);color:var(--txt)}

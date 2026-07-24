@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, Megaphone, Compass, Settings,
   Users, Upload, Building2, LogOut, Sun, Moon, X,
-  Menu, Presentation, ShieldCheck, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
-  ChevronsLeft, ChevronsRight, User, Camera, FileText, BarChart3,
+  Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
+  ChevronsLeft, ChevronsRight, User, Camera, FileText,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -23,6 +23,7 @@ import Funcionarios from "@/components/Funcionarios";
 import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
+import EstruturaFinancas from "./financas-estrutura";
 
 type View =
   | "dashboard" | "financas" | "marketing" | "planejamento" | "config"
@@ -43,21 +44,18 @@ const SUBTABS: Record<string, { key: View; label: string }[]> = {
 // Azul é a cor padrão do app: todos os ícones do menu usam ela.
 // (depois cada empresa poderá trocar essa cor.)
 const NAV_COR: Record<string, string> = {};
-const AZUL = "#1AADE2";
-const corDe = (k: string) => NAV_COR[k] || AZUL;
+const corDe = (k: string) => NAV_COR[k] || "var(--brand)";
 const grupoDe = (v: string) => v;
 // anos fixos no seletor do topo (o mesmo em todas as páginas)
 const ANOS = ["2026", "2027", "2028"];
 // SISTEMA fica oculto (recolhível): tudo que não é o essencial do dia a dia
-const SISTEMA_KEYS = ["apresentacao", "importar", "empresa"];
+const SISTEMA_KEYS = ["apresentacao", "importar"];
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "planejamento", label: "Planejamento", Icon: Compass },
-  { key: "equipe", label: "Equipe", Icon: Users },
   { key: "config", label: "Configurações", Icon: Settings },
   { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
   { key: "importar", label: "Importar planilha", Icon: Upload },
-  { key: "empresa", label: "Empresa & marca", Icon: Building2 },
 ] as const;
 
 export default function Home() {
@@ -161,20 +159,26 @@ export default function Home() {
   const marcaInterna = marcaPainel ? (
     <button
       onClick={irParaHome}
-      title="Sua logomarca aqui — clique para voltar ao início"
+      title={brand.logo ? "Início" : "Sua logomarca aqui — clique para voltar ao início"}
       style={{
         width: "100%", display: "flex", alignItems: "center", gap: 10,
         background: "transparent", border: 0, borderRadius: 12,
         padding: "4px 6px", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
       }}
     >
-      <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, #1AADE2, #0c6e9e)", color: "#fff" }}>
-        <ImageIcon size={17} />
-      </span>
-      <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15, minWidth: 0 }}>
-        <b style={{ fontSize: 13, color: "#f4f5f7", fontWeight: 800, letterSpacing: "-.01em" }}>Sua logomarca</b>
-        <small style={{ fontSize: 9.5, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em" }}>aqui</small>
-      </span>
+      {brand.logo ? (
+        <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
+      ) : (
+        <>
+          <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, var(--brand), var(--brand-dark))", color: "#fff" }}>
+            <ImageIcon size={17} />
+          </span>
+          <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15, minWidth: 0 }}>
+            <b style={{ fontSize: 13, color: "#f4f5f7", fontWeight: 800, letterSpacing: "-.01em" }}>Sua logomarca</b>
+            <small style={{ fontSize: 9.5, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em" }}>aqui</small>
+          </span>
+        </>
+      )}
     </button>
   ) : (
     brand.logo
@@ -191,7 +195,7 @@ export default function Home() {
         if (areasPerm.includes("financas")) ["contas", "ferramentas"].forEach((k) => ops.add(k));
         return [...ops];
       })();
-  const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key)).filter((o) => !ehSuper || o.key !== "equipe");
+  const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key));
   const opsCore = opsVis.filter((o) => !SISTEMA_KEYS.includes(o.key));
   const opsSistema = opsVis.filter((o) => SISTEMA_KEYS.includes(o.key));
   const sistemaTemAtivo = opsSistema.some((o) => o.key === view);
@@ -321,6 +325,8 @@ export default function Home() {
           </label>
           <div className="who">
             <b>{perfil?.nome || saudacaoNome || nomeMarca}</b>
+            {/* mostra o nome da empresa digitado; sem nome, cai no selo do painel modelo */}
+            <small>{nomeMarca !== "Minha Empresa" ? nomeMarca : (marcaPainel ? "Painel demonstrativo" : nomeMarca)}</small>
           </div>
           <button className="iconbtn" title={supabaseReady ? "Sair" : "Login"}
             onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={17} /></button>
@@ -337,24 +343,19 @@ export default function Home() {
       {/* Main */}
       <main className="main">
         <div className="topctrls">
-          {marcaPainel && (
-            <span
-              title="Este é o painel modelo, usado para demonstração."
-              style={{
-                marginRight: "auto", display: "inline-flex", alignItems: "center", gap: 7,
-                fontSize: 12, fontWeight: 700, color: "#1AADE2",
-                background: "rgba(26,173,226,.10)", border: "1px solid rgba(26,173,226,.35)",
-                padding: "6px 13px", borderRadius: 999,
-              }}
-            >
-              <ShieldCheck size={13} /> Painel demonstrativo
-            </span>
-          )}
-          {/* seletor de ano — fixo no topo de todas as páginas */}
-          <div className="period" role="group" aria-label="Selecionar ano">
-            {ANOS.map((a) => (
-              <button key={a} className={anoSel === a ? "active" : ""} onClick={() => { playTick(); setAnoSel(a); }}>{a}</button>
-            ))}
+          {/* o selo "Painel demonstrativo" agora fica no rodapé do menu, sob o nome */}
+          {/* seletor de ano — fixo no topo de todas as páginas (estilo sutil) */}
+          <div role="group" aria-label="Selecionar ano"
+            style={{ display: "inline-flex", gap: 2, padding: 4, borderRadius: 999, background: "var(--bg-2)", border: "1px solid var(--line)" }}>
+            {ANOS.map((a) => {
+              const on = anoSel === a;
+              return (
+                <button key={a} onClick={() => { playTick(); setAnoSel(a); }}
+                  style={{ padding: "6px 16px", borderRadius: 999, border: 0, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    background: on ? "var(--card)" : "transparent", color: on ? "var(--txt)" : "var(--muted)",
+                    boxShadow: on ? "0 1px 3px rgba(0,0,0,.14)" : "none" }}>{a}</button>
+              );
+            })}
           </div>
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
           <button className="btn ghost sm desk-only" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
@@ -364,7 +365,7 @@ export default function Home() {
             {SUBTABS[view].map((t) => {
               const at = view === t.key;
               return <button key={t.key} onClick={() => { playTick(); setView(t.key); }}
-                style={{ flexShrink: 0, background: at ? "linear-gradient(135deg,#22b8f0,#0c6e9e)" : "var(--card)", color: at ? "#fff" : "var(--txt)", border: at ? "1px solid #37c6f0" : "1px solid var(--line-2)", boxShadow: at ? "0 6px 16px -8px rgba(26,173,226,.7)" : "none", borderRadius: 99, padding: "6px 15px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>;
+                style={{ flexShrink: 0, background: at ? "var(--brand)" : "var(--card)", color: at ? "#fff" : "var(--txt)", border: at ? "1px solid var(--brand)" : "1px solid var(--line-2)", boxShadow: "none", borderRadius: 99, padding: "6px 15px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.label}</button>;
             })}
           </div>
         )}
@@ -387,7 +388,7 @@ export default function Home() {
         {view === "financas" && <TelaFinancas />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <EmConstrucao titulo="Planejamento" />}
-        {view === "config" && <EmConstrucao titulo="Configurações" />}
+        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
@@ -419,18 +420,19 @@ export default function Home() {
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
 function TelaFinancas() {
-  const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "graficos" | "analise">("dashboard");
+  const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario">("dashboard");
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
-    calendario: "Calendário de Pagamentos", graficos: "Gráficos", analise: "Análise Receita x Custo",
+    calendario: "Calendário de Pagamentos",
   };
-  const pill = (ativo: boolean, cor: string): React.CSSProperties => ({
+  // ativo = azul cheio; inativo = cinza neutro
+  const pill = (ativo: boolean): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
     padding: "8px 15px", borderRadius: 12, fontSize: 12.5, fontWeight: 800,
     cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-    border: `1px solid ${ativo ? cor : cor + "55"}`,
-    background: ativo ? cor : cor + "14",
-    color: ativo ? "#fff" : cor,
+    border: `1px solid ${ativo ? "var(--brand)" : "var(--line-2)"}`,
+    background: ativo ? "var(--brand)" : "transparent",
+    color: ativo ? "#fff" : "var(--muted)",
   });
   const abas: { key: typeof aba; label: string }[] = [
     { key: "dashboard", label: "Dashboard" },
@@ -442,24 +444,60 @@ function TelaFinancas() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,#1AADE2,#0c6e9e)", color: "#fff", flexShrink: 0 }}>
+            <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
               <DollarSign size={22} />
             </span>
-            <h2 style={{ margin: 0, fontSize: 24, letterSpacing: "-.02em" }}>Finanças</h2>
-            <button style={pill(false, "#1AADE2")}><FileText size={14} /> Gerar DRE</button>
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <button onClick={() => setAba("graficos")} style={pill(aba === "graficos", "#1AADE2")}><BarChart3 size={14} /> Gráficos</button>
-            <button onClick={() => setAba("analise")} style={pill(aba === "analise", "#8b5cf6")}><BarChart3 size={14} /> Análise Receita x Custo</button>
+            <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
+            <button style={pill(false)}><FileText size={14} /> Gerar DRE</button>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {abas.map((a) => (
-            <button key={a.key} onClick={() => setAba(a.key)} style={pill(aba === a.key, "#1AADE2")}>{a.label}</button>
+            <button key={a.key} onClick={() => setAba(a.key)} style={pill(aba === a.key)}>{a.label}</button>
           ))}
         </div>
       </div>
-      <EmConstrucao titulo={rotulos[aba]} />
+      {aba === "estrutura" ? <EstruturaFinancas /> : <EmConstrucao titulo={rotulos[aba]} />}
+    </div>
+  );
+}
+
+/** Configurações no mesmo formato de Finanças: título + abas Dados da empresa / Equipe. */
+function TelaConfig({ empresa, funcs, reload, brand, saveBrand }: {
+  empresa: Empresa | null; funcs: Funcionario[]; reload: () => Promise<void>;
+  brand: React.ComponentProps<typeof Config>["brand"]; saveBrand: React.ComponentProps<typeof Config>["saveBrand"];
+}) {
+  const [aba, setAba] = useState<"empresa" | "equipe">("empresa");
+  const abas: { key: "empresa" | "equipe"; label: string }[] = [
+    { key: "empresa", label: "Dados da empresa" },
+    { key: "equipe", label: "Equipe" },
+  ];
+  const pill = (ativo: boolean): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
+    padding: "8px 15px", borderRadius: 12, fontSize: 12.5, fontWeight: 800,
+    cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+    border: `1px solid ${ativo ? "var(--brand)" : "var(--line-2)"}`,
+    background: ativo ? "var(--brand)" : "transparent",
+    color: ativo ? "#fff" : "var(--muted)",
+  });
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
+            <Settings size={22} />
+          </span>
+          <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Configurações</h2>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {abas.map((a) => (
+            <button key={a.key} onClick={() => setAba(a.key)} style={pill(aba === a.key)}>{a.label}</button>
+          ))}
+        </div>
+      </div>
+      {aba === "empresa"
+        ? <Config empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
+        : <Funcionarios funcs={funcs} reload={reload} />}
     </div>
   );
 }
