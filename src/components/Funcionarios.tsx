@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { Users, Phone, Mail, CreditCard, KeyRound, Cake, CalendarDays, Briefcase, Trash2, Plus, Power } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
-import BotaoRelatorioEquipe from "./RelatorioEquipe";
+import Diretores from "./Diretores";
 
 const VERMELHO = "#EF4444", VERDE = "#10B981", AMARELO = "#F59E0B";
 const hojeISO = () => new Date().toISOString().slice(0, 10);
@@ -28,6 +28,27 @@ function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar 
       onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; onFocar?.(); }}
       onBlur={(e) => { e.currentTarget.style.background = "transparent"; onDesfocar?.(); if (e.target.value !== base) onSalvar(e.target.value, e.currentTarget); }}
       style={{ border: 0, outline: "none", background: "transparent", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", transition: "background .12s", ...style }}
+    />
+  );
+}
+
+/** Campo do nome no card: quebra em até 2 linhas sem crescer o card. */
+function CampoNome({ valor, onSalvar, placeholder, style, onFocar, onDesfocar }: {
+  valor: string | null | undefined; onSalvar: (v: string, el: HTMLElement) => void;
+  placeholder?: string; style?: React.CSSProperties; onFocar?: () => void; onDesfocar?: () => void;
+}) {
+  const base = valor ?? "";
+  const ajustar = (el: HTMLTextAreaElement) => { el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 40)}px`; };
+  return (
+    <textarea
+      defaultValue={base}
+      placeholder={placeholder}
+      rows={1}
+      ref={(el) => { if (el) ajustar(el); }}
+      onInput={(e) => ajustar(e.currentTarget)}
+      onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; onFocar?.(); }}
+      onBlur={(e) => { e.currentTarget.style.background = "transparent"; onDesfocar?.(); if (e.target.value !== base) onSalvar(e.target.value.replace(/\n/g, " ").trim(), e.currentTarget); }}
+      style={{ border: 0, outline: "none", background: "transparent", resize: "none", overflow: "hidden", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", lineHeight: 1.2, transition: "background .12s", ...style }}
     />
   );
 }
@@ -65,7 +86,7 @@ function Chave({ ops, valor, onChange }: { ops: { k: string; txt: string }[]; va
   );
 }
 
-export default function Funcionarios({ funcs, reload, empresa = null, brand }: { funcs: Funcionario[]; reload: () => void; empresa?: Empresa | null; brand?: Brand }) {
+export default function Funcionarios({ funcs, reload, empresa = null, brand, loginEmail = "" }: { funcs: Funcionario[]; reload: () => void; empresa?: Empresa | null; brand?: Brand; loginEmail?: string }) {
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
   const [ordem, setOrdem] = useState<"cadastro" | "alfabetica">("alfabetica");
   const [modo, setModo] = useState<"card" | "lista">("card");
@@ -162,6 +183,15 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
 
   return (
     <>
+      {/* bloco de diretores (super admin + admins) acima da equipe */}
+      <Diretores funcs={funcs} empresa={empresa} brand={brand} loginEmail={loginEmail} />
+
+      {/* título da equipe */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><Users size={19} /></span>
+        <h2 style={{ margin: 0, fontSize: 19 }}>Equipe</h2>
+      </div>
+
       {/* filtros alinhados à esquerda: ordenação · visualização · situação */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <Chave ops={[{ k: "cadastro", txt: "Cadastro" }, { k: "alfabetica", txt: "A–Z" }]} valor={ordem} onChange={(v) => setOrdem(v as "cadastro" | "alfabetica")} />
@@ -169,9 +199,6 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
           {opc("ativos", "Ativos")}
           {opc("desativados", "Desativados")}
-        </div>
-        <div style={{ marginLeft: "auto" }}>
-          <BotaoRelatorioEquipe funcs={funcs} empresa={empresa} brand={brand ?? { nome: "Minha Empresa", logo: null, cor: "#1AADE2", saudacao: "", logoTamanho: 40 }} />
         </div>
       </div>
 
@@ -204,7 +231,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
                 <div key={f.id} className="card equipe-card" style={{ padding: "8px 14px", position: "relative", opacity: f.ativo ? 1 : 0.72, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   {trash}
                   {avatar(34)}
-                  <div style={{ width: 160, minWidth: 110, flexShrink: 0 }}>
+                  <div style={{ width: 230, minWidth: 170, flexShrink: 0 }}>
                     <Campo valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 14, fontWeight: 700 }} />
                   </div>
                   <div style={{ width: 150, minWidth: 120 }}><LinhaEdit icone={<Phone size={13} />} valor={f.contato} placeholder="Telefone" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} /></div>
@@ -223,7 +250,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
                 <div style={{ display: "flex", alignItems: "center", gap: 10, paddingRight: 26 }}>
                   {avatar(42)}
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <Campo valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 15, fontWeight: 700 }} />
+                    <CampoNome valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 13.5, fontWeight: 700 }} />
                   </div>
                 </div>
 

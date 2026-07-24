@@ -12,12 +12,19 @@ function lerExtra(id?: string | null): { ie?: string; email?: string; contato?: 
   try { return JSON.parse(localStorage.getItem(`me_empresa_extra:${id || "default"}`) || "{}"); } catch { return {}; }
 }
 
+type Pessoa = { nome: string; cargo?: string | null; area?: string | null; email?: string | null; telefone?: string | null; cpf?: string | null; pix?: string | null; nascimento?: string | null };
+type DiretorRel = Pessoa;
+
 /** Modal de pré-visualização do Relatório da Equipe, pronto para imprimir/salvar em PDF. */
-function Relatorio({ funcs, empresa, brand, onFechar }: { funcs: Funcionario[]; empresa: Empresa | null; brand: Brand; onFechar: () => void }) {
+function Relatorio({ funcs, empresa, brand, diretores = [], onFechar }: { funcs: Funcionario[]; empresa: Empresa | null; brand: Brand; diretores?: DiretorRel[]; onFechar: () => void }) {
   const extra = lerExtra(empresa?.id);
   const nomeEmpresa = brand?.nome && brand.nome !== "Minha Empresa" ? brand.nome
     : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
-  const lista = funcs.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }));
+  // diretores + integrantes, tudo misturado em ordem alfabética
+  const lista: Pessoa[] = [
+    ...funcs.map((f) => ({ nome: f.nome, cargo: f.cargo, area: f.departamento, email: f.email, telefone: f.contato, cpf: f.cpf, pix: f.pix, nascimento: f.nascimento })),
+    ...diretores,
+  ].filter((p) => p.nome.trim()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }));
   const dataImp = new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
 
   const th: React.CSSProperties = { textAlign: "left", padding: "6px 8px", fontSize: 9, letterSpacing: ".04em", textTransform: "uppercase", color: "#334155", borderBottom: "1.5px solid #cbd5e1" };
@@ -60,15 +67,15 @@ function Relatorio({ funcs, empresa, brand, onFechar }: { funcs: Funcionario[]; 
             <div><b>Endereço:</b> {extra.endereco || "xxxxxxxxxx/xx"}</div>
           </div>
 
-          {/* lista de todos os integrantes, numerada em duas colunas */}
+          {/* lista de todos (diretores + integrantes), numerada em duas colunas */}
           <h2 style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "#0f172a", margin: "24px 0 12px" }}>Todos os integrantes</h2>
           {lista.length === 0
             ? <p style={{ fontSize: 12, color: "#64748b", fontStyle: "italic" }}>Nenhum integrante cadastrado.</p>
             : <div style={{ columnCount: 2, columnGap: 40, fontSize: 12.5, lineHeight: 2 }}>
-                {lista.map((f, i) => (
-                  <div key={f.id} style={{ display: "flex", gap: 6, breakInside: "avoid" }}>
+                {lista.map((p, i) => (
+                  <div key={i} style={{ display: "flex", gap: 6, breakInside: "avoid" }}>
                     <span style={{ color: "#64748b", minWidth: 20, textAlign: "right" }}>{i + 1}.</span>
-                    <span>{f.nome || "Sem nome"}</span>
+                    <span>{p.nome || "Sem nome"}</span>
                   </div>
                 ))}
               </div>}
@@ -79,22 +86,21 @@ function Relatorio({ funcs, empresa, brand, onFechar }: { funcs: Funcionario[]; 
             <thead>
               <tr>
                 <th style={{ ...th, width: 26 }}>#</th>
-                <th style={th}>Nome</th><th style={th}>Cargo</th><th style={th}>Área</th><th style={th}>E-mail</th>
+                <th style={th}>Nome</th><th style={th}>Cargo</th><th style={th}>E-mail</th>
                 <th style={th}>Telefone</th><th style={th}>CPF</th><th style={th}>Pix</th><th style={th}>Nasc.</th>
               </tr>
             </thead>
             <tbody>
-              {lista.map((f, i) => (
-                <tr key={f.id}>
+              {lista.map((p, i) => (
+                <tr key={i}>
                   <td style={{ ...td, color: "#64748b" }}>{i + 1}</td>
-                  <td style={{ ...td, fontWeight: 700 }}>{f.nome || "Sem nome"}</td>
-                  <td style={td}>{ouTraco(f.cargo)}</td>
-                  <td style={td}>{ouTraco(f.departamento)}</td>
-                  <td style={td}>{ouTraco(f.email)}</td>
-                  <td style={td}>{ouTraco(f.contato)}</td>
-                  <td style={td}>{ouTraco(f.cpf)}</td>
-                  <td style={td}>{ouTraco(f.pix)}</td>
-                  <td style={td}>{brData(f.nascimento)}</td>
+                  <td style={{ ...td, fontWeight: 700 }}>{p.nome || "Sem nome"}</td>
+                  <td style={td}>{ouTraco(p.cargo)}</td>
+                  <td style={td}>{ouTraco(p.email)}</td>
+                  <td style={td}>{ouTraco(p.telefone)}</td>
+                  <td style={td}>{ouTraco(p.cpf)}</td>
+                  <td style={td}>{ouTraco(p.pix)}</td>
+                  <td style={td}>{brData(p.nascimento)}</td>
                 </tr>
               ))}
             </tbody>
@@ -112,14 +118,14 @@ function Relatorio({ funcs, empresa, brand, onFechar }: { funcs: Funcionario[]; 
 }
 
 /** Botão azul "Imprimir PDF" + a pré-visualização do relatório. */
-export default function BotaoRelatorioEquipe({ funcs, empresa, brand }: { funcs: Funcionario[]; empresa: Empresa | null; brand: Brand }) {
+export default function BotaoRelatorioEquipe({ funcs, empresa, brand, diretores = [] }: { funcs: Funcionario[]; empresa: Empresa | null; brand: Brand; diretores?: DiretorRel[] }) {
   const [aberto, setAberto] = useState(false);
   return (
     <>
       <button className="btn" onClick={() => setAberto(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
         <Printer size={15} /> Imprimir PDF
       </button>
-      {aberto && <Relatorio funcs={funcs} empresa={empresa} brand={brand} onFechar={() => setAberto(false)} />}
+      {aberto && <Relatorio funcs={funcs} empresa={empresa} brand={brand} diretores={diretores} onFechar={() => setAberto(false)} />}
     </>
   );
 }

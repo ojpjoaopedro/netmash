@@ -388,7 +388,7 @@ export default function Home() {
         {view === "financas" && <TelaFinancas />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <EmConstrucao titulo="Planejamento" />}
-        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
+        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
@@ -463,9 +463,10 @@ function TelaFinancas() {
 }
 
 /** Configurações no mesmo formato de Finanças: título + abas Dados da empresa / Equipe. */
-function TelaConfig({ empresa, funcs, reload, brand, saveBrand }: {
+function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
   empresa: Empresa | null; funcs: Funcionario[]; reload: () => Promise<void>;
   brand: React.ComponentProps<typeof Config>["brand"]; saveBrand: React.ComponentProps<typeof Config>["saveBrand"];
+  loginEmail?: string;
 }) {
   const [aba, setAba] = useState<"empresa" | "equipe">("empresa");
   const abas: { key: "empresa" | "equipe"; label: string }[] = [
@@ -497,7 +498,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand }: {
       </div>
       {aba === "empresa"
         ? <Config empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
-        : <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} />}
+        : <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} loginEmail={loginEmail} />}
     </div>
   );
 }
