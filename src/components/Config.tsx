@@ -27,8 +27,8 @@ const SEGMENTOS = [
 
 /* Dados fiscais/bancários extras da empresa. Ficam por empresa no navegador
    (não exigem coluna nova no banco). Chaveado pelo id da empresa. */
-type DadosExtra = { ie: string; email: string; endereco: string; banco: string };
-const EXTRA_VAZIO: DadosExtra = { ie: "", email: "", endereco: "", banco: "" };
+type DadosExtra = { ie: string; email: string; contato: string; endereco: string; banco: string };
+const EXTRA_VAZIO: DadosExtra = { ie: "", email: "", contato: "", endereco: "", banco: "" };
 function chaveExtra(id?: string | null) { return `me_empresa_extra:${id || "default"}`; }
 function lerExtra(id?: string | null): DadosExtra {
   if (typeof window === "undefined") return EXTRA_VAZIO;
@@ -117,9 +117,11 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
             </div>
             <div className="field"><label className="f">CNPJ</label><input value={cnpj} onChange={(e) => setCnpj(mascaraCnpj(e.target.value))} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="00.000.000/0000-00" inputMode="numeric" /></div>
           </div>
-          <div className="row">
-            <div className="field"><label className="f">Inscrição Estadual</label><input value={extra.ie} onChange={(e) => upExtra({ ie: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Opcional" /></div>
+          {/* E-mail (maior) primeiro, depois Contato e Inscrição Estadual */}
+          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 14 }}>
             <div className="field"><label className="f">E-mail principal</label><input value={extra.email} onChange={(e) => upExtra({ email: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="contato@empresa.com" inputMode="email" /></div>
+            <div className="field"><label className="f">Contato</label><input value={extra.contato} onChange={(e) => upExtra({ contato: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="(00) 00000-0000" inputMode="tel" /></div>
+            <div className="field"><label className="f">Inscrição Estadual</label><input value={extra.ie} onChange={(e) => upExtra({ ie: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Opcional" /></div>
           </div>
           <div className="row">
             <div className="field"><label className="f">Endereço</label><input value={extra.endereco} onChange={(e) => upExtra({ endereco: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Rua, nº, bairro — Cidade/UF · CEP" /></div>
@@ -154,7 +156,6 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
                   <ImagePlus size={24} />
                 </span>
                 <b style={{ fontSize: 14 }}>Clique aqui para enviar sua logomarca</b>
-                <span className="sub" style={{ fontSize: 12 }}>Arraste ou clique para escolher o arquivo</span>
               </>
             )}
           </label>

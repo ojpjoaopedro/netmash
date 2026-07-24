@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { DollarSign, TrendingUp, Wallet, Cake, Share2, Copy, Check, Quote, Sparkles } from "lucide-react";
-import { Lancamento, Cliente } from "@/lib/db";
+import { DollarSign, TrendingUp, Wallet, Cake, Award, Share2, Copy, Check, Quote, Sparkles } from "lucide-react";
+import { Lancamento, Cliente, Funcionario } from "@/lib/db";
 import { resumo } from "@/lib/calc";
 import { fmt } from "./Kit";
 
@@ -115,23 +115,80 @@ function PulsoDoDia() {
   );
 }
 
-/** Aniversários do mês — mostra o que estiver salvo (sem botão de editar). */
-function Aniversarios() {
-  const [txt, setTxt] = useState("");
-  useEffect(() => { if (typeof window !== "undefined") setTxt(localStorage.getItem("me_aniversarios") || ""); }, []);
+const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const mesDe = (iso: string) => Number(iso.slice(5, 7)) - 1;   // 0-11
+const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+
+/**
+ * Aniversários do mês corrente, montados a partir da Equipe cadastrada:
+ * nascimento (nome + balãozinho com dia/mês, sem ano) e admissão (data + anos de casa).
+ */
+function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
+  const agora = new Date();
+  const mes = agora.getMonth();
+  const anoAtual = agora.getFullYear();
+
+  const niver = funcs.filter((f) => f.ativo && f.nascimento && mesDe(f.nascimento) === mes)
+    .sort((a, b) => a.nascimento!.slice(8, 10).localeCompare(b.nascimento!.slice(8, 10)));
+  const admis = funcs.filter((f) => f.ativo && f.admissao && mesDe(f.admissao) === mes)
+    .sort((a, b) => a.admissao!.slice(8, 10).localeCompare(b.admissao!.slice(8, 10)));
+
+  const anosDe = (iso: string) => {
+    const n = anoAtual - Number(iso.slice(0, 4));
+    return n <= 0 ? "entrou este ano" : `${n} ${n === 1 ? "ano" : "anos"} de casa`;
+  };
+
+  const vazio = niver.length === 0 && admis.length === 0;
+
   return (
     <div style={{ borderRadius: 16, padding: 16, background: "linear-gradient(150deg, rgba(37,99,235,.10), transparent)", border: "1px solid rgba(37,99,235,.18)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <span style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(37,99,235,.16)", color: "#2563EB", flexShrink: 0 }}><Cake size={15} /></span>
-        <b style={{ ...CABECALHO, color: "#2563EB" }}>Aniversários do mês</b>
+        <b style={{ ...CABECALHO, color: "#2563EB" }}>Aniversários de {MESES_PT[mes]}</b>
       </div>
-      {txt ? <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: 14 }}>{txt}</p>
-        : <p className="sub" style={{ fontStyle: "italic" }}>Nenhum aniversariante cadastrado.</p>}
+
+      {vazio && <p className="sub" style={{ fontStyle: "italic" }}>Nenhum aniversariante neste mês.</p>}
+
+      {niver.length > 0 && (
+        <div style={{ marginBottom: admis.length > 0 ? 14 : 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--muted)", marginBottom: 8 }}>
+            <Cake size={13} /> Aniversário
+          </div>
+          <div style={{ display: "grid", gap: 7 }}>
+            {niver.map((f) => (
+              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome || "Sem nome"}</span>
+                <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "#2563EB", background: "rgba(37,99,235,.12)", padding: "3px 10px", borderRadius: 99 }}>
+                  🎈 {diaMes(f.nascimento!)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {admis.length > 0 && (
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--muted)", marginBottom: 8 }}>
+            <Award size={13} /> Aniversário de admissão
+          </div>
+          <div style={{ display: "grid", gap: 7 }}>
+            {admis.map((f) => (
+              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome || "Sem nome"}</span>
+                <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#2563EB", background: "rgba(37,99,235,.12)", padding: "3px 10px", borderRadius: 99 }}>
+                  {diaMes(f.admissao!)} · {anosDe(f.admissao!)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default function ResumoHome({ lancs, clientes, saldoInicial, nome, ano }: { lancs: Lancamento[]; clientes: Cliente[]; saldoInicial: number; nome: string; ano?: string }) {
+export default function ResumoHome({ lancs, clientes, funcs = [], saldoInicial, nome, ano }: { lancs: Lancamento[]; clientes: Cliente[]; funcs?: Funcionario[]; saldoInicial: number; nome: string; ano?: string }) {
   const anoRef = ano || String(new Date().getFullYear());
   const meses = Array.from({ length: 12 }, (_, i) => `${anoRef}-${String(i + 1).padStart(2, "0")}`);
   const r = resumo(lancs, meses, saldoInicial);
@@ -174,7 +231,7 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome, ano }:
       {/* pulso e aniversários lado a lado; empilham no celular */}
       <div className="resumo-blocos">
         <PulsoDoDia />
-        <Aniversarios />
+        <Aniversarios funcs={funcs} />
       </div>
     </div>
   );

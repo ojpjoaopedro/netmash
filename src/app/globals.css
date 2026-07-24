@@ -391,6 +391,26 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   .kpi-lbl{font-size:10px}
   .resumo-blocos{grid-template-columns:1fr;gap:14px}
 }
+/* Equipe: 4 cartões por linha, reduz conforme a tela encolhe */
+.equipe-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.equipe-card .del-func{opacity:0;transition:opacity .15s,color .15s,background .15s}
+.equipe-card:hover .del-func{opacity:1}
+.equipe-card .del-func:hover{background:rgba(239,68,68,.12);color:#EF4444}
+/* Impressão: só o relatório da equipe vai para o papel/PDF */
+@media print{
+  body *{visibility:hidden !important}
+  .relatorio-print,.relatorio-print *{visibility:visible !important}
+  .relatorio-print{position:absolute;left:0;top:0;width:100%;max-width:none;box-shadow:none;border-radius:0;padding:24px}
+  .no-print{display:none !important}
+  /* rodapé fixo em cada página do PDF, com a numeração */
+  .relatorio-rodape{position:fixed;bottom:6mm;left:14mm;right:14mm;margin:0;border-top:0;padding:0;font-size:8px;font-style:italic}
+  .relatorio-pag::after{content:"Página " counter(page)}
+}
+/* rodapé na tela (pré-visualização): itálico, bem pequeno e colado no fim da página */
+.relatorio-rodape{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:auto;padding-top:14px;font-size:8.5px;font-style:italic;color:#94a3b8}
+@media(max-width:1200px){.equipe-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.equipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.equipe-grid{grid-template-columns:1fr}}
 .tint-green{background:rgba(16,185,129,.14)} .tint-red{background:rgba(239,68,68,.14)}
 .tint-cyan{background:rgba(26,173,226,.14)} .tint-amber{background:rgba(245,158,11,.15)}
 .tint-blue{background:rgba(30,144,255,.15)}

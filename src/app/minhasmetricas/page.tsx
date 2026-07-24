@@ -383,7 +383,7 @@ export default function Home() {
             </div>
           </div>
         )}
-        {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} ano={anoSel} />}
+        {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} ano={anoSel} />}
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
         {view === "financas" && <TelaFinancas />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
@@ -497,7 +497,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand }: {
       </div>
       {aba === "empresa"
         ? <Config empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
-        : <Funcionarios funcs={funcs} reload={reload} />}
+        : <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} />}
     </div>
   );
 }

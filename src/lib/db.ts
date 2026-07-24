@@ -44,7 +44,23 @@ export type Funcionario = {
   admissao: string | null;
   ativo: boolean;
   contato: string | null;
+  // campos opcionais do cartão completo (guardados localmente no modelo demo)
+  foto?: string | null;
+  email?: string | null;
+  cpf?: string | null;
+  pix?: string | null;
+  nascimento?: string | null;
+  desativado_em?: string | null;   // data da última desativação
 };
+
+// Colunas que existem na tabela do banco. Os campos extras do cartão
+// (foto/email/cpf/pix/nascimento) ficam só no navegador para não quebrar o insert.
+const COLS_FUNC = ["nome", "cargo", "departamento", "salario", "beneficios", "admissao", "ativo", "contato"] as const;
+function soColunas<T extends Record<string, unknown>>(f: T): Partial<T> {
+  const out: Record<string, unknown> = {};
+  for (const k of COLS_FUNC) if (k in f) out[k] = f[k];
+  return out as Partial<T>;
+}
 
 export type Empresa = {
   id: string;
@@ -151,9 +167,9 @@ function seedDemo() {
     { id: uid(), empresa_id: DEMO_EMP, tipo: "despesa", descricao: "Imposto (DAS/Simples)", categoria: "Impostos", valor: 2750, data_competencia: `${ymA}-20`, vencimento: `${ymP}-20`, pago: false, data_pagamento: null, forma: "boleto", contato: null, origem: "manual" },
   );
   const func: Funcionario[] = [
-    { id: uid(), empresa_id: DEMO_EMP, nome: "Ana Souza", cargo: "Gerente", departamento: "Administrativo", salario: 4500, beneficios: 600, admissao: "2023-02-01", ativo: true, contato: null },
-    { id: uid(), empresa_id: DEMO_EMP, nome: "Carlos Lima", cargo: "Vendedor", departamento: "Comercial", salario: 2400, beneficios: 400, admissao: "2024-06-15", ativo: true, contato: null },
-    { id: uid(), empresa_id: DEMO_EMP, nome: "Bruna Reis", cargo: "Atendente", departamento: "Operação", salario: 1800, beneficios: 350, admissao: "2025-01-10", ativo: true, contato: null },
+    { id: uid(), empresa_id: DEMO_EMP, nome: "Ana Souza", cargo: "Gerente", departamento: "Administrativo", salario: 4500, beneficios: 600, admissao: "2023-02-01", ativo: true, contato: "(62) 99999-0001", foto: null, email: "ana.souza@empresa.com", cpf: "000.000.000-01", pix: "ana.souza@empresa.com", nascimento: "1990-02-13" },
+    { id: uid(), empresa_id: DEMO_EMP, nome: "Carlos Lima", cargo: "Vendedor", departamento: "Comercial", salario: 2400, beneficios: 400, admissao: "2024-06-15", ativo: true, contato: "(62) 99999-0002", foto: null, email: "carlos.lima@empresa.com", cpf: "000.000.000-02", pix: "(62) 99999-0002", nascimento: "1995-05-10" },
+    { id: uid(), empresa_id: DEMO_EMP, nome: "Bruna Reis", cargo: "Atendente", departamento: "Operação", salario: 1800, beneficios: 350, admissao: "2025-01-10", ativo: true, contato: "(62) 99999-0003", foto: null, email: "bruna.reis@empresa.com", cpf: "000.000.000-03", pix: "000.000.000-03", nascimento: "2000-11-20" },
   ];
   lsSet(K.emp, emp);
   lsSet(K.lanc, lanc);
@@ -288,7 +304,7 @@ export async function addFuncionario(f: Omit<Funcionario, "id" | "empresa_id">):
     return;
   }
   const emp = await getEmpresa();
-  await supabase.from("funcionarios").insert({ ...f, empresa_id: emp?.id });
+  await supabase.from("funcionarios").insert({ ...soColunas(f), empresa_id: emp?.id });
 }
 
 export async function updateFuncionario(id: string, patch: Partial<Funcionario>): Promise<void> {
@@ -296,7 +312,7 @@ export async function updateFuncionario(id: string, patch: Partial<Funcionario>)
     lsSet(K.func, ls<Funcionario[]>(K.func, []).map((f) => (f.id === id ? { ...f, ...patch } : f)));
     return;
   }
-  await supabase.from("funcionarios").update(patch).eq("id", id);
+  await supabase.from("funcionarios").update(soColunas(patch)).eq("id", id);
 }
 
 export async function delFuncionario(id: string): Promise<void> {
