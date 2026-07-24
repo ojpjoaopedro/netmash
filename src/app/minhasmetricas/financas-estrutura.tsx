@@ -39,7 +39,7 @@ const PADRAO: Dados = {
         {
           nome: "Salários – Comercial", cor: AZUL, itens: [
             { nome: "Yuri Carvalho (Diretor)", v: v12([5000, 5000, 4000, 4000, 4000, 4000]) },
-            { nome: "Matheus", v: v12([0, 0, 2844.32, 2844.32, 2844.32, 2844.32]) },
+            { nome: "Matheus", v: v12([0, 0, 2000, 2000, 2000, 2000]) },
             { nome: "Ana Paula", v: v12([1520, 1499.93, 1499.93, 1499.43, 1499.43, 1499.43]) },
             { nome: "Victor", v: v12([0, 1000, 1000]) },
           ],
@@ -297,7 +297,7 @@ export default function EstruturaFinancas() {
 
   // larguras FIXAS iguais nas três tabelas: é isso que alinha Jan..Dez de ponta
   // a ponta entre Receitas, Custos e Resultado
-  const W_ROT = 224, W_MES = 100, W_TOT = 112;
+  const W_ROT = 224, W_MES = 116, W_TOT = 128;
   const larguraMin = W_ROT + mesesVis.length * W_MES + W_TOT;
   const cols = { W_ROT, W_MES, W_TOT, meses: mesesVis };
 
