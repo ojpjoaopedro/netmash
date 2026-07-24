@@ -127,13 +127,12 @@ export default function FinancasDashboard() {
   const conteudo = (
     <div style={{ display: "flex", flexDirection: "column", gap: full ? 16 : 14, height: full ? "100%" : "auto", ...(full ? { width: "min(100vw, calc(100vh * 16 / 9))", maxHeight: "100vh", margin: "0 auto" } : {}) }}>
       {/* seletor de meses + expandir */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#64748b", marginRight: 4 }}>Meses (clique para somar)</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         {MES.map((nome, m) => {
           const on = sel.has(m);
           return (
             <button key={m} onClick={() => toggle(m)}
-              style={{ padding: "6px 13px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? AZUL : "rgba(148,163,184,.25)"}`, background: on ? AZUL : "transparent", color: on ? "#04121f" : "#94a3b8" }}>
+              style={{ padding: "7px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "#334155" : "rgba(148,163,184,.28)"}`, background: on ? "#334155" : "transparent", color: on ? "#fff" : "#94a3b8" }}>
               {nome}
             </button>
           );
@@ -145,8 +144,8 @@ export default function FinancasDashboard() {
       </div>
 
       {/* 4 painéis */}
-      <div style={{ display: "grid", gap: 14, flex: full ? 1 : undefined, minHeight: 0,
-        gridTemplateColumns: full ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(360px, 1fr))",
+      <div className="dash-grid" style={{ display: "grid", gap: 14, flex: full ? 1 : undefined, minHeight: 0,
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
         gridTemplateRows: full ? "1fr 1fr" : undefined }}>
         <Painel titulo="Faturamento mês a mês" badge={fmtR(calc.totRec)} badgeCor="#10B981" chart>
           <LinhaChart meses={calc.meses} valores={calc.recMes} cor={AZUL} alto={full} />
