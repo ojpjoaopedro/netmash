@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil } from "lucide-react";
+import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info } from "lucide-react";
 
 /**
  * Estrutura de Receitas e Custos — réplica da tela do Hub.
@@ -10,22 +10,28 @@ import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pe
  * mexer numa folha reflete pra cima na hora. Tudo mora no navegador.
  */
 
-const MES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+export const MES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const CHAVE = "me_financas_estrutura";
 
 // completa o array de valores até 12 meses (o que não veio nos dados é 0)
 const v12 = (a: number[]): number[] => Array.from({ length: 12 }, (_, i) => a[i] ?? 0);
 
-type Item = { nome: string; cor?: string; v: number[] };
+export type Item = { nome: string; cor?: string; v: number[] };
 // `financeiro` marca empréstimo/juros — o que o EBITDA soma de volta ao lucro
-type Grupo = { nome: string; cor: string; itens: Item[]; financeiro?: boolean };
-type Bloco = { nome: string; grupos: Grupo[] };
-type Dados = { receitas: Item[]; custos: Bloco[] };
+export type Grupo = { nome: string; cor: string; itens: Item[]; financeiro?: boolean };
+export type Bloco = { nome: string; grupos: Grupo[] };
+export type Dados = { receitas: Item[]; custos: Bloco[] };
+
+/** Lê a estrutura salva no navegador (com os ajustes do usuário) ou o padrão. */
+export function carregarEstrutura(): Dados {
+  if (typeof window === "undefined") return PADRAO;
+  try { const c = localStorage.getItem(CHAVE); return c ? JSON.parse(c) : PADRAO; } catch { return PADRAO; }
+}
 
 const AZUL = "#1AADE2", VERDE = "#10B981", ROXO = "#8b5cf6", LARANJA = "#F59E0B", ROSA = "#EC4899", VERMELHO = "#EF4444";
 
 /* ── valores exatos transcritos dos relatórios ────────────────────────────── */
-const PADRAO: Dados = {
+export const PADRAO: Dados = {
   receitas: [
     { nome: "Comercial (B2C)", cor: AZUL, v: v12([36137, 29131, 22552.72, 25459, 35298, 51365, 797]) },
     { nome: "Escolas (B2B)", cor: VERDE, v: v12([0, 14396, 13916, 14266, 14266, 14276]) },
@@ -160,10 +166,6 @@ const PADRAO: Dados = {
   ],
 };
 
-/* Resultado e EBITDA exatos dos relatórios (mensal, Jan–Jun). */
-const RESULTADO = v12([2598.44, 2639.30, -7549.82, -3349.28, 2358.67, 16385.14]);
-const EBITDA = v12([4976.79, 4456.40, -5091.17, -1668.99, 4923.67, 18529.37]);
-
 /* ── helpers de número em pt-BR ───────────────────────────────────────────── */
 const fmt = (n: number) => (Math.abs(n) < 0.005 ? "–" : n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 const fmtR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -172,6 +174,16 @@ const parseBR = (s: string) => { const n = parseFloat(s.replace(/\./g, "").repla
 
 // soma por mês de uma lista de itens (grupo/bloco)
 const somaPorMes = (itens: { v: number[] }[]) => Array.from({ length: 12 }, (_, m) => itens.reduce((s, it) => s + it.v[m], 0));
+const menos = (a: number[], b: number[]) => Array.from({ length: 12 }, (_, m) => a[m] - b[m]);
+const mais = (a: number[], b: number[]) => Array.from({ length: 12 }, (_, m) => a[m] + b[m]);
+
+/* Resultado, EBITDA e margem calculados automaticamente a partir dos dados. */
+const todosItens = (d: Dados) => d.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
+const financeiroItens = (d: Dados) => d.custos.flatMap((b) => b.grupos.filter((g) => g.financeiro).flatMap((g) => g.itens));
+/** Resultado (lucro) do período = receitas − custos, mês a mês. */
+export const resultadoDe = (d: Dados) => menos(somaPorMes(d.receitas), somaPorMes(todosItens(d)));
+/** EBITDA = resultado + custos financeiros (empréstimos e juros) somados de volta. */
+export const ebitdaDe = (d: Dados) => mais(resultadoDe(d), somaPorMes(financeiroItens(d)));
 
 export default function EstruturaFinancas() {
   const [d, setD] = useState<Dados>(PADRAO);
@@ -287,11 +299,10 @@ export default function EstruturaFinancas() {
   const recTotais = useMemo(() => somaPorMes(d.receitas), [d]);
   const blocosMes = useMemo(() => d.custos.map((b) => somaPorMes(b.grupos.flatMap((g) => g.itens))), [d]);
   const custosTotais = useMemo(() => Array.from({ length: 12 }, (_, m) => blocosMes.reduce((s, b) => s + b[m], 0)), [blocosMes]);
-  // financeiro (empréstimo + impostos/juros) para o EBITDA
-  // Resultado e EBITDA vêm exatos dos relatórios (o Hub não os deriva dos totais
-  // exibidos — Receitas − Custos daria outro número). A margem é derivada deles.
-  const resultadoMes = RESULTADO;
-  const ebitdaMes = EBITDA;
+  // Resultado, EBITDA e margem agora são CALCULADOS a partir dos dados exibidos
+  // (mexer numa receita/custo atualiza tudo na hora).
+  const resultadoMes = useMemo(() => resultadoDe(d), [d]);
+  const ebitdaMes = useMemo(() => ebitdaDe(d), [d]);
 
   if (!carregado) return null;
 
@@ -427,7 +438,8 @@ export default function EstruturaFinancas() {
             <THead icone={<Wallet size={16} />} titulo="Resultado · EBITDA · Margem" cor={ROXO} meses={mesesVis} />
             <tbody>
               <LinhaResultado nome="Resultado (Lucro)" v={resultadoMes} total={totalDe(resultadoMes)} meses={mesesVis} moeda />
-              <LinhaResultado nome="EBITDA" v={ebitdaMes} total={totalDe(ebitdaMes)} meses={mesesVis} moeda />
+              <LinhaResultado nome="EBITDA" v={ebitdaMes} total={totalDe(ebitdaMes)} meses={mesesVis} moeda
+                dica="EBITDA: lucro antes de juros, impostos, depreciação e amortização. É o resultado operacional somando de volta os custos financeiros (empréstimos e juros), pra mostrar quanto a operação gera antes desses efeitos." />
               <LinhaMargem resultado={resultadoMes} receita={recTotais} totalRes={totalDe(resultadoMes)} totalRec={totalDe(recTotais)} meses={mesesVis} />
             </tbody>
           </table>
@@ -673,12 +685,17 @@ function Total({ children }: { children: React.ReactNode }) {
 // só para agrupar linhas sem quebrar a tabela
 function FragBloco({ children }: { children: React.ReactNode }) { return <>{children}</>; }
 
-function LinhaResultado({ nome, v, total, meses, moeda }: { nome: string; v: number[]; total: number; meses: number[]; moeda?: boolean }) {
+function LinhaResultado({ nome, v, total, meses, moeda, dica }: { nome: string; v: number[]; total: number; meses: number[]; moeda?: boolean; dica?: string }) {
   const cor = (n: number) => (n >= 0 ? VERDE : VERMELHO);
   const f = (n: number) => (moeda ? `${n >= 0 ? "" : "-"}R$ ${Math.abs(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : fmt(n));
   return (
     <tr style={{ borderTop: "1px solid var(--line)" }}>
-      <td style={{ ...tdRot, fontWeight: 700 }}>{nome}</td>
+      <td style={{ ...tdRot, fontWeight: 700 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          {nome}
+          {dica && <span title={dica} style={{ display: "inline-grid", placeItems: "center", cursor: "help", color: "var(--muted)" }}><Info size={13} /></span>}
+        </span>
+      </td>
       {meses.map((m) => <td key={m} style={{ ...tdNum, fontWeight: 700, color: Math.abs(v[m]) > 0.005 ? cor(v[m]) : "var(--muted)" }}>{Math.abs(v[m]) < 0.005 ? "–" : f(v[m])}</td>)}
       <td style={{ ...tdNum, fontWeight: 800, color: cor(total) }}>{f(total)}</td>
     </tr>

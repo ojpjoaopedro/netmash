@@ -5,7 +5,7 @@ import {
   LayoutDashboard, DollarSign, Megaphone, Compass, Settings,
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
-  ChevronsLeft, ChevronsRight, User, Camera, FileText,
+  ChevronsLeft, ChevronsRight, User, Camera,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -24,6 +24,7 @@ import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
 import EstruturaFinancas from "./financas-estrutura";
+import BotaoGerarDRE from "@/components/GerarDRE";
 
 type View =
   | "dashboard" | "financas" | "marketing" | "planejamento" | "config"
@@ -385,7 +386,7 @@ export default function Home() {
         )}
         {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} ano={anoSel} />}
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
-        {view === "financas" && <TelaFinancas />}
+        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <EmConstrucao titulo="Planejamento" />}
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} />}
@@ -419,7 +420,7 @@ export default function Home() {
  * três abas (Dashboard, Estrutura de Receitas e Custos, Calendário de
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
-function TelaFinancas() {
+function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number }) {
   const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario">("dashboard");
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
@@ -448,7 +449,7 @@ function TelaFinancas() {
               <DollarSign size={22} />
             </span>
             <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
-            <button style={pill(false)}><FileText size={14} /> Gerar DRE</button>
+            <BotaoGerarDRE ano={ano} empresa={empresa} brand={brand} />
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
