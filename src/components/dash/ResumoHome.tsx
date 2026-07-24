@@ -131,11 +131,11 @@ function Aniversarios() {
   );
 }
 
-export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { lancs: Lancamento[]; clientes: Cliente[]; saldoInicial: number; nome: string }) {
-  const ano = String(new Date().getFullYear());
-  const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}`);
+export default function ResumoHome({ lancs, clientes, saldoInicial, nome, ano }: { lancs: Lancamento[]; clientes: Cliente[]; saldoInicial: number; nome: string; ano?: string }) {
+  const anoRef = ano || String(new Date().getFullYear());
+  const meses = Array.from({ length: 12 }, (_, i) => `${anoRef}-${String(i + 1).padStart(2, "0")}`);
   const r = resumo(lancs, meses, saldoInicial);
-  const novos = clientes.filter((c) => (c.criado_em || "").slice(0, 4) === ano).length || clientes.length;
+  const novos = clientes.filter((c) => (c.criado_em || "").slice(0, 4) === anoRef).length || clientes.length;
 
   // azul é a cor do app: os três KPIs usam degradês de azul, do claro ao profundo
   const KPIS = [

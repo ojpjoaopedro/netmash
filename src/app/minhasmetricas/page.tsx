@@ -3,9 +3,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, Megaphone, Compass, Settings,
-  Users, Upload, Building2, LogOut, Sun, Moon, Play, X,
+  Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, ShieldCheck, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
-  ChevronsLeft, ChevronsRight, User, Camera,
+  ChevronsLeft, ChevronsRight, User, Camera, FileText, BarChart3,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -14,12 +14,10 @@ import {
   Perfil, Empresa, Lancamento, Funcionario, Cliente,
 } from "@/lib/db";
 import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
-import { gerarDeck, gerarRelatorio, abrirHtml, slug, type Secao } from "@/lib/apresentacao";
 import { useBrand } from "@/lib/brand";
 import ResumoHome from "@/components/dash/ResumoHome";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
-import ApresentarModal from "@/components/dash/ApresentarModal";
 import Assistente from "@/components/dash/Assistente";
 import Funcionarios from "@/components/Funcionarios";
 import Importar from "@/components/Importar";
@@ -48,6 +46,8 @@ const NAV_COR: Record<string, string> = {};
 const AZUL = "#1AADE2";
 const corDe = (k: string) => NAV_COR[k] || AZUL;
 const grupoDe = (v: string) => v;
+// anos fixos no seletor do topo (o mesmo em todas as páginas)
+const ANOS = ["2026", "2027", "2028"];
 // SISTEMA fica oculto (recolhível): tudo que não é o essencial do dia a dia
 const SISTEMA_KEYS = ["apresentacao", "importar", "empresa"];
 const OPERACOES = [
@@ -73,10 +73,10 @@ export default function Home() {
   const [view, setView] = useState<View>("dashboard");
   const [editor, setEditor] = useState<Categoria | null>(null);
   const [menuAberto, setMenuAberto] = useState(false);
-  const [apresOpen, setApresOpen] = useState(false);
   const [sistemaAberto, setSistemaAberto] = useState(false);
   const [maisAberto, setMaisAberto] = useState(false);
   const [sideOculta, setSideOculta] = useState(false);   // recolher o sidebar (desktop)
+  const [anoSel, setAnoSel] = useState(ANOS.includes(String(new Date().getFullYear())) ? String(new Date().getFullYear()) : ANOS[0]);
   const [fotoPerfil, setFotoPerfil] = useState("");      // foto do avatar (fica no navegador)
   const [bemVindoFechado, setBemVindoFechado] = useState(false);
   const [som, setSomState] = useState(true);
@@ -196,21 +196,6 @@ export default function Home() {
   const opsSistema = opsVis.filter((o) => SISTEMA_KEYS.includes(o.key));
   const sistemaTemAtivo = opsSistema.some((o) => o.key === view);
 
-  const VIEW_SECAO: Partial<Record<View, Secao>> = {
-    equipe: "colaboradores",
-  };
-  function gerarApres(meses: string[], tipo: "deck" | "relatorio") {
-    const sec = view === "dashboard" ? null : VIEW_SECAO[view];
-    const secoes = sec ? new Set<Secao>([sec]) : new Set<Secao>(["financeiro", "cliente", "comercial", "marketing", "colaboradores"]);
-    const data = { metrs: effMetrs, lancs, funcs, saldoInicial, brand: brandObj };
-    const html = tipo === "deck" ? gerarDeck(data, meses, secoes) : gerarRelatorio(data, meses, secoes);
-    abrirHtml(html, `apresentacao-${slug(nomeMarca)}.html`);
-    setApresOpen(false);
-  }
-  const apresTitulo = view === "dashboard" || !VIEW_SECAO[view] ? "Visão geral (tudo)" : "Esta área";
-  // "Apresentar" só faz sentido nos painéis de métrica (Dashboard + 5 áreas). Nas telas operacionais (Clientes, Custos, Lançamentos…) o botão some.
-  const podeApresentar = METRICAS.some((m) => m.key === grupoDe(view));
-
   const navClick = (k: View) => { playTick(); setView(k); setMenuAberto(false); };
 
   return (
@@ -263,7 +248,6 @@ export default function Home() {
               </div>
             )}
             <div className="navgroup"><nav className="nav">
-              {podeApresentar && <button onClick={() => { setApresOpen(true); setMenuAberto(false); }}><Play size={18} /> Apresentar</button>}
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
             </nav></div>
           </div>
@@ -366,7 +350,12 @@ export default function Home() {
               <ShieldCheck size={13} /> Painel demonstrativo
             </span>
           )}
-          {podeApresentar && <button className="btn sm" onClick={() => setApresOpen(true)}><Play size={14} /> Apresentar</button>}
+          {/* seletor de ano — fixo no topo de todas as páginas */}
+          <div className="period" role="group" aria-label="Selecionar ano">
+            {ANOS.map((a) => (
+              <button key={a} className={anoSel === a ? "active" : ""} onClick={() => { playTick(); setAnoSel(a); }}>{a}</button>
+            ))}
+          </div>
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
           <button className="btn ghost sm desk-only" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
         </div>
@@ -393,9 +382,9 @@ export default function Home() {
             </div>
           </div>
         )}
-        {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} />}
+        {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} saldoInicial={saldoInicial} nome={saudacaoNome} ano={anoSel} />}
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
-        {view === "financas" && <EmConstrucao titulo="Finanças" />}
+        {view === "financas" && <TelaFinancas />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <EmConstrucao titulo="Planejamento" />}
         {view === "config" && <EmConstrucao titulo="Configurações" />}
@@ -411,10 +400,6 @@ export default function Home() {
           onSaved={async () => { setMetrs(await getIndicadores()); setEditor(null); }} />
       )}
 
-      {apresOpen && (
-        <ApresentarModal titulo={apresTitulo} onClose={() => setApresOpen(false)} onGerar={gerarApres} />
-      )}
-
       <LgpdConsent userKey={perfil?.email || perfil?.id || "demo"} onSair={async () => { await logout(); router.replace("/login"); }} />
 
 
@@ -424,6 +409,57 @@ export default function Home() {
         <button className={view === "assistente" ? "active" : ""} onClick={() => { playTick(); setView("assistente"); }}><Sparkles size={20} />Assistente</button>
         <button className={view === "equipe" ? "active" : ""} onClick={() => { playTick(); setView("equipe"); }}><Users size={20} />Equipe</button>
       </nav>
+    </div>
+  );
+}
+
+/**
+ * Tela de Finanças no formato do Hub: título com "Gerar DRE", os atalhos e as
+ * três abas (Dashboard, Estrutura de Receitas e Custos, Calendário de
+ * Pagamentos). Cada aba abre "em construção" por enquanto.
+ */
+function TelaFinancas() {
+  const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "graficos" | "analise">("dashboard");
+  const rotulos: Record<typeof aba, string> = {
+    dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
+    calendario: "Calendário de Pagamentos", graficos: "Gráficos", analise: "Análise Receita x Custo",
+  };
+  const pill = (ativo: boolean, cor: string): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
+    padding: "8px 15px", borderRadius: 12, fontSize: 12.5, fontWeight: 800,
+    cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+    border: `1px solid ${ativo ? cor : cor + "55"}`,
+    background: ativo ? cor : cor + "14",
+    color: ativo ? "#fff" : cor,
+  });
+  const abas: { key: typeof aba; label: string }[] = [
+    { key: "dashboard", label: "Dashboard" },
+    { key: "estrutura", label: "Estrutura de Receitas e Custos" },
+    { key: "calendario", label: "Calendário de Pagamentos" },
+  ];
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,#1AADE2,#0c6e9e)", color: "#fff", flexShrink: 0 }}>
+              <DollarSign size={22} />
+            </span>
+            <h2 style={{ margin: 0, fontSize: 24, letterSpacing: "-.02em" }}>Finanças</h2>
+            <button style={pill(false, "#1AADE2")}><FileText size={14} /> Gerar DRE</button>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <button onClick={() => setAba("graficos")} style={pill(aba === "graficos", "#1AADE2")}><BarChart3 size={14} /> Gráficos</button>
+            <button onClick={() => setAba("analise")} style={pill(aba === "analise", "#8b5cf6")}><BarChart3 size={14} /> Análise Receita x Custo</button>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {abas.map((a) => (
+            <button key={a.key} onClick={() => setAba(a.key)} style={pill(aba === a.key, "#1AADE2")}>{a.label}</button>
+          ))}
+        </div>
+      </div>
+      <EmConstrucao titulo={rotulos[aba]} />
     </div>
   );
 }
