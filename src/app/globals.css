@@ -396,14 +396,20 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .equipe-card .del-func{opacity:0;transition:opacity .15s,color .15s,background .15s}
 .equipe-card:hover .del-func{opacity:1}
 .equipe-card .del-func:hover{background:rgba(239,68,68,.12);color:#EF4444}
-/* Impressão: só o relatório da equipe vai para o papel/PDF */
+/* Impressão: só o relatório/DRE vai para o papel/PDF, fluindo em várias páginas */
 @media print{
+  @page{size:A4 landscape;margin:10mm}
   body *{visibility:hidden !important}
   .relatorio-print,.relatorio-print *{visibility:visible !important}
-  .relatorio-print{position:absolute;left:0;top:0;width:100%;max-width:none;box-shadow:none;border-radius:0;padding:24px}
+  /* neutraliza o modal fixo e a área de rolagem para o conteúdo fluir normalmente */
+  .relatorio-modal{position:static !important;inset:auto !important;height:auto !important;overflow:visible !important;background:#fff !important;backdrop-filter:none !important;display:block !important}
+  .relatorio-scroll{position:static !important;overflow:visible !important;height:auto !important;padding:0 !important;display:block !important}
+  .relatorio-print{position:static !important;width:100% !important;max-width:none !important;min-height:0 !important;box-shadow:none !important;border-radius:0 !important;padding:0 !important}
+  .relatorio-print table{page-break-inside:auto}
+  .relatorio-print tr{page-break-inside:avoid}
   .no-print{display:none !important}
   /* rodapé fixo em cada página do PDF, com a numeração */
-  .relatorio-rodape{position:fixed;bottom:6mm;left:14mm;right:14mm;margin:0;border-top:0;padding:0;font-size:8px;font-style:italic}
+  .relatorio-rodape{position:fixed;bottom:4mm;left:10mm;right:10mm;margin:0;border-top:0;padding:0;font-size:8px;font-style:italic}
   .relatorio-pag::after{content:"Página " counter(page)}
 }
 /* rodapé na tela (pré-visualização): itálico, bem pequeno e colado no fim da página */

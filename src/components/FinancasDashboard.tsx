@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { BarChart3, TrendingUp } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BarChart3, TrendingUp, Maximize2, Minimize2 } from "lucide-react";
 import { MES, Dados, carregarEstrutura } from "@/app/minhasmetricas/financas-estrutura";
 
 const AZUL = "#38BDF8", VERMELHO = "#F43F5E";
@@ -8,50 +8,50 @@ const fmtR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDig
 const fmtK = (n: number) => (Math.abs(n) >= 1000 ? `R$ ${Math.round(n / 1000)}k` : `R$ ${Math.round(n)}`);
 const somaMes = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) => s + (l.v[m] || 0), 0);
 
-/** Gráfico de linha simples em SVG (faturamento/despesas). */
-function LinhaChart({ meses, valores, cor }: { meses: number[]; valores: number[]; cor: string }) {
-  const W = 600, H = 210, pad = 34, padTop = 30, padBot = 26;
+/** Gráfico de linha em SVG (faturamento/despesas). Escala a fonte pela largura via viewBox. */
+function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: number[]; cor: string; alto?: boolean }) {
+  const W = 640, H = alto ? 360 : 250, pad = 40, padTop = 40, padBot = 32;
   const max = Math.max(1, ...valores);
   const n = valores.length;
-  const px = (i: number) => pad + (n <= 1 ? 0 : (i * (W - pad * 2)) / (n - 1));
+  const px = (i: number) => pad + (n <= 1 ? (W - pad * 2) / 2 : (i * (W - pad * 2)) / (n - 1));
   const py = (v: number) => padTop + (1 - v / max) * (H - padTop - padBot);
   const pts = valores.map((v, i) => [px(i), py(v)] as const);
   const linha = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
   const area = `${linha} L${px(n - 1).toFixed(1)},${H - padBot} L${px(0).toFixed(1)},${H - padBot} Z`;
-  const id = `g-${cor.replace("#", "")}`;
+  const id = `g-${cor.replace("#", "")}-${alto ? "b" : "s"}`;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={cor} stopOpacity="0.28" />
+          <stop offset="0%" stopColor={cor} stopOpacity="0.32" />
           <stop offset="100%" stopColor={cor} stopOpacity="0" />
         </linearGradient>
       </defs>
-      {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={pad} x2={W - pad} y1={padTop + f * (H - padTop - padBot)} y2={padTop + f * (H - padTop - padBot)} stroke="rgba(148,163,184,.14)" strokeDasharray="4 5" />)}
+      {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={pad} x2={W - pad} y1={padTop + f * (H - padTop - padBot)} y2={padTop + f * (H - padTop - padBot)} stroke="rgba(148,163,184,.13)" strokeDasharray="4 6" />)}
       <path d={area} fill={`url(#${id})`} />
-      <path d={linha} fill="none" stroke={cor} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+      <path d={linha} fill="none" stroke={cor} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p, i) => (
         <g key={i}>
-          <circle cx={p[0]} cy={p[1]} r={3.5} fill={cor} stroke="#0b1220" strokeWidth={2} />
-          <text x={p[0]} y={p[1] - 9} textAnchor="middle" fontSize="11" fontWeight="700" fill="#e2e8f0">{fmtK(valores[i])}</text>
-          <text x={p[0]} y={H - 8} textAnchor="middle" fontSize="10" fill="#7c8aa5">{MES[meses[i]]}</text>
+          <circle cx={p[0]} cy={p[1]} r={4.5} fill={cor} stroke="#0b1220" strokeWidth={2.5} />
+          <text x={p[0]} y={p[1] - 12} textAnchor="middle" fontSize="14" fontWeight="800" fill="#eef2f7">{fmtK(valores[i])}</text>
+          <text x={p[0]} y={H - 9} textAnchor="middle" fontSize="12" fill="#7c8aa5">{MES[meses[i]]}</text>
         </g>
       ))}
     </svg>
   );
 }
 
-/** Barras horizontais de composição (por canal / por custo). */
-function Barras({ itens }: { itens: { nome: string; valor: number; cor: string }[] }) {
+/** Barras horizontais de composição. */
+function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: string }[]; alto?: boolean }) {
   const max = Math.max(1, ...itens.map((i) => i.valor));
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div style={{ display: "grid", gap: alto ? 10 : 13, alignContent: "center", height: "100%" }}>
       {itens.map((it) => (
         <div key={it.nome} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 130, flexShrink: 0, fontSize: 12, color: "#94a3b8", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: "italic" }}>{it.nome}</span>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <div style={{ height: 18, borderRadius: 6, background: it.cor, width: `${Math.max(3, (it.valor / max) * 100)}%`, boxShadow: `0 0 12px -2px ${it.cor}88` }} />
-            <span style={{ fontSize: 12.5, fontWeight: 800, color: "#e2e8f0", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
+          <span style={{ width: alto ? 170 : 140, flexShrink: 0, fontSize: alto ? 14 : 13, color: "#a3b0c4", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: "italic" }}>{it.nome}</span>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+            <div style={{ height: alto ? 24 : 20, borderRadius: 7, background: it.cor, width: `${Math.max(4, (it.valor / max) * 100)}%`, boxShadow: `0 0 16px -2px ${it.cor}99` }} />
+            <span style={{ fontSize: alto ? 15 : 13.5, fontWeight: 800, color: "#eef2f7", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
           </div>
         </div>
       ))}
@@ -59,19 +59,28 @@ function Barras({ itens }: { itens: { nome: string; valor: number; cor: string }
   );
 }
 
-function Painel({ titulo, badge, badgeCor, children }: { titulo: string; badge?: string; badgeCor?: string; children: React.ReactNode }) {
+function Painel({ titulo, badge, badgeCor, chart, children }: { titulo: string; badge?: string; badgeCor?: string; chart?: boolean; children: React.ReactNode }) {
   return (
-    <div style={{ background: "linear-gradient(160deg, rgba(30,41,59,.55), rgba(15,23,42,.35))", border: "1px solid rgba(148,163,184,.14)", borderRadius: 16, padding: 18 }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "linear-gradient(160deg, rgba(30,41,59,.6), rgba(15,23,42,.35))", border: "1px solid rgba(148,163,184,.14)", borderRadius: 18, padding: 20, boxShadow: "0 20px 50px -30px rgba(0,0,0,.7)" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-        <b style={{ fontSize: 14, color: "#f1f5f9" }}>{titulo}</b>
+        <b style={{ fontSize: 16, color: "#f8fafc", letterSpacing: "-.01em" }}>{titulo}</b>
         {badge && (
-          <span style={{ textAlign: "right", padding: "6px 12px", borderRadius: 10, background: `${badgeCor}1f`, border: `1px solid ${badgeCor}55` }}>
-            <span style={{ display: "block", fontSize: 8.5, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: badgeCor }}>{titulo.includes("Fatur") ? "Total faturado" : "Custos totais"}</span>
-            <span style={{ display: "block", fontSize: 15, fontWeight: 800, color: "#fff" }}>{badge}</span>
+          <span style={{ textAlign: "right", padding: "7px 14px", borderRadius: 12, background: `${badgeCor}22`, border: `1px solid ${badgeCor}66` }}>
+            <span style={{ display: "block", fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: badgeCor }}>{titulo.includes("Fatur") ? "Total faturado" : "Custos totais"}</span>
+            <span style={{ display: "block", fontSize: 17, fontWeight: 800, color: "#fff" }}>{badge}</span>
           </span>
         )}
       </div>
-      {children}
+      <div style={{ flex: 1, minHeight: chart ? 180 : 0, display: "flex" }}>{children}</div>
+    </div>
+  );
+}
+
+function Resumo({ icone, rotulo, valor, cor, borda, fundo }: { icone: React.ReactNode; rotulo: string; valor: string; cor: string; borda: string; fundo: string }) {
+  return (
+    <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "center", gap: 12, background: fundo, border: `1px solid ${borda}`, borderRadius: 16, padding: "16px 20px" }}>
+      {icone}
+      <div><div style={{ fontSize: 10.5, color: "#7c8aa5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}>{rotulo}</div><b style={{ fontSize: 24, color: cor, letterSpacing: "-.02em" }}>{valor}</b></div>
     </div>
   );
 }
@@ -79,14 +88,23 @@ function Painel({ titulo, badge, badgeCor, children }: { titulo: string; badge?:
 export default function FinancasDashboard() {
   const [data, setData] = useState<Dados | null>(null);
   const [sel, setSel] = useState<Set<number>>(new Set());
+  const [full, setFull] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const d = carregarEstrutura();
     setData(d);
-    // seleciona os meses que têm algum dado (receita ou custo)
     const itens = d.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
     const comDado = Array.from({ length: 12 }, (_, m) => somaMes(d.receitas, m) + somaMes(itens, m) > 0 ? m : -1).filter((m) => m >= 0);
     setSel(new Set(comDado.length ? comDado : [0, 1, 2, 3, 4, 5]));
   }, []);
+
+  useEffect(() => {
+    const h = () => setFull(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
+  const toggleFull = () => { if (document.fullscreenElement) document.exitFullscreen(); else ref.current?.requestFullscreen?.().catch(() => {}); };
 
   const calc = useMemo(() => {
     if (!data) return null;
@@ -103,50 +121,56 @@ export default function FinancasDashboard() {
 
   if (!data || !calc) return null;
   const toggle = (m: number) => setSel((s) => { const n = new Set(s); if (n.has(m)) n.delete(m); else n.add(m); return n.size ? n : s; });
+  const res = calc.totRec - calc.totCus;
 
-  return (
-    <div style={{ background: "linear-gradient(165deg, #0d1526, #0a0f1c)", border: "1px solid rgba(148,163,184,.12)", borderRadius: 20, padding: 16 }}>
-      {/* seletor de meses */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
-        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#64748b", marginRight: 4 }}>Meses (clique para somar)</span>
+  // conteúdo do dashboard (reaproveitado em tela cheia)
+  const conteudo = (
+    <div style={{ display: "flex", flexDirection: "column", gap: full ? 16 : 14, height: full ? "100%" : "auto", ...(full ? { width: "min(100vw, calc(100vh * 16 / 9))", maxHeight: "100vh", margin: "0 auto" } : {}) }}>
+      {/* seletor de meses + expandir */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#64748b", marginRight: 4 }}>Meses (clique para somar)</span>
         {MES.map((nome, m) => {
           const on = sel.has(m);
           return (
             <button key={m} onClick={() => toggle(m)}
-              style={{ padding: "5px 12px", borderRadius: 99, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? AZUL : "rgba(148,163,184,.25)"}`, background: on ? AZUL : "transparent", color: on ? "#04121f" : "#94a3b8" }}>
+              style={{ padding: "6px 13px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? AZUL : "rgba(148,163,184,.25)"}`, background: on ? AZUL : "transparent", color: on ? "#04121f" : "#94a3b8" }}>
               {nome}
             </button>
           );
         })}
+        <button onClick={toggleFull} title={full ? "Sair da tela cheia" : "Expandir para tela cheia"}
+          style={{ marginLeft: "auto", width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "rgba(56,189,248,.12)", color: AZUL }}>
+          {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
       </div>
 
       {/* 4 painéis */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 14 }}>
-        <Painel titulo="Faturamento mês a mês" badge={fmtR(calc.totRec)} badgeCor="#10B981">
-          <LinhaChart meses={calc.meses} valores={calc.recMes} cor={AZUL} />
+      <div style={{ display: "grid", gap: 14, flex: full ? 1 : undefined, minHeight: 0,
+        gridTemplateColumns: full ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(360px, 1fr))",
+        gridTemplateRows: full ? "1fr 1fr" : undefined }}>
+        <Painel titulo="Faturamento mês a mês" badge={fmtR(calc.totRec)} badgeCor="#10B981" chart>
+          <LinhaChart meses={calc.meses} valores={calc.recMes} cor={AZUL} alto={full} />
         </Painel>
-        <Painel titulo="Composição por canal">
-          <Barras itens={calc.canais} />
+        <Painel titulo="Composição por canal"><Barras itens={calc.canais} alto={full} /></Painel>
+        <Painel titulo="Despesas mês a mês" badge={fmtR(calc.totCus)} badgeCor={VERMELHO} chart>
+          <LinhaChart meses={calc.meses} valores={calc.cusMes} cor={VERMELHO} alto={full} />
         </Painel>
-        <Painel titulo="Despesas mês a mês" badge={fmtR(calc.totCus)} badgeCor={VERMELHO}>
-          <LinhaChart meses={calc.meses} valores={calc.cusMes} cor={VERMELHO} />
-        </Painel>
-        <Painel titulo="Composição dos custos">
-          <Barras itens={calc.custos} />
-        </Painel>
+        <Painel titulo="Composição dos custos"><Barras itens={calc.custos} alto={full} /></Painel>
       </div>
 
       {/* resumo receita x custo */}
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 14 }}>
-        <div style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 10, background: "rgba(16,185,129,.10)", border: "1px solid rgba(16,185,129,.3)", borderRadius: 14, padding: "12px 16px" }}>
-          <TrendingUp size={18} color="#10B981" />
-          <div><div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>Resultado no período</div><b style={{ fontSize: 18, color: calc.totRec - calc.totCus >= 0 ? "#10B981" : VERMELHO }}>{fmtR(calc.totRec - calc.totCus)}</b></div>
-        </div>
-        <div style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 10, background: "rgba(56,189,248,.08)", border: "1px solid rgba(56,189,248,.25)", borderRadius: 14, padding: "12px 16px" }}>
-          <BarChart3 size={18} color={AZUL} />
-          <div><div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>Margem</div><b style={{ fontSize: 18, color: "#e2e8f0" }}>{calc.totRec ? `${Math.round((calc.totRec - calc.totCus) / calc.totRec * 100)}%` : "–"}</b></div>
-        </div>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        <Resumo icone={<TrendingUp size={22} color="#10B981" />} rotulo="Resultado no período" valor={fmtR(res)} cor={res >= 0 ? "#10B981" : VERMELHO} borda="rgba(16,185,129,.3)" fundo="rgba(16,185,129,.1)" />
+        <Resumo icone={<BarChart3 size={22} color={AZUL} />} rotulo="Margem" valor={calc.totRec ? `${Math.round(res / calc.totRec * 100)}%` : "–"} cor="#e2e8f0" borda="rgba(56,189,248,.25)" fundo="rgba(56,189,248,.08)" />
       </div>
+    </div>
+  );
+
+  return (
+    <div ref={ref} style={{ background: "linear-gradient(165deg, #0d1526, #080d18)", border: full ? "none" : "1px solid rgba(148,163,184,.12)", borderRadius: full ? 0 : 22,
+      padding: full ? "clamp(16px, 3vh, 40px) clamp(16px, 3vw, 48px)" : 20,
+      ...(full ? { display: "flex", flexDirection: "column", justifyContent: "center", overflow: "auto" } : {}) }}>
+      {conteudo}
     </div>
   );
 }

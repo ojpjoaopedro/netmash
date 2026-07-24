@@ -54,7 +54,7 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(15,23,42,.6)", backdropFilter: "blur(2px)", display: "flex", flexDirection: "column" }}>
+    <div className="relatorio-modal" style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(15,23,42,.6)", backdropFilter: "blur(2px)", display: "flex", flexDirection: "column" }}>
       {/* barra superior branca */}
       <div className="no-print" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 16px", background: "#fff", color: "#0f172a", borderBottom: "1px solid #e2e8f0" }}>
         <b style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14 }}><FileText size={16} /> Demonstração de Resultados (DRE)</b>
@@ -71,7 +71,7 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
       </div>
 
       {/* folha */}
-      <div style={{ flex: 1, overflow: "auto", padding: "20px 12px", display: "flex", justifyContent: "center" }}>
+      <div className="relatorio-scroll" style={{ flex: 1, overflow: "auto", padding: "20px 12px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
         <div className="relatorio-print" style={{ width: "100%", maxWidth: 1000, background: "#fff", color: "#0f172a", borderRadius: 8, padding: 36, boxShadow: "0 20px 60px -20px rgba(0,0,0,.5)" }}>
           {/* cabeçalho da empresa (dinâmico) */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20, borderBottom: "4px solid #0f172a", paddingBottom: 14 }}>
