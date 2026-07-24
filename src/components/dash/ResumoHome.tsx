@@ -145,7 +145,7 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
   ];
 
   return (
-    <div className="card" style={{ padding: 22, position: "relative", overflow: "hidden", border: "1px solid rgba(26,173,226,.18)", background: "linear-gradient(160deg, rgba(26,173,226,.10), rgba(139,92,246,.05) 55%, transparent)" }}>
+    <div className="resumo-card card" style={{ position: "relative", overflow: "hidden", border: "1px solid rgba(26,173,226,.18)", background: "linear-gradient(160deg, rgba(26,173,226,.10), rgba(139,92,246,.05) 55%, transparent)" }}>
       {/* brilho decorativo no canto — dá profundidade sem pesar */}
       <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(26,173,226,.18), transparent 70%)", pointerEvents: "none" }} />
 
@@ -155,32 +155,27 @@ export default function ResumoHome({ lancs, clientes, saldoInicial, nome }: { la
         <div className="sub" style={{ textTransform: "capitalize", fontStyle: "italic", marginTop: 3 }}>{dataHoje()}</div>
       </div>
 
-      {/* 3 KPIs em degradê, todos com o mesmo peso visual */}
-      {/* minmax(0,1fr) é essencial: com "1fr" as colunas não encolhem e o 3º card vaza */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, position: "relative" }}>
+      {/* KPIs em degradê. No celular empilham em linha (ícone + valor lado a
+          lado), senão o valor "R$ 279.784" quebra feio numa coluna estreita. */}
+      <div className="kpi-grid">
         {KPIS.map((k, i) => (
-          <div key={i} style={{
-            padding: 15, borderRadius: 18, minHeight: 124, minWidth: 0, display: "flex", flexDirection: "column", gap: 8,
-            background: `linear-gradient(150deg, ${k.g1}, ${k.g2})`,
-            boxShadow: `0 14px 30px -14px ${k.sombra}`,
-            color: "#fff", position: "relative", overflow: "hidden",
-          }}>
-            {/* leve textura de luz no topo do card */}
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(255,255,255,.18), transparent 45%)", pointerEvents: "none" }} />
-            <span style={{ width: 36, height: 36, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.22)", color: "#fff", flexShrink: 0, position: "relative" }}>{k.icon}</span>
-            <b style={{ fontSize: "clamp(14px, 3.9vw, 20px)", letterSpacing: "-.02em", lineHeight: 1.15, marginTop: "auto", minWidth: 0, overflowWrap: "anywhere", position: "relative" }}>{k.val}</b>
-            <small style={{ textTransform: "uppercase", letterSpacing: ".05em", fontSize: 9.5, fontWeight: 800, lineHeight: 1.3, color: "rgba(255,255,255,.92)", position: "relative" }}>{k.label}</small>
+          <div key={i} className="kpi-card" style={{ background: `linear-gradient(150deg, ${k.g1}, ${k.g2})`, boxShadow: `0 14px 30px -14px ${k.sombra}` }}>
+            <div className="kpi-luz" />
+            <span className="kpi-ico">{k.icon}</span>
+            <div className="kpi-body">
+              <b className="kpi-val">{k.val}</b>
+              <small className="kpi-lbl">{k.label}</small>
+            </div>
           </div>
         ))}
       </div>
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, var(--line), transparent)", margin: "20px 0", position: "relative" }} />
       {/* pulso e aniversários lado a lado; empilham no celular */}
-      <div className="resumo-blocos" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, alignItems: "start", position: "relative" }}>
+      <div className="resumo-blocos">
         <PulsoDoDia />
         <Aniversarios />
       </div>
-      <style>{`@media (max-width: 640px){ .resumo-blocos{ grid-template-columns: 1fr !important; gap: 18px !important; } }`}</style>
     </div>
   );
 }
