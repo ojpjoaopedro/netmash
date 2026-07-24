@@ -26,6 +26,7 @@ import LgpdConsent from "@/components/LgpdConsent";
 import EstruturaFinancas from "./financas-estrutura";
 import BotaoGerarDRE from "@/components/GerarDRE";
 import FinancasDashboard from "@/components/FinancasDashboard";
+import CalendarioPagamentos from "@/components/CalendarioPagamentos";
 
 type View =
   | "dashboard" | "financas" | "marketing" | "planejamento" | "config"
@@ -459,7 +460,7 @@ function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand:
           ))}
         </div>
       </div>
-      {aba === "estrutura" ? <EstruturaFinancas /> : aba === "dashboard" ? <FinancasDashboard /> : <EmConstrucao titulo={rotulos[aba]} />}
+      {aba === "estrutura" ? <EstruturaFinancas /> : aba === "dashboard" ? <FinancasDashboard /> : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} /> : <EmConstrucao titulo={rotulos[aba]} />}
     </div>
   );
 }
