@@ -25,6 +25,7 @@ import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
 import EstruturaFinancas from "./financas-estrutura";
 import BotaoGerarDRE from "@/components/GerarDRE";
+import FinancasDashboard from "@/components/FinancasDashboard";
 
 type View =
   | "dashboard" | "financas" | "marketing" | "planejamento" | "config"
@@ -458,7 +459,7 @@ function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand:
           ))}
         </div>
       </div>
-      {aba === "estrutura" ? <EstruturaFinancas /> : <EmConstrucao titulo={rotulos[aba]} />}
+      {aba === "estrutura" ? <EstruturaFinancas /> : aba === "dashboard" ? <FinancasDashboard /> : <EmConstrucao titulo={rotulos[aba]} />}
     </div>
   );
 }
