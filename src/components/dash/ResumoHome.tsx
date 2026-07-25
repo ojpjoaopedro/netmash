@@ -1,9 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { DollarSign, TrendingUp, Wallet, Cake, Award, Share2, Copy, Check, Quote, Sparkles } from "lucide-react";
-import { Lancamento, Cliente, Funcionario } from "@/lib/db";
-import { resumo } from "@/lib/calc";
-import { fmt } from "./Kit";
+import { Cake, Award, Share2, Copy, Check, Quote, Sparkles } from "lucide-react";
+import { Funcionario } from "@/lib/db";
 
 function saudacao() { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; }
 function dataHoje() {
@@ -188,19 +186,7 @@ function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
   );
 }
 
-export default function ResumoHome({ lancs, clientes, funcs = [], saldoInicial, nome, ano }: { lancs: Lancamento[]; clientes: Cliente[]; funcs?: Funcionario[]; saldoInicial: number; nome: string; ano?: string }) {
-  const anoRef = ano || String(new Date().getFullYear());
-  const meses = Array.from({ length: 12 }, (_, i) => `${anoRef}-${String(i + 1).padStart(2, "0")}`);
-  const r = resumo(lancs, meses, saldoInicial);
-  const novos = clientes.filter((c) => (c.criado_em || "").slice(0, 4) === anoRef).length || clientes.length;
-
-  // azul é a cor do app: os três KPIs usam degradês de azul, do claro ao profundo
-  const KPIS = [
-    { icon: <DollarSign size={19} />, g1: "#38BDF8", g2: "#0284C7", sombra: "rgba(56,189,248,.5)", val: fmt(r.faturamento, "BRL"), label: "Faturamento" },
-    { icon: <TrendingUp size={19} />, g1: "#1AADE2", g2: "#0c6e9e", sombra: "rgba(26,173,226,.55)", val: String(novos), label: "Novos clientes" },
-    { icon: <Wallet size={19} />, g1: "#2563EB", g2: "#1E3A8A", sombra: "rgba(37,99,235,.55)", val: fmt(r.saldo, "BRL"), label: "Saldo em caixa" },
-  ];
-
+export default function ResumoHome({ funcs = [], nome }: { funcs?: Funcionario[]; nome: string }) {
   return (
     <div className="resumo-card card" style={{ position: "relative", overflow: "hidden", border: "1px solid rgba(26,173,226,.18)", background: "linear-gradient(160deg, rgba(26,173,226,.10), rgba(139,92,246,.05) 55%, transparent)" }}>
       {/* brilho decorativo no canto — dá profundidade sem pesar */}
@@ -212,22 +198,6 @@ export default function ResumoHome({ lancs, clientes, funcs = [], saldoInicial, 
         <div className="sub" style={{ textTransform: "capitalize", fontStyle: "italic", marginTop: 3 }}>{dataHoje()}</div>
       </div>
 
-      {/* KPIs em degradê. No celular empilham em linha (ícone + valor lado a
-          lado), senão o valor "R$ 279.784" quebra feio numa coluna estreita. */}
-      <div className="kpi-grid">
-        {KPIS.map((k, i) => (
-          <div key={i} className="kpi-card" style={{ background: `linear-gradient(150deg, ${k.g1}, ${k.g2})`, boxShadow: `0 14px 30px -14px ${k.sombra}` }}>
-            <div className="kpi-luz" />
-            <span className="kpi-ico">{k.icon}</span>
-            <div className="kpi-body">
-              <b className="kpi-val">{k.val}</b>
-              <small className="kpi-lbl">{k.label}</small>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ height: 1, background: "linear-gradient(90deg, transparent, var(--line), transparent)", margin: "20px 0", position: "relative" }} />
       {/* pulso e aniversários lado a lado; empilham no celular */}
       <div className="resumo-blocos">
         <PulsoDoDia />

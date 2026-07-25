@@ -400,9 +400,9 @@ export default function Home() {
             </div>
           </div>
         )}
-        {view === "dashboard" && <ResumoHome lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} ano={anoSel} />}
+        {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
-        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} />}
+        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} reload={carregarDados} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <EmConstrucao titulo="Planejamento" />}
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} />}
@@ -436,11 +436,11 @@ export default function Home() {
  * três abas (Dashboard, Estrutura de Receitas e Custos, Calendário de
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
-function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number }) {
-  const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios">("dashboard");
+function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; reload: () => Promise<void> }) {
+  const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios" | "importar">("dashboard");
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
-    calendario: "Calendário de Pagamentos", relatorios: "Relatórios",
+    calendario: "Calendário de Pagamentos", relatorios: "Relatórios", importar: "Importar planilha",
   };
   // aba em barra (estilo print2): ícone + rótulo, ativo em azul com sublinhado
   const tab = (ativo: boolean): React.CSSProperties => ({
@@ -456,6 +456,7 @@ function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand:
     { key: "estrutura", label: "Estrutura de Receitas e Custos", Icon: Layers },
     { key: "calendario", label: "Calendário de Pagamentos", Icon: CalendarDays },
     { key: "relatorios", label: "Relatórios", Icon: FileText },
+    { key: "importar", label: "Importar planilha", Icon: Upload },
   ];
   return (
     <div>
@@ -480,6 +481,7 @@ function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand:
         : aba === "dashboard" ? <FinancasDashboard />
         : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} />
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} />
+        : aba === "importar" ? <Importar reload={reload} />
         : <EmConstrucao titulo={rotulos[aba]} />}
     </div>
   );
