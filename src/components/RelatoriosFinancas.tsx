@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { FileText, BarChart3, LineChart, Info, Star, ChevronUp } from "lucide-react";
+import { FileText, BarChart3, LineChart } from "lucide-react";
 import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import BotaoGerarDRE from "./GerarDRE";
@@ -16,8 +16,6 @@ function Item({ Icon, titulo, descricao, onClick }: { Icon: typeof FileText; tit
         <b style={{ fontSize: 14.5 }}>{titulo}</b>
         <p className="sub" style={{ margin: "3px 0 0", fontSize: 12.5, lineHeight: 1.5 }}>{descricao}</p>
       </div>
-      <Info size={17} style={{ color: "var(--muted-2)", flexShrink: 0 }} />
-      <Star size={17} style={{ color: "var(--brand)", fill: "var(--brand)", flexShrink: 0 }} />
     </div>
   );
 }
@@ -30,10 +28,7 @@ export default function RelatoriosFinancas({ empresa, brand, ano }: { empresa: E
 
   return (
     <div className="card" style={{ padding: 22 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-        <b style={{ fontSize: 17 }}>Análise financeira</b>
-        <ChevronUp size={18} style={{ color: "var(--muted)" }} />
-      </div>
+      <b style={{ fontSize: 17 }}>Análise financeira</b>
       <p className="sub" style={{ margin: "8px 0 6px", lineHeight: 1.6 }}>Acompanhe várias informações financeiras em um só lugar para decidir com mais clareza.</p>
 
       {/* Gerar DRE — abre a pré-visualização do DRE */}

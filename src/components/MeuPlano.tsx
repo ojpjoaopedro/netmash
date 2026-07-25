@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Crown, Shield, Check, ArrowUpRight, Wallet } from "lucide-react";
+import BotaoOcultar from "./ocultar";
 
 // Valores oficiais do modelo de assinatura (mesmos do painel Super Admin)
 const PRECO_SUPERADMIN = 79.9; // por administrador principal da empresa
@@ -28,6 +29,7 @@ export default function MeuPlano() {
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}><BotaoOcultar /></div>
       {/* plano atual */}
       <div style={{ position: "relative", overflow: "hidden", borderRadius: 18, padding: "26px 28px", color: "#fff", background: "linear-gradient(120deg, var(--brand-dark), var(--brand))" }}>
         <div style={{ position: "absolute", right: -50, top: -40, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,.08)", pointerEvents: "none" }} />
@@ -38,7 +40,7 @@ export default function MeuPlano() {
           <div style={{ marginTop: 12, fontSize: 15, opacity: .92 }}>Seu plano atual</div>
           <b style={{ fontSize: 22, letterSpacing: "-.01em" }}>1 Super Admin{admins > 0 ? ` + ${admins} ${admins === 1 ? "Acesso" : "Acessos"}` : ""}</b>
           <div style={{ marginTop: 10, display: "flex", alignItems: "baseline", gap: 8 }}>
-            <b style={{ fontSize: 30, letterSpacing: "-.02em" }}>{fmt(total)}</b>
+            <b className="oc-num" style={{ fontSize: 30, letterSpacing: "-.02em" }}>{fmt(total)}</b>
             <span style={{ opacity: .9 }}>/ mês</span>
           </div>
         </div>
@@ -52,7 +54,7 @@ export default function MeuPlano() {
             <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(245,158,11,.16)", color: "#F59E0B", flexShrink: 0 }}><Crown size={22} /></span>
             <div>
               <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Super Admin</div>
-              <b style={{ fontSize: 20 }}>{fmt(PRECO_SUPERADMIN)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
+              <b className="oc-num" style={{ fontSize: 20 }}>{fmt(PRECO_SUPERADMIN)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
               <div className="sub" style={{ fontSize: 12, marginTop: 2 }}>o administrador principal da empresa</div>
             </div>
           </div>
@@ -60,7 +62,7 @@ export default function MeuPlano() {
             <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(26,173,226,.16)", color: "var(--brand)", flexShrink: 0 }}><Shield size={22} /></span>
             <div>
               <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Acesso (Admin)</div>
-              <b style={{ fontSize: 20 }}>{fmt(PRECO_ACESSO)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
+              <b className="oc-num" style={{ fontSize: 20 }}>{fmt(PRECO_ACESSO)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
               <div className="sub" style={{ fontSize: 12, marginTop: 2 }}>por cada usuário adicional com acesso</div>
             </div>
           </div>

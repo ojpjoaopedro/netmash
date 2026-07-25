@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { ArrowLeft } from "lucide-react";
 import { MES, carregarEstrutura, resultadoDe, ebitdaDe } from "@/app/minhasmetricas/financas-estrutura";
+import BotaoOcultar from "./ocultar";
 
 const AZUL = "#38BDF8", VERDE = "#10B981", MARROM = "#C2830A";
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
@@ -40,7 +41,7 @@ function Grafico({ series, fmtPt, mostrarValores, alto, pct }: { series: Serie[]
             {pts.map((p, i) => (
               <g key={i}>
                 <circle cx={p[0]} cy={p[1]} r={3.4} fill={s.cor} stroke="#fff" strokeWidth={1.6} />
-                {mostrarValores && <text x={p[0]} y={p[1] - 9} textAnchor="middle" fontSize="11" fontWeight="700" fill="#334155">{fmtPt(p[2])}</text>}
+                {mostrarValores && <text className="oc-num" x={p[0]} y={p[1] - 9} textAnchor="middle" fontSize="11" fontWeight="700" fill="#334155">{fmtPt(p[2])}</text>}
               </g>
             ))}
           </g>
@@ -56,8 +57,8 @@ function Card({ titulo, total, totalCor, destaque, children }: { titulo: string;
     <div className="card" style={{ padding: 18 }}>
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>{titulo}</div>
       {destaque
-        ? <b style={{ display: "block", fontSize: 26, margin: "2px 0 4px", letterSpacing: "-.02em" }}>{destaque}</b>
-        : total != null && <div style={{ fontSize: 12.5, marginTop: 3 }}>Total: <b style={{ color: totalCor }}>{fmt(total)}</b></div>}
+        ? <b className="oc-num" style={{ display: "block", fontSize: 26, margin: "2px 0 4px", letterSpacing: "-.02em" }}>{destaque}</b>
+        : total != null && <div style={{ fontSize: 12.5, marginTop: 3 }}>Total: <b className="oc-num" style={{ color: totalCor }}>{fmt(total)}</b></div>}
       <div style={{ marginTop: 8 }}>{children}</div>
     </div>
   );
@@ -85,7 +86,10 @@ export default function GraficosFinancas({ onVoltar }: { onVoltar: () => void })
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <button onClick={onVoltar} style={{ justifySelf: "start", display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--muted)" }}><ArrowLeft size={15} /> Relatórios</button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+        <button onClick={onVoltar} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--muted)" }}><ArrowLeft size={15} /> Relatórios</button>
+        <BotaoOcultar />
+      </div>
 
       {/* linha 1: faturamento, custos, lucro */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
@@ -102,7 +106,7 @@ export default function GraficosFinancas({ onVoltar }: { onVoltar: () => void })
           {g.canais.map((c) => (
             <span key={c.nome} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12 }}>
               <i style={{ width: 14, height: 3, borderRadius: 3, background: c.cor, display: "inline-block" }} />
-              {c.nome} <b>{fmt(c.total)}</b>
+              {c.nome} <b className="oc-num">{fmt(c.total)}</b>
             </span>
           ))}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { Pencil, Trash2, Plus, X } from "lucide-react";
+import BotaoOcultar from "./ocultar";
 
 const MES_NOME = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const SEM = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -121,9 +122,10 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
             {ANOS.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </label>
-        <div style={{ display: "flex", gap: 18, fontSize: 12, color: "var(--muted)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 12, color: "var(--muted)", flexWrap: "wrap" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: BRAND, display: "inline-block" }} /> Vencimento</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: AMBAR, display: "inline-block" }} /> Feriado nacional</span>
+          <BotaoOcultar />
         </div>
       </div>
 
@@ -133,7 +135,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
           <div key={m} className="card" style={{ padding: 16 }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
               <b style={{ fontSize: 15 }}>{nome}</b>
-              <span style={{ fontSize: 13, fontWeight: 800, color: totalMes(m) > 0 ? VERDE : "var(--muted)" }}>{totalMes(m) > 0 ? fmtR0(totalMes(m)) : "–"}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: totalMes(m) > 0 ? VERDE : "var(--muted)" }} className="oc-num">{totalMes(m) > 0 ? fmtR0(totalMes(m)) : "–"}</span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
               {SEM.map((s, i) => <div key={i} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "var(--muted-2)", paddingBottom: 4 }}>{s}</div>)}
@@ -185,7 +187,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
                       <b style={{ fontSize: 13.5 }}>{o.d.descricao}</b>
                       <div style={{ fontSize: 11, fontStyle: "italic", color: "var(--muted)" }}>{o.d.recorrente ? "Recorrente" : "Única"}</div>
                     </div>
-                    <b style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>{fmtR(o.d.valor)}</b>
+                    <b className="oc-num" style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>{fmtR(o.d.valor)}</b>
                     <button title="Editar" onClick={() => setForm({ editId: o.d.id, descricao: o.d.descricao, valor: String(o.d.valor).replace(".", ","), recorrente: o.d.recorrente })}
                       style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: 2 }}><Pencil size={14} /></button>
                     <button title="Excluir" onClick={() => o.d.recorrente ? setAExcluir({ d: o.d, venym: ym(ano, o.mesGer) }) : excluir(o.d.id)} style={{ background: "transparent", border: 0, cursor: "pointer", color: VERMELHO, padding: 2 }}><Trash2 size={14} /></button>
@@ -197,7 +199,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
               {ocs.length > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)" }}>
                   <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)" }}>Total do dia</span>
-                  <b style={{ fontSize: 15, color: VERDE }}>{fmtR(total)}</b>
+                  <b className="oc-num" style={{ fontSize: 15, color: VERDE }}>{fmtR(total)}</b>
                 </div>
               )}
 
@@ -238,13 +240,13 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
             background: "#0f172a", color: "#fff", borderRadius: 12, padding: "12px 14px", boxShadow: "0 16px 40px -12px rgba(0,0,0,.6)", minWidth: 220, border: "1px solid rgba(148,163,184,.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid rgba(148,163,184,.2)" }}>
               <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#7c8aa5" }}>Dia {hover.dia}</span>
-              <b style={{ fontSize: 13.5, color: "#38BDF8" }}>{fmtR(total)}</b>
+              <b className="oc-num" style={{ fontSize: 13.5, color: "#38BDF8" }}>{fmtR(total)}</b>
             </div>
             <div style={{ display: "grid", gap: 5 }}>
               {ocs.map((o) => (
                 <div key={o.d.id} style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: 12.5 }}>
                   <span style={{ color: "#e2e8f0" }}>{o.d.descricao}</span>
-                  <b style={{ whiteSpace: "nowrap" }}>{fmtR(o.d.valor)}</b>
+                  <b className="oc-num" style={{ whiteSpace: "nowrap" }}>{fmtR(o.d.valor)}</b>
                 </div>
               ))}
             </div>

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, TrendingUp, Maximize2, Minimize2 } from "lucide-react";
 import { MES, Dados, carregarEstrutura } from "@/app/minhasmetricas/financas-estrutura";
+import BotaoOcultar from "./ocultar";
 
 const AZUL = "#38BDF8", VERMELHO = "#F43F5E";
 const fmtR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -36,7 +37,7 @@ function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: n
       {pts.map((p, i) => (
         <g key={i}>
           <circle cx={p[0]} cy={p[1]} r={4.5} fill={cor} stroke="#0b1220" strokeWidth={2.5} />
-          <text x={p[0]} y={p[1] - 12} textAnchor="middle" fontSize="14" fontWeight="800" fill="#eef2f7">{fmtK(p[2])}</text>
+          <text className="oc-num" x={p[0]} y={p[1] - 12} textAnchor="middle" fontSize="14" fontWeight="800" fill="#eef2f7">{fmtK(p[2])}</text>
         </g>
       ))}
       {/* nome de TODOS os meses selecionados no eixo (vazios ficam só com o nome) */}
@@ -55,7 +56,7 @@ function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: st
           <span style={{ width: alto ? 260 : 220, flexShrink: 0, fontSize: alto ? 14 : 13, color: "#a3b0c4", textAlign: "right", whiteSpace: "nowrap", fontStyle: "italic" }}>{it.nome}</span>
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
             <div style={{ height: alto ? 24 : 20, borderRadius: 7, background: it.cor, width: `${Math.max(4, (it.valor / max) * 100)}%`, boxShadow: `0 0 16px -2px ${it.cor}99` }} />
-            <span style={{ fontSize: alto ? 15 : 13.5, fontWeight: 800, color: "#eef2f7", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
+            <span className="oc-num" style={{ fontSize: alto ? 15 : 13.5, fontWeight: 800, color: "#eef2f7", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
           </div>
         </div>
       ))}
@@ -71,7 +72,7 @@ function Painel({ titulo, badge, badgeCor, chart, children }: { titulo: string; 
         {badge && (
           <span style={{ textAlign: "right", padding: "7px 14px", borderRadius: 12, background: `${badgeCor}22`, border: `1px solid ${badgeCor}66` }}>
             <span style={{ display: "block", fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: badgeCor }}>{titulo.includes("Fatur") ? "Total faturado" : "Custos totais"}</span>
-            <span style={{ display: "block", fontSize: 17, fontWeight: 800, color: "#fff" }}>{badge}</span>
+            <span className="oc-num" style={{ display: "block", fontSize: 17, fontWeight: 800, color: "#fff" }}>{badge}</span>
           </span>
         )}
       </div>
@@ -84,7 +85,7 @@ function Resumo({ icone, rotulo, valor, cor, borda, fundo }: { icone: React.Reac
   return (
     <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "center", gap: 12, background: fundo, border: `1px solid ${borda}`, borderRadius: 16, padding: "16px 20px" }}>
       {icone}
-      <div><div style={{ fontSize: 10.5, color: "#7c8aa5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}>{rotulo}</div><b style={{ fontSize: 24, color: cor, letterSpacing: "-.02em" }}>{valor}</b></div>
+      <div><div style={{ fontSize: 10.5, color: "#7c8aa5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}>{rotulo}</div><b className="oc-num" style={{ fontSize: 24, color: cor, letterSpacing: "-.02em" }}>{valor}</b></div>
     </div>
   );
 }
@@ -141,8 +142,9 @@ export default function FinancasDashboard() {
             </button>
           );
         })}
+        <span style={{ marginLeft: "auto" }}><BotaoOcultar /></span>
         <button onClick={toggleFull} title={full ? "Sair da tela cheia" : "Expandir para tela cheia"}
-          style={{ marginLeft: "auto", width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "rgba(56,189,248,.12)", color: AZUL }}>
+          style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "rgba(56,189,248,.12)", color: AZUL }}>
           {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </button>
       </div>

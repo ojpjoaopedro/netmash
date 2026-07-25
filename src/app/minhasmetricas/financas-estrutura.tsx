@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info } from "lucide-react";
+import BotaoOcultar from "@/components/ocultar";
 
 /**
  * Estrutura de Receitas e Custos — réplica da tela do Hub.
@@ -314,21 +315,24 @@ export default function EstruturaFinancas() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      {/* seletor de meses — compacto, cinza moderno, alinhado à esquerda */}
-      <div className="card" style={{ padding: 10, display: "flex", justifyContent: "flex-start", flexWrap: "wrap", gap: 5 }}>
-        {MES.map((m, i) => {
-          const on = sel.has(i);
-          return (
-            <button key={m} onClick={() => toggleMes(i)} style={{
-              padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-              border: on ? "1px solid transparent" : "1px solid var(--line-2)",
-              background: on ? "#475569" : "transparent",
-              color: on ? "#fff" : "var(--muted)", transition: ".12s",
-            }}
-              onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = "var(--bg-2)"; }}
-              onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "transparent"; }}>{m}</button>
-          );
-        })}
+      {/* seletor de meses — compacto, cinza moderno + ocultar valores */}
+      <div className="card" style={{ padding: 10, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {MES.map((m, i) => {
+            const on = sel.has(i);
+            return (
+              <button key={m} onClick={() => toggleMes(i)} style={{
+                padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                border: on ? "1px solid transparent" : "1px solid var(--line-2)",
+                background: on ? "#475569" : "transparent",
+                color: on ? "#fff" : "var(--muted)", transition: ".12s",
+              }}
+                onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = "var(--bg-2)"; }}
+                onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "transparent"; }}>{m}</button>
+            );
+          })}
+        </div>
+        <BotaoOcultar />
       </div>
 
       {/* COMPOSIÇÃO DAS RECEITAS */}
@@ -353,8 +357,8 @@ export default function EstruturaFinancas() {
               <AddSubtil span={mesesVis.length + 2} texto="cadastrar canal de venda" onClick={addReceita} />
               <tr style={{ borderTop: "2px solid var(--line-2)", background: "var(--card-2)" }}>
                 <td style={{ ...tdRot, fontWeight: 800, background: "var(--card-2)" }}>Receitas totais</td>
-                {mesesVis.map((m) => <td key={m} style={{ ...tdNum, fontWeight: 800 }}>{fmt(recTotais[m])}</td>)}
-                <td style={{ ...tdNum, fontWeight: 800, color: VERDE }}>{fmt(totalDe(recTotais))}</td>
+                {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 800 }}>{fmt(recTotais[m])}</td>)}
+                <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: VERDE }}>{fmt(totalDe(recTotais))}</td>
               </tr>
             </tbody>
           </table>
@@ -383,8 +387,8 @@ export default function EstruturaFinancas() {
                         {b.nome}
                       </span>
                     </td>
-                    {mesesVis.map((m) => <td key={m} onClick={() => toggleBloco(bi)} style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}>{fmt(blocosMes[bi][m])}</td>)}
-                    <td onClick={() => toggleBloco(bi)} style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}>{fmt(totalDe(blocosMes[bi]))}</td>
+                    {mesesVis.map((m) => <td key={m} onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}>{fmt(blocosMes[bi][m])}</td>)}
+                    <td onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}>{fmt(totalDe(blocosMes[bi]))}</td>
                   </tr>
                   {blocoAberto && b.grupos.map((g, gi) => {
                     const id = `${bi}-${gi}`;
@@ -397,15 +401,15 @@ export default function EstruturaFinancas() {
                           <GrupoCel cor={g.cor} valor={g.nome} aberto={aberto} onToggle={() => toggleGrupo(id)} onSalvo={salvo}
                             onChange={(nv) => nomeGrupo(bi, gi, nv)}
                             onRemover={() => pedirExcluir(g.nome || "este grupo", () => removerGrupo(bi, gi))} />
-                          {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}>{fmt(gm[m])}</td>)}
-                          <td onClick={() => toggleGrupo(id)} style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}>{fmt(totalDe(gm))}</td>
+                          {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}>{fmt(gm[m])}</td>)}
+                          <td onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}>{fmt(totalDe(gm))}</td>
                         </tr>
                         {/* itens (folhas editáveis: nome e valores) */}
                         {aberto && g.itens.map((it, ii) => (
                           <tr key={ii} style={{ borderTop: "1px solid var(--line)" }}>
                             <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))} />
                             {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => editarCusto(bi, gi, ii, m, nv)} />)}
-                            <td style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
+                            <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
                           </tr>
                         ))}
                         {aberto && <AddSubtil span={mesesVis.length + 2} texto={`cadastrar item em "${g.nome || "grupo"}"`} onClick={() => addItem(bi, gi)} indent={30} />}
@@ -419,8 +423,8 @@ export default function EstruturaFinancas() {
               })}
               <tr style={{ borderTop: "2px solid var(--line-2)", background: "var(--card-2)" }}>
                 <td style={{ ...tdRot, fontWeight: 800, textTransform: "uppercase", background: "var(--card-2)" }}>Custos totais</td>
-                {mesesVis.map((m) => <td key={m} style={{ ...tdNum, fontWeight: 800 }}>{fmt(custosTotais[m])}</td>)}
-                <td style={{ ...tdNum, fontWeight: 800, color: VERMELHO }}>{fmt(totalDe(custosTotais))}</td>
+                {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 800 }}>{fmt(custosTotais[m])}</td>)}
+                <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: VERMELHO }}>{fmt(totalDe(custosTotais))}</td>
               </tr>
             </tbody>
           </table>
@@ -516,7 +520,7 @@ function BadgeTotal({ badge, valor, cor }: { badge: string; valor: string; cor: 
   return (
     <div style={{ display: "inline-block", textAlign: "left", background: cor + "14", border: `1px solid ${cor}44`, borderRadius: 12, padding: "8px 14px" }}>
       <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: cor }}>{badge}</div>
-      <b style={{ fontSize: 18 }}>{valor}</b>
+      <b className="oc-num" style={{ fontSize: 18 }}>{valor}</b>
     </div>
   );
 }
@@ -655,7 +659,7 @@ function Celula({ valor, onChange, italico, onSalvo }: { valor: number; onChange
   const [txt, setTxt] = useState<string | null>(null);
   const editando = txt !== null;
   return (
-    <td style={{ ...tdNum, fontStyle: italico ? "italic" : undefined, color: italico ? "var(--muted)" : undefined, padding: "6px 4px" }}>
+    <td className="oc-num" style={{ ...tdNum, fontStyle: italico ? "italic" : undefined, color: italico ? "var(--muted)" : undefined, padding: "6px 4px" }}>
       <input
         value={editando ? txt! : (Math.abs(valor) < 0.005 ? "" : fmt(valor))}
         placeholder="–"
@@ -679,7 +683,7 @@ function Celula({ valor, onChange, italico, onSalvo }: { valor: number; onChange
 }
 
 function Total({ children }: { children: React.ReactNode }) {
-  return <td style={{ ...tdNum, fontWeight: 700 }}>{children}</td>;
+  return <td className="oc-num" style={{ ...tdNum, fontWeight: 700 }}>{children}</td>;
 }
 
 // só para agrupar linhas sem quebrar a tabela
@@ -696,8 +700,8 @@ function LinhaResultado({ nome, v, total, meses, moeda, dica }: { nome: string; 
           {dica && <span title={dica} style={{ display: "inline-grid", placeItems: "center", cursor: "help", color: "var(--muted)" }}><Info size={13} /></span>}
         </span>
       </td>
-      {meses.map((m) => <td key={m} style={{ ...tdNum, fontWeight: 700, color: Math.abs(v[m]) > 0.005 ? cor(v[m]) : "var(--muted)" }}>{Math.abs(v[m]) < 0.005 ? "–" : f(v[m])}</td>)}
-      <td style={{ ...tdNum, fontWeight: 800, color: cor(total) }}>{f(total)}</td>
+      {meses.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 700, color: Math.abs(v[m]) > 0.005 ? cor(v[m]) : "var(--muted)" }}>{Math.abs(v[m]) < 0.005 ? "–" : f(v[m])}</td>)}
+      <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: cor(total) }}>{f(total)}</td>
     </tr>
   );
 }
@@ -712,9 +716,9 @@ function LinhaMargem({ resultado, receita, totalRes, totalRec, meses }: { result
       {meses.map((m) => {
         const p = pct(resultado[m], receita[m]);
         const vazio = Math.abs(receita[m]) < 0.005;
-        return <td key={m} style={{ ...tdNum, fontWeight: 700, color: vazio ? "var(--muted)" : cor(p) }}>{vazio ? "–" : `${Math.round(p)}%`}</td>;
+        return <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 700, color: vazio ? "var(--muted)" : cor(p) }}>{vazio ? "–" : `${Math.round(p)}%`}</td>;
       })}
-      <td style={{ ...tdNum, fontWeight: 800, color: cor(totalPct) }}>{`${totalPct.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}</td>
+      <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: cor(totalPct) }}>{`${totalPct.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}</td>
     </tr>
   );
 }

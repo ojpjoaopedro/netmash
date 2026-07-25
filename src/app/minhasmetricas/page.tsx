@@ -57,13 +57,12 @@ const grupoDe = (v: string) => v;
 // anos fixos no seletor do topo (o mesmo em todas as páginas)
 const ANOS = ["2026", "2027", "2028"];
 // SISTEMA fica oculto (recolhível): tudo que não é o essencial do dia a dia
-const SISTEMA_KEYS = ["apresentacao", "importar"];
+const SISTEMA_KEYS = ["apresentacao"];
 const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "planejamento", label: "Planejamento", Icon: Compass },
   { key: "config", label: "Configurações", Icon: Settings },
   { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
-  { key: "importar", label: "Importar planilha", Icon: Upload },
 ] as const;
 
 export default function Home() {
@@ -409,7 +408,7 @@ export default function Home() {
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
         {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
-        {view === "importar" && <Importar reload={carregarDados} />}
+        {view === "importar" && <Importar reload={carregarDados} empresa={empresa} brand={brand} />}
         {view === "empresa" && <Config empresa={empresa} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
       </main>
 
@@ -481,7 +480,7 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
         : aba === "dashboard" ? <FinancasDashboard />
         : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} />
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} />
-        : aba === "importar" ? <Importar reload={reload} />
+        : aba === "importar" ? <Importar reload={reload} empresa={empresa} brand={brand} />
         : <EmConstrucao titulo={rotulos[aba]} />}
     </div>
   );
