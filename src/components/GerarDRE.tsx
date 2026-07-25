@@ -146,16 +146,18 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
   );
 }
 
-/** Botão "Gerar DRE" + a pré-visualização (reduzida/completa). */
-export default function BotaoGerarDRE({ ano, empresa, brand }: { ano?: number; empresa: Empresa | null; brand: Brand }) {
+/** Botão "Gerar DRE" + a pré-visualização (reduzida/completa). Aceita um gatilho custom. */
+export default function BotaoGerarDRE({ ano, empresa, brand, trigger }: { ano?: number; empresa: Empresa | null; brand: Brand; trigger?: (abrir: () => void) => React.ReactNode }) {
   const [aberto, setAberto] = useState(false);
   const [dados, setDados] = useState<Dados | null>(null);
   const abrir = () => { setDados(carregarEstrutura()); setAberto(true); };
   return (
     <>
-      <button className="btn ghost" onClick={abrir} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-        <FileText size={15} /> Gerar DRE
-      </button>
+      {trigger ? trigger(abrir) : (
+        <button className="btn ghost" onClick={abrir} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <FileText size={15} /> Gerar DRE
+        </button>
+      )}
       {aberto && dados && <DRE data={dados} ano={ano || new Date().getFullYear()} empresa={empresa} brand={brand} onFechar={() => setAberto(false)} />}
     </>
   );

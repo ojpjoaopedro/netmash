@@ -1,9 +1,9 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Users, Phone, Mail, CreditCard, KeyRound, Cake, CalendarDays, Briefcase, Trash2, Plus, Power } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
-import Diretores from "./Diretores";
+import BotaoRelatorioEquipe from "./RelatorioEquipe";
 
 const VERMELHO = "#EF4444", VERDE = "#10B981", AMARELO = "#F59E0B";
 const hojeISO = () => new Date().toISOString().slice(0, 10);
@@ -20,14 +20,16 @@ function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar 
   onFocar?: () => void; onDesfocar?: () => void;
 }) {
   const base = valor ?? "";
+  const dataVazia = tipo === "date" && !base;
   return (
     <input
       defaultValue={base}
       placeholder={placeholder}
       type={tipo || "text"}
+      onInput={tipo === "date" ? (e) => { e.currentTarget.style.color = e.currentTarget.value ? "" : "#9ca3af"; } : undefined}
       onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; onFocar?.(); }}
       onBlur={(e) => { e.currentTarget.style.background = "transparent"; onDesfocar?.(); if (e.target.value !== base) onSalvar(e.target.value, e.currentTarget); }}
-      style={{ border: 0, outline: "none", background: "transparent", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", transition: "background .12s", ...style }}
+      style={{ border: 0, outline: "none", background: "transparent", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: dataVazia ? "#9ca3af" : "inherit", transition: "background .12s", ...style }}
     />
   );
 }
@@ -86,10 +88,29 @@ function Chave({ ops, valor, onChange }: { ops: { k: string; txt: string }[]; va
   );
 }
 
-export default function Funcionarios({ funcs, reload, empresa = null, brand, loginEmail = "" }: { funcs: Funcionario[]; reload: () => void; empresa?: Empresa | null; brand?: Brand; loginEmail?: string }) {
+type DiretorRel = { nome: string; cargo?: string; area?: string; email?: string; telefone?: string; cpf?: string; pix?: string; nascimento?: string };
+
+export default function Funcionarios({ funcs, reload, empresa = null, brand }: { funcs: Funcionario[]; reload: () => void; empresa?: Empresa | null; brand?: Brand }) {
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
   const [ordem, setOrdem] = useState<"cadastro" | "alfabetica">("alfabetica");
   const [modo, setModo] = useState<"card" | "lista">("card");
+
+  // diretores (Meus Usuários) entram no relatório junto com a equipe
+  const [diretores, setDiretores] = useState<DiretorRel[]>([]);
+  useEffect(() => {
+    const ler = () => {
+      try {
+        const s = JSON.parse(localStorage.getItem("me_diretores") || "null");
+        const lista = s?.sup ? [s.sup, ...(s.admins || [])] : [];
+        setDiretores(lista.filter((d: { nome?: string }) => (d.nome || "").trim()).map((d: DiretorRel) => ({
+          nome: d.nome, cargo: "Diretor", area: d.area, email: d.email, telefone: d.telefone, cpf: d.cpf, pix: d.pix, nascimento: d.nascimento,
+        })));
+      } catch { /* ignore */ }
+    };
+    ler();
+    window.addEventListener("me:diretores", ler);
+    return () => window.removeEventListener("me:diretores", ler);
+  }, []);
 
   // qual card está em edição (algum campo com foco) — libera a lixeira só nele
   const [focoId, setFocoId] = useState<string | null>(null);
@@ -183,13 +204,15 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
 
   return (
     <>
-      {/* bloco de diretores (super admin + admins) acima da equipe */}
-      <Diretores funcs={funcs} empresa={empresa} brand={brand} loginEmail={loginEmail} />
-
-      {/* título da equipe */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><Users size={19} /></span>
-        <h2 style={{ margin: 0, fontSize: 19 }}>Equipe</h2>
+      {/* título da equipe + imprimir PDF */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><Users size={19} /></span>
+          <h2 style={{ margin: 0, fontSize: 19 }}>Equipe</h2>
+        </div>
+        <BotaoRelatorioEquipe funcs={funcs} empresa={empresa}
+          brand={brand ?? { nome: "Minha Empresa", logo: null, cor: "#1AADE2", saudacao: "", logoTamanho: 40 }}
+          diretores={diretores} />
       </div>
 
       {/* filtros alinhados à esquerda: ordenação · visualização · situação */}

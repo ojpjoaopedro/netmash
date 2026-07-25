@@ -5,7 +5,8 @@ import {
   LayoutDashboard, DollarSign, Megaphone, Compass, Settings,
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
-  ChevronsLeft, ChevronsRight, User, Camera,
+  ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
+  Palette, UserCog, Gift,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -27,6 +28,9 @@ import EstruturaFinancas from "./financas-estrutura";
 import BotaoGerarDRE from "@/components/GerarDRE";
 import FinancasDashboard from "@/components/FinancasDashboard";
 import CalendarioPagamentos from "@/components/CalendarioPagamentos";
+import Diretores from "@/components/Diretores";
+import TermosDeUso from "@/components/TermosDeUso";
+import MeusBeneficios from "@/components/MeusBeneficios";
 
 type View =
   | "dashboard" | "financas" | "marketing" | "planejamento" | "config"
@@ -74,6 +78,15 @@ export default function Home() {
   const [view, setView] = useState<View>("dashboard");
   const [editor, setEditor] = useState<Categoria | null>(null);
   const [menuAberto, setMenuAberto] = useState(false);
+  // nome do Super Admin (definido em Configurações › Meus Usuários) para o rodapé
+  const [superNome, setSuperNome] = useState("");
+  useEffect(() => {
+    const ler = () => { try { const s = JSON.parse(localStorage.getItem("me_diretores") || "null"); setSuperNome(s?.sup?.nome || ""); } catch { /* ignore */ } };
+    ler();
+    window.addEventListener("me:diretores", ler);
+    window.addEventListener("storage", ler);
+    return () => { window.removeEventListener("me:diretores", ler); window.removeEventListener("storage", ler); };
+  }, []);
   const [sistemaAberto, setSistemaAberto] = useState(false);
   const [maisAberto, setMaisAberto] = useState(false);
   const [sideOculta, setSideOculta] = useState(false);   // recolher o sidebar (desktop)
@@ -327,7 +340,7 @@ export default function Home() {
             <input type="file" accept="image/*" onChange={escolherFoto} style={{ display: "none" }} />
           </label>
           <div className="who">
-            <b>{perfil?.nome || saudacaoNome || nomeMarca}</b>
+            <b>{superNome.trim().split(" ")[0] || perfil?.nome || saudacaoNome || nomeMarca}</b>
             {/* mostra o nome da empresa digitado; sem nome, cai no selo do painel modelo */}
             <small>{nomeMarca !== "Minha Empresa" ? nomeMarca : (marcaPainel ? "Painel demonstrativo" : nomeMarca)}</small>
           </div>
@@ -428,38 +441,41 @@ function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand:
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
     calendario: "Calendário de Pagamentos",
   };
-  // ativo = azul cheio; inativo = cinza neutro
-  const pill = (ativo: boolean): React.CSSProperties => ({
-    display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-    padding: "8px 15px", borderRadius: 12, fontSize: 12.5, fontWeight: 800,
+  // aba em barra (estilo print2): ícone + rótulo, ativo em azul com sublinhado
+  const tab = (ativo: boolean): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
+    padding: "11px 16px", marginBottom: -1, fontSize: 13.5, fontWeight: 700,
     cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-    border: `1px solid ${ativo ? "var(--brand)" : "var(--line-2)"}`,
-    background: ativo ? "var(--brand)" : "transparent",
-    color: ativo ? "#fff" : "var(--muted)",
+    background: "transparent", border: 0,
+    borderBottom: `2px solid ${ativo ? "var(--brand)" : "transparent"}`,
+    color: ativo ? "var(--brand)" : "var(--muted)",
   });
-  const abas: { key: typeof aba; label: string }[] = [
-    { key: "dashboard", label: "Dashboard" },
-    { key: "estrutura", label: "Estrutura de Receitas e Custos" },
-    { key: "calendario", label: "Calendário de Pagamentos" },
+  const abas: { key: typeof aba; label: string; Icon: typeof LayoutDashboard }[] = [
+    { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
+    { key: "estrutura", label: "Estrutura de Receitas e Custos", Icon: Layers },
+    { key: "calendario", label: "Calendário de Pagamentos", Icon: CalendarDays },
   ];
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
-              <DollarSign size={22} />
-            </span>
-            <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
-            <BotaoGerarDRE ano={ano} empresa={empresa} brand={brand} />
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {abas.map((a) => (
-            <button key={a.key} onClick={() => setAba(a.key)} style={pill(aba === a.key)}>{a.label}</button>
-          ))}
-        </div>
+      {/* título */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
+          <DollarSign size={22} />
+        </span>
+        <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
       </div>
+
+      {/* barra de abas */}
+      <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
+        {abas.map((a) => (
+          <button key={a.key} onClick={() => setAba(a.key)} style={tab(aba === a.key)}>
+            <a.Icon size={16} /> {a.label}
+          </button>
+        ))}
+        <BotaoGerarDRE ano={ano} empresa={empresa} brand={brand}
+          trigger={(abrir) => <button onClick={abrir} style={tab(false)}><FileText size={16} /> Gerar DRE</button>} />
+      </div>
+
       {aba === "estrutura" ? <EstruturaFinancas /> : aba === "dashboard" ? <FinancasDashboard /> : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} /> : <EmConstrucao titulo={rotulos[aba]} />}
     </div>
   );
@@ -471,37 +487,51 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
   brand: React.ComponentProps<typeof Config>["brand"]; saveBrand: React.ComponentProps<typeof Config>["saveBrand"];
   loginEmail?: string;
 }) {
-  const [aba, setAba] = useState<"empresa" | "equipe">("empresa");
-  const abas: { key: "empresa" | "equipe"; label: string }[] = [
-    { key: "empresa", label: "Dados da empresa" },
-    { key: "equipe", label: "Equipe" },
+  type AbaCfg = "usuarios" | "dados" | "personalizacao" | "equipe" | "termos" | "beneficios";
+  const [aba, setAba] = useState<AbaCfg>("usuarios");
+  const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
+    { key: "usuarios", label: "Meus Usuários", Icon: UserCog },
+    { key: "dados", label: "Dados da Empresa", Icon: Building2 },
+    { key: "personalizacao", label: "Personalização", Icon: Palette },
+    { key: "equipe", label: "Equipe", Icon: Users },
+    { key: "termos", label: "Termos de uso", Icon: FileText },
+    { key: "beneficios", label: "Meus Benefícios", Icon: Gift },
   ];
-  const pill = (ativo: boolean): React.CSSProperties => ({
-    display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-    padding: "8px 15px", borderRadius: 12, fontSize: 12.5, fontWeight: 800,
+  const tab = (ativo: boolean): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
+    padding: "11px 15px", marginBottom: -1, fontSize: 13.5, fontWeight: 700,
     cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-    border: `1px solid ${ativo ? "var(--brand)" : "var(--line-2)"}`,
-    background: ativo ? "var(--brand)" : "transparent",
-    color: ativo ? "#fff" : "var(--muted)",
+    background: "transparent", border: 0,
+    borderBottom: `2px solid ${ativo ? "var(--brand)" : "transparent"}`,
+    color: ativo ? "var(--brand)" : "var(--muted)",
   });
+  const rotulo = abas.find((a) => a.key === aba)?.label || "";
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
-            <Settings size={22} />
-          </span>
-          <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Configurações</h2>
-        </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {abas.map((a) => (
-            <button key={a.key} onClick={() => setAba(a.key)} style={pill(aba === a.key)}>{a.label}</button>
-          ))}
-        </div>
+      {/* título */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
+          <Settings size={22} />
+        </span>
+        <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Configurações</h2>
       </div>
-      {aba === "empresa"
-        ? <Config empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
-        : <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} loginEmail={loginEmail} />}
+
+      {/* barra de abas */}
+      <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
+        {abas.map((a) => (
+          <button key={a.key} onClick={() => setAba(a.key)} style={tab(aba === a.key)}>
+            <a.Icon size={16} /> {a.label}
+          </button>
+        ))}
+      </div>
+
+      {aba === "dados" ? <Config secao="dados" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
+        : aba === "personalizacao" ? <Config secao="identidade" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
+        : aba === "equipe" ? <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} />
+        : aba === "usuarios" ? <Diretores loginEmail={loginEmail} />
+        : aba === "termos" ? <TermosDeUso />
+        : aba === "beneficios" ? <MeusBeneficios />
+        : <EmConstrucao titulo={rotulo} />}
     </div>
   );
 }

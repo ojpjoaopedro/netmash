@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus, Trash2, Hourglass } from "lucide-react";
 import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 
@@ -38,9 +38,23 @@ function salvarExtra(id: string | null | undefined, d: DadosExtra) {
   if (typeof window !== "undefined") localStorage.setItem(chaveExtra(id), JSON.stringify(d));
 }
 
-export default function Config({ empresa, reload, brand, saveBrand }: {
+/** Posição para o selinho "Salvo" colar logo após o texto digitado. */
+function fimDoTexto(el: HTMLElement, r: DOMRect): number {
+  if (!(el instanceof HTMLInputElement) || el.type === "date" || el.type === "color") return r.right;
+  const cs = getComputedStyle(el);
+  const cv = document.createElement("canvas");
+  const ctx = cv.getContext("2d");
+  if (!ctx) return r.right;
+  ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const largura = ctx.measureText(el.value).width;
+  const padEsq = parseFloat(cs.paddingLeft) || 0;
+  return Math.min(r.left + padEsq + largura, r.right);
+}
+
+export default function Config({ empresa, reload, brand, saveBrand, secao = "tudo" }: {
   empresa: Empresa | null; reload: () => void;
   brand: Brand; saveBrand: (p: Partial<Brand>) => void;
+  secao?: "tudo" | "dados" | "identidade";
 }) {
   const [nome, setNome] = useState(empresa?.nome ?? brand.nome ?? "");
   const [segmento, setSegmento] = useState(empresa?.segmento ?? "");
@@ -55,6 +69,14 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
   // selinho "Salvo" ao lado do campo, mesmo padrão da Estrutura de Custos
   const [flash, setFlash] = useState<{ top: number; left: number } | null>(null);
   const flashT = useRef<number | undefined>(undefined);
+
+  // aplicar a cor: ampulheta por 5s e, ao sair, aplica em todo o painel
+  const [aplicando, setAplicando] = useState(false);
+  const corPendente = cor.trim().toLowerCase() !== (brand.cor || "").trim().toLowerCase();
+  function aplicarCor() {
+    setAplicando(true);
+    window.setTimeout(() => { saveBrand({ cor }); setAplicando(false); }, 5000);
+  }
 
   function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -72,11 +94,11 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
       cnpj: cnpj.trim() || null,
       saldo_inicial: empresa?.saldo_inicial ?? 0,
     });
-    saveBrand({ nome: nome.trim() || "Minha Empresa", cor });
+    saveBrand({ nome: nome.trim() || "Minha Empresa" });
     salvarExtra(empresa?.id, extra);
     reload();
     const r = el.getBoundingClientRect();
-    setFlash({ top: r.top + r.height / 2, left: r.right });
+    setFlash({ top: r.top + r.height / 2, left: fimDoTexto(el, r) });
     window.clearTimeout(flashT.current);
     flashT.current = window.setTimeout(() => setFlash(null), 1500);
   }
@@ -92,8 +114,9 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
       )}
 
       {/* dois lados: à esquerda os dados da empresa, à direita a identidade */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.15fr .85fr", gap: 16, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: secao === "tudo" ? "1.15fr .85fr" : "1fr", gap: 16, alignItems: "start" }}>
         {/* Dados da empresa — cada campo salva sozinho ao sair (auto-save) */}
+        {secao !== "identidade" && (
         <div className="card">
           <h3>🏢 Dados da empresa</h3>
           {/* Nome, Segmento e CNPJ na mesma linha */}
@@ -128,8 +151,10 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
             <div className="field"><label className="f">Banco · Agência · Conta</label><input value={extra.banco} onChange={(e) => upExtra({ banco: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Ex: Itaú · Ag. 0000 · Conta 00000-0" /></div>
           </div>
         </div>
+        )}
 
         {/* Marca / identidade */}
+        {secao !== "dados" && (
         <div className="card">
           {/* área de logo clicável (dropzone) — clique nela para enviar/trocar */}
           <label title="Clique para enviar sua logomarca"
@@ -175,14 +200,27 @@ export default function Config({ empresa, reload, brand, saveBrand }: {
           {/* cor de destaque */}
           <div className="field" style={{ marginTop: 16 }}>
             <label className="f">Cor de destaque</label>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <input type="color" value={cor} onChange={(e) => setCor(e.target.value)} onBlur={(e) => salvarCampo(e.currentTarget)} style={{ width: 52, height: 40, padding: 4 }} />
-              <input value={cor} onChange={(e) => setCor(e.target.value)} onBlur={(e) => salvarCampo(e.currentTarget)} style={{ flex: 1 }} />
-              <span className="sub" style={{ fontSize: 12 }}>muda a cor de todo o painel</span>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <input type="color" value={cor} onChange={(e) => setCor(e.target.value)} style={{ width: 52, height: 40, padding: 4 }} />
+              <input value={cor} onChange={(e) => setCor(e.target.value)} style={{ flex: 1, minWidth: 140 }} />
+              <button className="btn" onClick={aplicarCor} disabled={!corPendente || aplicando} style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: corPendente ? 1 : 0.5 }}>Aplicar</button>
             </div>
+            <span className="sub" style={{ fontSize: 12 }}>escolha a cor e clique em Aplicar para mudar a cor de todo o painel</span>
           </div>
         </div>
+        )}
       </div>
+
+      {/* ampulheta: 5s aplicando a nova cor no painel */}
+      {aplicando && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.6)", backdropFilter: "blur(3px)" }}>
+          <div style={{ display: "grid", justifyItems: "center", gap: 14, background: "var(--card)", border: "1px solid var(--line)", borderRadius: 18, padding: "30px 40px", boxShadow: "0 24px 60px -20px rgba(0,0,0,.5)" }}>
+            <Hourglass size={40} color={cor} style={{ animation: "girar-ampulheta 2.5s ease-in-out infinite" }} />
+            <b style={{ fontSize: 15 }}>Aplicando a nova cor…</b>
+            <span className="sub" style={{ fontSize: 12.5 }}>Isso leva alguns segundos.</span>
+          </div>
+        </div>
+      )}
     </>
   );
 }

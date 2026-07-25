@@ -1,12 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import {
-  Shield, ShieldCheck, Crown, Phone, CreditCard, KeyRound, Cake, Plus, Trash2, X, Check,
-  Eye, EyeOff, Lock, SlidersHorizontal, Send, LayoutDashboard, DollarSign, Megaphone, Sparkles, Compass, Presentation, Settings,
+  Shield, Crown, Plus, Trash2, X, Check,
+  Eye, EyeOff, Lock, SlidersHorizontal, LayoutDashboard, DollarSign, Megaphone, Sparkles, Compass, Presentation, Settings,
 } from "lucide-react";
-import { Funcionario, Empresa } from "@/lib/db";
-import { Brand } from "@/lib/brand";
-import BotaoRelatorioEquipe from "./RelatorioEquipe";
 
 const AZUL = "#1AADE2", VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF4444";
 
@@ -30,7 +27,7 @@ const rotulo = (k: string) => GRUPOS.flatMap((g) => g.itens).find((i) => i.k ===
 type Perm = "total" | string[];
 type Diretor = {
   id: string; nome: string; area: string; acesso: string; email: string;
-  telefone: string; cpf: string; pix: string; nascimento: string; permissoes: Perm;
+  telefone: string; cpf: string; pix: string; nascimento: string; admissao?: string; permissoes: Perm;
 };
 type Store = { sup: Diretor; admins: Diretor[] };
 
@@ -44,7 +41,7 @@ function ler(): Store {
   try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s && s.sup) { if (s.sup.nome === "Super Admin") s.sup.nome = ""; return s; } } catch { /* ignore */ }
   return { sup: { ...SUPER_PADRAO }, admins: [] };
 }
-function salvar(s: Store) { if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(s)); }
+function salvar(s: Store) { if (typeof window !== "undefined") { localStorage.setItem(KEY, JSON.stringify(s)); window.dispatchEvent(new Event("me:diretores")); } }
 
 function iniciais(nome: string): string {
   return nome.trim().split(/\s+/).map((p) => p[0]).join("").toUpperCase().slice(0, 2);
@@ -58,46 +55,54 @@ function resumoPerm(p: Perm): string {
 }
 
 /** Campo editável (parece texto, salva ao sair do foco). */
-function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar }: {
-  valor: string; onSalvar: (v: string) => void; placeholder?: string; tipo?: string;
-  style?: React.CSSProperties; onFocar?: () => void; onDesfocar?: () => void;
+/** Campo com rótulo no padrão do formulário "Dados da empresa" (salva ao sair, com flash). */
+function CampoLabel({ label, valor, onSalvar, placeholder, tipo, disabled, lock, onFocar, onDesfocar }: {
+  label: string; valor: string; onSalvar?: (v: string, el: HTMLElement) => void; placeholder?: string; tipo?: string;
+  disabled?: boolean; lock?: boolean; onFocar?: () => void; onDesfocar?: () => void;
 }) {
   return (
-    <input defaultValue={valor} placeholder={placeholder} type={tipo || "text"}
-      onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; onFocar?.(); }}
-      onBlur={(e) => { e.currentTarget.style.background = "transparent"; onDesfocar?.(); if (e.target.value !== valor) onSalvar(e.target.value); }}
-      style={{ border: 0, outline: "none", background: "transparent", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", ...style }} />
-  );
-}
-
-function Linha({ icone, prefixo, valor, placeholder, tipo, onSalvar, onFocar, onDesfocar }: {
-  icone: React.ReactNode; prefixo?: string; valor: string; placeholder?: string; tipo?: string;
-  onSalvar: (v: string) => void; onFocar?: () => void; onDesfocar?: () => void;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--muted)", minWidth: 0 }}>
-      <span style={{ flexShrink: 0, display: "grid", placeItems: "center", color: "var(--brand)" }}>{icone}</span>
-      {prefixo && <span style={{ flexShrink: 0 }}>{prefixo}</span>}
-      <Campo valor={valor} placeholder={placeholder} tipo={tipo} onSalvar={onSalvar} onFocar={onFocar} onDesfocar={onDesfocar} style={{ fontSize: 12.5 }} />
+    <div className="field">
+      <label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{label}{lock && <Lock size={11} style={{ opacity: .6 }} />}</label>
+      {disabled
+        ? <input value={valor} readOnly title="Definido pelo login, não editável" style={{ opacity: .8, cursor: "default" }} />
+        : <input defaultValue={valor} placeholder={placeholder} type={tipo || "text"}
+            style={tipo === "date" && !valor ? { color: "#9ca3af" } : undefined}
+            onInput={tipo === "date" ? (e) => { e.currentTarget.style.color = e.currentTarget.value ? "" : "#9ca3af"; } : undefined}
+            onFocus={() => onFocar?.()}
+            onBlur={(e) => { onDesfocar?.(); if (e.target.value !== valor) onSalvar?.(e.target.value, e.currentTarget); }} />}
     </div>
   );
 }
 
-export default function Diretores({ funcs = [], empresa = null, brand, loginEmail = "" }: { funcs?: Funcionario[]; empresa?: Empresa | null; brand?: Brand; loginEmail?: string }) {
+/** Posição para o selinho "Salvo" colar logo após o texto digitado. */
+function fimDoTexto(el: HTMLElement, r: DOMRect): number {
+  if (!(el instanceof HTMLInputElement) || el.type === "date") return r.right;
+  const cs = getComputedStyle(el);
+  const cv = document.createElement("canvas");
+  const ctx = cv.getContext("2d");
+  if (!ctx) return r.right;
+  ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const largura = ctx.measureText(el.value).width;
+  const padEsq = parseFloat(cs.paddingLeft) || 0;
+  return Math.min(r.left + padEsq + largura, r.right);
+}
+
+export default function Diretores({ loginEmail = "" }: { loginEmail?: string }) {
   const [store, setStore] = useState<Store>({ sup: { ...SUPER_PADRAO }, admins: [] });
   const [carregado, setCarregado] = useState(false);
   const [permAberto, setPermAberto] = useState(false);
   const [selId, setSelId] = useState<string>("super");
+  // selinho "Salvo" ao lado do campo editado
+  const [flash, setFlash] = useState<{ top: number; left: number } | null>(null);
+  const flashT = useRef<number | undefined>(undefined);
+  const salvo = (el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    setFlash({ top: r.top + r.height / 2, left: fimDoTexto(el, r) });
+    window.clearTimeout(flashT.current);
+    flashT.current = window.setTimeout(() => setFlash(null), 1500);
+  };
   const [aExcluir, setAExcluir] = useState<Diretor | null>(null);
   const [upgrade, setUpgrade] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const toastT = useRef<number | undefined>(undefined);
-  const reenviar = (d: Diretor) => {
-    const alvo = (d.acesso || d.email).trim();
-    setToast(alvo ? `Acesso ao Minhas Métricas reenviado para ${alvo}` : "Preencha o e-mail de acesso primeiro.");
-    window.clearTimeout(toastT.current);
-    toastT.current = window.setTimeout(() => setToast(null), 3000);
-  };
   const [focoId, setFocoId] = useState<string | null>(null);
   const focoT = useRef<number | undefined>(undefined);
   const aoFocar = (id: string) => { window.clearTimeout(focoT.current); setFocoId(id); };
@@ -117,62 +122,54 @@ export default function Diretores({ funcs = [], empresa = null, brand, loginEmai
     const set = sup ? setCampoSuper : (p: Partial<Diretor>) => setCampoAdmin(d.id, p);
     const badge = sup ? { txt: "SUPERADMIN", cor: AMBAR, Icon: Crown } : { txt: "ADMIN", cor: AZUL, Icon: Shield };
     return (
-      <div className="card diretor-card" style={{ padding: 16, position: "relative" }}>
+      <div className="card diretor-card" style={{ padding: 18, position: "relative" }}>
         {!sup && focoId === d.id && (
           <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir(d)}
-            style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO }}>
-            <Trash2 size={13} />
+            style={{ position: "absolute", top: 12, right: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO }}>
+            <Trash2 size={14} />
           </button>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 24 }}>
+        {/* cabeçalho: avatar + badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, paddingRight: 30 }}>
           <div style={{ width: 46, height: 46, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: `${badge.cor}22`, color: badge.cor, fontWeight: 800, fontSize: 15 }}>
             {iniciais(d.nome) || <badge.Icon size={18} />}
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <Campo valor={d.nome} placeholder={sup ? "Seu nome aqui" : "Nome do diretor"} onSalvar={(v) => set({ nome: v })} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} style={{ fontSize: 15, fontWeight: 700 }} />
-            <span style={{ marginTop: 4, marginLeft: 5, display: "inline-flex", alignItems: "center", gap: 4, background: `${badge.cor}1f`, color: badge.cor, fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "3px 8px", borderRadius: 99 }}>
-              <badge.Icon size={11} /> {badge.txt}
-            </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `${badge.cor}1f`, color: badge.cor, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "4px 10px", borderRadius: 99 }}>
+            <badge.Icon size={12} /> {badge.txt}
+          </span>
+        </div>
+
+        {/* formulário no mesmo padrão de "Dados da empresa" */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 14 }}>
+          <CampoLabel label="Nome" valor={d.nome} placeholder={sup ? "Seu nome aqui" : "Nome do diretor"} onSalvar={(v, el) => { set({ nome: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Cargo" valor={d.area} placeholder="Ex: Diretor" onSalvar={(v, el) => { set({ area: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          {sup
+            ? <CampoLabel label="E-mail de acesso" valor={loginEmail || "minhasmetricas@gmail.com"} disabled lock />
+            : <CampoLabel label="E-mail de acesso" valor={d.acesso} placeholder="login@empresa.com" onSalvar={(v, el) => { set({ acesso: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <CampoLabel label="Telefone" valor={d.telefone} placeholder="(00) 00000-0000" onSalvar={(v, el) => { set({ telefone: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="CPF" valor={d.cpf} placeholder="000.000.000-00" onSalvar={(v, el) => { set({ cpf: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Chave Pix" valor={d.pix} placeholder="E-mail, telefone ou CPF" onSalvar={(v, el) => { set({ pix: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <CampoLabel label="Data de nascimento" valor={d.nascimento} tipo="date" onSalvar={(v, el) => { set({ nascimento: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Data de admissão" valor={d.admissao || ""} tipo="date" onSalvar={(v, el) => { set({ admissao: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+        </div>
+
+        {!sup && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 7 }}>Acesso ao menu</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, color: VERDE, background: "rgba(16,185,129,.12)", padding: "4px 10px", borderRadius: 99 }}>
+                <Check size={12} /> {resumoPerm(d.permissoes)}
+              </span>
+              <button onClick={() => abrirPerm(d.id)} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>
+                <SlidersHorizontal size={12} /> Permissões
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div style={{ marginTop: 12, display: "grid", gap: 4 }}>
-          {sup ? (
-            // e-mail de acesso do Super Admin: já conhecido pelo login, não editável
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--muted)", minWidth: 0 }} title="E-mail de acesso (definido pelo login, não editável)">
-              <span style={{ flexShrink: 0, display: "grid", placeItems: "center", color: "var(--brand)" }}><ShieldCheck size={13} /></span>
-              <span>Acesso</span>
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--txt)" }}>{loginEmail || "minhasmetricas@gmail.com"}</span>
-              <Lock size={11} style={{ flexShrink: 0, opacity: .6 }} />
-            </div>
-          ) : (
-            <Linha icone={<ShieldCheck size={13} />} prefixo="Acesso" valor={d.acesso} placeholder="login@empresa.com" onSalvar={(v) => set({ acesso: v })} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          )}
-          <Linha icone={<Phone size={13} />} valor={d.telefone} placeholder="Telefone" onSalvar={(v) => set({ telefone: v })} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <Linha icone={<CreditCard size={13} />} prefixo="CPF" valor={d.cpf} placeholder="000.000.000-00" onSalvar={(v) => set({ cpf: v })} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <Linha icone={<KeyRound size={13} />} prefixo="Pix" valor={d.pix} placeholder="chave" onSalvar={(v) => set({ pix: v })} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <Linha icone={<Cake size={13} />} prefixo="Nasc." valor={d.nascimento} tipo="date" onSalvar={(v) => set({ nascimento: v })} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-        </div>
-
-        <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)", display: "grid", gap: 10 }}>
-          {!sup && (
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-2)", marginBottom: 7 }}>Acesso ao menu</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, color: VERDE, background: "rgba(16,185,129,.12)", padding: "4px 10px", borderRadius: 99 }}>
-                  <Check size={12} /> {resumoPerm(d.permissoes)}
-                </span>
-                <button onClick={() => abrirPerm(d.id)} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>
-                  <SlidersHorizontal size={12} /> Permissões
-                </button>
-              </div>
-            </div>
-          )}
-          <button onClick={() => reenviar(d)} title="Reenviar o acesso ao Minhas Métricas por e-mail"
-            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12, padding: "8px 10px", borderRadius: 10, border: "1px solid var(--line-2)", background: "color-mix(in srgb, var(--brand) 8%, transparent)", color: "var(--brand)" }}>
-            <Send size={13} /> Reenviar acesso por e-mail
-          </button>
-        </div>
+        )}
       </div>
     );
   };
@@ -192,25 +189,11 @@ export default function Diretores({ funcs = [], empresa = null, brand, loginEmai
 
   return (
     <div style={{ marginBottom: 22 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><Shield size={19} /></span>
-          <h2 style={{ margin: 0, fontSize: 19 }}>Diretores</h2>
-        </div>
-        <BotaoRelatorioEquipe
-          funcs={funcs} empresa={empresa}
-          brand={brand ?? { nome: "Minha Empresa", logo: null, cor: "#1AADE2", saudacao: "", logoTamanho: 40 }}
-          diretores={[store.sup, ...store.admins].filter((d) => d.nome.trim()).map((d) => ({
-            nome: d.nome, cargo: "Diretor", area: d.area,
-            email: d.email, telefone: d.telefone, cpf: d.cpf, pix: d.pix, nascimento: d.nascimento,
-          }))} />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gap: 14 }}>
         <Card d={store.sup} sup />
         {store.admins.map((a) => <Card key={a.id} d={a} sup={false} />)}
         <button onClick={() => setUpgrade(true)}
-          style={{ minHeight: 120, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit", borderRadius: 16, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
+          style={{ minHeight: 96, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit", borderRadius: 16, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.color = "var(--muted)"; }}>
           <span style={{ width: 40, height: 40, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><Plus size={20} /></span>
@@ -266,7 +249,7 @@ export default function Diretores({ funcs = [], empresa = null, brand, loginEmai
             {/* itens agrupados com toggle de olho */}
             {GRUPOS.map((g) => (
               <div key={g.titulo} style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted-2)", marginBottom: 8 }}>{g.titulo}</div>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 8 }}>{g.titulo}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
                   {g.itens.map((it) => {
                     const on = selMarcadas.includes(it.k);
@@ -306,10 +289,12 @@ export default function Diretores({ funcs = [], empresa = null, brand, loginEmai
         </div>
       )}
 
-      {/* aviso de reenvio de acesso */}
-      {toast && (
-        <div style={{ position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 95, display: "inline-flex", alignItems: "center", gap: 8, background: "#1e293b", color: "#fff", padding: "10px 16px", borderRadius: 12, boxShadow: "0 14px 34px -10px rgba(0,0,0,.6)", fontSize: 13, fontWeight: 600 }}>
-          <Send size={15} style={{ color: "#38BDF8" }} /> {toast}
+      {/* selinho "Salvo" ao lado do campo editado */}
+      {flash && (
+        <div style={{ position: "fixed", top: flash.top, left: flash.left, transform: "translate(8px, -50%)", zIndex: 96, pointerEvents: "none",
+          display: "inline-flex", alignItems: "center", gap: 3, background: "#64748b", color: "#fff", fontSize: 9, fontWeight: 700,
+          padding: "2px 6px", borderRadius: 99, boxShadow: "0 3px 8px -3px rgba(0,0,0,.4)", whiteSpace: "nowrap" }}>
+          ✓ Salvo
         </div>
       )}
 

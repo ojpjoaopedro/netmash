@@ -10,14 +10,17 @@ const somaMes = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) =
 
 /** Gráfico de linha em SVG (faturamento/despesas). Escala a fonte pela largura via viewBox. */
 function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: number[]; cor: string; alto?: boolean }) {
+  if (meses.length === 0) return <div style={{ display: "grid", placeItems: "center", width: "100%", minHeight: 120, color: "#64748b", fontSize: 13, fontStyle: "italic" }}>Sem dados no período</div>;
   const W = 640, H = alto ? 360 : 250, pad = 40, padTop = 40, padBot = 32;
-  const max = Math.max(1, ...valores);
-  const n = valores.length;
+  const n = meses.length;
   const px = (i: number) => pad + (n <= 1 ? (W - pad * 2) / 2 : (i * (W - pad * 2)) / (n - 1));
+  // só os meses COM dado viram ponto/linha; os vazios ficam só com o nome no eixo
+  const dados = meses.map((m, i) => ({ i, v: valores[i] })).filter((d) => d.v > 0);
+  const max = Math.max(1, ...dados.map((d) => d.v));
   const py = (v: number) => padTop + (1 - v / max) * (H - padTop - padBot);
-  const pts = valores.map((v, i) => [px(i), py(v)] as const);
+  const pts = dados.map((d) => [px(d.i), py(d.v), d.v] as const);
   const linha = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-  const area = `${linha} L${px(n - 1).toFixed(1)},${H - padBot} L${px(0).toFixed(1)},${H - padBot} Z`;
+  const area = pts.length >= 2 ? `${linha} L${pts[pts.length - 1][0].toFixed(1)},${H - padBot} L${pts[0][0].toFixed(1)},${H - padBot} Z` : "";
   const id = `g-${cor.replace("#", "")}-${alto ? "b" : "s"}`;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
@@ -28,15 +31,16 @@ function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: n
         </linearGradient>
       </defs>
       {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={pad} x2={W - pad} y1={padTop + f * (H - padTop - padBot)} y2={padTop + f * (H - padTop - padBot)} stroke="rgba(148,163,184,.13)" strokeDasharray="4 6" />)}
-      <path d={area} fill={`url(#${id})`} />
-      <path d={linha} fill="none" stroke={cor} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
+      {area && <path d={area} fill={`url(#${id})`} />}
+      {pts.length >= 2 && <path d={linha} fill="none" stroke={cor} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />}
       {pts.map((p, i) => (
         <g key={i}>
           <circle cx={p[0]} cy={p[1]} r={4.5} fill={cor} stroke="#0b1220" strokeWidth={2.5} />
-          <text x={p[0]} y={p[1] - 12} textAnchor="middle" fontSize="14" fontWeight="800" fill="#eef2f7">{fmtK(valores[i])}</text>
-          <text x={p[0]} y={H - 9} textAnchor="middle" fontSize="12" fill="#7c8aa5">{MES[meses[i]]}</text>
+          <text x={p[0]} y={p[1] - 12} textAnchor="middle" fontSize="14" fontWeight="800" fill="#eef2f7">{fmtK(p[2])}</text>
         </g>
       ))}
+      {/* nome de TODOS os meses selecionados no eixo (vazios ficam só com o nome) */}
+      {meses.map((m, i) => <text key={`l${i}`} x={px(i)} y={H - 9} textAnchor="middle" fontSize="12" fill="#7c8aa5">{MES[m]}</text>)}
     </svg>
   );
 }
@@ -48,7 +52,7 @@ function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: st
     <div style={{ display: "grid", gap: alto ? 10 : 13, alignContent: "center", height: "100%" }}>
       {itens.map((it) => (
         <div key={it.nome} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: alto ? 170 : 140, flexShrink: 0, fontSize: alto ? 14 : 13, color: "#a3b0c4", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: "italic" }}>{it.nome}</span>
+          <span style={{ width: alto ? 260 : 220, flexShrink: 0, fontSize: alto ? 14 : 13, color: "#a3b0c4", textAlign: "right", whiteSpace: "nowrap", fontStyle: "italic" }}>{it.nome}</span>
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
             <div style={{ height: alto ? 24 : 20, borderRadius: 7, background: it.cor, width: `${Math.max(4, (it.valor / max) * 100)}%`, boxShadow: `0 0 16px -2px ${it.cor}99` }} />
             <span style={{ fontSize: alto ? 15 : 13.5, fontWeight: 800, color: "#eef2f7", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
