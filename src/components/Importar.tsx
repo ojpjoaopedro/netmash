@@ -219,8 +219,16 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
     const cab = cabecalhoEmpresa(empresa, brand);
     const { aoa } = montarMatriz(ANOS_MODELO[0], true, cab);
     const tsv = aoa.map((r) => r.join("\t")).join("\n");
-    try { await navigator.clipboard.writeText(tsv); setOkMsg("Planilha de 2026 copiada! Abra o Google Sheets e cole com Ctrl+V (crie uma aba para cada ano)."); }
-    catch { setOkMsg("Abra o Google Sheets e cole os dados."); }
+    try {
+      await navigator.clipboard.writeText(tsv);
+      setOkMsg("✅ Planilha de 2026 copiada! Na aba do Google que abriu: clique na célula A1 e aperte Ctrl+V. Pronto, ela se preenche.");
+    } catch {
+      // se o navegador bloquear a cópia, baixa um CSV para importar (Arquivo > Importar no Sheets)
+      const blob = new Blob(["﻿" + aoa.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob); const a = document.createElement("a");
+      a.href = url; a.download = "minhas-metricas-2026.csv"; a.click(); URL.revokeObjectURL(url);
+      setOkMsg("Baixei um CSV de 2026. No Google Sheets use Arquivo > Importar para carregar.");
+    }
     window.open("https://sheets.new", "_blank", "noopener");
   }
 
