@@ -87,7 +87,7 @@ function fimDoTexto(el: HTMLElement, r: DOMRect): number {
   return Math.min(r.left + padEsq + largura, r.right);
 }
 
-export default function Diretores({ loginEmail = "" }: { loginEmail?: string }) {
+export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail?: string; irParaPlano?: () => void }) {
   const [store, setStore] = useState<Store>({ sup: { ...SUPER_PADRAO }, admins: [] });
   const [carregado, setCarregado] = useState(false);
   const [permAberto, setPermAberto] = useState(false);
@@ -283,7 +283,7 @@ export default function Diretores({ loginEmail = "" }: { loginEmail?: string }) 
             <p className="sub" style={{ marginTop: 8, lineHeight: 1.55 }}>Faça o upgrade do seu plano para adicionar novos administradores e definir níveis de acesso para cada um.</p>
             <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
               <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setUpgrade(false)}>Agora não</button>
-              <button className="btn" style={{ flex: 1, justifyContent: "center", background: AMBAR, color: "#3b2e05" }} onClick={() => setUpgrade(false)}>Fazer upgrade</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center", background: AMBAR, color: "#3b2e05" }} onClick={() => { setUpgrade(false); irParaPlano?.(); }}>Planos</button>
             </div>
           </div>
         </div>

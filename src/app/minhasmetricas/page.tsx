@@ -533,7 +533,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
       {aba === "dados" ? <Config secao="dados" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
         : aba === "personalizacao" ? <Config secao="identidade" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
         : aba === "equipe" ? <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} />
-        : aba === "usuarios" ? <Diretores loginEmail={loginEmail} />
+        : aba === "usuarios" ? <Diretores loginEmail={loginEmail} irParaPlano={() => setAba("plano")} />
         : aba === "termos" ? <TermosDeUso />
         : aba === "beneficios" ? <MeusBeneficios />
         : aba === "plano" ? <MeuPlano />
