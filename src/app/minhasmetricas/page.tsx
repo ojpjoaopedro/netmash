@@ -6,7 +6,7 @@ import {
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
-  Palette, UserCog, Gift,
+  Palette, UserCog, Gift, CreditCard,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -31,6 +31,7 @@ import CalendarioPagamentos from "@/components/CalendarioPagamentos";
 import Diretores from "@/components/Diretores";
 import TermosDeUso from "@/components/TermosDeUso";
 import MeusBeneficios from "@/components/MeusBeneficios";
+import MeuPlano from "@/components/MeuPlano";
 
 type View =
   | "dashboard" | "financas" | "marketing" | "planejamento" | "config"
@@ -487,7 +488,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
   brand: React.ComponentProps<typeof Config>["brand"]; saveBrand: React.ComponentProps<typeof Config>["saveBrand"];
   loginEmail?: string;
 }) {
-  type AbaCfg = "usuarios" | "dados" | "personalizacao" | "equipe" | "termos" | "beneficios";
+  type AbaCfg = "usuarios" | "dados" | "personalizacao" | "equipe" | "termos" | "beneficios" | "plano";
   const [aba, setAba] = useState<AbaCfg>("usuarios");
   const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
     { key: "usuarios", label: "Meus Usuários", Icon: UserCog },
@@ -496,6 +497,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
     { key: "equipe", label: "Equipe", Icon: Users },
     { key: "termos", label: "Termos de uso", Icon: FileText },
     { key: "beneficios", label: "Meus Benefícios", Icon: Gift },
+    { key: "plano", label: "Plano", Icon: CreditCard },
   ];
   const tab = (ativo: boolean): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
@@ -531,6 +533,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
         : aba === "usuarios" ? <Diretores loginEmail={loginEmail} />
         : aba === "termos" ? <TermosDeUso />
         : aba === "beneficios" ? <MeusBeneficios />
+        : aba === "plano" ? <MeuPlano />
         : <EmConstrucao titulo={rotulo} />}
     </div>
   );
