@@ -215,23 +215,6 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
     XLSX.writeFile(wb, "minhas-metricas-estrutura.xlsx");
   }
 
-  async function abrirSheets() {
-    const cab = cabecalhoEmpresa(empresa, brand);
-    const { aoa } = montarMatriz(ANOS_MODELO[0], true, cab);
-    const tsv = aoa.map((r) => r.join("\t")).join("\n");
-    try {
-      await navigator.clipboard.writeText(tsv);
-      setOkMsg("✅ Planilha de 2026 copiada! Na aba do Google que abriu: clique na célula A1 e aperte Ctrl+V. Pronto, ela se preenche.");
-    } catch {
-      // se o navegador bloquear a cópia, baixa um CSV para importar (Arquivo > Importar no Sheets)
-      const blob = new Blob(["﻿" + aoa.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n")], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob); const a = document.createElement("a");
-      a.href = url; a.download = "minhas-metricas-2026.csv"; a.click(); URL.revokeObjectURL(url);
-      setOkMsg("Baixei um CSV de 2026. No Google Sheets use Arquivo > Importar para carregar.");
-    }
-    window.open("https://sheets.new", "_blank", "noopener");
-  }
-
   return (
     <>
       <div className="section-title">
@@ -250,7 +233,6 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
             <p className="sub" style={{ marginTop: 4, lineHeight: 1.55 }}>O modelo tem uma aba para cada ano (2026, 2027 e 2028), com os <b>meses nas colunas</b> e os <b>itens nas linhas</b> para facilitar o preenchimento. A aba de 2026 já vem preenchida com a sua <b>Estrutura de Receitas e Custos</b>. É só completar os meses que faltam.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
               <button className="btn" onClick={baixarExcel} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 14 }}>📊 Baixar arquivo Excel</button>
-              <button className="btn" onClick={abrirSheets} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 14, background: "#188038" }}>📗 Abrir modelo no Google Sheets</button>
             </div>
           </div>
         </div>
