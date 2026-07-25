@@ -25,7 +25,7 @@ import Importar from "@/components/Importar";
 import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
 import EstruturaFinancas from "./financas-estrutura";
-import BotaoGerarDRE from "@/components/GerarDRE";
+import RelatoriosFinancas from "@/components/RelatoriosFinancas";
 import FinancasDashboard from "@/components/FinancasDashboard";
 import CalendarioPagamentos from "@/components/CalendarioPagamentos";
 import Diretores from "@/components/Diretores";
@@ -437,10 +437,10 @@ export default function Home() {
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
 function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number }) {
-  const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario">("dashboard");
+  const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios">("dashboard");
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
-    calendario: "Calendário de Pagamentos",
+    calendario: "Calendário de Pagamentos", relatorios: "Relatórios",
   };
   // aba em barra (estilo print2): ícone + rótulo, ativo em azul com sublinhado
   const tab = (ativo: boolean): React.CSSProperties => ({
@@ -455,6 +455,7 @@ function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand:
     { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
     { key: "estrutura", label: "Estrutura de Receitas e Custos", Icon: Layers },
     { key: "calendario", label: "Calendário de Pagamentos", Icon: CalendarDays },
+    { key: "relatorios", label: "Relatórios", Icon: FileText },
   ];
   return (
     <div>
@@ -473,11 +474,13 @@ function TelaFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand:
             <a.Icon size={16} /> {a.label}
           </button>
         ))}
-        <BotaoGerarDRE ano={ano} empresa={empresa} brand={brand}
-          trigger={(abrir) => <button onClick={abrir} style={tab(false)}><FileText size={16} /> Gerar DRE</button>} />
       </div>
 
-      {aba === "estrutura" ? <EstruturaFinancas /> : aba === "dashboard" ? <FinancasDashboard /> : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} /> : <EmConstrucao titulo={rotulos[aba]} />}
+      {aba === "estrutura" ? <EstruturaFinancas />
+        : aba === "dashboard" ? <FinancasDashboard />
+        : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} />
+        : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} />
+        : <EmConstrucao titulo={rotulos[aba]} />}
     </div>
   );
 }

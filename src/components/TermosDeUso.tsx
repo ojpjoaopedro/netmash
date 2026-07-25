@@ -3,6 +3,7 @@ import { useState } from "react";
 import { FileText, X } from "lucide-react";
 import PoliticaPrivacidade from "./PoliticaPrivacidade";
 import ServicosFinanceiros from "./ServicosFinanceiros";
+import ProtecaoDeDados from "./ProtecaoDeDados";
 
 type Doc = { id?: string; titulo: string; sub: string; corpo: string };
 
@@ -20,9 +21,10 @@ const DOCS: Doc[] = [
     corpo: "",
   },
   {
+    id: "protecao",
     titulo: "Proteção de dados",
     sub: "Como tratamos e protegemos os dados pessoais, em conformidade com a LGPD.",
-    corpo: "Este documento detalha as medidas de proteção de dados pessoais adotadas pela plataforma, em conformidade com a Lei Geral de Proteção de Dados (LGPD). Inclui a base legal do tratamento, os direitos do titular e os canais para solicitações. O conteúdo completo é definido e mantido pela sua empresa.",
+    corpo: "",
   },
 ];
 
@@ -51,6 +53,7 @@ export default function TermosDeUso() {
             </div>
             {aberto.id === "privacidade" ? <PoliticaPrivacidade />
               : aberto.id === "servicos" ? <ServicosFinanceiros />
+              : aberto.id === "protecao" ? <ProtecaoDeDados />
               : <p style={{ lineHeight: 1.7, fontSize: 14, color: "var(--txt-2)" }}>{aberto.corpo}</p>}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
               <button className="btn" onClick={() => setAberto(null)}>Fechar</button>
