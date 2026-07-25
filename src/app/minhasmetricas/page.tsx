@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard, DollarSign, Megaphone, Compass, Settings,
+  LayoutDashboard, DollarSign, Compass, Settings,
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
@@ -40,7 +40,7 @@ type View =
 const METRICAS = [
   { key: "dashboard", label: "Home", Icon: LayoutDashboard },
   { key: "financas", label: "Finanças", Icon: DollarSign },
-  { key: "marketing", label: "Marketing", Icon: Megaphone },
+  { key: "planejamento", label: "Planejamento", Icon: Compass },
 ] as const;
 // sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
@@ -57,12 +57,11 @@ const grupoDe = (v: string) => v;
 // anos fixos no seletor do topo (o mesmo em todas as páginas)
 const ANOS = ["2026", "2027", "2028"];
 // SISTEMA fica oculto (recolhível): tudo que não é o essencial do dia a dia
-const SISTEMA_KEYS = ["apresentacao"];
+const SISTEMA_KEYS: string[] = [];
 const OPERACOES = [
-  { key: "assistente", label: "Assistente", Icon: Sparkles },
-  { key: "planejamento", label: "Planejamento", Icon: Compass },
-  { key: "config", label: "Configurações", Icon: Settings },
   { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
+  { key: "assistente", label: "Assistente", Icon: Sparkles },
+  { key: "config", label: "Configurações", Icon: Settings },
 ] as const;
 
 export default function Home() {
