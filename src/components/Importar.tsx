@@ -1,98 +1,129 @@
 "use client";
 import { useState } from "react";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import { addLancamentosLote, Tipo, Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
-import { brl, hoje } from "@/lib/format";
-import { carregarEstrutura } from "@/app/minhasmetricas/financas-estrutura";
+import { brl } from "@/lib/format";
+import { MES, carregarEstrutura } from "@/app/minhasmetricas/financas-estrutura";
 
-type Linha = Record<string, unknown>;
-type Mapa = { descricao: string; valor: string; data: string; tipo: string; categoria: string; contato: string };
+/** Lançamento já pronto para importar (extraído da matriz de meses). */
+type Lanc = { tipo: Tipo; descricao: string; categoria: string | null; valor: number; data: string };
 
-const ALVOS: { key: keyof Mapa; label: string; dicas: string[] }[] = [
-  { key: "descricao", label: "Descrição", dicas: ["desc", "histor", "lançamento", "lancamento", "nome", "item"] },
-  { key: "valor", label: "Valor", dicas: ["valor", "preço", "preco", "total", "r$", "amount"] },
-  { key: "data", label: "Data", dicas: ["data", "venc", "compet" , "date", "dia"] },
-  { key: "tipo", label: "Tipo (receita/despesa)", dicas: ["tipo", "natureza", "entrada", "saída", "saida", "d/c"] },
-  { key: "categoria", label: "Categoria", dicas: ["categ", "classific", "grupo", "plano"] },
-  { key: "contato", label: "Cliente/Fornecedor", dicas: ["cliente", "fornecedor", "contato", "razão", "razao", "favorecido"] },
-];
+const ANOS_MODELO = [2026, 2027, 2028];
+const MES_FULL = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+function round2(n: number) { return Math.round(n * 100) / 100; }
 
 function parseValor(v: unknown): number {
   if (typeof v === "number") return v;
   if (v == null) return 0;
   const s = String(v).replace(/[^\d,.-]/g, "");
-  // formato brasileiro 1.234,56
   if (s.includes(",") && s.lastIndexOf(",") > s.lastIndexOf(".")) {
     return Number(s.replace(/\./g, "").replace(",", ".")) || 0;
   }
   return Number(s) || 0;
 }
 
-function parseData(v: unknown): string {
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  if (typeof v === "number") {
-    // serial do Excel
-    const d = XLSX.SSF ? new Date(Math.round((v - 25569) * 86400 * 1000)) : new Date();
-    return d.toISOString().slice(0, 10);
-  }
-  const s = String(v || "").trim();
-  const br = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
-  if (br) {
-    const [, d, m, y] = br;
-    const yyyy = y.length === 2 ? "20" + y : y;
-    return `${yyyy}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-  }
-  const iso = s.match(/^\d{4}-\d{2}-\d{2}/);
-  if (iso) return s.slice(0, 10);
-  return hoje();
+/** Descobre o índice do mês (0..11) a partir do texto do cabeçalho ("Jan", "janeiro"…). */
+function mesIndex(c: unknown): number {
+  const s = String(c).trim().toLowerCase();
+  if (!s) return -1;
+  for (let i = 0; i < 12; i++) if (s.startsWith(MES[i].toLowerCase())) return i;
+  for (let i = 0; i < 12; i++) if (s.startsWith(MES_FULL[i])) return i;
+  return -1;
 }
 
-function adivinhar(headers: string[], dicas: string[]): string {
-  const h = headers.find((x) => dicas.some((d) => x.toLowerCase().includes(d)));
-  return h || "";
-}
-
-/** Monta a planilha (matriz de linhas) a partir da Estrutura de Receitas e Custos + cabeçalho da empresa. */
-function montarPlanilha(empresa: Empresa | null, brand?: Brand): (string | number)[][] {
-  const d = carregarEstrutura();
-  const ano = new Date().getFullYear();
-  const nomeEmpresa = brand?.nome && brand.nome !== "Minha Empresa" ? brand.nome
+/* ── Cabeçalho da empresa (mesmo para todas as abas) ───────────────────────── */
+function cabecalhoEmpresa(empresa: Empresa | null, brand?: Brand) {
+  const nome = brand?.nome && brand.nome !== "Minha Empresa" ? brand.nome
     : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
   const cnpj = empresa?.cnpj || "";
   const cidade = (empresa && "cidade" in empresa ? (empresa as { cidade?: string }).cidade : "") || "";
-  let responsavel = "";
-  try { const s = JSON.parse(localStorage.getItem("me_diretores") || "null"); responsavel = s?.sup?.nome || ""; } catch { /* ignore */ }
-  const dataMes = (m: number) => `${ano}-${String(m + 1).padStart(2, "0")}-01`;
+  let resp = "";
+  try { const s = JSON.parse(localStorage.getItem("me_diretores") || "null"); resp = s?.sup?.nome || ""; } catch { /* ignore */ }
+  return { nome, cnpj, cidade, resp };
+}
 
-  const aoa: (string | number)[][] = [
-    ["ESTRUTURA DE RECEITAS E CUSTOS"],
-    ["Empresa", nomeEmpresa],
-    ["CNPJ", cnpj],
-    ["Cidade", cidade],
-    ["Responsável financeiro", responsavel],
-    [],
-    ["Data", "Descrição", "Tipo", "Categoria", "Valor"],
-  ];
-  for (const r of d.receitas) for (let m = 0; m < 12; m++) if (r.v[m] > 0) aoa.push([dataMes(m), r.nome, "receita", "Receitas", r.v[m]]);
-  for (const b of d.custos) for (const g of b.grupos) for (const it of g.itens) for (let m = 0; m < 12; m++) if (it.v[m] > 0) aoa.push([dataMes(m), it.nome, "despesa", g.nome, it.v[m]]);
-  return aoa;
+type Papel = "titulo" | "kv" | "vazio" | "cabecalho" | "secao" | "grupo" | "item";
+
+/** Monta a matriz de um ano (meses nas colunas, itens nas linhas) + o papel de cada linha (p/ formatar). */
+function montarMatriz(ano: number, comValores: boolean, cab: ReturnType<typeof cabecalhoEmpresa>) {
+  const d = carregarEstrutura();
+  const aoa: (string | number)[][] = [];
+  const papeis: Papel[] = [];
+  const add = (row: (string | number)[], papel: Papel) => { aoa.push(row); papeis.push(papel); };
+  const linhaValores = (v: number[]) => MES.map((_, m) => (comValores && v[m] ? round2(v[m]) : "")) as (string | number)[];
+
+  add([`ESTRUTURA DE RECEITAS E CUSTOS ${ano}`], "titulo");
+  add(["Empresa", cab.nome], "kv");
+  add(["CNPJ", cab.cnpj], "kv");
+  add(["Cidade", cab.cidade], "kv");
+  add(["Responsável financeiro", cab.resp], "kv");
+  add([], "vazio");
+  add(["Item", ...MES], "cabecalho");
+
+  add(["RECEITAS"], "secao");
+  for (const r of d.receitas) add([r.nome, ...linhaValores(r.v)], "item");
+
+  for (const b of d.custos) {
+    add([b.nome.toUpperCase()], "secao");
+    for (const g of b.grupos) {
+      add([g.nome], "grupo");
+      for (const it of g.itens) add([it.nome, ...linhaValores(it.v)], "item");
+    }
+  }
+  return { aoa, papeis };
+}
+
+function toARGB(hex?: string) {
+  let h = (hex || "#1AADE2").replace("#", "");
+  if (h.length === 3) h = h.split("").map((x) => x + x).join("");
+  return "FF" + h.toUpperCase();
+}
+
+/** Aplica as cores/bordas na planilha (título, cabeçalho, seções e bordas nas células preenchidas). */
+function estilizar(ws: XLSX.WorkSheet, papeis: Papel[], brandHex?: string) {
+  const N = 1 + 12; // Item + 12 meses
+  const brand = toARGB(brandHex);
+  const b = { style: "thin", color: { rgb: "FFCBD5E1" } } as const;
+  const bordas = { top: b, bottom: b, left: b, right: b };
+  const cabRow = papeis.indexOf("cabecalho");
+  ws["!merges"] = [];
+  ws["!cols"] = [{ wch: 28 }, ...Array.from({ length: 12 }, () => ({ wch: 10 }))];
+  ws["!rows"] = papeis.map((p) => ({ hpt: p === "titulo" ? 24 : p === "cabecalho" || p === "secao" ? 19 : 16 }));
+
+  for (let r = 0; r < papeis.length; r++) {
+    const papel = papeis[r];
+    if (papel === "titulo" || papel === "secao") ws["!merges"]!.push({ s: { r, c: 0 }, e: { r, c: N - 1 } });
+    const naTabela = r >= cabRow;
+    const ultimaCol = papel === "kv" ? 1 : (naTabela ? N - 1 : 0);
+    for (let c = 0; c <= ultimaCol; c++) {
+      const addr = XLSX.utils.encode_cell({ r, c });
+      const cell = (ws[addr] ||= { t: "s", v: "" }) as XLSX.CellObject;
+      const num = typeof cell.v === "number";
+      const s: Record<string, unknown> = {};
+      if (papel === "titulo") { s.font = { bold: true, sz: 14, color: { rgb: "FFFFFFFF" } }; s.fill = { fgColor: { rgb: brand } }; s.alignment = { vertical: "center" }; }
+      else if (papel === "kv") { if (c === 0) s.font = { bold: true, color: { rgb: "FF334155" } }; }
+      else if (papel === "cabecalho") { s.font = { bold: true, color: { rgb: "FF0F172A" } }; s.fill = { fgColor: { rgb: "FFE2E8F0" } }; s.alignment = { horizontal: c === 0 ? "left" : "center", vertical: "center" }; s.border = bordas; }
+      else if (papel === "secao") { s.font = { bold: true, color: { rgb: "FF0F172A" } }; s.fill = { fgColor: { rgb: "FFCBD9EC" } }; s.alignment = { vertical: "center" }; s.border = bordas; }
+      else if (papel === "grupo") { s.font = { bold: true, italic: true, color: { rgb: "FF334155" } }; s.fill = { fgColor: { rgb: "FFF1F5F9" } }; s.border = bordas; }
+      else if (papel === "item") { s.border = bordas; s.alignment = { horizontal: c === 0 ? "left" : "right" }; }
+      if (num) { cell.z = "#,##0"; s.numFmt = "#,##0"; }
+      cell.s = s;
+    }
+  }
 }
 
 export default function Importar({ reload, empresa = null, brand }: { reload: () => void; empresa?: Empresa | null; brand?: Brand }) {
-  const [linhas, setLinhas] = useState<Linha[]>([]);
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [mapa, setMapa] = useState<Mapa>({ descricao: "", valor: "", data: "", tipo: "", categoria: "", contato: "" });
-  const [tipoPadrao, setTipoPadrao] = useState<Tipo>("despesa");
-  const [modoTipo, setModoTipo] = useState<"coluna" | "sinal" | "fixo">("fixo");
-  const [pago, setPago] = useState(true);
+  const [prev, setPrev] = useState<Lanc[]>([]);
   const [nomeArq, setNomeArq] = useState("");
   const [erro, setErro] = useState("");
   const [okMsg, setOkMsg] = useState("");
   const [importando, setImportando] = useState(false);
+  const [pago, setPago] = useState(true);
   const [arrastando, setArrastando] = useState(false);
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) processar(file);
   }
@@ -102,91 +133,94 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
     if (file) processar(file);
   }
 
+  /** Lê todas as abas (2026/2027/2028…) e extrai os lançamentos da matriz. */
+  function extrair(wb: XLSX.WorkBook): Lanc[] {
+    const out: Lanc[] = [];
+    const anoPadrao = 2026;
+    for (const nomeAba of wb.SheetNames) {
+      const ws = wb.Sheets[nomeAba];
+      const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+      // acha a linha de cabeçalho (a que tem os meses)
+      let hr = -1; let mesCols: Record<number, number> = {};
+      for (let i = 0; i < aoa.length; i++) {
+        const cols: Record<number, number> = {}; let cnt = 0;
+        (aoa[i] || []).forEach((c, ci) => { const mi = mesIndex(c); if (mi >= 0) { cols[ci] = mi; cnt++; } });
+        if (cnt >= 3) { hr = i; mesCols = cols; break; }
+      }
+      if (hr < 0) continue;
+      // ano: pelo nome da aba, senão pelo título
+      let ano = /^20\d\d$/.test(nomeAba.trim()) ? Number(nomeAba.trim()) : 0;
+      if (!ano) for (let i = 0; i < hr; i++) { const m = String((aoa[i] || []).join(" ")).match(/20\d\d/); if (m) { ano = Number(m[0]); break; } }
+      if (!ano) ano = anoPadrao;
+      const hrow = aoa[hr] || [];
+      let itemCol = hrow.findIndex((c) => /item|descri|nome/i.test(String(c)));
+      if (itemCol < 0) itemCol = 0;
+
+      let modo: Tipo = "receita"; let categoria = "Receitas";
+      for (let i = hr + 1; i < aoa.length; i++) {
+        const row = aoa[i] || [];
+        const nome = String(row[itemCol] || "").trim();
+        if (!nome) continue;
+        const vals: [number, number][] = [];
+        for (const ci in mesCols) { const v = parseValor(row[Number(ci)]); if (v > 0) vals.push([mesCols[ci], v]); }
+        if (!vals.length) { // linha de seção ou grupo
+          if (/receita/i.test(nome)) { modo = "receita"; categoria = "Receitas"; }
+          else { modo = "despesa"; categoria = nome; }
+          continue;
+        }
+        for (const [mi, v] of vals) {
+          out.push({ tipo: modo, descricao: nome.slice(0, 200), categoria, valor: v, data: `${ano}-${String(mi + 1).padStart(2, "0")}-01` });
+        }
+      }
+    }
+    return out;
+  }
+
   async function processar(file: File) {
-    setErro(""); setOkMsg("");
-    setNomeArq(file.name);
+    setErro(""); setOkMsg(""); setNomeArq(file.name);
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array", cellDates: true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      // lê como matriz e pula as linhas de cabeçalho da empresa (Empresa/CNPJ/…)
-      const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
-      const ehCabecalho = (row: unknown[]) => row.some((c) => /descri|valor|data|tipo|categ/i.test(String(c)));
-      let hi = aoa.findIndex(ehCabecalho);
-      if (hi < 0) hi = 0;
-      const hs = (aoa[hi] as unknown[]).map((c) => String(c).trim()).filter((c) => c);
-      const json: Linha[] = (aoa.slice(hi + 1) as unknown[][])
-        .filter((r) => r.some((c) => String(c).trim() !== ""))
-        .map((r) => Object.fromEntries(hs.map((h, i) => [h, r[i]])));
-      if (!json.length) { setErro("A planilha parece vazia."); return; }
-      setHeaders(hs);
-      setLinhas(json);
-      setMapa({
-        descricao: adivinhar(hs, ALVOS[0].dicas),
-        valor: adivinhar(hs, ALVOS[1].dicas),
-        data: adivinhar(hs, ALVOS[2].dicas),
-        tipo: adivinhar(hs, ALVOS[3].dicas),
-        categoria: adivinhar(hs, ALVOS[4].dicas),
-        contato: adivinhar(hs, ALVOS[5].dicas),
-      });
-      setModoTipo(adivinhar(hs, ALVOS[3].dicas) ? "coluna" : "fixo");
+      const lancs = extrair(wb);
+      if (!lancs.length) { setErro("Não encontrei valores na planilha. Use o modelo (meses nas colunas, itens nas linhas)."); setPrev([]); return; }
+      setPrev(lancs);
     } catch {
       setErro("Não consegui ler o arquivo. Use Excel (.xlsx) ou CSV.");
     }
   }
 
-  function montarLancamentos() {
-    return linhas.map((row) => {
-      const valorBruto = parseValor(row[mapa.valor]);
-      let tipo: Tipo = tipoPadrao;
-      if (modoTipo === "coluna" && mapa.tipo) {
-        const t = String(row[mapa.tipo] || "").toLowerCase();
-        tipo = /rec|entr|crédito|credito|^c$|recebi/.test(t) ? "receita" : "despesa";
-      } else if (modoTipo === "sinal") {
-        tipo = valorBruto < 0 ? "despesa" : "receita";
-      }
-      const data = mapa.data ? parseData(row[mapa.data]) : hoje();
-      return {
-        tipo,
-        descricao: String(row[mapa.descricao] || "Importado").slice(0, 200) || "Importado",
-        categoria: mapa.categoria ? String(row[mapa.categoria] || "") || null : null,
-        valor: Math.abs(valorBruto),
-        data_competencia: data,
-        vencimento: data,
-        pago,
-        data_pagamento: pago ? data : null,
-        forma: null,
-        contato: mapa.contato ? String(row[mapa.contato] || "") || null : null,
-        origem: "planilha",
-      };
-    }).filter((l) => l.valor > 0);
-  }
-
-  const previa = mapa.descricao && mapa.valor ? montarLancamentos().slice(0, 5) : [];
-  const totalValido = mapa.descricao && mapa.valor ? montarLancamentos().length : 0;
-
   async function importar() {
     setImportando(true); setErro(""); setOkMsg("");
-    const lotes = montarLancamentos();
-    if (!lotes.length) { setErro("Nenhuma linha válida (verifique a coluna de Valor)."); setImportando(false); return; }
+    const lotes = prev.map((o) => ({
+      tipo: o.tipo, descricao: o.descricao || "Importado", categoria: o.categoria || null,
+      valor: o.valor, data_competencia: o.data, vencimento: o.data,
+      pago, data_pagamento: pago ? o.data : null, forma: null, contato: null, origem: "planilha",
+    }));
     await addLancamentosLote(lotes);
     setImportando(false);
     setOkMsg(`✅ ${lotes.length} lançamento(s) importado(s) com sucesso!`);
-    setLinhas([]); setHeaders([]); setNomeArq("");
+    setPrev([]); setNomeArq("");
     reload();
   }
 
   function baixarExcel() {
-    const ws = XLSX.utils.aoa_to_sheet(montarPlanilha(empresa, brand));
-    ws["!cols"] = [{ wch: 14 }, { wch: 34 }, { wch: 12 }, { wch: 22 }, { wch: 14 }];
+    const cab = cabecalhoEmpresa(empresa, brand);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Estrutura");
+    ANOS_MODELO.forEach((ano, i) => {
+      const { aoa, papeis } = montarMatriz(ano, i === 0, cab); // só a aba 2026 vem preenchida
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      estilizar(ws, papeis, brand?.cor);
+      XLSX.utils.book_append_sheet(wb, ws, String(ano));
+    });
     XLSX.writeFile(wb, "minhas-metricas-estrutura.xlsx");
   }
+
   async function abrirSheets() {
-    // copia como TSV para colar direto no Google Sheets (Ctrl+V)
-    const tsv = montarPlanilha(empresa, brand).map((r) => r.join("\t")).join("\n");
-    try { await navigator.clipboard.writeText(tsv); setOkMsg("Planilha copiada! Abra o Google Sheets e cole com Ctrl+V."); } catch { setOkMsg("Abra o Google Sheets e importe o CSV baixado."); }
+    const cab = cabecalhoEmpresa(empresa, brand);
+    const { aoa } = montarMatriz(ANOS_MODELO[0], true, cab);
+    const tsv = aoa.map((r) => r.join("\t")).join("\n");
+    try { await navigator.clipboard.writeText(tsv); setOkMsg("Planilha de 2026 copiada! Abra o Google Sheets e cole com Ctrl+V (crie uma aba para cada ano)."); }
+    catch { setOkMsg("Abra o Google Sheets e cole os dados."); }
     window.open("https://sheets.new", "_blank", "noopener");
   }
 
@@ -205,7 +239,7 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
           <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "rgba(26,173,226,.16)", color: "var(--brand)", fontWeight: 800 }}>i</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <b style={{ fontSize: 15 }}>Como deve ser seu arquivo</b>
-            <p className="sub" style={{ marginTop: 4, lineHeight: 1.55 }}>O modelo já vem preenchido com os dados da sua <b>Estrutura de Receitas e Custos</b>. Atualize sempre que houver novos lançamentos, linhas ou um novo mês. Na primeira vez, ele vem só com o cabeçalho.</p>
+            <p className="sub" style={{ marginTop: 4, lineHeight: 1.55 }}>O modelo tem uma aba para cada ano (2026, 2027 e 2028), com os <b>meses nas colunas</b> e os <b>itens nas linhas</b> para facilitar o preenchimento. A aba de 2026 já vem preenchida com a sua <b>Estrutura de Receitas e Custos</b>. É só completar os meses que faltam.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
               <button className="btn" onClick={baixarExcel} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 14 }}>📊 Baixar arquivo Excel</button>
               <button className="btn" onClick={abrirSheets} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 14, background: "#188038" }}>📗 Abrir modelo no Google Sheets</button>
@@ -232,7 +266,7 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
           {nomeArq ? (
             <>
               <b style={{ fontSize: 14.5 }}>📄 {nomeArq}</b>
-              <span className="sub" style={{ fontSize: 12.5 }}>{linhas.length} linha(s) · clique ou arraste para trocar</span>
+              <span className="sub" style={{ fontSize: 12.5 }}>{prev.length} lançamento(s) encontrado(s) · clique ou arraste para trocar</span>
             </>
           ) : (
             <>
@@ -243,66 +277,34 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
         </label>
       </div>
 
-      {headers.length > 0 && (
-        <>
-          <div className="card" style={{ marginBottom: 16 }}>
-            <h3>2. Confira o mapeamento das colunas</h3>
-            <div className="grid two">
-              {ALVOS.map((a) => (
-                <div className="field" key={a.key}>
-                  <label className="f">{a.label}</label>
-                  <select value={mapa[a.key]} onChange={(e) => setMapa({ ...mapa, [a.key]: e.target.value })}>
-                    <option value="">— ignorar —</option>
-                    {headers.map((h) => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                </div>
-              ))}
-            </div>
-
-            <h3 style={{ marginTop: 12 }}>Como identificar receita ou despesa?</h3>
-            <div className="period" style={{ width: "fit-content", flexWrap: "wrap" }}>
-              <button className={modoTipo === "coluna" ? "active" : ""} onClick={() => setModoTipo("coluna")} disabled={!mapa.tipo}>Pela coluna Tipo</button>
-              <button className={modoTipo === "sinal" ? "active" : ""} onClick={() => setModoTipo("sinal")}>Pelo sinal (negativo = despesa)</button>
-              <button className={modoTipo === "fixo" ? "active" : ""} onClick={() => setModoTipo("fixo")}>Tudo como…</button>
-            </div>
-            {modoTipo === "fixo" && (
-              <div className="period" style={{ width: "fit-content", marginTop: 8 }}>
-                <button className={tipoPadrao === "receita" ? "active" : ""} onClick={() => setTipoPadrao("receita")}>📥 Receita</button>
-                <button className={tipoPadrao === "despesa" ? "active" : ""} onClick={() => setTipoPadrao("despesa")}>📤 Despesa</button>
-              </div>
-            )}
-            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, cursor: "pointer", fontWeight: 600 }}>
-              <input type="checkbox" checked={pago} onChange={(e) => setPago(e.target.checked)} style={{ width: 18, height: 18 }} />
-              Marcar como já pago/recebido (entra no caixa). Desmarque para virar contas em aberto.
-            </label>
+      {prev.length > 0 && (
+        <div className="card">
+          <h3>Confira antes de importar ({prev.length} lançamento(s))</h3>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, margin: "10px 0 14px", cursor: "pointer", fontWeight: 600 }}>
+            <input type="checkbox" checked={pago} onChange={(e) => setPago(e.target.checked)} style={{ width: 18, height: 18 }} />
+            Marcar como já pago/recebido (entra no caixa). Desmarque para virar contas em aberto.
+          </label>
+          <div style={{ overflowX: "auto" }}>
+            <table className="table">
+              <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th className="num">Valor</th></tr></thead>
+              <tbody>
+                {prev.slice(0, 8).map((l, i) => (
+                  <tr key={i}>
+                    <td className="mono">{l.data}</td>
+                    <td>{l.descricao}</td>
+                    <td><span className={`chip ${l.tipo === "receita" ? "green" : "red"}`}>{l.tipo}</span></td>
+                    <td>{l.categoria || "-"}</td>
+                    <td className="num" style={{ color: l.tipo === "receita" ? "var(--green)" : "var(--red)" }}>{brl(l.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {previa.length > 0 && (
-            <div className="card">
-              <h3>3. Prévia ({totalValido} lançamento(s) válido(s))</h3>
-              <div style={{ overflowX: "auto" }}>
-                <table className="table">
-                  <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th className="num">Valor</th></tr></thead>
-                  <tbody>
-                    {previa.map((l, i) => (
-                      <tr key={i}>
-                        <td className="mono">{l.data_competencia}</td>
-                        <td>{l.descricao}</td>
-                        <td><span className={`chip ${l.tipo === "receita" ? "green" : "red"}`}>{l.tipo}</span></td>
-                        <td>{l.categoria || "—"}</td>
-                        <td className="num" style={{ color: l.tipo === "receita" ? "var(--green)" : "var(--red)" }}>{brl(l.valor)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="sub" style={{ marginTop: 10 }}>Mostrando as 5 primeiras linhas.</p>
-              <button className="btn" onClick={importar} disabled={importando}>
-                {importando ? "Importando…" : `✅ Importar ${totalValido} lançamento(s)`}
-              </button>
-            </div>
-          )}
-        </>
+          {prev.length > 8 && <p className="sub" style={{ marginTop: 10 }}>Mostrando os 8 primeiros de {prev.length}.</p>}
+          <button className="btn" onClick={importar} disabled={importando} style={{ marginTop: 12 }}>
+            {importando ? "Importando…" : `✅ Importar ${prev.length} lançamento(s)`}
+          </button>
+        </div>
       )}
     </>
   );
