@@ -216,7 +216,7 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
 
       <div className="card" style={{ marginBottom: 16 }}>
         <h3>Envie seu arquivo (Excel .xlsx ou CSV)</h3>
-        <p className="sub">O sistema lê a primeira aba e tenta reconhecer as colunas automaticamente (ignorando o cabeçalho da empresa).</p>
+        <p className="sub">O sistema lê o arquivo e preenche automaticamente a Estrutura de Receitas e Custos.</p>
         <label
           onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
           onDragLeave={() => setArrastando(false)}
