@@ -182,7 +182,9 @@ export default function Home() {
       }}
     >
       {brand.logo ? (
-        <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
+        <span style={{ display: "inline-flex", alignItems: "center", background: "#fff", borderRadius: 12, padding: "6px 10px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.15)" }}>
+          <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain", display: "block" }} />
+        </span>
       ) : (
         <>
           <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, var(--brand), var(--brand-dark))", color: "#fff" }}>
@@ -197,7 +199,9 @@ export default function Home() {
     </button>
   ) : (
     brand.logo
-      ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain" }} />
+      ? <span style={{ display: "inline-flex", alignItems: "center", background: "#fff", borderRadius: 12, padding: "6px 10px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.15)" }}>
+          <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain", display: "block" }} />
+        </span>
       : <span className="fallback">{nomeMarca}</span>
   );
   const metricasVis = (ehDono ? METRICAS.slice() : METRICAS.filter((m) => m.key === "dashboard" || areasPerm.includes(m.key)));

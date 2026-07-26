@@ -185,9 +185,9 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
             )}
           </label>
 
-          {/* dica de tamanho ideal + fundo transparente */}
+          {/* dica de tamanho ideal + fundo branco */}
           <p className="sub" style={{ margin: "8px 0 0", fontSize: 12 }}>
-            💡 Tamanho ideal: <b>240 × 80 px</b> · <b>PNG</b> ou <b>SVG</b> com <b>fundo transparente</b>
+            💡 Tamanho ideal: <b>240 × 80 px</b> · <b>PNG</b> ou <b>JPG</b>, de preferência com <b>fundo branco</b> (fica melhor nos documentos gerados, como PDFs)
           </p>
 
           {brand.logo && (
