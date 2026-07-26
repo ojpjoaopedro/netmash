@@ -463,8 +463,8 @@ function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "rec
 function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebimentos"; ano: number; onVoltar: () => void }) {
   return (
     <div>
-      <button onClick={onVoltar} style={{ display: "inline-flex", alignItems: "center", gap: 7, marginBottom: 14, padding: "8px 13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
-        <ArrowLeft size={16} /> {tipo === "pagamentos" ? "Calendário de Pagamentos" : "Calendário de Recebimentos"}
+      <button onClick={onVoltar} title="Voltar" style={{ display: "inline-grid", placeItems: "center", width: 38, height: 38, marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
+        <ArrowLeft size={17} />
       </button>
       <CalendarioPagamentos anoInicial={ano} tipo={tipo} />
     </div>

@@ -1,7 +1,112 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { Pencil, Trash2, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Pencil, Trash2, Plus, X, Check, ChevronDown, ChevronRight } from "lucide-react";
 import BotaoOcultar from "./ocultar";
+import { carregarEstrutura, salvarEstrutura, Bloco } from "@/app/minhasmetricas/financas-estrutura";
+import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
+
+/** Dropdown em árvore igual à Estrutura de Custos: blocos, grupos (bolinha + seta) e itens, com cadastrar. */
+function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: { blocos: Bloco[]; grupo: string; item: string; onSelecionar: (g: string, i: string) => void; onRenomear?: (grupo: string, antigo: string, novo: string) => void }) {
+  const [aberto, setAberto] = useState(false);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [novoEm, setNovoEm] = useState<string | null>(null);
+  const [novoNome, setNovoNome] = useState("");
+  const [hoverItem, setHoverItem] = useState<string | null>(null);
+  const [editItem, setEditItem] = useState<string | null>(null);
+  const [editNome, setEditNome] = useState("");
+  const salvarEdicao = (g: string, antigo: string) => { const nv = editNome.trim(); setEditItem(null); if (nv && nv !== antigo) onRenomear?.(g, antigo, nv); };
+  const [pos, setPos] = useState<{ top: number; left: number; maxH: number }>({ top: 0, left: 0, maxH: 400 });
+  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const fora = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false); };
+    document.addEventListener("mousedown", fora);
+    return () => document.removeEventListener("mousedown", fora);
+  }, []);
+  const toggle = (k: string) => setExpandidos((p) => { const n = new Set(p); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const escolher = (g: string, i: string) => { onSelecionar(g, i); setAberto(false); setNovoEm(null); setNovoNome(""); };
+  const alternar = () => {
+    if (!aberto && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const largura = 300;
+      const cabeDireita = window.innerWidth - r.right > largura + 24;
+      const left = cabeDireita ? r.right + 14 : Math.max(12, r.left - largura - 14);   // ao lado (direita, ou esquerda se não couber)
+      const top = Math.max(12, Math.min(r.top, window.innerHeight - 380));
+      setPos({ top, left, maxH: window.innerHeight - top - 16 });
+    }
+    setAberto((v) => !v);
+  };
+  return (
+    <div ref={ref}>
+      <button ref={btnRef} type="button" onClick={alternar}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, textAlign: "left", border: "1px solid var(--line-2)", background: "var(--bg-2)", color: item ? "var(--txt)" : "var(--muted)" }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item ? `${grupo} › ${item}` : "Selecione"}</span>
+        <ChevronDown size={15} style={{ flexShrink: 0, color: "var(--muted)", transform: aberto ? "rotate(180deg)" : "none", transition: ".15s" }} />
+      </button>
+      {aberto && (
+        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxHeight: pos.maxH, overflowY: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
+          {blocos.map((b, bi) => (
+            <div key={bi}>
+              <div style={{ padding: "8px 8px 4px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)" }}>{b.nome}</div>
+              {b.grupos.map((g, gi) => {
+                const k = `${bi}-${gi}`; const exp = expandidos.has(k);
+                return (
+                  <div key={gi}>
+                    <button type="button" onClick={() => toggle(k)}
+                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "7px 8px", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left", borderRadius: 8 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-2)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                      {exp ? <ChevronDown size={13} style={{ color: "var(--muted)", flexShrink: 0 }} /> : <ChevronRight size={13} style={{ color: "var(--muted)", flexShrink: 0 }} />}
+                      <i style={{ width: 8, height: 8, borderRadius: 99, background: g.cor, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12.5, fontWeight: 700 }}>{g.nome}</span>
+                    </button>
+                    {exp && (
+                      <div style={{ paddingLeft: 26 }}>
+                        {g.itens.map((it, ii) => {
+                          const ik = `${k}-${ii}`;
+                          const selecionado = grupo === g.nome && item === it.nome;
+                          if (editItem === ik) {
+                            return (
+                              <div key={ii} style={{ display: "flex", gap: 6, padding: "3px 4px" }}>
+                                <input autoFocus value={editNome} onChange={(e) => setEditNome(e.target.value)}
+                                  onKeyDown={(e) => { if (e.key === "Enter") salvarEdicao(g.nome, it.nome); if (e.key === "Escape") setEditItem(null); }}
+                                  onBlur={() => salvarEdicao(g.nome, it.nome)} style={{ flex: 1, fontSize: 12 }} />
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={ii} onMouseEnter={() => setHoverItem(ik)} onMouseLeave={() => setHoverItem(null)}
+                              style={{ display: "flex", alignItems: "center", gap: 2, borderRadius: 7, background: selecionado ? "color-mix(in srgb, var(--brand) 14%, transparent)" : (hoverItem === ik ? "var(--bg-2)" : "transparent") }}>
+                              <button type="button" onClick={() => escolher(g.nome, it.nome)}
+                                style={{ flex: 1, minWidth: 0, textAlign: "left", padding: "5px 8px", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12, color: "var(--txt)", background: "transparent", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.nome}</button>
+                              {onRenomear && hoverItem === ik && (
+                                <button type="button" title="Editar nome" onClick={(e) => { e.stopPropagation(); setEditItem(ik); setEditNome(it.nome); }}
+                                  style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: "2px 6px", flexShrink: 0 }}><Pencil size={12} /></button>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {novoEm === k ? (
+                          <div style={{ display: "flex", gap: 6, padding: "4px 8px 8px" }}>
+                            <input autoFocus value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome do item"
+                              onKeyDown={(e) => { if (e.key === "Enter" && novoNome.trim()) escolher(g.nome, novoNome.trim()); }} style={{ flex: 1 }} />
+                            <button type="button" className="btn sm" onClick={() => novoNome.trim() && escolher(g.nome, novoNome.trim())} disabled={!novoNome.trim()}>OK</button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => { setNovoEm(k); setNovoNome(""); }}
+                            style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 8px", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12, color: "var(--brand)", fontWeight: 700, borderRadius: 7 }}>+ cadastrar item em &ldquo;{g.nome}&rdquo;</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const MES_NOME = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const SEM = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -10,6 +115,12 @@ const BRAND = "#1AADE2", VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF44
 const fmtR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtR0 = (n: number) => `R$ ${n.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
 const uid = () => Math.random().toString(36).slice(2);
+/** Máscara de moeda "conforme digita": os dígitos entram pela direita (centavos) -> 2.000,00 */
+function mascaraMoeda(v: string): string {
+  const dig = (v || "").replace(/\D/g, "");
+  if (!dig) return "";
+  return (parseInt(dig, 10) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 /** Páscoa (algoritmo de Meeus/Butcher) para derivar os feriados móveis. */
 function pascoa(ano: number): Date {
@@ -46,7 +157,10 @@ function proxUtil(ano: number, mes: number, dia: number): Date {
   return dt;
 }
 
-type Despesa = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; pulados?: number[]; ate?: number };
+type Despesa = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; pulados?: number[]; ate?: number; grupo?: string; item?: string; confirmados?: number[]; valores?: Record<number, number>; pagoEm?: Record<number, string> };
+/** Valor real de uma ocorrência (aceita ajuste feito no momento do pagamento). */
+const valorOcor = (d: Despesa, ymOc: number) => d.valores?.[ymOc] ?? d.valor;
+const CLARO = "#93c5fd";   // azul bem claro para ocorrências pendentes (a confirmar)
 type TipoCal = "pagamentos" | "recebimentos";
 const CFG: Record<TipoCal, { key: string; legenda: string; tituloDia: string; novo: string; editar: string; add: string; ph: string; vazio: string; recorrencia: boolean }> = {
   pagamentos: { key: "me_calendario_pagamentos", legenda: "Vencimento", tituloDia: "Vencimento", novo: "Nova conta", editar: "Editar conta", add: "Adicionar conta", ph: "Ex: Aluguel", vazio: "Nenhuma conta neste dia.", recorrencia: true },
@@ -55,7 +169,8 @@ const CFG: Record<TipoCal, { key: string; legenda: string; tituloDia: string; no
 function ler(key: string): Despesa[] { if (typeof window === "undefined") return []; try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } }
 const ym = (ano: number, mes: number) => ano * 12 + mes;   // índice absoluto ano-mês
 
-type Ocor = { d: Despesa; venc: Date; mesGer: number };
+type Ocor = { d: Despesa; venc: Date; mesGer: number; confirmado: boolean; valor: number };
+const isoDate = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 
 export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagamentos" }: { anoInicial?: number; tipo?: TipoCal }) {
   const cfg = CFG[tipo];
@@ -63,12 +178,27 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   const [desps, setDesps] = useState<Despesa[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [modal, setModal] = useState<{ mes: number; dia: number } | null>(null);
-  const [form, setForm] = useState<{ editId?: string; descricao: string; valor: string; recorrente: boolean } | null>(null);
+  const [form, setForm] = useState<{ editId?: string; descricao: string; valor: string; recorrente: boolean; grupo: string; item: string } | null>(null);
   const [hover, setHover] = useState<{ mes: number; dia: number; x: number; y: number } | null>(null);
+  const fecharHoverT = useRef<number | undefined>(undefined);   // atraso para o tooltip não sumir ao levar o mouse até ele
   const [aExcluir, setAExcluir] = useState<{ d: Despesa; venym: number } | null>(null);
+  const [pagar, setPagar] = useState<{ d: Despesa; mesGer: number; valor: string; data: string } | null>(null);
 
   useEffect(() => { setDesps(ler(cfg.key)); setCarregado(true); }, [cfg.key]);
-  useEffect(() => { if (carregado) localStorage.setItem(cfg.key, JSON.stringify(desps)); }, [desps, carregado, cfg.key]);
+  useEffect(() => { if (carregado) { localStorage.setItem(cfg.key, JSON.stringify(desps)); if (tipo === "pagamentos") window.dispatchEvent(new Event("me:pagamentos")); } }, [desps, carregado, cfg.key, tipo]);
+
+  // blocos de custo (com grupos e itens) para direcionar o pagamento ao lugar certo na Estrutura
+  const [estruturaVersao, setEstruturaVersao] = useState(0);
+  const custosBlocos = useMemo(() => (tipo === "pagamentos" ? carregarEstrutura(ano).custos : []), [ano, tipo, estruturaVersao]);
+  // renomeia um item na Estrutura (pelo lápis do seletor) e mantém os pagamentos ligados
+  const renomearItem = (grupo: string, antigo: string, novo: string) => {
+    const est = carregarEstrutura(ano);
+    const it = est.custos.flatMap((b) => b.grupos).find((x) => x.nome === grupo)?.itens.find((x) => x.nome === antigo);
+    if (it) { it.nome = novo; salvarEstrutura(ano, est); window.dispatchEvent(new Event("me:estrutura")); }
+    setDesps((xs) => xs.map((x) => (x.grupo === grupo && x.item === antigo) ? { ...x, item: novo, descricao: novo } : x));
+    setForm((f) => (f && f.grupo === grupo && f.item === antigo) ? { ...f, item: novo } : f);
+    setEstruturaVersao((v) => v + 1);
+  };
 
   // ocorrências do ano, indexadas por "mes-dia"
   const porDia = useMemo(() => {
@@ -88,26 +218,49 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
         const venc = proxUtil(ano, m, d.dia);
         if (venc.getFullYear() !== ano) continue;
         const k = `${venc.getMonth()}-${venc.getDate()}`;
-        (map[k] ||= []).push({ d, venc, mesGer: m });
+        (map[k] ||= []).push({ d, venc, mesGer: m, confirmado: !d.recorrente || (d.confirmados || []).includes(ym(ano, m)), valor: valorOcor(d, ym(ano, m)) });
       }
     }
     return map;
   }, [desps, ano]);
 
-  const totalMes = (m: number) => Object.entries(porDia).reduce((s, [k, arr]) => (Number(k.split("-")[0]) === m ? s + arr.reduce((a, o) => a + o.d.valor, 0) : s), 0);
+  // total do mês = só o que está confirmado (pendentes esperam validação)
+  const totalMes = (m: number) => Object.entries(porDia).reduce((s, [k, arr]) => (Number(k.split("-")[0]) === m ? s + arr.reduce((a, o) => a + (o.confirmado ? o.valor : 0), 0) : s), 0);
   const doDia = (m: number, dia: number): Ocor[] => porDia[`${m}-${dia}`] || [];
 
   if (!carregado) return null;
 
+  // no pagamento o nome vem do item; no recebimento vem da descrição
+  const nomeDoForm = (f: NonNullable<typeof form>) => (tipo === "pagamentos" ? f.item.trim() : f.descricao.trim());
   const salvarForm = () => {
-    if (!form || !form.descricao.trim()) return;
+    if (!form) return;
+    if (tipo === "pagamentos" && (!form.grupo || !form.item.trim())) return;   // grupo e item são obrigatórios
+    const desc = nomeDoForm(form);
+    if (!desc) return;
     const valor = Number(form.valor.replace(/\./g, "").replace(",", ".")) || 0;
+    const item = form.item.trim() || undefined;
     if (form.editId) {
-      setDesps((xs) => xs.map((x) => x.id === form.editId ? { ...x, descricao: form.descricao.trim(), valor, recorrente: form.recorrente } : x));
+      setDesps((xs) => xs.map((x) => x.id === form.editId ? { ...x, descricao: desc, valor, recorrente: form.recorrente, grupo: form.grupo || undefined, item } : x));
     } else if (modal) {
-      setDesps((xs) => [...xs, { id: uid(), descricao: form.descricao.trim(), valor, dia: modal.dia, mes: modal.mes, ano, recorrente: form.recorrente }]);
+      // o mês de criação já entra confirmado; recorrentes futuros ficam pendentes
+      setDesps((xs) => [...xs, { id: uid(), descricao: desc, valor, dia: modal.dia, mes: modal.mes, ano, recorrente: form.recorrente, grupo: form.grupo || undefined, item, confirmados: [ym(ano, modal.mes)] }]);
     }
     setForm(null);
+  };
+  // pagar: abre o popup para confirmar/ajustar valor e data
+  const abrirPagar = (o: Ocor) => setPagar({ d: o.d, mesGer: o.mesGer, valor: o.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), data: isoParaBR(isoDate(o.venc)) });
+  const confirmarPagamento = () => {
+    if (!pagar) return;
+    const ymOc = ym(ano, pagar.mesGer);
+    const val = Number(pagar.valor.replace(/\./g, "").replace(",", ".")) || 0;
+    const dataISO = brParaISO(pagar.data) || pagar.data;   // guarda em ISO
+    setDesps((xs) => xs.map((x) => x.id === pagar.d.id ? {
+      ...x,
+      confirmados: Array.from(new Set([...(x.confirmados || []), ymOc])),
+      valores: { ...(x.valores || {}), [ymOc]: val },
+      pagoEm: { ...(x.pagoEm || {}), [ymOc]: dataISO },
+    } : x));
+    setPagar(null);
   };
   const excluir = (id: string) => setDesps((xs) => xs.filter((x) => x.id !== id));
   const excluirApenasMes = (d: Despesa, venym: number) => { setDesps((xs) => xs.map((x) => x.id === d.id ? { ...x, pulados: [...(x.pulados || []), venym] } : x)); setAExcluir(null); };
@@ -127,8 +280,15 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
             {ANOS.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </label>
+        {/* título destacado no centro */}
+        <b style={{ flex: "1 1 auto", display: "flex", justifyContent: "center" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 18px", borderRadius: 10, background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", fontWeight: 800, fontSize: 14.5, whiteSpace: "nowrap" }}>
+            {tipo === "pagamentos" ? "Calendário de Pagamentos" : "Calendário de Recebimentos"}
+          </span>
+        </b>
         <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 12, color: "var(--muted)", flexWrap: "wrap" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: BRAND, display: "inline-block" }} /> {cfg.legenda}</span>
+          {tipo === "pagamentos" && <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: CLARO, display: "inline-block" }} /> A confirmar</span>}
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: AMBAR, display: "inline-block" }} /> Feriado nacional</span>
           <BotaoOcultar />
         </div>
@@ -150,15 +310,17 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                 const fer = nomeFeriado(dt);
                 const ocs = doDia(m, dia);
                 const temDesp = ocs.length > 0;
+                const temConfirmado = ocs.some((o) => o.confirmado);
+                const soPendente = temDesp && !temConfirmado;   // dia só com pagamentos a confirmar
                 return (
                   <button key={dia} onClick={() => { setForm(null); setHover(null); setModal({ mes: m, dia }); }} title={temDesp ? undefined : (fer || undefined)}
-                    onMouseEnter={(e) => { if (temDesp) { const r = e.currentTarget.getBoundingClientRect(); setHover({ mes: m, dia, x: r.left + r.width / 2, y: r.top }); } }}
-                    onMouseLeave={() => setHover(null)}
+                    onMouseEnter={(e) => { if (temDesp) { window.clearTimeout(fecharHoverT.current); const r = e.currentTarget.getBoundingClientRect(); setHover({ mes: m, dia, x: r.left + r.width / 2, y: r.top }); } }}
+                    onMouseLeave={() => { fecharHoverT.current = window.setTimeout(() => setHover(null), 420); }}
                     style={{ position: "relative", aspectRatio: "1", display: "grid", placeItems: "center", cursor: "pointer", border: 0, fontFamily: "inherit",
-                      borderRadius: "50%", background: temDesp ? "rgba(26,173,226,.16)" : "transparent", color: "var(--txt)", fontSize: 11.5, fontWeight: temDesp ? 700 : 500 }}>
+                      borderRadius: "50%", background: temDesp ? (soPendente ? "rgba(147,197,253,.22)" : "rgba(26,173,226,.16)") : "transparent", color: "var(--txt)", fontSize: 11.5, fontWeight: temDesp ? 700 : 500 }}>
                     {dia}
                     {fer && <i style={{ position: "absolute", top: 3, right: 6, width: 5, height: 5, borderRadius: 99, background: AMBAR }} />}
-                    {temDesp && <i style={{ position: "absolute", bottom: 2, width: 5, height: 5, borderRadius: 99, background: BRAND }} />}
+                    {temDesp && <i style={{ position: "absolute", bottom: 2, width: 5, height: 5, borderRadius: 99, background: soPendente ? CLARO : BRAND }} />}
                   </button>
                 );
               })}
@@ -171,13 +333,12 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       {modal && (() => {
         const ocs = doDia(modal.mes, modal.dia);
         const fer = nomeFeriado(new Date(ano, modal.mes, modal.dia));
-        const total = ocs.reduce((s, o) => s + o.d.valor, 0);
+        const total = ocs.reduce((s, o) => s + (o.confirmado ? o.valor : 0), 0);   // total = só confirmados
         return (
           <div onClick={() => { setModal(null); setForm(null); }} style={{ position: "fixed", inset: 0, zIndex: 90, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
             <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 22 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)" }}>{cfg.tituloDia}</div>
                   <b style={{ fontSize: 17 }}>{modal.dia} de {MES_NOME[modal.mes]} · {ano}</b>
                   {fer && <div style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: AMBAR }}><i style={{ width: 6, height: 6, borderRadius: 99, background: AMBAR }} /> {fer}</div>}
                 </div>
@@ -186,16 +347,30 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
 
               <div style={{ display: "grid", gap: 8 }}>
                 {ocs.map((o) => (
-                  <div key={o.d.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-2)", borderRadius: 10, padding: "10px 12px" }}>
-                    <span style={{ width: 4, alignSelf: "stretch", borderRadius: 4, background: BRAND }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <b style={{ fontSize: 13.5 }}>{o.d.descricao}</b>
-                      <div style={{ fontSize: 11, fontStyle: "italic", color: "var(--muted)" }}>{o.d.recorrente ? "Recorrente" : "Única"}</div>
+                  <div key={o.d.id} style={{ display: "flex", flexDirection: "column", gap: 9, background: "var(--bg-2)", borderRadius: 10, padding: "10px 12px", border: o.confirmado ? "1px solid rgba(16,185,129,.35)" : "1px solid var(--line-2)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ width: 4, alignSelf: "stretch", borderRadius: 4, background: o.confirmado ? VERDE : CLARO }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <b style={{ fontSize: 13.5, color: o.confirmado ? undefined : CLARO }}>{o.d.descricao}</b>
+                        <div style={{ fontSize: 11, fontStyle: "italic", color: "var(--muted)" }}>
+                          {o.d.recorrente ? "Recorrente" : "Única"}{o.d.item ? ` · ${o.d.grupo} › ${o.d.item}` : (o.d.grupo ? ` · ${o.d.grupo}` : "")}
+                        </div>
+                      </div>
+                      <b className="oc-num" style={{ fontSize: 13.5, whiteSpace: "nowrap", color: o.confirmado ? undefined : CLARO }}>{fmtR(o.valor)}</b>
+                      <button title="Editar" onClick={() => setForm({ editId: o.d.id, descricao: o.d.descricao, valor: o.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), recorrente: o.d.recorrente, grupo: o.d.grupo || "", item: o.d.item || "" })}
+                        style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: 2 }}><Pencil size={14} /></button>
+                      <button title="Excluir" onClick={() => o.d.recorrente ? setAExcluir({ d: o.d, venym: ym(ano, o.mesGer) }) : excluir(o.d.id)} style={{ background: "transparent", border: 0, cursor: "pointer", color: VERMELHO, padding: 2 }}><Trash2 size={14} /></button>
                     </div>
-                    <b className="oc-num" style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>{fmtR(o.d.valor)}</b>
-                    <button title="Editar" onClick={() => setForm({ editId: o.d.id, descricao: o.d.descricao, valor: String(o.d.valor).replace(".", ","), recorrente: o.d.recorrente })}
-                      style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: 2 }}><Pencil size={14} /></button>
-                    <button title="Excluir" onClick={() => o.d.recorrente ? setAExcluir({ d: o.d, venym: ym(ano, o.mesGer) }) : excluir(o.d.id)} style={{ background: "transparent", border: 0, cursor: "pointer", color: VERMELHO, padding: 2 }}><Trash2 size={14} /></button>
+                    {tipo === "pagamentos" && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        {o.confirmado
+                          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 800, color: VERDE, background: "rgba(16,185,129,.14)", padding: "3px 10px", borderRadius: 99 }}><Check size={13} /> Pago</span>
+                          : <span style={{ fontSize: 11.5, fontWeight: 800, color: "#94a3b8", background: "rgba(148,163,184,.14)", padding: "3px 10px", borderRadius: 99 }}>Em aberto</span>}
+                        {!o.confirmado && (
+                          <button onClick={() => abrirPagar(o)} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12.5, padding: "7px 14px", borderRadius: 9, border: 0, background: VERDE, color: "#fff" }}><Check size={16} /> Clique para pagar</button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {ocs.length === 0 && !form && <p className="sub" style={{ fontStyle: "italic", fontSize: 12.5 }}>{cfg.vazio}</p>}
@@ -211,23 +386,30 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
               {/* formulário de nova conta / edição */}
               {form ? (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)" }}>{form.editId ? cfg.editar : cfg.novo}</span>
-                    <button onClick={() => setForm(null)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--brand)", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>cancelar</button>
-                  </div>
-                  <div className="field"><label className="f">Descrição</label><input autoFocus value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder={cfg.ph} /></div>
-                  <div className="field"><label className="f">Valor (R$)</label><input value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} placeholder="0,00" inputMode="decimal" /></div>
+                  {tipo === "pagamentos" ? (
+                    <div className="field">
+                      <label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        Descrição
+                        <span title="Este pagamento entra direto na Estrutura de Custos, no DRE e nos Gráficos, no item escolhido."
+                          style={{ display: "inline-grid", placeItems: "center", width: 15, height: 15, borderRadius: "50%", background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--muted)", fontSize: 10, fontWeight: 800, cursor: "help" }}>?</span>
+                      </label>
+                      <SeletorCusto blocos={custosBlocos} grupo={form.grupo} item={form.item} onSelecionar={(g, i) => setForm({ ...form, grupo: g, item: i })} onRenomear={renomearItem} />
+                    </div>
+                  ) : (
+                    <div className="field"><label className="f">Descrição</label><input autoFocus value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder={cfg.ph} /></div>
+                  )}
+                  <div className="field"><label className="f">Valor (R$)</label><input value={form.valor} onChange={(e) => setForm({ ...form, valor: mascaraMoeda(e.target.value) })} placeholder="0,00" inputMode="decimal" /></div>
                   {cfg.recorrencia ? (
-                    <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontWeight: 600, fontSize: 13, margin: "6px 0 14px" }}>
-                      <input type="checkbox" checked={form.recorrente} onChange={(e) => setForm({ ...form, recorrente: e.target.checked })} style={{ width: 17, height: 17 }} />
+                    <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontWeight: 600, fontSize: 11.5, margin: "6px 0 14px", whiteSpace: "nowrap" }}>
+                      <input type="checkbox" checked={form.recorrente} onChange={(e) => setForm({ ...form, recorrente: e.target.checked })} style={{ width: 16, height: 16, flexShrink: 0 }} />
                       Pagamento recorrente
-                      <span className="sub" style={{ fontSize: 11 }}>(repete nos próximos meses, sempre em dia útil)</span>
+                      <span className="sub" style={{ fontSize: 10 }}>(repete nos próximos meses, sempre em dia útil)</span>
                     </label>
                   ) : <div style={{ height: 8 }} />}
-                  <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={salvarForm} disabled={!form.descricao.trim()}>{form.editId ? "Salvar" : "+ Cadastrar"}</button>
+                  <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={salvarForm} disabled={tipo === "pagamentos" ? (!form.grupo || !form.item.trim()) : !form.descricao.trim()}>{form.editId ? "Salvar" : "+ Cadastrar"}</button>
                 </div>
               ) : (
-                <button onClick={() => setForm({ descricao: "", valor: "", recorrente: false })}
+                <button onClick={() => setForm({ descricao: "", valor: "", recorrente: false, grupo: "", item: "" })}
                   style={{ width: "100%", marginTop: 12, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--brand)" }}>
                   <Plus size={16} /> {cfg.add}
                 </button>
@@ -241,21 +423,30 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       {hover && !modal && (() => {
         const ocs = doDia(hover.mes, hover.dia);
         if (!ocs.length) return null;
-        const total = ocs.reduce((s, o) => s + o.d.valor, 0);
+        const total = ocs.reduce((s, o) => s + (o.confirmado ? o.valor : 0), 0);   // total = só confirmados
         return (
-          <div style={{ position: "fixed", left: hover.x, top: hover.y - 10, transform: "translate(-50%, -100%)", zIndex: 95, pointerEvents: "none",
-            background: "#0f172a", color: "#fff", borderRadius: 12, padding: "12px 14px", boxShadow: "0 16px 40px -12px rgba(0,0,0,.6)", minWidth: 220, border: "1px solid rgba(148,163,184,.2)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid rgba(148,163,184,.2)" }}>
-              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#7c8aa5" }}>Dia {hover.dia}</span>
-              <b className="oc-num" style={{ fontSize: 13.5, color: "#38BDF8" }}>{fmtR(total)}</b>
-            </div>
-            <div style={{ display: "grid", gap: 5 }}>
-              {ocs.map((o) => (
-                <div key={o.d.id} style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: 12.5 }}>
-                  <span style={{ color: "#e2e8f0" }}>{o.d.descricao}</span>
-                  <b className="oc-num" style={{ whiteSpace: "nowrap" }}>{fmtR(o.d.valor)}</b>
-                </div>
-              ))}
+          <div onMouseEnter={() => window.clearTimeout(fecharHoverT.current)} onMouseLeave={() => { fecharHoverT.current = window.setTimeout(() => setHover(null), 200); }}
+            style={{ position: "fixed", left: hover.x, top: hover.y, transform: "translate(-50%, -100%)", zIndex: 95, paddingBottom: 12,
+            background: "#0f172a", color: "#fff", borderRadius: 12, boxShadow: "0 16px 40px -12px rgba(0,0,0,.6)", minWidth: 250, border: "1px solid rgba(148,163,184,.2)" }}>
+            <div style={{ padding: "12px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid rgba(148,163,184,.2)" }}>
+                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#7c8aa5" }}>Dia {hover.dia}</span>
+                <b className="oc-num" style={{ fontSize: 13.5, color: "#38BDF8" }}>{fmtR(total)}</b>
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {ocs.map((o) => (
+                  <div key={o.d.id} style={{ display: "grid", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, fontSize: 12.5 }}>
+                      <span style={{ color: o.confirmado ? "#e2e8f0" : "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.d.descricao}</span>
+                      <b className="oc-num" style={{ whiteSpace: "nowrap", color: o.confirmado ? "#fff" : "#94a3b8", fontWeight: o.confirmado ? 700 : 500 }}>{fmtR(o.valor)}</b>
+                    </div>
+                    {tipo === "pagamentos" && (o.confirmado
+                      ? <span style={{ justifySelf: "start", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#34d399", background: "rgba(16,185,129,.18)", padding: "3px 10px", borderRadius: 99 }}><Check size={12} /> Pago</span>
+                      : <button onClick={() => abrirPagar(o)} style={{ justifySelf: "stretch", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12, padding: "6px 12px", borderRadius: 8, border: 0, background: "#10B981", color: "#fff" }}><Check size={15} /> Clique para pagar</button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );
@@ -276,6 +467,34 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
               <button className="btn ghost" style={{ justifyContent: "center" }} onClick={() => excluirApenasMes(aExcluir.d, aExcluir.venym)}>Apenas o vencimento deste mês</button>
               <button className="btn" style={{ justifyContent: "center", background: VERMELHO }} onClick={() => excluirDaqui(aExcluir.d, aExcluir.venym)}>Todos a partir deste mês</button>
               <button onClick={() => setAExcluir(null)} style={{ background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--muted)", padding: "6px 0" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* popup de pagamento: confirma e permite ajustar valor e data */}
+      {pagar && (
+        <div onClick={() => setPagar(null)} style={{ position: "fixed", inset: 0, zIndex: 96, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 380, padding: 24, border: `1px solid ${VERDE}`, background: "linear-gradient(160deg, rgba(16,185,129,.08), var(--card) 60%)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(16,185,129,.16)", color: VERDE, flexShrink: 0 }}><Check size={20} /></span>
+              <div>
+                <b style={{ fontSize: 16 }}>Confirmar pagamento</b>
+                <p className="sub" style={{ margin: "2px 0 0", fontSize: 12.5 }}>{pagar.d.descricao}</p>
+              </div>
+            </div>
+            <div className="field" style={{ marginTop: 16 }}>
+              <label className="f">Valor pago (R$)</label>
+              <input value={pagar.valor} onChange={(e) => setPagar({ ...pagar, valor: mascaraMoeda(e.target.value) })} inputMode="decimal" />
+            </div>
+            <div className="field" style={{ marginTop: 10 }}>
+              <label className="f">Data do pagamento</label>
+              <input value={pagar.data} onChange={(e) => setPagar({ ...pagar, data: mascararDataBR(e.target.value) })} placeholder="dd/mm/aaaa" inputMode="numeric" maxLength={10} />
+            </div>
+            <p className="sub" style={{ fontSize: 11.5, marginTop: 8 }}>Ao confirmar, este valor entra na Estrutura de Custos, no DRE e nos Gráficos.</p>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setPagar(null)}>Cancelar</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarPagamento}><Check size={15} /> Confirmar pagamento</button>
             </div>
           </div>
         </div>

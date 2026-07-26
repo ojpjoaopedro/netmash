@@ -17,7 +17,7 @@ const CHAVE = "me_financas_estrutura";
 // completa o array de valores até 12 meses (o que não veio nos dados é 0)
 const v12 = (a: number[]): number[] => Array.from({ length: 12 }, (_, i) => a[i] ?? 0);
 
-export type Item = { nome: string; cor?: string; v: number[] };
+export type Item = { nome: string; cor?: string; v: number[]; cal?: boolean };  // cal = linha vinda do Calendário (só leitura)
 // `financeiro` marca empréstimo/juros — o que o EBITDA soma de volta ao lucro
 export type Grupo = { nome: string; cor: string; itens: Item[]; financeiro?: boolean };
 export type Bloco = { nome: string; grupos: Grupo[] };
@@ -53,6 +53,72 @@ export function carregarEstrutura(ano: number = 2026): Dados {
 /** Salva a estrutura de um ano específico. */
 export function salvarEstrutura(ano: number, d: Dados) {
   if (typeof window !== "undefined") { try { localStorage.setItem(chaveAno(ano), JSON.stringify(d)); } catch { /* ignore */ } }
+}
+
+/* ── Integração com o Calendário de Pagamentos ─────────────────────────────── */
+export type Pagamento = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; pulados?: number[]; ate?: number; grupo?: string; item?: string; confirmados?: number[]; valores?: Record<number, number>; pagoEm?: Record<number, string> };
+const CHAVE_PAG = "me_calendario_pagamentos";
+const ymIdx = (ano: number, mes: number) => ano * 12 + mes;
+
+export function lerPagamentos(): Pagamento[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(CHAVE_PAG) || "[]"); } catch { return []; }
+}
+export function salvarPagamentos(ps: Pagamento[]) {
+  if (typeof window !== "undefined") { try { localStorage.setItem(CHAVE_PAG, JSON.stringify(ps)); window.dispatchEvent(new Event("me:pagamentos")); } catch { /* ignore */ } }
+}
+
+/** Meses (0..11) em que a despesa incide no ano dado. */
+export function mesesDaDespesa(p: Pagamento, ano: number): number[] {
+  const out: number[] = [];
+  if (p.recorrente) {
+    for (let m = 0; m < 12; m++) {
+      const idx = ymIdx(ano, m);
+      if (idx < ymIdx(p.ano, p.mes)) continue;
+      if (p.ate != null && idx >= p.ate) continue;
+      if (p.pulados?.includes(idx)) continue;
+      out.push(m);
+    }
+  } else if (p.ano === ano) out.push(p.mes);
+  return out;
+}
+/** Uma ocorrência confirmada? (não recorrente é sempre; recorrente depende de `confirmados`). */
+export const pagamentoConfirmado = (p: Pagamento, ano: number, m: number) => !p.recorrente || (p.confirmados || []).includes(ymIdx(ano, m));
+
+/** Soma dos pagamentos por grupo+item/mês no ano, separando confirmado e pendente. */
+export function pagamentosPorItem(ano: number): { grupo: string; item: string; conf: number[]; pend: number[] }[] {
+  const map: Record<string, { grupo: string; item: string; conf: number[]; pend: number[] }> = {};
+  for (const p of lerPagamentos()) {
+    if (!p.grupo || !p.item) continue;
+    const k = `${p.grupo}|||${p.item}`;
+    const alvo = (map[k] ||= { grupo: p.grupo, item: p.item, conf: v12([]), pend: v12([]) });
+    for (const m of mesesDaDespesa(p, ano)) {
+      const val = p.valores?.[ymIdx(ano, m)] ?? p.valor;
+      if (pagamentoConfirmado(p, ano, m)) alvo.conf[m] += val; else alvo.pend[m] += val;
+    }
+  }
+  return Object.values(map);
+}
+
+/** Estrutura com os pagamentos CONFIRMADOS do calendário somados nos itens certos (para dashboards/DRE). */
+export function carregarEstruturaComPagamentos(ano: number = 2026): Dados {
+  const base = carregarEstrutura(ano);
+  const linhas = pagamentosPorItem(ano).filter((l) => l.conf.some((x) => x > 0));
+  if (!linhas.length) return base;
+  const d: Dados = JSON.parse(JSON.stringify(base));
+  for (const l of linhas) {
+    let g = d.custos.flatMap((b) => b.grupos).find((x) => x.nome === l.grupo);
+    if (!g) {
+      let bloco = d.custos[0];
+      if (!bloco) { bloco = { nome: "Custos", grupos: [] }; d.custos.push(bloco); }
+      g = { nome: l.grupo, cor: "#94a3b8", itens: [] };
+      bloco.grupos.push(g);
+    }
+    let it = g.itens.find((x) => x.nome === l.item);
+    if (!it) { it = { nome: l.item, v: v12([]) }; g.itens.push(it); }
+    it.v = it.v.map((x, m) => x + (l.conf[m] || 0));
+  }
+  return d;
 }
 
 const AZUL = "#1AADE2", VERDE = "#10B981", ROXO = "#8b5cf6", LARANJA = "#F59E0B", ROSA = "#EC4899", VERMELHO = "#EF4444";
@@ -262,6 +328,25 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
     salvarEstrutura(ano, d);
   }, [d, carregado, ano]);
 
+  // pagamentos CONFIRMADOS do calendário aparecem na tabela como linha só-leitura (marcada "calendário")
+  const [pagVersao, setPagVersao] = useState(0);
+  useEffect(() => {
+    const h = () => setPagVersao((v) => v + 1);
+    window.addEventListener("me:pagamentos", h);
+    window.addEventListener("storage", h);
+    return () => { window.removeEventListener("me:pagamentos", h); window.removeEventListener("storage", h); };
+  }, []);
+  const dExibido = useMemo(() => {
+    const linhas = pagamentosPorItem(ano).filter((l) => l.conf.some((x) => x > 0));
+    if (!linhas.length) return d;
+    const nd: Dados = structuredClone(d);
+    for (const l of linhas) {
+      const g = nd.custos.flatMap((b) => b.grupos).find((x) => x.nome === l.grupo);
+      if (g) g.itens.push({ nome: l.item, v: l.conf.slice(), cal: true });
+    }
+    return nd;
+  }, [d, ano, pagVersao]);
+
   // colunas visíveis = meses selecionados (em ordem); sem seleção, mostra todos
   const mesesVis = useMemo(() => (sel.size ? [...sel].sort((a, b) => a - b) : MES.map((_, i) => i)), [sel]);
   const totalDe = (v: number[]) => mesesVis.reduce((s, m) => s + v[m], 0);
@@ -324,13 +409,13 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
   }
 
   /* somatórios */
-  const recTotais = useMemo(() => somaPorMes(d.receitas), [d]);
-  const blocosMes = useMemo(() => d.custos.map((b) => somaPorMes(b.grupos.flatMap((g) => g.itens))), [d]);
+  const recTotais = useMemo(() => somaPorMes(dExibido.receitas), [dExibido]);
+  const blocosMes = useMemo(() => dExibido.custos.map((b) => somaPorMes(b.grupos.flatMap((g) => g.itens))), [dExibido]);
   const custosTotais = useMemo(() => Array.from({ length: 12 }, (_, m) => blocosMes.reduce((s, b) => s + b[m], 0)), [blocosMes]);
   // Resultado, EBITDA e margem agora são CALCULADOS a partir dos dados exibidos
-  // (mexer numa receita/custo atualiza tudo na hora).
-  const resultadoMes = useMemo(() => resultadoDe(d), [d]);
-  const ebitdaMes = useMemo(() => ebitdaDe(d), [d]);
+  // (mexer numa receita/custo atualiza tudo na hora; inclui pagamentos confirmados do calendário).
+  const resultadoMes = useMemo(() => resultadoDe(dExibido), [dExibido]);
+  const ebitdaMes = useMemo(() => ebitdaDe(dExibido), [dExibido]);
 
   if (!carregado) return null;
 
@@ -402,7 +487,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
             <Colgroup c={cols} />
             <THead icone={<Layers size={16} />} titulo="Detalhamento dos Custos" cor={VERMELHO} meses={mesesVis} />
             <tbody>
-              {d.custos.map((b, bi) => {
+              {dExibido.custos.map((b, bi) => {
                 const blocoAberto = !blocosFechados.has(bi);
                 return (
                 <FragBloco key={bi}>
@@ -431,8 +516,18 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                           {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}>{fmt(gm[m])}</td>)}
                           <td onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}>{fmt(totalDe(gm))}</td>
                         </tr>
-                        {/* itens (folhas editáveis: nome e valores) */}
-                        {aberto && g.itens.map((it, ii) => (
+                        {/* itens (folhas editáveis: nome e valores). Linhas do calendário são só-leitura. */}
+                        {aberto && g.itens.map((it, ii) => it.cal ? (
+                          <tr key={ii} style={{ borderTop: "1px solid var(--line)" }}>
+                            <td style={{ ...tdRot, paddingLeft: 30, fontStyle: "italic", color: "var(--muted)" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{it.nome}
+                                <span style={{ fontSize: 8.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", padding: "1px 6px", borderRadius: 99, textTransform: "uppercase", letterSpacing: ".04em" }}>calendário</span>
+                              </span>
+                            </td>
+                            {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(it.v[m])}</td>)}
+                            <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
+                          </tr>
+                        ) : (
                           <tr key={ii} style={{ borderTop: "1px solid var(--line)" }}>
                             <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))} />
                             {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => editarCusto(bi, gi, ii, m, nv)} />)}

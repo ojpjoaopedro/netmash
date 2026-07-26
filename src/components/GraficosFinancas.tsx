@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { ArrowLeft } from "lucide-react";
-import { MES, carregarEstrutura, resultadoDe, ebitdaDe } from "@/app/minhasmetricas/financas-estrutura";
+import { MES, carregarEstruturaComPagamentos, resultadoDe, ebitdaDe } from "@/app/minhasmetricas/financas-estrutura";
 import BotaoOcultar from "./ocultar";
 
 const AZUL = "#38BDF8", VERDE = "#10B981", MARROM = "#C2830A";
@@ -66,7 +66,7 @@ function Card({ titulo, total, totalCor, destaque, children }: { titulo: string;
 
 export default function GraficosFinancas({ onVoltar, ano = 2026 }: { onVoltar: () => void; ano?: number }) {
   const g = useMemo(() => {
-    const data = carregarEstrutura(ano);
+    const data = carregarEstruturaComPagamentos(ano);
     const itens = data.custos.flatMap((b) => b.grupos.flatMap((gr) => gr.itens));
     const somaMes = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) => s + (l.v[m] || 0), 0);
     const recMes = Array.from({ length: 12 }, (_, m) => somaMes(data.receitas, m));

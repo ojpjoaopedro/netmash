@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { ArrowLeft, DollarSign, CreditCard, TrendingUp, Sparkles } from "lucide-react";
-import { MES, carregarEstrutura, resultadoDe, ebitdaDe } from "@/app/minhasmetricas/financas-estrutura";
+import { MES, carregarEstruturaComPagamentos, resultadoDe, ebitdaDe } from "@/app/minhasmetricas/financas-estrutura";
 import BotaoOcultar from "./ocultar";
 
 const AZUL = "#38BDF8", VERDE = "#10B981", VERMELHO = "#F43F5E";
@@ -47,7 +47,7 @@ function Composicao({ titulo, Icon, cor, total, itens, badge }: {
 }
 
 export default function AnaliseResultados({ onVoltar, ano = 2026 }: { onVoltar: () => void; ano?: number }) {
-  const data = useMemo(() => carregarEstrutura(ano), [ano]);
+  const data = useMemo(() => carregarEstruturaComPagamentos(ano), [ano]);
   const [sel, setSel] = useState<Set<number>>(() => {
     const itens = data.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
     const som = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) => s + (l.v[m] || 0), 0);

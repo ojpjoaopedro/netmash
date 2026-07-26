@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, TrendingUp, Maximize2, Minimize2 } from "lucide-react";
-import { MES, Dados, carregarEstrutura } from "@/app/minhasmetricas/financas-estrutura";
+import { MES, Dados, carregarEstruturaComPagamentos } from "@/app/minhasmetricas/financas-estrutura";
 import BotaoOcultar from "./ocultar";
 
 const AZUL = "#38BDF8", VERMELHO = "#F43F5E";
@@ -97,11 +97,16 @@ export default function FinancasDashboard({ ano = 2026 }: { ano?: number }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const d = carregarEstrutura(ano);
-    setData(d);
-    const itens = d.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
-    const comDado = Array.from({ length: 12 }, (_, m) => somaMes(d.receitas, m) + somaMes(itens, m) > 0 ? m : -1).filter((m) => m >= 0);
-    setSel(new Set(comDado.length ? comDado : [0, 1, 2, 3, 4, 5]));
+    const carregar = () => {
+      const d = carregarEstruturaComPagamentos(ano);
+      setData(d);
+      const itens = d.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
+      const comDado = Array.from({ length: 12 }, (_, m) => somaMes(d.receitas, m) + somaMes(itens, m) > 0 ? m : -1).filter((m) => m >= 0);
+      setSel(new Set(comDado.length ? comDado : [0, 1, 2, 3, 4, 5]));
+    };
+    carregar();
+    window.addEventListener("me:pagamentos", carregar);
+    return () => window.removeEventListener("me:pagamentos", carregar);
   }, [ano]);
 
   useEffect(() => {

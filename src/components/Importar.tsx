@@ -59,18 +59,20 @@ function montarMatriz(ano: number, comValores: boolean, cab: ReturnType<typeof c
   add([], "vazio");
   add(["Item", ...MES], "cabecalho");
 
-  add(["RECEITAS"], "secao");
+  add(["RECEITAS", AVISO_SOMA], "secao");
   for (const r of d.receitas) add([r.nome, ...linhaValores(r.v)], "item");
 
   for (const b of d.custos) {
-    add([b.nome.toUpperCase()], "secao");
+    add([b.nome.toUpperCase(), AVISO_SOMA], "secao");
     for (const g of b.grupos) {
-      add([g.nome], "grupo");
+      add([g.nome, AVISO_SOMA], "grupo");
       for (const it of g.itens) add([it.nome, ...linhaValores(it.v)], "item");
     }
   }
   return { aoa, papeis };
 }
+
+const AVISO_SOMA = "não digite nesses campos";
 
 function toARGB(hex?: string) {
   let h = (hex || "#1AADE2").replace("#", "");
@@ -90,7 +92,9 @@ function estilizar(ws: XLSX.WorkSheet, papeis: Papel[], brandHex?: string) {
 
   for (let r = 0; r < papeis.length; r++) {
     const papel = papeis[r];
-    if (papel === "titulo" || papel === "secao") ws["!merges"]!.push({ s: { r, c: 0 }, e: { r, c: N - 1 } });
+    if (papel === "titulo") ws["!merges"]!.push({ s: { r, c: 0 }, e: { r, c: N - 1 } });
+    // seção/grupo: o aviso "não digite" ocupa as colunas dos meses (B..N), mesclado
+    if (papel === "secao" || papel === "grupo") ws["!merges"]!.push({ s: { r, c: 1 }, e: { r, c: N - 1 } });
     const naTabela = r >= cabRow;
     const ultimaCol = papel === "kv" ? 1 : (naTabela ? N - 1 : 0);
     for (let c = 0; c <= ultimaCol; c++) {
@@ -101,28 +105,19 @@ function estilizar(ws: XLSX.WorkSheet, papeis: Papel[], brandHex?: string) {
       if (papel === "titulo") { s.font = { bold: true, sz: 14, color: { rgb: "FFFFFFFF" } }; s.fill = { fgColor: { rgb: brand } }; s.alignment = { vertical: "center" }; }
       else if (papel === "kv") { if (c === 0) s.font = { bold: true, color: { rgb: "FF334155" } }; }
       else if (papel === "cabecalho") { s.font = { bold: true, color: { rgb: "FF0F172A" } }; s.fill = { fgColor: { rgb: "FFE2E8F0" } }; s.alignment = { horizontal: c === 0 ? "left" : "center", vertical: "center" }; s.border = bordas; }
-      else if (papel === "secao") { s.font = { bold: true, color: { rgb: "FF0F172A" } }; s.fill = { fgColor: { rgb: "FFCBD9EC" } }; s.alignment = { vertical: "center" }; s.border = bordas; }
-      else if (papel === "grupo") { s.font = { bold: true, italic: true, color: { rgb: "FF334155" } }; s.fill = { fgColor: { rgb: "FFF1F5F9" } }; s.border = bordas; }
+      else if (papel === "secao") {
+        s.fill = { fgColor: { rgb: "FFCBD9EC" } }; s.border = bordas; s.alignment = { vertical: "center", horizontal: c === 0 ? "left" : "left" };
+        s.font = c === 0 ? { bold: true, color: { rgb: "FF0F172A" } } : { italic: true, color: { rgb: "FF94A3B8" }, sz: 9 };
+      }
+      else if (papel === "grupo") {
+        s.fill = { fgColor: { rgb: "FFF1F5F9" } }; s.border = bordas; s.alignment = { horizontal: "left" };
+        s.font = c === 0 ? { bold: true, italic: true, color: { rgb: "FF334155" } } : { italic: true, color: { rgb: "FF94A3B8" }, sz: 9 };
+      }
       else if (papel === "item") { s.border = bordas; s.alignment = { horizontal: c === 0 ? "left" : "right" }; }
       if (num) { cell.z = "#,##0"; s.numFmt = "#,##0"; }
-      // trava as linhas de estrutura (título, cabeçalho, RECEITAS/CUSTOS e grupos)
-      s.protection = { locked: papel === "titulo" || papel === "cabecalho" || papel === "secao" || papel === "grupo" };
       cell.s = s;
     }
   }
-
-  // rows extras (desbloqueadas) para o usuário poder acrescentar itens
-  const buffer = 120;
-  for (let r = papeis.length; r < papeis.length + buffer; r++) {
-    for (let c = 0; c < N; c++) {
-      const addr = XLSX.utils.encode_cell({ r, c });
-      const cell = (ws[addr] ||= { t: "s", v: "" }) as XLSX.CellObject;
-      cell.s = { protection: { locked: false } };
-    }
-  }
-  ws["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: papeis.length + buffer - 1, c: N - 1 } });
-  // protege a planilha, permitindo editar as células liberadas e inserir/remover linhas de itens
-  ws["!protect"] = { selectLockedCells: true, selectUnlockedCells: true, insertRows: true, deleteRows: true, formatCells: true };
 }
 
 /* ── Leitura da planilha enviada ───────────────────────────────────────────── */
@@ -152,7 +147,9 @@ function parseAba(ws: XLSX.WorkSheet): (UpDados & { rotulos: Set<string> }) | nu
     const nome = String(row[itemCol] || "").trim();
     if (!nome) continue;
     const cels = Object.entries(mesCols).map(([ci, mi]) => ({ mi, raw: row[Number(ci)] }));
-    const temValor = cels.some((c) => String(c.raw ?? "").trim() !== "");
+    // só conta como valor se for número; texto (ex: o aviso "não digite") = linha de estrutura
+    const ehNumero = (raw: unknown) => { if (typeof raw === "number") return true; const s = String(raw ?? "").trim(); return s !== "" && /^[\d.,\-\sR$]+$/.test(s); };
+    const temValor = cels.some((c) => ehNumero(c.raw));
     if (!temValor) { // linha de seção (RECEITAS / bloco) ou grupo
       rotulos.add(nome.toUpperCase());
       if (/receita/i.test(nome)) modo = "receita";
