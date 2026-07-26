@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
-import { CheckCircle2, Circle, ChevronRight, Minus, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, Circle, ChevronRight, Minus, Sparkles, PartyPopper } from "lucide-react";
 import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { navegar, AlvoNav } from "@/lib/nav";
+import { somLigado } from "@/lib/ui-sound";
 
 const KEY_MIN = "me_guia_min";
 const KEY_OK = "me_guia_concluido";
@@ -11,6 +12,60 @@ const KEY_OK = "me_guia_concluido";
 function lerJSON<T = unknown>(k: string): T | null {
   if (typeof window === "undefined") return null;
   try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; }
+}
+
+/** Som curto de "parabéns" (arpejo alegre) via WebAudio, sem precisar de arquivo. */
+function tocarParabens() {
+  try {
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ac = new AC();
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
+      const o = ac.createOscillator(); const g = ac.createGain();
+      o.type = "triangle"; o.frequency.value = f;
+      const t0 = ac.currentTime + i * 0.11;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(0.22, t0 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.55);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t0); o.stop(t0 + 0.6);
+    });
+    window.setTimeout(() => { try { ac.close(); } catch { /* ignore */ } }, 1800);
+  } catch { /* ignore */ }
+}
+
+/** Chuva de confete por ~4,5s (canvas em tela cheia, some sozinho). */
+function Confete() {
+  useEffect(() => {
+    const cv = document.createElement("canvas");
+    cv.style.cssText = "position:fixed;inset:0;z-index:200;pointer-events:none";
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    document.body.appendChild(cv);
+    const ctx = cv.getContext("2d");
+    const cores = ["#1AADE2", "#10B981", "#F59E0B", "#EF4444", "#8b5cf6", "#EC4899"];
+    const ps = Array.from({ length: 170 }, () => ({
+      x: Math.random() * cv.width, y: -20 - Math.random() * cv.height * 0.6,
+      w: 6 + Math.random() * 8, h: 9 + Math.random() * 10,
+      vy: 2 + Math.random() * 4, vx: -1.6 + Math.random() * 3.2,
+      rot: Math.random() * Math.PI, vr: -0.2 + Math.random() * 0.4,
+      cor: cores[Math.floor(Math.random() * cores.length)],
+    }));
+    let raf = 0; const inicio = performance.now();
+    const passo = (t: number) => {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      for (const p of ps) {
+        p.y += p.vy; p.x += p.vx; p.rot += p.vr; p.vy += 0.03;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.fillStyle = p.cor; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+      }
+      if (t - inicio < 4500) raf = requestAnimationFrame(passo); else cv.remove();
+    };
+    raf = requestAnimationFrame(passo);
+    const onResize = () => { cv.width = window.innerWidth; cv.height = window.innerHeight; };
+    window.addEventListener("resize", onResize);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); cv.remove(); };
+  }, []);
+  return null;
 }
 
 type Item = { key: string; label: string; feito: boolean; nav: AlvoNav };
@@ -60,11 +115,47 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
   const pct = Math.round((feitos / total) * 100);
   const tudoOK = feitos === total;
 
-  // grava a conclusão para o guia não voltar depois
-  useEffect(() => { if (tudoOK) { try { localStorage.setItem(KEY_OK, "1"); } catch { /* ignore */ } } }, [tudoOK]);
+  // mantém o flag de conclusão em sincronia com o estado real
+  // (se o usuário apagar um dado, o guia volta e os benefícios travam de novo)
+  useEffect(() => {
+    if (!montado) return;
+    const atual = localStorage.getItem(KEY_OK) === "1";
+    if (atual !== tudoOK) {
+      try { localStorage.setItem(KEY_OK, tudoOK ? "1" : "0"); window.dispatchEvent(new Event("me:guia-concluido")); } catch { /* ignore */ }
+    }
+  }, [tudoOK, montado]);
+
+  // comemora só na virada de incompleto -> completo (não repete a cada render)
+  const [celebrar, setCelebrar] = useState(false);
+  const anteriorOK = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!montado) return;
+    if (anteriorOK.current === null) { anteriorOK.current = tudoOK; return; }  // 1ª leitura não comemora
+    if (tudoOK && !anteriorOK.current) {
+      setCelebrar(true);
+      if (somLigado()) tocarParabens();
+      window.setTimeout(() => setCelebrar(false), 4500);
+    }
+    anteriorOK.current = tudoOK;
+  }, [tudoOK, montado]);
 
   if (!montado) return null;
-  if (tudoOK || localStorage.getItem(KEY_OK) === "1") return null;
+  if (celebrar) {
+    return (
+      <>
+        <Confete />
+        <div style={{ position: "fixed", left: "50%", top: 90, transform: "translateX(-50%)", zIndex: 201, maxWidth: "calc(100vw - 32px)",
+          display: "flex", alignItems: "center", gap: 12, padding: "16px 22px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--line-2)", boxShadow: "0 20px 50px -12px rgba(0,0,0,.5)" }}>
+          <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff" }}><PartyPopper size={22} /></span>
+          <div>
+            <b style={{ fontSize: 15.5 }}>Parabéns! Configuração concluída 🎉</b>
+            <p className="sub" style={{ margin: "3px 0 0", fontSize: 12.5 }}>Seus benefícios foram liberados como recompensa. Confira em Configurações › Meus Benefícios.</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+  if (tudoOK) return null;
 
   const trocarMin = (v: boolean) => { setMin(v); try { localStorage.setItem(KEY_MIN, v ? "1" : "0"); } catch { /* ignore */ } };
   const ir = (a: AlvoNav) => navegar(a);

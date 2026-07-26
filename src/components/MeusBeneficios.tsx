@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { UserPlus, Wallet, Zap, Share2, Send, X, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { UserPlus, Wallet, Zap, Share2, Send, X, ChevronDown, Lock } from "lucide-react";
 
 const APP = "Minhas Métricas";
 const LINHA = (Icon: typeof UserPlus, txt: string) => ({ Icon, txt });
@@ -20,6 +20,28 @@ export default function MeusBeneficios() {
   const [reg, setReg] = useState(false);
   const [sugestao, setSugestao] = useState("");
   const [enviado, setEnviado] = useState(false);
+
+  // benefícios ficam bloqueados até concluir o Guia de configuração (premiação)
+  const [liberado, setLiberado] = useState(true);
+  useEffect(() => {
+    const ver = () => setLiberado(localStorage.getItem("me_guia_concluido") === "1");
+    ver();
+    window.addEventListener("me:guia-concluido", ver);
+    window.addEventListener("storage", ver);
+    return () => { window.removeEventListener("me:guia-concluido", ver); window.removeEventListener("storage", ver); };
+  }, []);
+
+  if (!liberado) {
+    return (
+      <div className="card" style={{ padding: 34, textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
+        <span style={{ width: 60, height: 60, borderRadius: 18, display: "grid", placeItems: "center", margin: "0 auto 16px", background: "var(--bg-2)", color: "var(--muted)" }}><Lock size={28} /></span>
+        <b style={{ fontSize: 18 }}>Seus benefícios estão quase liberados</b>
+        <p className="sub" style={{ margin: "10px 0 0", lineHeight: 1.6 }}>
+          Complete o <b>Guia de configuração</b> (canto inferior direito da tela) para desbloquear o programa <b>Indique e Ganhe</b> como recompensa. Assim que terminar as etapas, os benefícios aparecem aqui automaticamente. 🎁
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "grid", gap: 16 }}>

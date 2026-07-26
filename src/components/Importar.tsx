@@ -106,9 +106,24 @@ function estilizar(ws: XLSX.WorkSheet, papeis: Papel[], brandHex?: string) {
       else if (papel === "grupo") { s.font = { bold: true, italic: true, color: { rgb: "FF334155" } }; s.fill = { fgColor: { rgb: "FFF1F5F9" } }; s.border = bordas; }
       else if (papel === "item") { s.border = bordas; s.alignment = { horizontal: c === 0 ? "left" : "right" }; }
       if (num) { cell.z = "#,##0"; s.numFmt = "#,##0"; }
+      // trava as linhas de estrutura (título, cabeçalho, RECEITAS/CUSTOS e grupos)
+      s.protection = { locked: papel === "titulo" || papel === "cabecalho" || papel === "secao" || papel === "grupo" };
       cell.s = s;
     }
   }
+
+  // rows extras (desbloqueadas) para o usuário poder acrescentar itens
+  const buffer = 120;
+  for (let r = papeis.length; r < papeis.length + buffer; r++) {
+    for (let c = 0; c < N; c++) {
+      const addr = XLSX.utils.encode_cell({ r, c });
+      const cell = (ws[addr] ||= { t: "s", v: "" }) as XLSX.CellObject;
+      cell.s = { protection: { locked: false } };
+    }
+  }
+  ws["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: papeis.length + buffer - 1, c: N - 1 } });
+  // protege a planilha, permitindo editar as células liberadas e inserir/remover linhas de itens
+  ws["!protect"] = { selectLockedCells: true, selectUnlockedCells: true, insertRows: true, deleteRows: true, formatCells: true };
 }
 
 /* ── Leitura da planilha enviada ───────────────────────────────────────────── */
@@ -116,7 +131,7 @@ type ItemV = { nome: string; v: number[] };
 type UpDados = { receitas: ItemV[]; grupos: { nome: string; itens: ItemV[] }[] };
 
 /** Lê uma aba (matriz) e devolve receitas + grupos de custo, cada item com seus 12 meses. */
-function parseAba(ws: XLSX.WorkSheet): UpDados | null {
+function parseAba(ws: XLSX.WorkSheet): (UpDados & { rotulos: Set<string> }) | null {
   const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
   let hr = -1; let mesCols: Record<number, number> = {};
   for (let i = 0; i < aoa.length; i++) {
@@ -130,6 +145,7 @@ function parseAba(ws: XLSX.WorkSheet): UpDados | null {
   if (itemCol < 0) itemCol = 0;
 
   const up: UpDados = { receitas: [], grupos: [] };
+  const rotulos = new Set<string>();   // nomes das linhas de estrutura (seções/grupos), em maiúsculo
   let modo: "receita" | "custo" = "receita";
   let grupoAtual = "";
   for (let i = hr + 1; i < aoa.length; i++) {
@@ -139,6 +155,7 @@ function parseAba(ws: XLSX.WorkSheet): UpDados | null {
     const cels = Object.entries(mesCols).map(([ci, mi]) => ({ mi, raw: row[Number(ci)] }));
     const temValor = cels.some((c) => String(c.raw ?? "").trim() !== "");
     if (!temValor) { // linha de seção (RECEITAS / bloco) ou grupo
+      rotulos.add(nome.toUpperCase());
       if (/receita/i.test(nome)) modo = "receita";
       else { modo = "custo"; grupoAtual = nome; }
       continue;
@@ -152,7 +169,7 @@ function parseAba(ws: XLSX.WorkSheet): UpDados | null {
       g.itens.push({ nome, v });
     }
   }
-  return up;
+  return { ...up, rotulos };
 }
 
 /* ── Comparação com a Estrutura atual ──────────────────────────────────────── */
@@ -252,7 +269,7 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array", cellDates: true });
       // usa a aba "2026" (ou a primeira aba com valores) — a Estrutura é de um ano
-      let up: UpDados | null = null;
+      let up: (UpDados & { rotulos: Set<string> }) | null = null;
       const preferida = wb.SheetNames.find((n) => n.trim() === "2026");
       const ordem = preferida ? [preferida, ...wb.SheetNames.filter((n) => n !== preferida)] : wb.SheetNames;
       for (const nome of ordem) {
@@ -260,7 +277,21 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
         if (p && (p.receitas.some((r) => soma(r.v) > 0) || p.grupos.some((g) => g.itens.some((i) => soma(i.v) > 0)))) { up = p; break; }
       }
       if (!up) { setErro("Não encontrei valores na planilha. Use o modelo (meses nas colunas, itens nas linhas)."); return; }
-      const d = comparar(carregarEstrutura(), up);
+
+      // valida a estrutura: as linhas travadas (RECEITAS, blocos e grupos) não podem ter sido alteradas
+      const base = carregarEstrutura();
+      const faltando: string[] = [];
+      if (!up.rotulos.has("RECEITAS")) faltando.push("RECEITAS");
+      for (const bl of base.custos) {
+        if (!up.rotulos.has(bl.nome.toUpperCase())) faltando.push(bl.nome.toUpperCase());
+        for (const g of bl.grupos) if (!up.rotulos.has(g.nome.toUpperCase())) faltando.push(g.nome);
+      }
+      if (faltando.length) {
+        setErro(`A estrutura foi alterada (faltou: ${faltando.slice(0, 3).join(", ")}${faltando.length > 3 ? "…" : ""}). Essas linhas são travadas. Baixe o modelo de novo e altere apenas os valores dos meses.`);
+        return;
+      }
+
+      const d = comparar(base, up);
       setUpDados(up); setDiffs(d);
     } catch {
       setErro("Não consegui ler o arquivo. Use Excel (.xlsx) ou CSV.");
