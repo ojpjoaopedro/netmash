@@ -237,7 +237,7 @@ body.theme-light .kmini{background:linear-gradient(180deg,#fff,#fafcff);box-shad
 .acard .as{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:2px}
 
 /* ===== Buttons / forms / table / chips / modal (compartilhado) ===== */
-.btn{display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:#fff;border:0;
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:var(--brand-ct,#fff);border:0;
   padding:9px 15px;border-radius:11px;font-weight:600;font-size:13.5px;cursor:pointer;transition:.15s}
 .btn:hover{background:var(--brand-dark)}
 .btn.ghost{background:var(--card-2);border:1px solid var(--line);color:var(--txt)}
@@ -293,7 +293,7 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .period{display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px}
 .period button{background:transparent;border:0;color:var(--muted);padding:7px 14px;border-radius:999px;
   cursor:pointer;font-weight:600;font-size:13px}
-.period button.active{background:var(--brand);color:#fff}
+.period button.active{background:var(--brand);color:var(--brand-ct,#fff)}
 .err{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3);
   padding:10px 12px;border-radius:11px;font-size:13.5px;font-weight:600;margin-bottom:14px}
 .ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(16,185,129,.3);

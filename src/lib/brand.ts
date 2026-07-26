@@ -35,13 +35,36 @@ function tom(hex: string, pct: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
-/** Aplica a cor da marca em todo o app (--brand e seus tons claro/escuro). */
+function rgbDe(hex: string): { r: number; g: number; b: number } | null {
+  const h = hex.replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  const n = parseInt(h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+/**
+ * Aplica a cor da marca em todo o app (--brand e seus tons claro/escuro).
+ *
+ * Tratamento especial para os 2 extremos: preto puro some na barra lateral
+ * (que é escura) e branco puro deixa o texto dos botões invisível (texto branco
+ * em fundo branco). Nesses casos usamos uma paleta cinza legível e ajustamos a
+ * cor do texto sobre a marca (--brand-ct).
+ */
 function aplicarCor(cor: string) {
   if (typeof document === "undefined" || !cor) return;
   const raiz = document.documentElement.style;
-  raiz.setProperty("--brand", cor);
-  raiz.setProperty("--brand-dark", tom(cor, -0.28));
-  raiz.setProperty("--brand-light", tom(cor, 0.32));
+  const c = rgbDe(cor);
+  const preto = !!c && c.r <= 20 && c.g <= 20 && c.b <= 20;
+  const branco = !!c && c.r >= 235 && c.g >= 235 && c.b >= 235;
+
+  let brand = cor, dark = tom(cor, -0.28), light = tom(cor, 0.32), ct = "#ffffff";
+  if (preto) { brand = "#475569"; dark = "#334155"; light = "#64748b"; ct = "#ffffff"; }
+  else if (branco) { brand = "#cbd5e1"; dark = "#94a3b8"; light = "#e2e8f0"; ct = "#0f172a"; }
+
+  raiz.setProperty("--brand", brand);
+  raiz.setProperty("--brand-dark", dark);
+  raiz.setProperty("--brand-light", light);
+  raiz.setProperty("--brand-ct", ct);
 }
 
 export function useBrand() {

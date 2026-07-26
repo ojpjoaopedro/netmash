@@ -47,13 +47,18 @@ function proxUtil(ano: number, mes: number, dia: number): Date {
 }
 
 type Despesa = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; pulados?: number[]; ate?: number };
-const KEY = "me_calendario_pagamentos";
-function ler(): Despesa[] { if (typeof window === "undefined") return []; try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } }
+type TipoCal = "pagamentos" | "recebimentos";
+const CFG: Record<TipoCal, { key: string; legenda: string; tituloDia: string; novo: string; editar: string; add: string; ph: string; vazio: string; recorrencia: boolean }> = {
+  pagamentos: { key: "me_calendario_pagamentos", legenda: "Vencimento", tituloDia: "Vencimento", novo: "Nova conta", editar: "Editar conta", add: "Adicionar conta", ph: "Ex: Aluguel", vazio: "Nenhuma conta neste dia.", recorrencia: true },
+  recebimentos: { key: "me_calendario_recebimentos", legenda: "Recebimento", tituloDia: "Recebimento", novo: "Novo recebível", editar: "Editar recebível", add: "Adicionar recebível", ph: "Ex: Cliente X", vazio: "Nenhum recebimento neste dia.", recorrencia: false },
+};
+function ler(key: string): Despesa[] { if (typeof window === "undefined") return []; try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } }
 const ym = (ano: number, mes: number) => ano * 12 + mes;   // índice absoluto ano-mês
 
 type Ocor = { d: Despesa; venc: Date; mesGer: number };
 
-export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial?: number }) {
+export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagamentos" }: { anoInicial?: number; tipo?: TipoCal }) {
+  const cfg = CFG[tipo];
   const [ano, setAno] = useState(ANOS.includes(anoInicial) ? anoInicial : 2026);
   const [desps, setDesps] = useState<Despesa[]>([]);
   const [carregado, setCarregado] = useState(false);
@@ -62,8 +67,8 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
   const [hover, setHover] = useState<{ mes: number; dia: number; x: number; y: number } | null>(null);
   const [aExcluir, setAExcluir] = useState<{ d: Despesa; venym: number } | null>(null);
 
-  useEffect(() => { setDesps(ler()); setCarregado(true); }, []);
-  useEffect(() => { if (carregado) localStorage.setItem(KEY, JSON.stringify(desps)); }, [desps, carregado]);
+  useEffect(() => { setDesps(ler(cfg.key)); setCarregado(true); }, [cfg.key]);
+  useEffect(() => { if (carregado) localStorage.setItem(cfg.key, JSON.stringify(desps)); }, [desps, carregado, cfg.key]);
 
   // ocorrências do ano, indexadas por "mes-dia"
   const porDia = useMemo(() => {
@@ -123,7 +128,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
           </select>
         </label>
         <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 12, color: "var(--muted)", flexWrap: "wrap" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: BRAND, display: "inline-block" }} /> Vencimento</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: BRAND, display: "inline-block" }} /> {cfg.legenda}</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: AMBAR, display: "inline-block" }} /> Feriado nacional</span>
           <BotaoOcultar />
         </div>
@@ -172,7 +177,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
             <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 22 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)" }}>Vencimento</div>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)" }}>{cfg.tituloDia}</div>
                   <b style={{ fontSize: 17 }}>{modal.dia} de {MES_NOME[modal.mes]} · {ano}</b>
                   {fer && <div style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: AMBAR }}><i style={{ width: 6, height: 6, borderRadius: 99, background: AMBAR }} /> {fer}</div>}
                 </div>
@@ -193,7 +198,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
                     <button title="Excluir" onClick={() => o.d.recorrente ? setAExcluir({ d: o.d, venym: ym(ano, o.mesGer) }) : excluir(o.d.id)} style={{ background: "transparent", border: 0, cursor: "pointer", color: VERMELHO, padding: 2 }}><Trash2 size={14} /></button>
                   </div>
                 ))}
-                {ocs.length === 0 && !form && <p className="sub" style={{ fontStyle: "italic", fontSize: 12.5 }}>Nenhuma conta neste dia.</p>}
+                {ocs.length === 0 && !form && <p className="sub" style={{ fontStyle: "italic", fontSize: 12.5 }}>{cfg.vazio}</p>}
               </div>
 
               {ocs.length > 0 && (
@@ -207,22 +212,24 @@ export default function CalendarioPagamentos({ anoInicial = 2026 }: { anoInicial
               {form ? (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)" }}>{form.editId ? "Editar conta" : "Nova conta"}</span>
+                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)" }}>{form.editId ? cfg.editar : cfg.novo}</span>
                     <button onClick={() => setForm(null)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--brand)", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>cancelar</button>
                   </div>
-                  <div className="field"><label className="f">Descrição</label><input autoFocus value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Ex: Aluguel" /></div>
+                  <div className="field"><label className="f">Descrição</label><input autoFocus value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder={cfg.ph} /></div>
                   <div className="field"><label className="f">Valor (R$)</label><input value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} placeholder="0,00" inputMode="decimal" /></div>
-                  <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontWeight: 600, fontSize: 13, margin: "6px 0 14px" }}>
-                    <input type="checkbox" checked={form.recorrente} onChange={(e) => setForm({ ...form, recorrente: e.target.checked })} style={{ width: 17, height: 17 }} />
-                    Pagamento recorrente
-                    <span className="sub" style={{ fontSize: 11 }}>(repete nos próximos meses, sempre em dia útil)</span>
-                  </label>
+                  {cfg.recorrencia ? (
+                    <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontWeight: 600, fontSize: 13, margin: "6px 0 14px" }}>
+                      <input type="checkbox" checked={form.recorrente} onChange={(e) => setForm({ ...form, recorrente: e.target.checked })} style={{ width: 17, height: 17 }} />
+                      Pagamento recorrente
+                      <span className="sub" style={{ fontSize: 11 }}>(repete nos próximos meses, sempre em dia útil)</span>
+                    </label>
+                  ) : <div style={{ height: 8 }} />}
                   <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={salvarForm} disabled={!form.descricao.trim()}>{form.editId ? "Salvar" : "+ Cadastrar"}</button>
                 </div>
               ) : (
                 <button onClick={() => setForm({ descricao: "", valor: "", recorrente: false })}
                   style={{ width: "100%", marginTop: 12, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--brand)" }}>
-                  <Plus size={16} /> Adicionar conta
+                  <Plus size={16} /> {cfg.add}
                 </button>
               )}
             </div>

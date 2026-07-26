@@ -6,7 +6,7 @@ import {
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
-  Palette, UserCog, Gift, CreditCard,
+  Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -182,9 +182,7 @@ export default function Home() {
       }}
     >
       {brand.logo ? (
-        <span style={{ display: "inline-flex", alignItems: "center", background: "#fff", borderRadius: 12, padding: "6px 10px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.15)" }}>
-          <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain", display: "block" }} />
-        </span>
+        <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain", display: "block", borderRadius: 8 }} />
       ) : (
         <>
           <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, var(--brand), var(--brand-dark))", color: "#fff" }}>
@@ -199,9 +197,7 @@ export default function Home() {
     </button>
   ) : (
     brand.logo
-      ? <span style={{ display: "inline-flex", alignItems: "center", background: "#fff", borderRadius: 12, padding: "6px 10px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.15)" }}>
-          <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain", display: "block" }} />
-        </span>
+      ? <img src={brand.logo} alt={nomeMarca} style={{ height: logoH, maxHeight: logoH, width: "auto", maxWidth: logoH * 6, objectFit: "contain", display: "block", borderRadius: 8 }} />
       : <span className="fallback">{nomeMarca}</span>
   );
   const metricasVis = (ehDono ? METRICAS.slice() : METRICAS.filter((m) => m.key === "dashboard" || areasPerm.includes(m.key)));
@@ -433,6 +429,41 @@ export default function Home() {
   );
 }
 
+/** Seletor: Calendário de Pagamentos ou de Recebimentos. */
+function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "recebimentos") => void }) {
+  const opcoes = [
+    { key: "pagamentos" as const, titulo: "Calendário de Pagamentos", desc: "Contas a pagar, com vencimentos e despesas recorrentes.", Icon: ArrowUpCircle, cor: "#EF4444" },
+    { key: "recebimentos" as const, titulo: "Calendário de Recebimentos", desc: "Recebíveis marcados por data.", Icon: ArrowDownCircle, cor: "#10B981" },
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
+      {opcoes.map((o) => (
+        <button key={o.key} onClick={() => onEscolher(o.key)} className="card"
+          style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", padding: 22, display: "flex", alignItems: "center", gap: 16, border: "1px solid var(--line)", background: "var(--card)" }}>
+          <span style={{ width: 52, height: 52, borderRadius: 15, flexShrink: 0, display: "grid", placeItems: "center", background: `${o.cor}1f`, color: o.cor }}><o.Icon size={26} /></span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <b style={{ display: "block", fontSize: 16 }}>{o.titulo}</b>
+            <span className="sub" style={{ display: "block", marginTop: 3, fontSize: 12.5, lineHeight: 1.5 }}>{o.desc}</span>
+          </span>
+          <ChevronRight size={20} style={{ color: "var(--muted)", flexShrink: 0 }} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Um dos calendários (pagamentos ou recebimentos) com botão de voltar à escolha. */
+function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebimentos"; ano: number; onVoltar: () => void }) {
+  return (
+    <div>
+      <button onClick={onVoltar} style={{ display: "inline-flex", alignItems: "center", gap: 7, marginBottom: 14, padding: "8px 13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
+        <ArrowLeft size={16} /> {tipo === "pagamentos" ? "Calendário de Pagamentos" : "Calendário de Recebimentos"}
+      </button>
+      <CalendarioPagamentos anoInicial={ano} tipo={tipo} />
+    </div>
+  );
+}
+
 /**
  * Tela de Finanças no formato do Hub: título com "Gerar DRE", os atalhos e as
  * três abas (Dashboard, Estrutura de Receitas e Custos, Calendário de
@@ -440,9 +471,11 @@ export default function Home() {
  */
 function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; reload: () => Promise<void> }) {
   const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios" | "importar">("dashboard");
+  // dentro do Calendário: escolha entre pagamentos e recebimentos (null = mostra as 2 opções)
+  const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | null>(null);
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
-    calendario: "Calendário de Pagamentos", relatorios: "Relatórios", importar: "Importar planilha",
+    calendario: "Calendário", relatorios: "Relatórios", importar: "Importar planilha",
   };
   // aba em barra (estilo print2): ícone + rótulo, ativo em azul com sublinhado
   const tab = (ativo: boolean): React.CSSProperties => ({
@@ -456,7 +489,7 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
   const abas: { key: typeof aba; label: string; Icon: typeof LayoutDashboard }[] = [
     { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
     { key: "estrutura", label: "Estrutura de Receitas e Custos", Icon: Layers },
-    { key: "calendario", label: "Calendário de Pagamentos", Icon: CalendarDays },
+    { key: "calendario", label: "Calendário", Icon: CalendarDays },
     { key: "relatorios", label: "Relatórios", Icon: FileText },
     { key: "importar", label: "Importar planilha", Icon: Upload },
   ];
@@ -473,7 +506,7 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
       {/* barra de abas */}
       <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         {abas.map((a) => (
-          <button key={a.key} onClick={() => setAba(a.key)} style={tab(aba === a.key)}>
+          <button key={a.key} onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={tab(aba === a.key)}>
             <a.Icon size={16} /> {a.label}
           </button>
         ))}
@@ -481,7 +514,9 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
 
       {aba === "estrutura" ? <EstruturaFinancas />
         : aba === "dashboard" ? <FinancasDashboard />
-        : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} />
+        : aba === "calendario" ? (calSub
+            ? <SubCalendario tipo={calSub} ano={ano} onVoltar={() => setCalSub(null)} />
+            : <EscolhaCalendario onEscolher={setCalSub} />)
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} />
         : aba === "importar" ? <Importar reload={reload} empresa={empresa} brand={brand} />
         : <EmConstrucao titulo={rotulos[aba]} />}

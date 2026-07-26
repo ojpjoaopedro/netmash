@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Users, Phone, Mail, CreditCard, KeyRound, Cake, CalendarDays, Briefcase, Trash2, Plus, Power } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
+import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import BotaoRelatorioEquipe from "./RelatorioEquipe";
 
 const VERMELHO = "#EF4444", VERDE = "#10B981", AMARELO = "#F59E0B";
@@ -13,23 +14,42 @@ function iniciais(nome: string): string {
   return nome.trim().split(/\s+/).map((p) => p[0]).join("").toUpperCase().slice(0, 2);
 }
 
+
 /** Campo editável direto na tela: parece texto, salva ao sair do foco. */
-function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar }: {
+function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar, formatar }: {
   valor: string | null | undefined; onSalvar: (v: string, el: HTMLElement) => void;
   placeholder?: string; tipo?: string; style?: React.CSSProperties;
-  onFocar?: () => void; onDesfocar?: () => void;
+  onFocar?: () => void; onDesfocar?: () => void; formatar?: (v: string) => string;
 }) {
-  const base = valor ?? "";
-  const dataVazia = tipo === "date" && !base;
+  const ehData = tipo === "date";
+  const base = ehData ? isoParaBR(valor ?? "") : (valor ?? "");
   return (
     <input
       defaultValue={base}
-      placeholder={placeholder}
-      type={tipo || "text"}
-      onInput={tipo === "date" ? (e) => { e.currentTarget.style.color = e.currentTarget.value ? "" : "#9ca3af"; } : undefined}
+      placeholder={ehData ? "dd/mm/aaaa" : placeholder}
+      type={ehData ? "text" : (tipo || "text")}
+      inputMode={ehData ? "numeric" : undefined}
+      maxLength={ehData ? 10 : undefined}
+      onInput={(e) => {
+        if (ehData) e.currentTarget.value = mascararDataBR(e.currentTarget.value);
+        else if (formatar) e.currentTarget.value = formatar(e.currentTarget.value);
+      }}
       onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; onFocar?.(); }}
-      onBlur={(e) => { e.currentTarget.style.background = "transparent"; onDesfocar?.(); if (e.target.value !== base) onSalvar(e.target.value, e.currentTarget); }}
-      style={{ border: 0, outline: "none", background: "transparent", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: dataVazia ? "#9ca3af" : "inherit", transition: "background .12s", ...style }}
+      onBlur={(e) => {
+        e.currentTarget.style.background = "transparent"; onDesfocar?.();
+        if (ehData) {
+          const v = e.target.value.trim();
+          const iso = brParaISO(v);
+          if (v === "") { if (valor) onSalvar("", e.currentTarget); return; }
+          if (!iso) { e.target.value = base; return; }   // incompleta/inválida: volta ao valor anterior
+          if (iso !== (valor ?? "")) onSalvar(iso, e.currentTarget);
+          return;
+        }
+        let v = e.target.value;
+        if (formatar) { v = formatar(v); e.target.value = v; }
+        if (v !== base) onSalvar(v, e.currentTarget);
+      }}
+      style={{ border: 0, outline: "none", background: "transparent", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", transition: "background .12s", ...style }}
     />
   );
 }
@@ -56,16 +76,16 @@ function CampoNome({ valor, onSalvar, placeholder, style, onFocar, onDesfocar }:
 }
 
 /** Linha com ícone + prefixo fixo + campo editável (telefone, CPF, Pix, datas…). */
-function LinhaEdit({ icone, prefixo, valor, placeholder, tipo, onSalvar, onFocar, onDesfocar }: {
+function LinhaEdit({ icone, prefixo, valor, placeholder, tipo, onSalvar, onFocar, onDesfocar, formatar }: {
   icone: React.ReactNode; prefixo?: string; valor: string | null | undefined;
   placeholder?: string; tipo?: string; onSalvar: (v: string, el: HTMLElement) => void;
-  onFocar?: () => void; onDesfocar?: () => void;
+  onFocar?: () => void; onDesfocar?: () => void; formatar?: (v: string) => string;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--muted)", minWidth: 0 }}>
       <span style={{ flexShrink: 0, display: "grid", placeItems: "center", color: "var(--brand)" }}>{icone}</span>
       {prefixo && <span style={{ flexShrink: 0 }}>{prefixo}</span>}
-      <Campo valor={valor} placeholder={placeholder} tipo={tipo} onSalvar={onSalvar} onFocar={onFocar} onDesfocar={onDesfocar} style={{ fontSize: 12.5 }} />
+      <Campo valor={valor} placeholder={placeholder} tipo={tipo} formatar={formatar} onSalvar={onSalvar} onFocar={onFocar} onDesfocar={onDesfocar} style={{ fontSize: 12.5 }} />
     </div>
   );
 }
@@ -135,6 +155,22 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
 
   // confirmação de exclusão + barra "desfazer" — mesmo padrão de Finanças
   const [aExcluir, setAExcluir] = useState<{ nome: string; onOk: () => void } | null>(null);
+  const [aviso, setAviso] = useState<{ titulo: string; texto: string } | null>(null);
+  // Salva CPF/e-mail. Se estiver inválido: avisa em pop-up, NÃO salva e limpa o campo na tela.
+  const salvarCpf = (id: string, v: string, el: HTMLElement) => {
+    if (v.trim() && !cpfValido(v)) {
+      setAviso({ titulo: "CPF inválido", texto: `O CPF "${v.trim()}" não é válido. Confira os números e digite novamente.` });
+      (el as HTMLInputElement).value = ""; salvarCampo(id, { cpf: null }, el); return;
+    }
+    salvarCampo(id, { cpf: v.trim() || null }, el);
+  };
+  const salvarEmail = (id: string, v: string, el: HTMLElement) => {
+    if (v.trim() && !emailValido(v)) {
+      setAviso({ titulo: "E-mail inválido", texto: `O e-mail "${v.trim()}" não parece correto. Use o formato nome@empresa.com.` });
+      (el as HTMLInputElement).value = ""; salvarCampo(id, { email: null }, el); return;
+    }
+    salvarCampo(id, { email: v.trim() || null }, el);
+  };
   const [desfazer, setDesfazer] = useState<{ texto: string; onDesfazer: () => void } | null>(null);
   const [segRestante, setSegRestante] = useState(0);
   const desfazerI = useRef<number | undefined>(undefined);
@@ -257,9 +293,9 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
                   <div style={{ width: 230, minWidth: 170, flexShrink: 0 }}>
                     <Campo valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 14, fontWeight: 700 }} />
                   </div>
-                  <div style={{ width: 150, minWidth: 120 }}><LinhaEdit icone={<Phone size={13} />} valor={f.contato} placeholder="Telefone" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} /></div>
-                  <div style={{ width: 190, minWidth: 140 }}><LinhaEdit icone={<Mail size={13} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { email: v.trim() || null }, el)} /></div>
-                  <div style={{ width: 185, minWidth: 140 }}><LinhaEdit icone={<CreditCard size={13} />} prefixo="CPF" valor={f.cpf} placeholder="000.000.000-00" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cpf: v.trim() || null }, el)} /></div>
+                  <div style={{ width: 150, minWidth: 120 }}><LinhaEdit icone={<Phone size={13} />} valor={f.contato} placeholder="Telefone" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} /></div>
+                  <div style={{ width: 190, minWidth: 140 }}><LinhaEdit icone={<Mail size={13} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} /></div>
+                  <div style={{ width: 185, minWidth: 140 }}><LinhaEdit icone={<CreditCard size={13} />} prefixo="CPF" valor={f.cpf} formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} /></div>
                   <div style={{ flex: "1 1 130px", minWidth: 110 }}><LinhaEdit icone={<Briefcase size={13} />} valor={f.cargo} placeholder="Cargo" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cargo: v.trim() || null }, el)} /></div>
                   <div style={{ marginLeft: "auto", paddingRight: focoId === f.id ? 30 : 0 }}>{pill(0)}</div>
                 </div>
@@ -279,10 +315,10 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
 
                 <div style={{ marginTop: 9, display: "grid", gap: 2 }}>
                   <LinhaEdit icone={<Briefcase size={13} />} valor={f.cargo} placeholder="Cargo" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cargo: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<Phone size={13} />} valor={f.contato} placeholder="Telefone" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<Mail size={13} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { email: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<CreditCard size={13} />} prefixo="CPF" valor={f.cpf} placeholder="000.000.000-00" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cpf: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<KeyRound size={13} />} prefixo="Pix" valor={f.pix} placeholder="chave" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} />
+                  <LinhaEdit icone={<Phone size={13} />} valor={f.contato} placeholder="Telefone" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} />
+                  <LinhaEdit icone={<Mail size={13} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} />
+                  <LinhaEdit icone={<CreditCard size={13} />} prefixo="CPF" valor={f.cpf} formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} />
+                  <LinhaEdit icone={<KeyRound size={13} />} prefixo="Pix" valor={f.pix} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} />
                   <LinhaEdit icone={<Cake size={13} />} prefixo="Nasc." valor={f.nascimento} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nascimento: v || null }, el)} />
                   <LinhaEdit icone={<CalendarDays size={13} />} prefixo="Adm." valor={f.admissao} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { admissao: v || null }, el)} />
                 </div>
@@ -317,6 +353,25 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
             </button>
           )}
         </div>
+
+      {/* aviso: CPF ou e-mail inválido */}
+      {aviso && (
+        <div onClick={() => setAviso(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 85, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 24, border: `1px solid ${VERMELHO}`, background: "linear-gradient(160deg, rgba(239,68,68,.10), var(--card) 60%)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.16)", color: VERMELHO, flexShrink: 0, fontSize: 20 }}>⚠️</span>
+              <div>
+                <b style={{ fontSize: 15 }}>{aviso.titulo}</b>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>{aviso.texto}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", marginTop: 18 }}>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setAviso(null)}>Entendi</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* confirmação de desativação — recado em amarelo, com a data escolhida */}
       {aDesativar && (

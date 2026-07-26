@@ -107,6 +107,64 @@ export function diasAte(iso: string | null): number | null {
   return Math.round((alvo.getTime() - h.getTime()) / 86400000);
 }
 
+/** Telefone brasileiro: (62) 99479-7664 (celular) ou (62) 9999-9595 (fixo). Formata o que der. */
+export function mascararTelefone(v: string): string {
+  const d = (v || "").replace(/\D/g, "").slice(0, 11);
+  if (!d) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
+}
+
+/** CPF: 746.194.381-20. Formata mesmo se ainda estiver incompleto. */
+export function mascararCPF(v: string): string {
+  const d = (v || "").replace(/\D/g, "").slice(0, 11);
+  if (!d) return "";
+  let out = d.slice(0, 3);
+  if (d.length > 3) out += "." + d.slice(3, 6);
+  if (d.length > 6) out += "." + d.slice(6, 9);
+  if (d.length > 9) out += "-" + d.slice(9, 11);
+  return out;
+}
+
+/** Valida CPF pelos dígitos verificadores (rejeita 000..., 111..., etc). */
+export function cpfValido(v: string): boolean {
+  const c = (v || "").replace(/\D/g, "");
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  let s = 0; for (let i = 0; i < 9; i++) s += +c[i] * (10 - i);
+  let d1 = (s * 10) % 11; if (d1 === 10) d1 = 0; if (d1 !== +c[9]) return false;
+  s = 0; for (let i = 0; i < 10; i++) s += +c[i] * (11 - i);
+  let d2 = (s * 10) % 11; if (d2 === 10) d2 = 0; return d2 === +c[10];
+}
+
+/** E-mail simples (nome@dominio.xx). */
+export const emailValido = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
+
+/** ISO (2026-06-25) -> "25/06/2026" para exibir. */
+export function isoParaBR(iso: string): string {
+  const m = (iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+
+/** Vai formatando dd/mm/aaaa conforme digita. */
+export function mascararDataBR(v: string): string {
+  const d = (v || "").replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+}
+
+/** "25/06/2026" -> ISO (2026-06-25). Retorna "" se estiver incompleta/inválida. */
+export function brParaISO(v: string): string {
+  const m = (v || "").trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return "";
+  const [, dd, mm, yyyy] = m;
+  const dia = +dd, mes = +mm;
+  if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return "";
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function uid(): string {
   return "id-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }

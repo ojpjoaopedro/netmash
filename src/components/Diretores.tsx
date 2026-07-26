@@ -4,6 +4,7 @@ import {
   Shield, Crown, Plus, Trash2, X, Check,
   Eye, EyeOff, Lock, SlidersHorizontal, LayoutDashboard, DollarSign, Megaphone, Sparkles, Compass, Presentation, Settings,
 } from "lucide-react";
+import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 
 const AZUL = "#1AADE2", VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF4444";
 
@@ -56,20 +57,40 @@ function resumoPerm(p: Perm): string {
 
 /** Campo editável (parece texto, salva ao sair do foco). */
 /** Campo com rótulo no padrão do formulário "Dados da empresa" (salva ao sair, com flash). */
-function CampoLabel({ label, valor, onSalvar, placeholder, tipo, disabled, lock, onFocar, onDesfocar }: {
+function CampoLabel({ label, valor, onSalvar, placeholder, tipo, disabled, lock, onFocar, onDesfocar, formatar, validar, onInvalido }: {
   label: string; valor: string; onSalvar?: (v: string, el: HTMLElement) => void; placeholder?: string; tipo?: string;
   disabled?: boolean; lock?: boolean; onFocar?: () => void; onDesfocar?: () => void;
+  formatar?: (v: string) => string; validar?: (v: string) => boolean; onInvalido?: () => void;
 }) {
+  const ehData = tipo === "date";
   return (
     <div className="field">
       <label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{label}{lock && <Lock size={11} style={{ opacity: .6 }} />}</label>
       {disabled
         ? <input value={valor} readOnly title="Definido pelo login, não editável" style={{ opacity: .8, cursor: "default" }} />
-        : <input defaultValue={valor} placeholder={placeholder} type={tipo || "text"}
-            style={tipo === "date" && !valor ? { color: "#9ca3af" } : undefined}
-            onInput={tipo === "date" ? (e) => { e.currentTarget.style.color = e.currentTarget.value ? "" : "#9ca3af"; } : undefined}
-            onFocus={() => onFocar?.()}
-            onBlur={(e) => { onDesfocar?.(); if (e.target.value !== valor) onSalvar?.(e.target.value, e.currentTarget); }} />}
+        : ehData
+          ? <input defaultValue={isoParaBR(valor)} placeholder="dd/mm/aaaa" inputMode="numeric" maxLength={10}
+              onInput={(e) => { e.currentTarget.value = mascararDataBR(e.currentTarget.value); }}
+              onFocus={() => onFocar?.()}
+              onBlur={(e) => {
+                onDesfocar?.();
+                const v = e.target.value.trim();
+                const iso = brParaISO(v);
+                if (v === "") { if (valor) onSalvar?.("", e.currentTarget); return; }
+                if (!iso) { e.target.value = isoParaBR(valor); return; }   // data incompleta/inválida: volta ao valor anterior
+                if (iso !== valor) onSalvar?.(iso, e.currentTarget);
+              }} />
+          : <input defaultValue={valor} placeholder={placeholder} type={tipo || "text"}
+              onInput={(e) => { if (formatar) e.currentTarget.value = formatar(e.currentTarget.value); }}
+              onFocus={() => onFocar?.()}
+              onBlur={(e) => {
+                onDesfocar?.();
+                let v = e.target.value;
+                if (formatar) { v = formatar(v); e.target.value = v; }
+                // inválido: não salva e limpa o campo
+                if (validar && v.trim() && !validar(v)) { e.target.value = ""; onSalvar?.("", e.currentTarget); onInvalido?.(); return; }
+                if (v !== valor) onSalvar?.(v, e.currentTarget);
+              }} />}
     </div>
   );
 }
@@ -102,7 +123,21 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
     flashT.current = window.setTimeout(() => setFlash(null), 1500);
   };
   const [aExcluir, setAExcluir] = useState<Diretor | null>(null);
+  const [aviso, setAviso] = useState<{ titulo: string; texto: string } | null>(null);
   const [upgrade, setUpgrade] = useState(false);
+  // alterar senha (super admin)
+  const [senhaAberta, setSenhaAberta] = useState(false);
+  const [s1, setS1] = useState(""); const [s2, setS2] = useState("");
+  const [verSenha, setVerSenha] = useState(false);
+  const [senhaErro, setSenhaErro] = useState(""); const [senhaOk, setSenhaOk] = useState(false);
+  const abrirSenha = () => { setS1(""); setS2(""); setSenhaErro(""); setSenhaOk(false); setVerSenha(false); setSenhaAberta(true); };
+  const salvarSenha = () => {
+    if (s1.length < 6) { setSenhaErro("A senha precisa ter pelo menos 6 caracteres."); return; }
+    if (s1 !== s2) { setSenhaErro("As senhas não conferem. Digite a mesma senha nos dois campos."); return; }
+    try { localStorage.setItem("me_senha", s1); } catch { /* ignore */ }
+    setSenhaErro(""); setSenhaOk(true);
+    window.setTimeout(() => setSenhaAberta(false), 1300);
+  };
   const [focoId, setFocoId] = useState<string | null>(null);
   const focoT = useRef<number | undefined>(undefined);
   const aoFocar = (id: string) => { window.clearTimeout(focoT.current); setFocoId(id); };
@@ -129,6 +164,12 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
             <Trash2 size={14} />
           </button>
         )}
+        {sup && (
+          <button onClick={abrirSenha}
+            style={{ position: "absolute", top: 14, right: 14, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12.5, border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)" }}>
+            <Lock size={14} /> Alterar senha
+          </button>
+        )}
         {/* cabeçalho: avatar + badge */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, paddingRight: 30 }}>
           <div style={{ width: 46, height: 46, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: `${badge.cor}22`, color: badge.cor, fontWeight: 800, fontSize: 15 }}>
@@ -142,15 +183,15 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
         {/* formulário no mesmo padrão de "Dados da empresa" */}
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 14 }}>
           <CampoLabel label="Nome" valor={d.nome} placeholder={sup ? "Seu nome aqui" : "Nome do diretor"} onSalvar={(v, el) => { set({ nome: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="Cargo" valor={d.area} placeholder="Ex: Diretor" onSalvar={(v, el) => { set({ area: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Cargo" valor={d.area} onSalvar={(v, el) => { set({ area: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
           {sup
             ? <CampoLabel label="E-mail de acesso" valor={loginEmail || "minhasmetricas@gmail.com"} disabled lock />
-            : <CampoLabel label="E-mail de acesso" valor={d.acesso} placeholder="login@empresa.com" onSalvar={(v, el) => { set({ acesso: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />}
+            : <CampoLabel label="E-mail de acesso" valor={d.acesso} placeholder="login@empresa.com" validar={emailValido} onInvalido={() => setAviso({ titulo: "E-mail inválido", texto: "O e-mail digitado não parece correto. Use o formato nome@empresa.com." })} onSalvar={(v, el) => { set({ acesso: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-          <CampoLabel label="Telefone" valor={d.telefone} placeholder="(00) 00000-0000" onSalvar={(v, el) => { set({ telefone: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="CPF" valor={d.cpf} placeholder="000.000.000-00" onSalvar={(v, el) => { set({ cpf: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="Chave Pix" valor={d.pix} placeholder="E-mail, telefone ou CPF" onSalvar={(v, el) => { set({ pix: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Telefone" valor={d.telefone} formatar={mascararTelefone} onSalvar={(v, el) => { set({ telefone: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="CPF" valor={d.cpf} formatar={mascararCPF} validar={cpfValido} onInvalido={() => setAviso({ titulo: "CPF inválido", texto: "O CPF digitado não é válido. Confira os números e digite novamente." })} onSalvar={(v, el) => { set({ cpf: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Chave Pix" valor={d.pix} onSalvar={(v, el) => { set({ pix: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <CampoLabel label="Data de nascimento" valor={d.nascimento} tipo="date" onSalvar={(v, el) => { set({ nascimento: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
@@ -284,6 +325,63 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
             <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
               <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setUpgrade(false)}>Agora não</button>
               <button className="btn" style={{ flex: 1, justifyContent: "center", background: AMBAR, color: "#3b2e05" }} onClick={() => { setUpgrade(false); irParaPlano?.(); }}>Planos</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* aviso: CPF ou e-mail inválido */}
+      {aviso && (
+        <div onClick={() => setAviso(null)} style={{ position: "fixed", inset: 0, zIndex: 95, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 24, border: `1px solid ${VERMELHO}`, background: "linear-gradient(160deg, rgba(239,68,68,.10), var(--card) 60%)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.16)", color: VERMELHO, flexShrink: 0, fontSize: 20 }}>⚠️</span>
+              <div>
+                <b style={{ fontSize: 15 }}>{aviso.titulo}</b>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>{aviso.texto}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", marginTop: 18 }}>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setAviso(null)}>Entendi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* pop-up: alterar senha (super admin) */}
+      {senhaAberta && (
+        <div onClick={() => setSenhaAberta(false)} style={{ position: "fixed", inset: 0, zIndex: 95, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Lock size={19} /></span>
+              <div>
+                <b style={{ fontSize: 16 }}>Alterar senha</b>
+                <p className="sub" style={{ margin: "2px 0 0", fontSize: 12 }}>Acesso: {loginEmail || "minhasmetricas@gmail.com"}</p>
+              </div>
+            </div>
+
+            <div className="field" style={{ marginTop: 16 }}>
+              <label className="f">Nova senha</label>
+              <input type={verSenha ? "text" : "password"} value={s1} placeholder="Mínimo 6 caracteres" autoFocus
+                onChange={(e) => { setS1(e.target.value); setSenhaErro(""); }} />
+            </div>
+            <div className="field" style={{ marginTop: 10 }}>
+              <label className="f">Confirmar nova senha</label>
+              <input type={verSenha ? "text" : "password"} value={s2} placeholder="Digite a senha novamente"
+                onChange={(e) => { setS2(e.target.value); setSenhaErro(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") salvarSenha(); }} />
+            </div>
+
+            <button onClick={() => setVerSenha((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "none", border: 0, cursor: "pointer", fontFamily: "inherit", color: "var(--muted)", fontSize: 12.5, fontWeight: 600 }}>
+              {verSenha ? <EyeOff size={14} /> : <Eye size={14} />} {verSenha ? "Ocultar senhas" : "Mostrar senhas"}
+            </button>
+
+            {senhaErro && <div className="err" style={{ marginTop: 12 }}>{senhaErro}</div>}
+            {senhaOk && <div className="ok" style={{ marginTop: 12 }}>✅ Senha alterada com sucesso!</div>}
+
+            <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setSenhaAberta(false)}>Cancelar</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={salvarSenha} disabled={senhaOk}>Salvar</button>
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { ImagePlus, Trash2, Hourglass } from "lucide-react";
 import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
+import { mascararTelefone } from "@/lib/format";
 
 function mascaraCnpj(v: string): string {
   const d = v.replace(/\D/g, "").slice(0, 14);
@@ -27,8 +28,18 @@ const SEGMENTOS = [
 
 /* Dados fiscais/bancários extras da empresa. Ficam por empresa no navegador
    (não exigem coluna nova no banco). Chaveado pelo id da empresa. */
-type DadosExtra = { ie: string; email: string; contato: string; endereco: string; banco: string };
-const EXTRA_VAZIO: DadosExtra = { ie: "", email: "", contato: "", endereco: "", banco: "" };
+type DadosExtra = { ie: string; email: string; contato: string; endereco: string; banco: string;
+  cep: string; rua: string; bairro: string; cidade: string; uf: string; numero: string; complemento: string };
+const EXTRA_VAZIO: DadosExtra = { ie: "", email: "", contato: "", endereco: "", banco: "",
+  cep: "", rua: "", bairro: "", cidade: "", uf: "", numero: "", complemento: "" };
+const mascaraCep = (v: string) => { const d = v.replace(/\D/g, "").slice(0, 8); return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; };
+/** Monta o endereço completo (usado nos relatórios) a partir dos campos separados. */
+function comporEndereco(e: DadosExtra): string {
+  const rn = [e.rua, e.numero].filter(Boolean).join(", ");
+  const parte1 = [rn, e.complemento, e.bairro].filter(Boolean).join(", ");
+  const cidUf = [e.cidade, e.uf].filter(Boolean).join("/");
+  return [parte1, cidUf, e.cep].filter(Boolean).join(" · ");
+}
 function chaveExtra(id?: string | null) { return `me_empresa_extra:${id || "default"}`; }
 function lerExtra(id?: string | null): DadosExtra {
   if (typeof window === "undefined") return EXTRA_VAZIO;
@@ -65,6 +76,30 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
   const [cor, setCor] = useState(brand.cor ?? "#1AADE2");
   const [extra, setExtra] = useState<DadosExtra>(() => lerExtra(empresa?.id));
   const upExtra = (p: Partial<DadosExtra>) => setExtra((e) => ({ ...e, ...p }));
+  // altera um campo do endereço e já recompõe o endereço completo (para os relatórios)
+  const upEndereco = (p: Partial<DadosExtra>) => setExtra((e) => { const n = { ...e, ...p }; return { ...n, endereco: comporEndereco(n) }; });
+  const [cepMsg, setCepMsg] = useState<{ tipo: "buscando" | "erro"; texto: string } | null>(null);
+
+  /** Busca o CEP no ViaCEP e preenche rua, bairro, cidade e estado. */
+  async function buscarCep(cepBruto: string) {
+    const c = (cepBruto || "").replace(/\D/g, "");
+    if (c.length !== 8) return;
+    setCepMsg({ tipo: "buscando", texto: "Buscando endereço…" });
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${c}/json/`);
+      const j = await r.json();
+      if (j.erro) { setCepMsg({ tipo: "erro", texto: "CEP não encontrado. Confira o número." }); return; }
+      setExtra((e) => {
+        const n = { ...e, rua: j.logradouro || e.rua, bairro: j.bairro || e.bairro, cidade: j.localidade || e.cidade, uf: j.uf || e.uf };
+        const comEndereco = { ...n, endereco: comporEndereco(n) };
+        salvarExtra(empresa?.id, comEndereco); // já persiste o endereço preenchido
+        return comEndereco;
+      });
+      setCepMsg(null);
+    } catch {
+      setCepMsg({ tipo: "erro", texto: "Não consegui buscar o CEP agora. Tente de novo." });
+    }
+  }
 
   // selinho "Salvo" ao lado do campo, mesmo padrão da Estrutura de Custos
   const [flash, setFlash] = useState<{ top: number; left: number } | null>(null);
@@ -138,16 +173,34 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
                 </select>
               )}
             </div>
-            <div className="field"><label className="f">CNPJ</label><input value={cnpj} onChange={(e) => setCnpj(mascaraCnpj(e.target.value))} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="00.000.000/0000-00" inputMode="numeric" /></div>
+            <div className="field"><label className="f">CNPJ</label><input value={cnpj} onChange={(e) => setCnpj(mascaraCnpj(e.target.value))} onBlur={(e) => salvarCampo(e.currentTarget)} inputMode="numeric" /></div>
           </div>
           {/* E-mail (maior) primeiro, depois Contato e Inscrição Estadual */}
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 14 }}>
-            <div className="field"><label className="f">E-mail principal</label><input value={extra.email} onChange={(e) => upExtra({ email: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="contato@empresa.com" inputMode="email" /></div>
-            <div className="field"><label className="f">Contato</label><input value={extra.contato} onChange={(e) => upExtra({ contato: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="(00) 00000-0000" inputMode="tel" /></div>
+            <div className="field"><label className="f">E-mail principal</label><input value={extra.email} onChange={(e) => upExtra({ email: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} inputMode="email" /></div>
+            <div className="field"><label className="f">Contato</label><input value={extra.contato} onChange={(e) => upExtra({ contato: mascararTelefone(e.target.value) })} onBlur={(e) => salvarCampo(e.currentTarget)} inputMode="tel" /></div>
             <div className="field"><label className="f">Inscrição Estadual</label><input value={extra.ie} onChange={(e) => upExtra({ ie: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Opcional" /></div>
           </div>
+          {/* Endereço: CEP primeiro (preenche rua, bairro, cidade e estado automaticamente) */}
+          <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1.6fr 0.7fr", gap: 14 }}>
+            <div className="field">
+              <label className="f">CEP</label>
+              <input value={extra.cep}
+                onChange={(e) => { const v = mascaraCep(e.target.value); upEndereco({ cep: v }); if (v.replace(/\D/g, "").length === 8) buscarCep(v); }}
+                onBlur={(e) => { buscarCep(e.currentTarget.value); salvarCampo(e.currentTarget); }}
+                inputMode="numeric" />
+              {cepMsg && <span style={{ fontSize: 11.5, marginTop: 5, display: "inline-block", color: cepMsg.tipo === "erro" ? "var(--red)" : "var(--muted)" }}>{cepMsg.texto}</span>}
+            </div>
+            <div className="field"><label className="f">Rua</label><input value={extra.rua} onChange={(e) => upEndereco({ rua: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
+            <div className="field"><label className="f">Número</label><input value={extra.numero} onChange={(e) => upEndereco({ numero: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 0.5fr", gap: 14 }}>
+            <div className="field"><label className="f">Complemento</label><input value={extra.complemento} onChange={(e) => upEndereco({ complemento: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
+            <div className="field"><label className="f">Bairro</label><input value={extra.bairro} onChange={(e) => upEndereco({ bairro: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
+            <div className="field"><label className="f">Cidade</label><input value={extra.cidade} onChange={(e) => upEndereco({ cidade: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
+            <div className="field"><label className="f">Estado</label><input value={extra.uf} onChange={(e) => upEndereco({ uf: e.target.value.toUpperCase().slice(0, 2) })} onBlur={(e) => salvarCampo(e.currentTarget)} maxLength={2} /></div>
+          </div>
           <div className="row">
-            <div className="field"><label className="f">Endereço</label><input value={extra.endereco} onChange={(e) => upExtra({ endereco: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Rua, nº, bairro — Cidade/UF · CEP" /></div>
             <div className="field"><label className="f">Banco · Agência · Conta</label><input value={extra.banco} onChange={(e) => upExtra({ banco: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Ex: Itaú · Ag. 0000 · Conta 00000-0" /></div>
           </div>
         </div>
