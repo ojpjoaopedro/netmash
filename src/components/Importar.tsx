@@ -1,16 +1,15 @@
 "use client";
 import { useState } from "react";
 import * as XLSX from "xlsx-js-style";
-import { addLancamentosLote, Tipo, Empresa } from "@/lib/db";
+import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { brl } from "@/lib/format";
-import { MES, carregarEstrutura } from "@/app/minhasmetricas/financas-estrutura";
+import { MES, carregarEstrutura, Dados } from "@/app/minhasmetricas/financas-estrutura";
 
-/** Lançamento já pronto para importar (extraído da matriz de meses). */
-type Lanc = { tipo: Tipo; descricao: string; categoria: string | null; valor: number; data: string };
-
+const CHAVE = "me_financas_estrutura";
 const ANOS_MODELO = [2026, 2027, 2028];
 const MES_FULL = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const PALETA = ["#1AADE2", "#10B981", "#8b5cf6", "#F59E0B", "#EC4899", "#EF4444", "#0EA5E9", "#14B8A6"];
 
 function round2(n: number) { return Math.round(n * 100) / 100; }
 
@@ -33,7 +32,7 @@ function mesIndex(c: unknown): number {
   return -1;
 }
 
-/* ── Cabeçalho da empresa (mesmo para todas as abas) ───────────────────────── */
+/* ── Modelo (download) ─────────────────────────────────────────────────────── */
 function cabecalhoEmpresa(empresa: Empresa | null, brand?: Brand) {
   const nome = brand?.nome && brand.nome !== "Minha Empresa" ? brand.nome
     : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
@@ -46,7 +45,6 @@ function cabecalhoEmpresa(empresa: Empresa | null, brand?: Brand) {
 
 type Papel = "titulo" | "kv" | "vazio" | "cabecalho" | "secao" | "grupo" | "item";
 
-/** Monta a matriz de um ano (meses nas colunas, itens nas linhas) + o papel de cada linha (p/ formatar). */
 function montarMatriz(ano: number, comValores: boolean, cab: ReturnType<typeof cabecalhoEmpresa>) {
   const d = carregarEstrutura();
   const aoa: (string | number)[][] = [];
@@ -81,9 +79,8 @@ function toARGB(hex?: string) {
   return "FF" + h.toUpperCase();
 }
 
-/** Aplica as cores/bordas na planilha (título, cabeçalho, seções e bordas nas células preenchidas). */
 function estilizar(ws: XLSX.WorkSheet, papeis: Papel[], brandHex?: string) {
-  const N = 1 + 12; // Item + 12 meses
+  const N = 1 + 12;
   const brand = toARGB(brandHex);
   const b = { style: "thin", color: { rgb: "FFCBD5E1" } } as const;
   const bordas = { top: b, bottom: b, left: b, right: b };
@@ -114,13 +111,129 @@ function estilizar(ws: XLSX.WorkSheet, papeis: Papel[], brandHex?: string) {
   }
 }
 
+/* ── Leitura da planilha enviada ───────────────────────────────────────────── */
+type ItemV = { nome: string; v: number[] };
+type UpDados = { receitas: ItemV[]; grupos: { nome: string; itens: ItemV[] }[] };
+
+/** Lê uma aba (matriz) e devolve receitas + grupos de custo, cada item com seus 12 meses. */
+function parseAba(ws: XLSX.WorkSheet): UpDados | null {
+  const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+  let hr = -1; let mesCols: Record<number, number> = {};
+  for (let i = 0; i < aoa.length; i++) {
+    const cols: Record<number, number> = {}; let cnt = 0;
+    (aoa[i] || []).forEach((c, ci) => { const mi = mesIndex(c); if (mi >= 0) { cols[ci] = mi; cnt++; } });
+    if (cnt >= 3) { hr = i; mesCols = cols; break; }
+  }
+  if (hr < 0) return null;
+  const hrow = aoa[hr] || [];
+  let itemCol = hrow.findIndex((c) => /item|descri|nome/i.test(String(c)));
+  if (itemCol < 0) itemCol = 0;
+
+  const up: UpDados = { receitas: [], grupos: [] };
+  let modo: "receita" | "custo" = "receita";
+  let grupoAtual = "";
+  for (let i = hr + 1; i < aoa.length; i++) {
+    const row = aoa[i] || [];
+    const nome = String(row[itemCol] || "").trim();
+    if (!nome) continue;
+    const cels = Object.entries(mesCols).map(([ci, mi]) => ({ mi, raw: row[Number(ci)] }));
+    const temValor = cels.some((c) => String(c.raw ?? "").trim() !== "");
+    if (!temValor) { // linha de seção (RECEITAS / bloco) ou grupo
+      if (/receita/i.test(nome)) modo = "receita";
+      else { modo = "custo"; grupoAtual = nome; }
+      continue;
+    }
+    const v = Array(12).fill(0);
+    for (const c of cels) v[c.mi] = round2(parseValor(c.raw));
+    if (modo === "receita") up.receitas.push({ nome, v });
+    else {
+      let g = up.grupos.find((x) => x.nome === grupoAtual);
+      if (!g) { g = { nome: grupoAtual || "Custos", itens: [] }; up.grupos.push(g); }
+      g.itens.push({ nome, v });
+    }
+  }
+  return up;
+}
+
+/* ── Comparação com a Estrutura atual ──────────────────────────────────────── */
+type Status = "novo" | "alterado" | "removido";
+type Diff = { status: Status; tipo: "receita" | "despesa"; categoria: string; nome: string; vDe: number[] | null; vPara: number[] | null };
+
+const difere = (a: number[], b: number[]) => MES.some((_, m) => round2(a[m] || 0) !== round2(b[m] || 0));
+const soma = (v: number[]) => v.reduce((s, x) => s + (x || 0), 0);
+
+function comparar(base: Dados, up: UpDados): Diff[] {
+  const diffs: Diff[] = [];
+  // Receitas
+  const baseRec = new Map(base.receitas.map((r) => [r.nome, r.v]));
+  const upRec = new Map(up.receitas.map((r) => [r.nome, r.v]));
+  for (const r of up.receitas) {
+    const b = baseRec.get(r.nome);
+    if (!b) diffs.push({ status: "novo", tipo: "receita", categoria: "Receitas", nome: r.nome, vDe: null, vPara: r.v });
+    else if (difere(b, r.v)) diffs.push({ status: "alterado", tipo: "receita", categoria: "Receitas", nome: r.nome, vDe: b, vPara: r.v });
+  }
+  for (const r of base.receitas) if (!upRec.has(r.nome)) diffs.push({ status: "removido", tipo: "receita", categoria: "Receitas", nome: r.nome, vDe: r.v, vPara: null });
+
+  // Custos (por grupo + nome)
+  const chave = (g: string, n: string) => `${g}||${n}`;
+  const baseCus = new Map<string, { grupo: string; v: number[] }>();
+  base.custos.forEach((bl) => bl.grupos.forEach((g) => g.itens.forEach((it) => baseCus.set(chave(g.nome, it.nome), { grupo: g.nome, v: it.v }))));
+  const upCus = new Map<string, { grupo: string; v: number[] }>();
+  up.grupos.forEach((g) => g.itens.forEach((it) => upCus.set(chave(g.nome, it.nome), { grupo: g.nome, v: it.v })));
+  for (const [k, u] of upCus) {
+    const b = baseCus.get(k);
+    if (!b) diffs.push({ status: "novo", tipo: "despesa", categoria: u.grupo, nome: k.split("||")[1], vDe: null, vPara: u.v });
+    else if (difere(b.v, u.v)) diffs.push({ status: "alterado", tipo: "despesa", categoria: u.grupo, nome: k.split("||")[1], vDe: b.v, vPara: u.v });
+  }
+  for (const [k, b] of baseCus) if (!upCus.has(k)) diffs.push({ status: "removido", tipo: "despesa", categoria: b.grupo, nome: k.split("||")[1], vDe: b.v, vPara: null });
+  return diffs;
+}
+
+/** Aplica a planilha na Estrutura: atualiza/adiciona/remove itens e devolve a nova Estrutura. */
+function aplicarNaEstrutura(base: Dados, up: UpDados): Dados {
+  const novo: Dados = structuredClone(base);
+  let corIdx = 0;
+  const proxCor = () => PALETA[corIdx++ % PALETA.length];
+
+  // Receitas: mantém só as que estão na planilha, atualiza valores, adiciona novas
+  const upRecNomes = new Set(up.receitas.map((r) => r.nome));
+  novo.receitas = novo.receitas.filter((r) => upRecNomes.has(r.nome));
+  for (const ur of up.receitas) {
+    const ex = novo.receitas.find((r) => r.nome === ur.nome);
+    if (ex) ex.v = ur.v.slice();
+    else novo.receitas.push({ nome: ur.nome, cor: proxCor(), v: ur.v.slice() });
+  }
+
+  // Custos: sincroniza item a item dentro de cada grupo existente
+  for (const bl of novo.custos) for (const g of bl.grupos) {
+    const ug = up.grupos.find((x) => x.nome === g.nome);
+    const nomesUp = new Set(ug ? ug.itens.map((i) => i.nome) : []);
+    g.itens = g.itens.filter((it) => nomesUp.has(it.nome));
+    if (ug) for (const ui of ug.itens) {
+      const ex = g.itens.find((it) => it.nome === ui.nome);
+      if (ex) ex.v = ui.v.slice();
+      else g.itens.push({ nome: ui.nome, v: ui.v.slice() });
+    }
+  }
+  // grupos novos (que não existem na Estrutura) entram no primeiro bloco
+  const gruposBase = new Set(novo.custos.flatMap((bl) => bl.grupos.map((g) => g.nome)));
+  const novosGrupos = up.grupos.filter((g) => g.itens.length && !gruposBase.has(g.nome));
+  if (novosGrupos.length) {
+    if (!novo.custos.length) novo.custos.push({ nome: "Custos", grupos: [] });
+    const bloco = novo.custos[0];
+    for (const g of novosGrupos) bloco.grupos.push({ nome: g.nome, cor: proxCor(), itens: g.itens.map((i) => ({ nome: i.nome, v: i.v.slice() })) });
+  }
+  return novo;
+}
+
+/* ── Componente ────────────────────────────────────────────────────────────── */
 export default function Importar({ reload, empresa = null, brand }: { reload: () => void; empresa?: Empresa | null; brand?: Brand }) {
-  const [prev, setPrev] = useState<Lanc[]>([]);
+  const [diffs, setDiffs] = useState<Diff[] | null>(null);
+  const [upDados, setUpDados] = useState<UpDados | null>(null);
   const [nomeArq, setNomeArq] = useState("");
   const [erro, setErro] = useState("");
   const [okMsg, setOkMsg] = useState("");
-  const [importando, setImportando] = useState(false);
-  const [pago, setPago] = useState(true);
+  const [aplicando, setAplicando] = useState(false);
   const [arrastando, setArrastando] = useState(false);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -133,73 +246,38 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
     if (file) processar(file);
   }
 
-  /** Lê todas as abas (2026/2027/2028…) e extrai os lançamentos da matriz. */
-  function extrair(wb: XLSX.WorkBook): Lanc[] {
-    const out: Lanc[] = [];
-    const anoPadrao = 2026;
-    for (const nomeAba of wb.SheetNames) {
-      const ws = wb.Sheets[nomeAba];
-      const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
-      // acha a linha de cabeçalho (a que tem os meses)
-      let hr = -1; let mesCols: Record<number, number> = {};
-      for (let i = 0; i < aoa.length; i++) {
-        const cols: Record<number, number> = {}; let cnt = 0;
-        (aoa[i] || []).forEach((c, ci) => { const mi = mesIndex(c); if (mi >= 0) { cols[ci] = mi; cnt++; } });
-        if (cnt >= 3) { hr = i; mesCols = cols; break; }
-      }
-      if (hr < 0) continue;
-      // ano: pelo nome da aba, senão pelo título
-      let ano = /^20\d\d$/.test(nomeAba.trim()) ? Number(nomeAba.trim()) : 0;
-      if (!ano) for (let i = 0; i < hr; i++) { const m = String((aoa[i] || []).join(" ")).match(/20\d\d/); if (m) { ano = Number(m[0]); break; } }
-      if (!ano) ano = anoPadrao;
-      const hrow = aoa[hr] || [];
-      let itemCol = hrow.findIndex((c) => /item|descri|nome/i.test(String(c)));
-      if (itemCol < 0) itemCol = 0;
-
-      let modo: Tipo = "receita"; let categoria = "Receitas";
-      for (let i = hr + 1; i < aoa.length; i++) {
-        const row = aoa[i] || [];
-        const nome = String(row[itemCol] || "").trim();
-        if (!nome) continue;
-        const vals: [number, number][] = [];
-        for (const ci in mesCols) { const v = parseValor(row[Number(ci)]); if (v > 0) vals.push([mesCols[ci], v]); }
-        if (!vals.length) { // linha de seção ou grupo
-          if (/receita/i.test(nome)) { modo = "receita"; categoria = "Receitas"; }
-          else { modo = "despesa"; categoria = nome; }
-          continue;
-        }
-        for (const [mi, v] of vals) {
-          out.push({ tipo: modo, descricao: nome.slice(0, 200), categoria, valor: v, data: `${ano}-${String(mi + 1).padStart(2, "0")}-01` });
-        }
-      }
-    }
-    return out;
-  }
-
   async function processar(file: File) {
-    setErro(""); setOkMsg(""); setNomeArq(file.name);
+    setErro(""); setOkMsg(""); setNomeArq(file.name); setDiffs(null); setUpDados(null);
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array", cellDates: true });
-      const lancs = extrair(wb);
-      if (!lancs.length) { setErro("Não encontrei valores na planilha. Use o modelo (meses nas colunas, itens nas linhas)."); setPrev([]); return; }
-      setPrev(lancs);
+      // usa a aba "2026" (ou a primeira aba com valores) — a Estrutura é de um ano
+      let up: UpDados | null = null;
+      const preferida = wb.SheetNames.find((n) => n.trim() === "2026");
+      const ordem = preferida ? [preferida, ...wb.SheetNames.filter((n) => n !== preferida)] : wb.SheetNames;
+      for (const nome of ordem) {
+        const p = parseAba(wb.Sheets[nome]);
+        if (p && (p.receitas.some((r) => soma(r.v) > 0) || p.grupos.some((g) => g.itens.some((i) => soma(i.v) > 0)))) { up = p; break; }
+      }
+      if (!up) { setErro("Não encontrei valores na planilha. Use o modelo (meses nas colunas, itens nas linhas)."); return; }
+      const d = comparar(carregarEstrutura(), up);
+      setUpDados(up); setDiffs(d);
     } catch {
       setErro("Não consegui ler o arquivo. Use Excel (.xlsx) ou CSV.");
     }
   }
 
-  async function importar() {
-    setImportando(true); setErro(""); setOkMsg("");
-    const lotes = prev.map((o) => ({
-      tipo: o.tipo, descricao: o.descricao || "Importado", categoria: o.categoria || null,
-      valor: o.valor, data_competencia: o.data, vencimento: o.data,
-      pago, data_pagamento: pago ? o.data : null, forma: null, contato: null, origem: "planilha",
-    }));
-    await addLancamentosLote(lotes);
-    setImportando(false);
-    setOkMsg(`✅ ${lotes.length} lançamento(s) importado(s) com sucesso!`);
-    setPrev([]); setNomeArq("");
+  function aplicar() {
+    if (!upDados) return;
+    setAplicando(true); setErro(""); setOkMsg("");
+    const nova = aplicarNaEstrutura(carregarEstrutura(), upDados);
+    try {
+      localStorage.setItem(CHAVE, JSON.stringify(nova));
+      window.dispatchEvent(new Event("me:estrutura"));
+    } catch { /* ignore */ }
+    setAplicando(false);
+    setOkMsg(`✅ Estrutura atualizada! ${diffs?.length || 0} alteração(ões) aplicada(s).`);
+    setDiffs(null); setUpDados(null); setNomeArq("");
     reload();
   }
 
@@ -207,13 +285,27 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
     const cab = cabecalhoEmpresa(empresa, brand);
     const wb = XLSX.utils.book_new();
     ANOS_MODELO.forEach((ano, i) => {
-      const { aoa, papeis } = montarMatriz(ano, i === 0, cab); // só a aba 2026 vem preenchida
+      const { aoa, papeis } = montarMatriz(ano, i === 0, cab);
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       estilizar(ws, papeis, brand?.cor);
       XLSX.utils.book_append_sheet(wb, ws, String(ano));
     });
     XLSX.writeFile(wb, "minhas-metricas-estrutura.xlsx");
   }
+
+  const COR: Record<Status, string> = { novo: "#10B981", alterado: "#F59E0B", removido: "#EF4444" };
+  const ROTULO: Record<Status, string> = { novo: "Novo", alterado: "Alterado", removido: "Removido" };
+  const resumo = (d: Diff) => {
+    if (d.status === "removido") return "Linha apagada da planilha";
+    if (d.status === "novo") {
+      const ms = (d.vPara || []).map((x, m) => (x ? `${MES[m]} ${brl(x)}` : null)).filter(Boolean);
+      return ms.length ? ms.join(", ") : "Linha adicionada";
+    }
+    const ms: string[] = [];
+    for (let m = 0; m < 12; m++) if (round2(d.vDe![m] || 0) !== round2(d.vPara![m] || 0)) ms.push(`${MES[m]}: ${brl(d.vDe![m] || 0)} → ${brl(d.vPara![m] || 0)}`);
+    return ms.join("   ·   ");
+  };
+  const totalNovo = (d: Diff) => (d.vPara ? soma(d.vPara) : 0);
 
   return (
     <>
@@ -230,7 +322,7 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
           <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "rgba(26,173,226,.16)", color: "var(--brand)", fontWeight: 800 }}>i</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <b style={{ fontSize: 15 }}>Como deve ser seu arquivo</b>
-            <p className="sub" style={{ marginTop: 4, lineHeight: 1.55 }}>O modelo tem uma aba para cada ano (2026, 2027 e 2028), com os <b>meses nas colunas</b> e os <b>itens nas linhas</b> para facilitar o preenchimento. A aba de 2026 já vem preenchida com a sua <b>Estrutura de Receitas e Custos</b>. É só completar os meses que faltam.</p>
+            <p className="sub" style={{ marginTop: 4, lineHeight: 1.55 }}>O modelo tem uma aba para cada ano (2026, 2027 e 2028), com os <b>meses nas colunas</b> e os <b>itens nas linhas</b>. A aba de 2026 já vem preenchida com a sua <b>Estrutura de Receitas e Custos</b>. Edite os valores, adicione ou apague linhas e suba de volta: o sistema mostra só o que mudou.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
               <button className="btn" onClick={baixarExcel} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 14 }}>📊 Baixar arquivo Excel</button>
             </div>
@@ -256,7 +348,7 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
           {nomeArq ? (
             <>
               <b style={{ fontSize: 14.5 }}>📄 {nomeArq}</b>
-              <span className="sub" style={{ fontSize: 12.5 }}>{prev.length} lançamento(s) encontrado(s) · clique ou arraste para trocar</span>
+              <span className="sub" style={{ fontSize: 12.5 }}>{diffs ? `${diffs.length} alteração(ões) encontrada(s)` : "processando…"} · clique ou arraste para trocar</span>
             </>
           ) : (
             <>
@@ -267,32 +359,35 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
         </label>
       </div>
 
-      {prev.length > 0 && (
+      {diffs && diffs.length === 0 && (
         <div className="card">
-          <h3>Confira antes de importar ({prev.length} lançamento(s))</h3>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, margin: "10px 0 14px", cursor: "pointer", fontWeight: 600 }}>
-            <input type="checkbox" checked={pago} onChange={(e) => setPago(e.target.checked)} style={{ width: 18, height: 18 }} />
-            Marcar como já pago/recebido (entra no caixa). Desmarque para virar contas em aberto.
-          </label>
+          <b style={{ fontSize: 15 }}>Nenhuma diferença encontrada</b>
+          <p className="sub" style={{ marginTop: 6 }}>A planilha está igual à Estrutura de Receitas e Custos atual. Edite valores ou adicione/apague linhas para ver as mudanças aqui.</p>
+        </div>
+      )}
+
+      {diffs && diffs.length > 0 && (
+        <div className="card">
+          <h3>Confira o que mudou ({diffs.length} alteração(ões))</h3>
+          <p className="sub" style={{ margin: "4px 0 12px" }}>Só aparecem os itens que foram adicionados, alterados ou apagados. Ao aplicar, sua Estrutura de Receitas e Custos é atualizada.</p>
           <div style={{ overflowX: "auto" }}>
             <table className="table">
-              <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th className="num">Valor</th></tr></thead>
+              <thead><tr><th>Situação</th><th>Item</th><th>Categoria</th><th>O que mudou</th><th className="num">Novo total</th></tr></thead>
               <tbody>
-                {prev.slice(0, 8).map((l, i) => (
+                {diffs.map((d, i) => (
                   <tr key={i}>
-                    <td className="mono">{l.data}</td>
-                    <td>{l.descricao}</td>
-                    <td><span className={`chip ${l.tipo === "receita" ? "green" : "red"}`}>{l.tipo}</span></td>
-                    <td>{l.categoria || "-"}</td>
-                    <td className="num" style={{ color: l.tipo === "receita" ? "var(--green)" : "var(--red)" }}>{brl(l.valor)}</td>
+                    <td><span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 99, fontSize: 11.5, fontWeight: 800, color: "#fff", background: COR[d.status] }}>{ROTULO[d.status]}</span></td>
+                    <td style={{ textDecoration: d.status === "removido" ? "line-through" : "none", opacity: d.status === "removido" ? .7 : 1 }}>{d.nome}</td>
+                    <td>{d.categoria}</td>
+                    <td className="sub" style={{ fontSize: 12.5 }}>{resumo(d)}</td>
+                    <td className="num" style={{ color: d.tipo === "receita" ? "var(--green)" : "var(--red)" }}>{d.status === "removido" ? "-" : brl(totalNovo(d))}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {prev.length > 8 && <p className="sub" style={{ marginTop: 10 }}>Mostrando os 8 primeiros de {prev.length}.</p>}
-          <button className="btn" onClick={importar} disabled={importando} style={{ marginTop: 12 }}>
-            {importando ? "Importando…" : `✅ Importar ${prev.length} lançamento(s)`}
+          <button className="btn" onClick={aplicar} disabled={aplicando} style={{ marginTop: 14 }}>
+            {aplicando ? "Aplicando…" : `✅ Aplicar ${diffs.length} alteração(ões) na Estrutura`}
           </button>
         </div>
       )}
