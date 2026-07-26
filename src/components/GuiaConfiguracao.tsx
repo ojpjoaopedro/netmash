@@ -49,7 +49,7 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
   const calOK = Array.isArray(cal) && cal.length >= 1;
 
   const itens: Item[] = [
-    { key: "super", label: "Preencher dados do SUPERADMIN", feito: superOK, nav: { view: "config", aba: "usuarios" } },
+    { key: "super", label: "Preencher dados do SuperAdmin", feito: superOK, nav: { view: "config", aba: "usuarios" } },
     { key: "empresa", label: "Preencher dados da empresa", feito: empresaOK, nav: { view: "config", aba: "dados" } },
     { key: "logo", label: "Cadastrar a logomarca", feito: logoOK, nav: { view: "config", aba: "personalizacao" } },
     { key: "equipe", label: "Cadastrar 1 membro da equipe", feito: equipeOK, nav: { view: "config", aba: "equipe" } },
