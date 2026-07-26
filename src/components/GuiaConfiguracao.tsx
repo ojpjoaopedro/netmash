@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Circle, ChevronRight, Minus, Sparkles, PartyPopper } from "lucide-react";
+import { CheckCircle2, Circle, ChevronRight, Minus, Sparkles, PartyPopper, X } from "lucide-react";
 import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { navegar, AlvoNav } from "@/lib/nav";
@@ -126,54 +126,33 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
   }, [tudoOK, montado]);
 
   // comemora só na virada de incompleto -> completo (não repete a cada render)
-  const [celebrar, setCelebrar] = useState(false);
+  const [confetti, setConfetti] = useState(false);
+  const [recado, setRecado] = useState(false);
   const anteriorOK = useRef<boolean | null>(null);
   useEffect(() => {
     if (!montado) return;
     if (anteriorOK.current === null) { anteriorOK.current = tudoOK; return; }  // 1ª leitura não comemora
     if (tudoOK && !anteriorOK.current) {
-      setCelebrar(true);
+      setConfetti(true); setRecado(true);
       if (somLigado()) tocarParabens();
-      window.setTimeout(() => setCelebrar(false), 4500);
+      window.setTimeout(() => setConfetti(false), 4500);   // confete some sozinho; o recado só sai no X
     }
     anteriorOK.current = tudoOK;
   }, [tudoOK, montado]);
 
   if (!montado) return null;
-  if (celebrar) {
-    return (
-      <>
-        <Confete />
-        <div style={{ position: "fixed", left: "50%", top: 90, transform: "translateX(-50%)", zIndex: 201, maxWidth: "calc(100vw - 32px)",
-          display: "flex", alignItems: "center", gap: 12, padding: "16px 22px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--line-2)", boxShadow: "0 20px 50px -12px rgba(0,0,0,.5)" }}>
-          <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff" }}><PartyPopper size={22} /></span>
-          <div>
-            <b style={{ fontSize: 15.5 }}>Parabéns! Configuração concluída 🎉</b>
-            <p className="sub" style={{ margin: "3px 0 0", fontSize: 12.5 }}>Seus benefícios foram liberados como recompensa. Confira em Configurações › Meus Benefícios.</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-  if (tudoOK) return null;
 
   const trocarMin = (v: boolean) => { setMin(v); try { localStorage.setItem(KEY_MIN, v ? "1" : "0"); } catch { /* ignore */ } };
   const ir = (a: AlvoNav) => navegar(a);
 
-  // pílula minimizada
-  if (min) {
-    return (
-      <button onClick={() => trocarMin(false)}
-        style={{ position: "fixed", right: 20, bottom: 20, zIndex: 80, display: "inline-flex", alignItems: "center", gap: 10, padding: "11px 16px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", boxShadow: "0 12px 30px -10px rgba(0,0,0,.4)" }}>
-        <Sparkles size={16} style={{ color: "var(--brand)" }} /> Guia de configuração
-        <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", padding: "2px 8px", borderRadius: 99 }}>{feitos}/{total}</span>
-      </button>
-    );
-  }
-
-  return (
+  const guia = tudoOK ? null : (min ? (
+    <button onClick={() => trocarMin(false)}
+      style={{ position: "fixed", right: 20, bottom: 20, zIndex: 80, display: "inline-flex", alignItems: "center", gap: 10, padding: "11px 16px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", boxShadow: "0 12px 30px -10px rgba(0,0,0,.4)" }}>
+      <Sparkles size={16} style={{ color: "var(--brand)" }} /> Guia de configuração
+      <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", padding: "2px 8px", borderRadius: 99 }}>{feitos}/{total}</span>
+    </button>
+  ) : (
     <div style={{ position: "fixed", right: 20, bottom: 20, zIndex: 80, width: 288, maxWidth: "calc(100vw - 40px)", borderRadius: 16, overflow: "hidden", background: "var(--card)", border: "2px solid var(--line-2)", boxShadow: "0 20px 50px -12px rgba(0,0,0,.5)" }}>
-      {/* cabeçalho */}
       <div style={{ padding: "12px 14px 10px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <b style={{ fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 7 }}><Sparkles size={15} style={{ color: "var(--brand)" }} /> Guia de configuração</b>
@@ -186,8 +165,6 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
           <span style={{ fontSize: 11, fontWeight: 800, color: "var(--muted)" }}>{feitos}/{total}</span>
         </div>
       </div>
-
-      {/* lista de etapas dentro de uma caixa cinza (estilo print) */}
       <div style={{ margin: "0 10px 10px", padding: 5, borderRadius: 12, background: "var(--bg-2)", border: "1px solid var(--line-2)" }}>
         {itens.map((it) => (
           <button key={it.key} onClick={() => ir(it.nav)}
@@ -203,5 +180,23 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
         ))}
       </div>
     </div>
+  ));
+
+  return (
+    <>
+      {confetti && <Confete />}
+      {recado && (
+        <div style={{ position: "fixed", left: "50%", top: 90, transform: "translateX(-50%)", zIndex: 201, maxWidth: "calc(100vw - 32px)",
+          display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 18px 16px 22px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--line-2)", boxShadow: "0 20px 50px -12px rgba(0,0,0,.5)" }}>
+          <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff" }}><PartyPopper size={22} /></span>
+          <div style={{ maxWidth: 380 }}>
+            <b style={{ fontSize: 15.5 }}>Parabéns! Configuração concluída 🎉</b>
+            <p className="sub" style={{ margin: "3px 0 0", fontSize: 12.5 }}>Seus benefícios foram liberados como recompensa. Confira em Configurações › Meus Benefícios.</p>
+          </div>
+          <button onClick={() => setRecado(false)} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 8, flexShrink: 0 }}><X size={17} /></button>
+        </div>
+      )}
+      {guia}
+    </>
   );
 }

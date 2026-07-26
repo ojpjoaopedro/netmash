@@ -294,6 +294,9 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .period button{background:transparent;border:0;color:var(--muted);padding:7px 14px;border-radius:999px;
   cursor:pointer;font-weight:600;font-size:13px}
 .period button.active{background:var(--brand);color:var(--brand-ct,#fff)}
+/* destaque temporário (5s) na aba Meus Benefícios ao concluir o guia */
+@keyframes pulso-benef{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 55%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+.destaque-benef{border-radius:9px;background:color-mix(in srgb,var(--brand) 16%,transparent)!important;color:var(--brand)!important;animation:pulso-benef 1.1s ease-out 4}
 .err{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3);
   padding:10px 12px;border-radius:11px;font-size:13.5px;font-weight:600;margin-bottom:14px}
 .ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(16,185,129,.3);

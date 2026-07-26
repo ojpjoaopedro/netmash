@@ -554,6 +554,17 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
     const a = pegarAlvo(); if (a?.view === "config" && a.aba) setAba(a.aba as AbaCfg);
     return assinarNav((b) => { if (b.view === "config" && b.aba) setAba(b.aba as AbaCfg); });
   }, []);
+  // ao concluir o guia, destaca a aba Meus Benefícios por 5s
+  const [destaqueBenef, setDestaqueBenef] = useState(false);
+  useEffect(() => {
+    const onConcluido = () => {
+      if (typeof window !== "undefined" && localStorage.getItem("me_guia_concluido") === "1") {
+        setDestaqueBenef(true); window.setTimeout(() => setDestaqueBenef(false), 5000);
+      }
+    };
+    window.addEventListener("me:guia-concluido", onConcluido);
+    return () => window.removeEventListener("me:guia-concluido", onConcluido);
+  }, []);
   const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
     { key: "usuarios", label: "Meus Usuários", Icon: UserCog },
     { key: "dados", label: "Dados da Empresa", Icon: Building2 },
@@ -585,7 +596,8 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
       {/* barra de abas */}
       <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         {abas.map((a) => (
-          <button key={a.key} onClick={() => setAba(a.key)} style={tab(aba === a.key)}>
+          <button key={a.key} onClick={() => setAba(a.key)} style={tab(aba === a.key)}
+            className={a.key === "beneficios" && destaqueBenef ? "destaque-benef" : undefined}>
             <a.Icon size={16} /> {a.label}
           </button>
         ))}
