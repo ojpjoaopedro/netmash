@@ -165,6 +165,23 @@ export function brParaISO(v: string): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/**
+ * Valida uma data dd/mm/aaaa. Retorna o ISO e uma mensagem de erro (vazia se ok).
+ * Recusa dia/mês inexistentes (ex: 31/02) e datas no futuro.
+ */
+export function validarDataBR(v: string): { iso: string; erro: string } {
+  const s = (v || "").trim();
+  if (!s) return { iso: "", erro: "" };
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return { iso: "", erro: "Data incompleta. Use dd/mm/aaaa." };
+  const d = +m[1], mo = +m[2], y = +m[3];
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return { iso: "", erro: "Data inválida. Confira o dia e o mês." };
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  if (dt.getTime() > hoje.getTime()) return { iso: "", erro: "A data não pode estar no futuro." };
+  return { iso: `${m[3]}-${m[2]}-${m[1]}`, erro: "" };
+}
+
 export function uid(): string {
   return "id-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }

@@ -4,7 +4,7 @@ import {
   Shield, Crown, Plus, Trash2, X, Check,
   Eye, EyeOff, Lock, SlidersHorizontal, LayoutDashboard, DollarSign, Megaphone, Sparkles, Compass, Presentation, Settings,
 } from "lucide-react";
-import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
+import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
 
 const AZUL = "#1AADE2", VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF4444";
 
@@ -57,29 +57,37 @@ function resumoPerm(p: Perm): string {
 
 /** Campo editável (parece texto, salva ao sair do foco). */
 /** Campo com rótulo no padrão do formulário "Dados da empresa" (salva ao sair, com flash). */
-function CampoLabel({ label, valor, onSalvar, placeholder, tipo, disabled, lock, onFocar, onDesfocar, formatar, validar, onInvalido }: {
+function CampoLabel({ label, valor, onSalvar, placeholder, tipo, disabled, lock, onFocar, onDesfocar, formatar, validar, onInvalido, erroData: erroExterno, onErroData }: {
   label: string; valor: string; onSalvar?: (v: string, el: HTMLElement) => void; placeholder?: string; tipo?: string;
   disabled?: boolean; lock?: boolean; onFocar?: () => void; onDesfocar?: () => void;
   formatar?: (v: string) => string; validar?: (v: string) => boolean; onInvalido?: () => void;
+  erroData?: string; onErroData?: (m: string) => void;
 }) {
   const ehData = tipo === "date";
+  const [erroLocal, setErroLocal] = useState("");
+  // se o pai controlar o erro (para sobreviver a re-render), usa ele; senão, estado local
+  const erroData = onErroData ? (erroExterno || "") : erroLocal;
+  const setErroData = onErroData || setErroLocal;
   return (
     <div className="field">
       <label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{label}{lock && <Lock size={11} style={{ opacity: .6 }} />}</label>
       {disabled
         ? <input value={valor} readOnly title="Definido pelo login, não editável" style={{ opacity: .8, cursor: "default" }} />
         : ehData
-          ? <input defaultValue={isoParaBR(valor)} placeholder="dd/mm/aaaa" inputMode="numeric" maxLength={10}
-              onInput={(e) => { e.currentTarget.value = mascararDataBR(e.currentTarget.value); }}
-              onFocus={() => onFocar?.()}
-              onBlur={(e) => {
-                onDesfocar?.();
-                const v = e.target.value.trim();
-                const iso = brParaISO(v);
-                if (v === "") { if (valor) onSalvar?.("", e.currentTarget); return; }
-                if (!iso) { e.target.value = isoParaBR(valor); return; }   // data incompleta/inválida: volta ao valor anterior
-                if (iso !== valor) onSalvar?.(iso, e.currentTarget);
-              }} />
+          ? <>
+              <input defaultValue={isoParaBR(valor)} placeholder="dd/mm/aaaa" inputMode="numeric" maxLength={10}
+                style={erroData ? { borderColor: "var(--red)" } : undefined}
+                onInput={(e) => { e.currentTarget.value = mascararDataBR(e.currentTarget.value); if (erroData) setErroData(""); }}
+                onFocus={() => onFocar?.()}
+                onBlur={(e) => {
+                  onDesfocar?.();
+                  const { iso, erro } = validarDataBR(e.target.value);
+                  setErroData(erro);
+                  if (erro) return;                                    // inválida/futura: mostra recado, não salva
+                  if (iso !== valor) onSalvar?.(iso, e.currentTarget);
+                }} />
+              {erroData && <span style={{ color: "var(--red)", fontSize: 11.5, marginTop: 5, display: "inline-block" }}>{erroData}</span>}
+            </>
           : <input defaultValue={valor} placeholder={placeholder} type={tipo || "text"}
               onInput={(e) => { if (formatar) e.currentTarget.value = formatar(e.currentTarget.value); }}
               onFocus={() => onFocar?.()}
@@ -124,6 +132,9 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
   };
   const [aExcluir, setAExcluir] = useState<Diretor | null>(null);
   const [aviso, setAviso] = useState<{ titulo: string; texto: string } | null>(null);
+  // erros de data ficam aqui no pai (o Card remonta e apagaria o estado local)
+  const [errosData, setErrosData] = useState<Record<string, string>>({});
+  const setErroData = (k: string, m: string) => setErrosData((x) => ({ ...x, [k]: m }));
   const [upgrade, setUpgrade] = useState(false);
   // alterar senha (super admin)
   const [senhaAberta, setSenhaAberta] = useState(false);
@@ -194,8 +205,8 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
           <CampoLabel label="Chave Pix" valor={d.pix} onSalvar={(v, el) => { set({ pix: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-          <CampoLabel label="Data de nascimento" valor={d.nascimento} tipo="date" onSalvar={(v, el) => { set({ nascimento: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="Data de admissão" valor={d.admissao || ""} tipo="date" onSalvar={(v, el) => { set({ admissao: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Data de nascimento" valor={d.nascimento} tipo="date" erroData={errosData[`${d.id}:nasc`]} onErroData={(m) => setErroData(`${d.id}:nasc`, m)} onSalvar={(v, el) => { set({ nascimento: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Data de admissão" valor={d.admissao || ""} tipo="date" erroData={errosData[`${d.id}:adm`]} onErroData={(m) => setErroData(`${d.id}:adm`, m)} onSalvar={(v, el) => { set({ admissao: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
         </div>
 
         {!sup && (

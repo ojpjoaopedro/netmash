@@ -1,7 +1,32 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Cake, Award, Share2, Copy, Check, Quote, Sparkles } from "lucide-react";
+import { Cake, Award, Instagram, Copy, Check, Quote, Sparkles } from "lucide-react";
 import { Funcionario } from "@/lib/db";
+
+/** Caminho arredondado (retângulo com cantos) para o canvas do story. */
+function retanguloArredondado(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** Quebra o texto em linhas que cabem na largura dada. */
+function quebrarLinhas(ctx: CanvasRenderingContext2D, texto: string, maxLargura: number): string[] {
+  const palavras = texto.split(" ");
+  const linhas: string[] = [];
+  let atual = "";
+  for (const p of palavras) {
+    const teste = atual ? `${atual} ${p}` : p;
+    if (ctx.measureText(teste).width > maxLargura && atual) { linhas.push(atual); atual = p; }
+    else atual = teste;
+  }
+  if (atual) linhas.push(atual);
+  return linhas;
+}
 
 function saudacao() { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; }
 function dataHoje() {
@@ -62,8 +87,62 @@ function PulsoDoDia() {
   async function copiar() {
     try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2000); } catch { /* ignore */ }
   }
-  function whatsapp() {
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+  /** Gera a imagem no tamanho de story (1080x1920) e compartilha (ou baixa). */
+  async function instagram() {
+    if (!frase) return;
+    const w = 1080, h = 1920;
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const ctx = cv.getContext("2d"); if (!ctx) return;
+
+    // fundo preto
+    ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, w, h);
+
+    // retângulo central com sombra
+    const cx = 90, cw = w - 180, cy = 430, ch = 1060, raio = 44;
+    ctx.save();
+    ctx.shadowColor = "rgba(239,68,68,.45)"; ctx.shadowBlur = 90; ctx.shadowOffsetY = 34;
+    retanguloArredondado(ctx, cx, cy, cw, ch, raio);
+    ctx.fillStyle = "#0a0a0a"; ctx.fill();
+    ctx.restore();
+    retanguloArredondado(ctx, cx, cy, cw, ch, raio);
+    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(239,68,68,.55)"; ctx.stroke();
+
+    const padX = cx + 80;
+    // aspa vermelha
+    ctx.fillStyle = "#EF4444"; ctx.font = "900 170px Georgia, serif";
+    ctx.fillText("“", padX - 8, cy + 210);
+
+    // frase em branco (fonte reduz se tiver muitas linhas)
+    const fraseTxt = `${frase.t.replace(/\.\s*$/, "")}”`;
+    let fonte = 68;
+    let linhas: string[] = [];
+    do {
+      ctx.font = `800 ${fonte}px Arial, sans-serif`;
+      linhas = quebrarLinhas(ctx, fraseTxt, cw - 160);
+      if (linhas.length * (fonte + 20) <= ch - 460) break;
+      fonte -= 4;
+    } while (fonte > 40);
+
+    ctx.fillStyle = "#ffffff";
+    let ty = cy + 320;
+    const lh = fonte + 20;
+    for (const l of linhas) { ctx.fillText(l, padX, ty); ty += lh; }
+
+    // autor
+    if (frase.a) { ctx.fillStyle = "#EF4444"; ctx.font = "700 38px Arial, sans-serif"; ctx.fillText(`— ${frase.a}`, padX, ty + 30); }
+
+    cv.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], "pulso-do-dia.png", { type: "image/png" });
+      const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], text: texto }); return; } catch { /* segue pro download */ }
+      }
+      // fallback (desktop): baixa a imagem e abre o Instagram
+      const url = URL.createObjectURL(blob); const a = document.createElement("a");
+      a.href = url; a.download = "pulso-do-dia.png"; a.click(); URL.revokeObjectURL(url);
+      window.open("https://www.instagram.com/", "_blank", "noopener");
+    }, "image/png");
   }
 
   return (
@@ -104,7 +183,7 @@ function PulsoDoDia() {
 
         {frase && (
           <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-            <button className="btn sm" onClick={whatsapp}><Share2 size={14} /> Compartilhar no WhatsApp</button>
+            <button className="btn sm" onClick={instagram}><Instagram size={14} /> Compartilhar no Instagram</button>
             <button className="btn ghost sm" onClick={copiar}>{copiado ? <><Check size={14} /> Copiado!</> : <><Copy size={14} /> Copiar</>}</button>
           </div>
         )}

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Users, Phone, Mail, CreditCard, KeyRound, Cake, CalendarDays, Briefcase, Trash2, Plus, Power } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
-import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
+import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
 import BotaoRelatorioEquipe from "./RelatorioEquipe";
 
 const VERMELHO = "#EF4444", VERDE = "#10B981", AMARELO = "#F59E0B";
@@ -23,7 +23,8 @@ function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar,
 }) {
   const ehData = tipo === "date";
   const base = ehData ? isoParaBR(valor ?? "") : (valor ?? "");
-  return (
+  const [erroData, setErroData] = useState("");
+  const input = (
     <input
       defaultValue={base}
       placeholder={ehData ? "dd/mm/aaaa" : placeholder}
@@ -31,17 +32,16 @@ function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar,
       inputMode={ehData ? "numeric" : undefined}
       maxLength={ehData ? 10 : undefined}
       onInput={(e) => {
-        if (ehData) e.currentTarget.value = mascararDataBR(e.currentTarget.value);
+        if (ehData) { e.currentTarget.value = mascararDataBR(e.currentTarget.value); if (erroData) setErroData(""); }
         else if (formatar) e.currentTarget.value = formatar(e.currentTarget.value);
       }}
       onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; onFocar?.(); }}
       onBlur={(e) => {
         e.currentTarget.style.background = "transparent"; onDesfocar?.();
         if (ehData) {
-          const v = e.target.value.trim();
-          const iso = brParaISO(v);
-          if (v === "") { if (valor) onSalvar("", e.currentTarget); return; }
-          if (!iso) { e.target.value = base; return; }   // incompleta/inválida: volta ao valor anterior
+          const { iso, erro } = validarDataBR(e.target.value);
+          setErroData(erro);
+          if (erro) return;                                  // inválida/futura: mostra recado, não salva
           if (iso !== (valor ?? "")) onSalvar(iso, e.currentTarget);
           return;
         }
@@ -51,6 +51,13 @@ function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar,
       }}
       style={{ border: 0, outline: "none", background: "transparent", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", transition: "background .12s", ...style }}
     />
+  );
+  if (!ehData) return input;
+  return (
+    <span style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+      {input}
+      {erroData && <span style={{ color: "var(--red)", fontSize: 10.5, lineHeight: 1.3, marginTop: 2 }}>{erroData}</span>}
+    </span>
   );
 }
 

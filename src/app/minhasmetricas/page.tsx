@@ -9,6 +9,8 @@ import {
   Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
+import GuiaConfiguracao from "@/components/GuiaConfiguracao";
+import { assinarNav, pegarAlvo } from "@/lib/nav";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
   getPerfil, getEmpresa, getLancamentos, getFuncionarios, getClientes, logout,
@@ -75,6 +77,8 @@ export default function Home() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [metrs, setMetrs] = useState<Metrica[]>([]);
   const [view, setView] = useState<View>("dashboard");
+  // o Guia de configuração pede navegação; a página troca a view
+  useEffect(() => assinarNav((a) => setView(a.view as View)), []);
   const [editor, setEditor] = useState<Categoria | null>(null);
   const [menuAberto, setMenuAberto] = useState(false);
   // nome do Super Admin (definido em Configurações › Meus Usuários) para o rodapé
@@ -418,6 +422,9 @@ export default function Home() {
 
       <LgpdConsent userKey={perfil?.email || perfil?.id || "demo"} onSair={async () => { await logout(); router.replace("/login"); }} />
 
+      {/* Guia de configuração inicial (some quando tudo estiver preenchido) */}
+      <GuiaConfiguracao empresa={empresa} brand={brand} funcsCount={funcs.length} />
+
 
       {/* Bottom nav (mobile) — estilo Hub: atalhos fixos + Menu */}
       <nav className="bottomnav">
@@ -473,6 +480,16 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
   const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios" | "importar">("dashboard");
   // dentro do Calendário: escolha entre pagamentos e recebimentos (null = mostra as 2 opções)
   const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | null>(null);
+  // Guia de configuração pode abrir uma aba/sub específica de Finanças
+  useEffect(() => {
+    const aplicar = (a: { view: string; aba?: string; sub?: string }) => {
+      if (a.view !== "financas") return;
+      if (a.aba) setAba(a.aba as typeof aba);
+      if (a.sub === "pagamentos" || a.sub === "recebimentos") setCalSub(a.sub);
+    };
+    const at = pegarAlvo(); if (at) aplicar(at);
+    return assinarNav(aplicar);
+  }, []);
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
     calendario: "Calendário", relatorios: "Relatórios", importar: "Importar planilha",
@@ -532,6 +549,11 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
 }) {
   type AbaCfg = "usuarios" | "dados" | "personalizacao" | "equipe" | "termos" | "beneficios" | "plano";
   const [aba, setAba] = useState<AbaCfg>("usuarios");
+  // Guia de configuração pode abrir uma aba específica
+  useEffect(() => {
+    const a = pegarAlvo(); if (a?.view === "config" && a.aba) setAba(a.aba as AbaCfg);
+    return assinarNav((b) => { if (b.view === "config" && b.aba) setAba(b.aba as AbaCfg); });
+  }, []);
   const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
     { key: "usuarios", label: "Meus Usuários", Icon: UserCog },
     { key: "dados", label: "Dados da Empresa", Icon: Building2 },
