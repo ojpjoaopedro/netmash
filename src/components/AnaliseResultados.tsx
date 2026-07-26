@@ -46,8 +46,8 @@ function Composicao({ titulo, Icon, cor, total, itens, badge }: {
   );
 }
 
-export default function AnaliseResultados({ onVoltar }: { onVoltar: () => void }) {
-  const data = useMemo(() => carregarEstrutura(), []);
+export default function AnaliseResultados({ onVoltar, ano = 2026 }: { onVoltar: () => void; ano?: number }) {
+  const data = useMemo(() => carregarEstrutura(ano), [ano]);
   const [sel, setSel] = useState<Set<number>>(() => {
     const itens = data.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
     const som = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) => s + (l.v[m] || 0), 0);

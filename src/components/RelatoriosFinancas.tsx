@@ -23,8 +23,8 @@ function Item({ Icon, titulo, descricao, onClick }: { Icon: typeof FileText; tit
 export default function RelatoriosFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand: Brand; ano: number }) {
   const [view, setView] = useState<"lista" | "analise" | "graficos">("lista");
 
-  if (view === "analise") return <AnaliseResultados onVoltar={() => setView("lista")} />;
-  if (view === "graficos") return <GraficosFinancas onVoltar={() => setView("lista")} />;
+  if (view === "analise") return <AnaliseResultados onVoltar={() => setView("lista")} ano={ano} />;
+  if (view === "graficos") return <GraficosFinancas onVoltar={() => setView("lista")} ano={ano} />;
 
   return (
     <div className="card" style={{ padding: 22 }}>

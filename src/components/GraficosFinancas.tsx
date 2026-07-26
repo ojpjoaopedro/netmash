@@ -64,9 +64,9 @@ function Card({ titulo, total, totalCor, destaque, children }: { titulo: string;
   );
 }
 
-export default function GraficosFinancas({ onVoltar }: { onVoltar: () => void }) {
+export default function GraficosFinancas({ onVoltar, ano = 2026 }: { onVoltar: () => void; ano?: number }) {
   const g = useMemo(() => {
-    const data = carregarEstrutura();
+    const data = carregarEstrutura(ano);
     const itens = data.custos.flatMap((b) => b.grupos.flatMap((gr) => gr.itens));
     const somaMes = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) => s + (l.v[m] || 0), 0);
     const recMes = Array.from({ length: 12 }, (_, m) => somaMes(data.receitas, m));
@@ -82,7 +82,7 @@ export default function GraficosFinancas({ onVoltar }: { onVoltar: () => void })
       totRec: soma(recMes), totCus: soma(cusMes), totRes: soma(res), totEbt: soma(ebt),
       margemMedia: soma(recMes) ? (soma(res) / soma(recMes)) * 100 : 0,
     };
-  }, []);
+  }, [ano]);
 
   return (
     <div style={{ display: "grid", gap: 16 }}>

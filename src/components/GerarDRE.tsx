@@ -150,7 +150,7 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
 export default function BotaoGerarDRE({ ano, empresa, brand, trigger }: { ano?: number; empresa: Empresa | null; brand: Brand; trigger?: (abrir: () => void) => React.ReactNode }) {
   const [aberto, setAberto] = useState(false);
   const [dados, setDados] = useState<Dados | null>(null);
-  const abrir = () => { setDados(carregarEstrutura()); setAberto(true); };
+  const abrir = () => { setDados(carregarEstrutura(ano ?? 2026)); setAberto(true); };
   return (
     <>
       {trigger ? trigger(abrir) : (

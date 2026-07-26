@@ -193,7 +193,7 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
             <b style={{ fontSize: 15.5 }}>Parabéns! Configuração concluída 🎉</b>
             <p className="sub" style={{ margin: "3px 0 0", fontSize: 12.5 }}>Seus benefícios foram liberados como recompensa. Confira em Configurações › Meus Benefícios.</p>
           </div>
-          <button onClick={() => setRecado(false)} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 8, flexShrink: 0 }}><X size={17} /></button>
+          <button onClick={() => { setRecado(false); try { localStorage.setItem("me_destacar_benef", "1"); window.dispatchEvent(new Event("me:destacar-beneficios")); } catch { /* ignore */ } }} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 8, flexShrink: 0 }}><X size={17} /></button>
         </div>
       )}
       {guia}

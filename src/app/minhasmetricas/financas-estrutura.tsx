@@ -23,10 +23,36 @@ export type Grupo = { nome: string; cor: string; itens: Item[]; financeiro?: boo
 export type Bloco = { nome: string; grupos: Grupo[] };
 export type Dados = { receitas: Item[]; custos: Bloco[] };
 
-/** Lê a estrutura salva no navegador (com os ajustes do usuário) ou o padrão. */
-export function carregarEstrutura(): Dados {
+const chaveAno = (ano: number) => `${CHAVE}:${ano}`;
+
+/** Mesma estrutura (grupos/itens), porém com todos os valores zerados. */
+function zerarValores(d: Dados): Dados {
+  return {
+    receitas: d.receitas.map((r) => ({ ...r, v: v12([]) })),
+    custos: d.custos.map((b) => ({ ...b, grupos: b.grupos.map((g) => ({ ...g, itens: g.itens.map((it) => ({ ...it, v: v12([]) })) })) })),
+  };
+}
+
+/**
+ * Lê a estrutura do ano pedido. 2026 migra do formato antigo; anos sem dados
+ * voltam com a mesma estrutura de 2026, só que zerada (para o usuário preencher).
+ */
+export function carregarEstrutura(ano: number = 2026): Dados {
   if (typeof window === "undefined") return PADRAO;
-  try { const c = localStorage.getItem(CHAVE); return c ? JSON.parse(c) : PADRAO; } catch { return PADRAO; }
+  try {
+    const cru = localStorage.getItem(chaveAno(ano));
+    if (cru) return JSON.parse(cru);
+    if (ano === 2026) {
+      const legado = localStorage.getItem(CHAVE);
+      return legado ? JSON.parse(legado) : PADRAO;
+    }
+    return zerarValores(carregarEstrutura(2026));
+  } catch { return ano === 2026 ? PADRAO : zerarValores(PADRAO); }
+}
+
+/** Salva a estrutura de um ano específico. */
+export function salvarEstrutura(ano: number, d: Dados) {
+  if (typeof window !== "undefined") { try { localStorage.setItem(chaveAno(ano), JSON.stringify(d)); } catch { /* ignore */ } }
 }
 
 const AZUL = "#1AADE2", VERDE = "#10B981", ROXO = "#8b5cf6", LARANJA = "#F59E0B", ROSA = "#EC4899", VERMELHO = "#EF4444";
@@ -186,9 +212,10 @@ export const resultadoDe = (d: Dados) => menos(somaPorMes(d.receitas), somaPorMe
 /** EBITDA = resultado + custos financeiros (empréstimos e juros) somados de volta. */
 export const ebitdaDe = (d: Dados) => mais(resultadoDe(d), somaPorMes(financeiroItens(d)));
 
-export default function EstruturaFinancas() {
+export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
   const [d, setD] = useState<Dados>(PADRAO);
   const [carregado, setCarregado] = useState(false);
+  const pularSalvar = useRef(false);   // evita gravar os dados de um ano na chave de outro ao trocar
   const [sel, setSel] = useState<Set<number>>(new Set()); // meses exibidos (vazio só antes de carregar)
   const [abertos, setAbertos] = useState<Set<string>>(new Set()); // grupos expandidos
   const [blocosFechados, setBlocosFechados] = useState<Set<number>>(new Set()); // blocos recolhidos
@@ -220,20 +247,20 @@ export default function EstruturaFinancas() {
     flashT.current = window.setTimeout(() => setFlash(null), 1500);
   };
 
+  // carrega os dados do ano selecionado (recarrega ao trocar de ano)
   useEffect(() => {
-    try {
-      const cru = localStorage.getItem(CHAVE);
-      if (cru) setD(JSON.parse(cru));
-    } catch { /* começa no padrão */ }
+    pularSalvar.current = true;                 // não regravar logo após carregar
+    setD(carregarEstrutura(ano));
     // padrão: Jan até o mês corrente (data lida só no cliente, evita hidratação)
     const atual = new Date().getMonth();
     setSel(new Set(Array.from({ length: atual + 1 }, (_, i) => i)));
     setCarregado(true);
-  }, []);
+  }, [ano]);
   useEffect(() => {
     if (!carregado) return;
-    try { localStorage.setItem(CHAVE, JSON.stringify(d)); } catch { /* ignora */ }
-  }, [d, carregado]);
+    if (pularSalvar.current) { pularSalvar.current = false; return; }
+    salvarEstrutura(ano, d);
+  }, [d, carregado, ano]);
 
   // colunas visíveis = meses selecionados (em ordem); sem seleção, mostra todos
   const mesesVis = useMemo(() => (sel.size ? [...sel].sort((a, b) => a - b) : MES.map((_, i) => i)), [sel]);

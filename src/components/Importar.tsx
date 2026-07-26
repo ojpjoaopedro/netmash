@@ -4,9 +4,8 @@ import * as XLSX from "xlsx-js-style";
 import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { brl } from "@/lib/format";
-import { MES, carregarEstrutura, Dados } from "@/app/minhasmetricas/financas-estrutura";
+import { MES, carregarEstrutura, salvarEstrutura, Dados } from "@/app/minhasmetricas/financas-estrutura";
 
-const CHAVE = "me_financas_estrutura";
 const ANOS_MODELO = [2026, 2027, 2028];
 const MES_FULL = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const PALETA = ["#1AADE2", "#10B981", "#8b5cf6", "#F59E0B", "#EC4899", "#EF4444", "#0EA5E9", "#14B8A6"];
@@ -301,9 +300,9 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
   function aplicar() {
     if (!upDados) return;
     setAplicando(true); setErro(""); setOkMsg("");
-    const nova = aplicarNaEstrutura(carregarEstrutura(), upDados);
+    const nova = aplicarNaEstrutura(carregarEstrutura(2026), upDados);
     try {
-      localStorage.setItem(CHAVE, JSON.stringify(nova));
+      salvarEstrutura(2026, nova);
       window.dispatchEvent(new Event("me:estrutura"));
     } catch { /* ignore */ }
     setAplicando(false);

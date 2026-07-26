@@ -529,8 +529,8 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
         ))}
       </div>
 
-      {aba === "estrutura" ? <EstruturaFinancas />
-        : aba === "dashboard" ? <FinancasDashboard />
+      {aba === "estrutura" ? <EstruturaFinancas ano={ano} />
+        : aba === "dashboard" ? <FinancasDashboard ano={ano} />
         : aba === "calendario" ? (calSub
             ? <SubCalendario tipo={calSub} ano={ano} onVoltar={() => setCalSub(null)} />
             : <EscolhaCalendario onEscolher={setCalSub} />)
@@ -554,16 +554,17 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
     const a = pegarAlvo(); if (a?.view === "config" && a.aba) setAba(a.aba as AbaCfg);
     return assinarNav((b) => { if (b.view === "config" && b.aba) setAba(b.aba as AbaCfg); });
   }, []);
-  // ao concluir o guia, destaca a aba Meus Benefícios por 5s
+  // destaca a aba Meus Benefícios por 5s APÓS o usuário fechar o recado de parabéns
   const [destaqueBenef, setDestaqueBenef] = useState(false);
   useEffect(() => {
-    const onConcluido = () => {
-      if (typeof window !== "undefined" && localStorage.getItem("me_guia_concluido") === "1") {
-        setDestaqueBenef(true); window.setTimeout(() => setDestaqueBenef(false), 5000);
-      }
+    const destacar = () => {
+      if (typeof window === "undefined" || localStorage.getItem("me_destacar_benef") !== "1") return;
+      localStorage.removeItem("me_destacar_benef");   // dispara uma única vez
+      setDestaqueBenef(true); window.setTimeout(() => setDestaqueBenef(false), 5000);
     };
-    window.addEventListener("me:guia-concluido", onConcluido);
-    return () => window.removeEventListener("me:guia-concluido", onConcluido);
+    destacar();   // caso o usuário abra Configurações só depois de fechar o recado
+    window.addEventListener("me:destacar-beneficios", destacar);
+    return () => window.removeEventListener("me:destacar-beneficios", destacar);
   }, []);
   const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
     { key: "usuarios", label: "Meus Usuários", Icon: UserCog },

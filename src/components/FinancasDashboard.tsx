@@ -90,19 +90,19 @@ function Resumo({ icone, rotulo, valor, cor, borda, fundo }: { icone: React.Reac
   );
 }
 
-export default function FinancasDashboard() {
+export default function FinancasDashboard({ ano = 2026 }: { ano?: number }) {
   const [data, setData] = useState<Dados | null>(null);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [full, setFull] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const d = carregarEstrutura();
+    const d = carregarEstrutura(ano);
     setData(d);
     const itens = d.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
     const comDado = Array.from({ length: 12 }, (_, m) => somaMes(d.receitas, m) + somaMes(itens, m) > 0 ? m : -1).filter((m) => m >= 0);
     setSel(new Set(comDado.length ? comDado : [0, 1, 2, 3, 4, 5]));
-  }, []);
+  }, [ano]);
 
   useEffect(() => {
     const h = () => setFull(!!document.fullscreenElement);
