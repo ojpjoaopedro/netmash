@@ -19,6 +19,17 @@ export default function ServicosFinanceiros() {
         <b style={{ color: "#B45309" }}>Importante:</b> o Minhas Métricas é um <b>software de gestão financeira</b>. <b>Não</b> é instituição de pagamento nem banco: não movimenta dinheiro, não realiza pagamentos, transferências, Pix, TED, boletos ou antecipação de recebíveis. Os &ldquo;serviços financeiros&rdquo; aqui referidos são as <b>ferramentas de gestão</b> (registro de receitas e custos, fluxo de caixa, DRE, relatórios e calendário de pagamentos).
       </div>
 
+      <div style={H}>Responsabilidade sobre os valores</div>
+      <p style={P}>Os dados financeiros são inseridos e conferidos pelo próprio Cliente. Assim:</p>
+      <ul style={{ margin: 0, paddingLeft: 20 }}>
+        <Item>O Minhas Métricas <b>não tem responsabilidade sobre os valores cadastrados</b>.</Item>
+        <Item><b>Não emitimos declarações oficiais</b> e <b>não substituímos de forma alguma a contabilidade</b> da empresa.</Item>
+        <Item>Erros em <b>fluxo de caixa</b> e nas informações <b>não são de nossa responsabilidade</b>.</Item>
+        <Item>Não estimulamos tomadas de decisão e <b>não interferimos nos dados</b> do Cliente.</Item>
+        <Item><b>Sempre pergunte ao seu contador</b> e <b>sempre confira os dados</b> antes de qualquer decisão.</Item>
+        <Item>Se encontrar erros de cálculo, <b>informe imediatamente</b> para tomarmos as providências.</Item>
+      </ul>
+
       <div style={H}>1. Aceite e concordância</div>
       <p style={P}>O cadastro, o acesso e a utilização do Minhas Métricas implicam a aceitação integral destes Termos de Uso e da Política de Privacidade. O aceite é validado pelo uso das credenciais do cliente, que é responsável por sua guarda e sigilo. O uso continuado após a entrada em vigor de eventuais revisões será interpretado como aceitação das condições atualizadas.</p>
 

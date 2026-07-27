@@ -1,7 +1,11 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info } from "lucide-react";
+import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X } from "lucide-react";
 import BotaoOcultar from "@/components/ocultar";
+import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
+
+/** Moeda "conforme digita" (centavos pela direita) -> 2.000,00 */
+const mascaraMoedaBR = (v: string) => { const n = (v || "").replace(/\D/g, ""); return n ? (parseInt(n, 10) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""; };
 
 /**
  * Estrutura de Receitas e Custos — réplica da tela do Hub.
@@ -17,7 +21,7 @@ const CHAVE = "me_financas_estrutura";
 // completa o array de valores até 12 meses (o que não veio nos dados é 0)
 const v12 = (a: number[]): number[] => Array.from({ length: 12 }, (_, i) => a[i] ?? 0);
 
-export type Item = { nome: string; cor?: string; v: number[]; cal?: boolean };  // cal = linha vinda do Calendário (só leitura)
+export type Item = { nome: string; cor?: string; v: number[]; cal?: boolean; pend?: number[] };  // cal = linha do Calendário; pend = valores ainda não pagos (não somam)
 // `financeiro` marca empréstimo/juros — o que o EBITDA soma de volta ao lucro
 export type Grupo = { nome: string; cor: string; itens: Item[]; financeiro?: boolean };
 export type Bloco = { nome: string; grupos: Grupo[] };
@@ -56,9 +60,63 @@ export function salvarEstrutura(ano: number, d: Dados) {
 }
 
 /* ── Integração com o Calendário de Pagamentos ─────────────────────────────── */
-export type Pagamento = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; pulados?: number[]; ate?: number; grupo?: string; item?: string; confirmados?: number[]; valores?: Record<number, number>; pagoEm?: Record<number, string> };
+export type Freq = "unica" | "mensal" | "semanal" | "diaria_uteis" | "diaria_todos";
+export type Pagamento = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; freq?: Freq; pulados?: number[]; ate?: number; puladosDia?: string[]; ateDia?: string; grupo?: string; item?: string;
+  confirmados?: number[]; valores?: Record<number, number>; pagoEm?: Record<number, string>;
+  confirmadosDia?: string[]; valoresDia?: Record<string, number>; pagoEmDia?: Record<string, string> };
 const CHAVE_PAG = "me_calendario_pagamentos";
 const ymIdx = (ano: number, mes: number) => ano * 12 + mes;
+export const freqDe = (p: Pagamento): Freq => p.freq || (p.recorrente ? "mensal" : "unica");
+const fimDeSemana = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+const isoDe = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+export type Ocorrencia = { mes: number; dia: number; iso: string; mensal: boolean };
+/** Todas as ocorrências (datas) da despesa/recebimento no ano, conforme a frequência. */
+export function datasDaDespesa(p: Pagamento, ano: number): Ocorrencia[] {
+  const f = freqDe(p);
+  const out: Ocorrencia[] = [];
+  if (f === "unica") { if (p.ano === ano) { const dt = new Date(ano, p.mes, p.dia); out.push({ mes: p.mes, dia: p.dia, iso: isoDe(dt), mensal: true }); } return out; }
+  if (f === "mensal") {
+    for (let m = 0; m < 12; m++) {
+      const idx = ymIdx(ano, m);
+      if (idx < ymIdx(p.ano, p.mes)) continue;
+      if (p.ate != null && idx >= p.ate) continue;
+      if (p.pulados?.includes(idx)) continue;
+      const last = new Date(ano, m + 1, 0).getDate();
+      const dt = new Date(ano, m, Math.min(p.dia, last));
+      while (fimDeSemana(dt)) dt.setDate(dt.getDate() + 1);   // cai sempre em dia útil
+      out.push({ mes: dt.getMonth(), dia: dt.getDate(), iso: isoDe(dt), mensal: true });
+    }
+    return out;
+  }
+  // semanal / diária: percorre datas a partir do início
+  const passo = f === "semanal" ? 7 : 1;
+  const cur = new Date(p.ano, p.mes, p.dia);
+  const fim = new Date(ano, 11, 31);
+  let guard = 0;
+  while (cur <= fim && guard++ < 4000) {
+    const idx = ymIdx(cur.getFullYear(), cur.getMonth());
+    const isoAtual = isoDe(cur);
+    const cortado = (p.ate != null && idx >= p.ate) || (p.pulados?.includes(idx)) || (p.ateDia != null && isoAtual >= p.ateDia) || (p.puladosDia?.includes(isoAtual));
+    if (cur.getFullYear() === ano && !cortado && !(f === "diaria_uteis" && fimDeSemana(cur))) {
+      out.push({ mes: cur.getMonth(), dia: cur.getDate(), iso: isoAtual, mensal: false });
+    }
+    cur.setDate(cur.getDate() + passo);
+  }
+  return out;
+}
+/** Uma ocorrência está confirmada? (compatível com o modelo antigo por mês). */
+export function ocConfirmada(p: Pagamento, o: Ocorrencia, ano: number): boolean {
+  if ((p.confirmadosDia || []).includes(o.iso)) return true;
+  if (o.mensal && (p.confirmados || []).includes(ymIdx(ano, o.mes))) return true;
+  return false;
+}
+/** Valor de uma ocorrência (aceita ajustes por dia ou por mês). */
+export function valorDaOcorrencia(p: Pagamento, o: Ocorrencia, ano: number): number {
+  if (p.valoresDia?.[o.iso] != null) return p.valoresDia[o.iso];
+  if (o.mensal && p.valores?.[ymIdx(ano, o.mes)] != null) return p.valores[ymIdx(ano, o.mes)];
+  return p.valor;
+}
 
 export function lerPagamentos(): Pagamento[] {
   if (typeof window === "undefined") return [];
@@ -66,6 +124,14 @@ export function lerPagamentos(): Pagamento[] {
 }
 export function salvarPagamentos(ps: Pagamento[]) {
   if (typeof window !== "undefined") { try { localStorage.setItem(CHAVE_PAG, JSON.stringify(ps)); window.dispatchEvent(new Event("me:pagamentos")); } catch { /* ignore */ } }
+}
+const CHAVE_REC = "me_calendario_recebimentos";
+export function lerRecebimentos(): Pagamento[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(CHAVE_REC) || "[]"); } catch { return []; }
+}
+export function salvarRecebimentos(ps: Pagamento[]) {
+  if (typeof window !== "undefined") { try { localStorage.setItem(CHAVE_REC, JSON.stringify(ps)); window.dispatchEvent(new Event("me:recebimentos")); } catch { /* ignore */ } }
 }
 
 /** Meses (0..11) em que a despesa incide no ano dado. */
@@ -92,19 +158,34 @@ export function pagamentosPorItem(ano: number): { grupo: string; item: string; c
     if (!p.grupo || !p.item) continue;
     const k = `${p.grupo}|||${p.item}`;
     const alvo = (map[k] ||= { grupo: p.grupo, item: p.item, conf: v12([]), pend: v12([]) });
-    for (const m of mesesDaDespesa(p, ano)) {
-      const val = p.valores?.[ymIdx(ano, m)] ?? p.valor;
-      if (pagamentoConfirmado(p, ano, m)) alvo.conf[m] += val; else alvo.pend[m] += val;
+    for (const o of datasDaDespesa(p, ano)) {
+      const val = valorDaOcorrencia(p, o, ano);
+      if (ocConfirmada(p, o, ano)) alvo.conf[o.mes] += val; else alvo.pend[o.mes] += val;
     }
   }
   return Object.values(map);
 }
 
-/** Estrutura com os pagamentos CONFIRMADOS do calendário somados nos itens certos (para dashboards/DRE). */
+/** Soma dos recebimentos por canal/mês no ano, separando confirmado e pendente. */
+export function recebimentosPorCanal(ano: number): { item: string; conf: number[]; pend: number[] }[] {
+  const map: Record<string, { item: string; conf: number[]; pend: number[] }> = {};
+  for (const p of lerRecebimentos()) {
+    if (!p.item) continue;
+    const alvo = (map[p.item] ||= { item: p.item, conf: v12([]), pend: v12([]) });
+    for (const o of datasDaDespesa(p, ano)) {
+      const val = valorDaOcorrencia(p, o, ano);
+      if (ocConfirmada(p, o, ano)) alvo.conf[o.mes] += val; else alvo.pend[o.mes] += val;
+    }
+  }
+  return Object.values(map);
+}
+
+/** Estrutura com pagamentos/recebimentos CONFIRMADOS somados nos lugares certos (para dashboards/DRE). */
 export function carregarEstruturaComPagamentos(ano: number = 2026): Dados {
   const base = carregarEstrutura(ano);
   const linhas = pagamentosPorItem(ano).filter((l) => l.conf.some((x) => x > 0));
-  if (!linhas.length) return base;
+  const recs = recebimentosPorCanal(ano).filter((l) => l.conf.some((x) => x > 0));
+  if (!linhas.length && !recs.length) return base;
   const d: Dados = JSON.parse(JSON.stringify(base));
   for (const l of linhas) {
     let g = d.custos.flatMap((b) => b.grupos).find((x) => x.nome === l.grupo);
@@ -117,6 +198,11 @@ export function carregarEstruturaComPagamentos(ano: number = 2026): Dados {
     let it = g.itens.find((x) => x.nome === l.item);
     if (!it) { it = { nome: l.item, v: v12([]) }; g.itens.push(it); }
     it.v = it.v.map((x, m) => x + (l.conf[m] || 0));
+  }
+  for (const l of recs) {
+    let r = d.receitas.find((x) => x.nome === l.item);
+    if (!r) { r = { nome: l.item, cor: "#94a3b8", v: v12([]) }; d.receitas.push(r); }
+    r.v = r.v.map((x, m) => x + (l.conf[m] || 0));
   }
   return d;
 }
@@ -328,28 +414,94 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
     salvarEstrutura(ano, d);
   }, [d, carregado, ano]);
 
-  // pagamentos CONFIRMADOS do calendário aparecem na tabela como linha só-leitura (marcada "calendário")
+  // pagamentos/recebimentos CONFIRMADOS do calendário aparecem na tabela como linha só-leitura ("calendário")
   const [pagVersao, setPagVersao] = useState(0);
   useEffect(() => {
     const h = () => setPagVersao((v) => v + 1);
     window.addEventListener("me:pagamentos", h);
+    window.addEventListener("me:recebimentos", h);
     window.addEventListener("storage", h);
-    return () => { window.removeEventListener("me:pagamentos", h); window.removeEventListener("storage", h); };
+    return () => { window.removeEventListener("me:pagamentos", h); window.removeEventListener("me:recebimentos", h); window.removeEventListener("storage", h); };
   }, []);
   const dExibido = useMemo(() => {
-    const linhas = pagamentosPorItem(ano).filter((l) => l.conf.some((x) => x > 0));
-    if (!linhas.length) return d;
+    const custosL = pagamentosPorItem(ano).filter((l) => l.conf.some((x) => x > 0) || l.pend.some((x) => x > 0));
+    const recL = recebimentosPorCanal(ano).filter((l) => l.conf.some((x) => x > 0) || l.pend.some((x) => x > 0));
+    if (!custosL.length && !recL.length) return d;
     const nd: Dados = structuredClone(d);
-    for (const l of linhas) {
+    for (const l of custosL) {
       const g = nd.custos.flatMap((b) => b.grupos).find((x) => x.nome === l.grupo);
-      if (g) g.itens.push({ nome: l.item, v: l.conf.slice(), cal: true });
+      if (!g) continue;
+      const real = g.itens.find((it) => it.nome === l.item && !it.cal);
+      if (real) {
+        real.v = real.v.map((x, m) => x + (l.conf[m] || 0));                 // soma o pago no item existente (mesmo nome)
+        if (l.pend.some((x) => x > 0)) real.pend = l.pend.slice();           // pendentes viram 2ª linha "a pagar"
+      } else {
+        g.itens.push({ nome: l.item, v: l.conf.slice(), pend: l.pend.slice(), cal: true });   // v = pago (soma); pend = a pagar (não soma)
+      }
+    }
+    for (const l of recL) {
+      const real = nd.receitas.find((r) => r.nome === l.item && !r.cal);
+      if (real) {
+        real.v = real.v.map((x, m) => x + (l.conf[m] || 0));                 // soma o confirmado no canal existente
+        if (l.pend.some((x) => x > 0)) real.pend = l.pend.slice();           // pendentes viram 2ª linha "a receber"
+      } else {
+        const pal = [AZUL, VERDE, ROXO, LARANJA, ROSA, VERMELHO];
+        const cor = pal[[...l.item].reduce((a, c) => a + c.charCodeAt(0), 0) % pal.length];
+        nd.receitas.push({ nome: l.item, cor, v: l.conf.slice(), pend: l.pend.slice(), cal: true });
+      }
     }
     return nd;
   }, [d, ano, pagVersao]);
 
-  // edição/remoção das linhas do calendário direto por aqui (reflete no Calendário)
-  const renomearCal = (grupo: string, antigo: string, novo: string) => salvarPagamentos(lerPagamentos().map((p) => (p.grupo === grupo && p.item === antigo) ? { ...p, item: novo, descricao: novo } : p));
-  const removerCal = (grupo: string, item: string) => salvarPagamentos(lerPagamentos().filter((p) => !(p.grupo === grupo && p.item === item)));
+  // edição/remoção das linhas do calendário direto por aqui (reflete no Calendário). origem: "pag" (custos) ou "rec" (receitas)
+  const lojaLer = (origem: "pag" | "rec") => (origem === "pag" ? lerPagamentos() : lerRecebimentos());
+  const lojaSalvar = (origem: "pag" | "rec", ps: Pagamento[]) => (origem === "pag" ? salvarPagamentos(ps) : salvarRecebimentos(ps));
+  const bate = (origem: "pag" | "rec", p: Pagamento, grupo: string, item: string) => (origem === "pag" ? (p.grupo === grupo && p.item === item) : (p.item === item));
+  const renomearCal = (origem: "pag" | "rec", grupo: string, antigo: string, novo: string) => lojaSalvar(origem, lojaLer(origem).map((p) => bate(origem, p, grupo, antigo) ? { ...p, item: novo, descricao: novo } : p));
+  const removerCal = (origem: "pag" | "rec", grupo: string, item: string) => lojaSalvar(origem, lojaLer(origem).filter((p) => !bate(origem, p, grupo, item)));
+
+  // pagar/receber um mês pendente direto da Estrutura (reflete no Calendário)
+  const [pagarEst, setPagarEst] = useState<{ origem: "pag" | "rec"; grupo: string; item: string; mes: number; valor: string; data: string; varios: boolean } | null>(null);
+  const dataVencMes = (dia: number, mes: number) => { const last = new Date(ano, mes + 1, 0).getDate(); return `${ano}-${String(mes + 1).padStart(2, "0")}-${String(Math.min(dia, last)).padStart(2, "0")}`; };
+  const abrirPagarEst = (origem: "pag" | "rec", grupo: string, item: string, mes: number) => {
+    let soma = 0, dia = 1, count = 0;
+    for (const p of lojaLer(origem)) {
+      if (!bate(origem, p, grupo, item)) continue;
+      for (const o of datasDaDespesa(p, ano)) if (o.mes === mes && !ocConfirmada(p, o, ano)) { soma += valorDaOcorrencia(p, o, ano); if (count === 0) dia = o.dia; count++; }
+    }
+    if (!count) return;
+    setPagarEst({ origem, grupo, item, mes, valor: soma.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), data: isoParaBR(dataVencMes(dia, mes)), varios: count > 1 });
+  };
+  // remove (pula) as ocorrências pendentes de um mês (o "x")
+  const removerPendentesMes = (origem: "pag" | "rec", grupo: string, item: string, mes: number) => {
+    lojaSalvar(origem, lojaLer(origem).map((p) => {
+      if (!bate(origem, p, grupo, item)) return p;
+      const pend = datasDaDespesa(p, ano).filter((o) => o.mes === mes && !ocConfirmada(p, o, ano));
+      if (!pend.length) return p;
+      const puladosDia = [...(p.puladosDia || [])];
+      const pulados = [...(p.pulados || [])];
+      const ymMes = ano * 12 + mes;
+      for (const o of pend) { if (o.mensal) { if (!pulados.includes(ymMes)) pulados.push(ymMes); } else puladosDia.push(o.iso); }
+      return { ...p, puladosDia, pulados };
+    }));
+  };
+  const confirmarPagarEst = () => {
+    if (!pagarEst) return;
+    const { origem, grupo, item, mes, valor, data, varios } = pagarEst;
+    const val = Number(valor.replace(/\./g, "").replace(",", ".")) || 0;
+    const dataISO = brParaISO(data) || data;
+    lojaSalvar(origem, lojaLer(origem).map((p) => {
+      if (!bate(origem, p, grupo, item)) return p;
+      const pend = datasDaDespesa(p, ano).filter((o) => o.mes === mes && !ocConfirmada(p, o, ano));
+      if (!pend.length) return p;
+      const confirmadosDia = [...(p.confirmadosDia || [])];
+      const valoresDia = { ...(p.valoresDia || {}) };
+      const pagoEmDia = { ...(p.pagoEmDia || {}) };
+      for (const o of pend) { confirmadosDia.push(o.iso); pagoEmDia[o.iso] = dataISO; if (!varios) valoresDia[o.iso] = val; }
+      return { ...p, confirmadosDia, valoresDia, pagoEmDia };
+    }));
+    setPagarEst(null);
+  };
 
   // colunas visíveis = meses selecionados (em ordem); sem seleção, mostra todos
   const mesesVis = useMemo(() => (sel.size ? [...sel].sort((a, b) => a - b) : MES.map((_, i) => i)), [sel]);
@@ -461,15 +613,51 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
             <Colgroup c={cols} />
             <THead icone={<TrendingUp size={16} />} titulo="Composição das Receitas" cor={VERDE} meses={mesesVis} />
             <tbody>
-              {d.receitas.map((r, ri) => (
-                <tr key={ri} style={{ borderTop: "1px solid var(--line)" }}>
-                  <NomeCel cor={r.cor} valor={r.nome} placeholder="Novo canal" reservaChevron onSalvo={salvo} onChange={(nv) => nomeReceita(ri, nv)} onRemover={() => pedirExcluir(r.nome || "este canal de venda", () => removerReceita(ri))} />
-                  {mesesVis.map((m) => (
-                    <Celula key={m} valor={r.v[m]} onSalvo={salvo} onChange={(nv) => editarReceita(ri, m, nv)} />
-                  ))}
-                  <Total>{fmt(totalDe(r.v))}</Total>
-                </tr>
-              ))}
+              {dExibido.receitas.map((r, ri) => {
+                const temPend = !!r.pend && r.pend.some((x) => x > 0);
+                return (
+                  <FragBloco key={ri}>
+                    {r.cal ? (
+                      <tr style={{ borderTop: "1px solid var(--line)" }}>
+                        <CalNomeCel nome={r.nome} cor={r.cor} reservaChevron onSalvo={salvo}
+                          onRenomear={(nv) => renomearCal("rec", "", r.nome, nv)}
+                          onRemover={() => pedirExcluir(`"${r.nome}" (lançado pelo Calendário)`, () => removerCal("rec", "", r.nome))} />
+                        {mesesVis.map((m) => { const vazio = Math.abs(r.v[m] || 0) < 0.005; return <td key={m} className="oc-num" style={{ ...tdNum, padding: "6px 4px", color: vazio ? "var(--muted-2)" : undefined }}>{vazio ? "–" : fmt(r.v[m] || 0)}</td>; })}
+                        <td className="oc-num" style={{ ...tdNum, fontWeight: 700 }}>{fmt(totalDe(r.v))}</td>
+                      </tr>
+                    ) : (
+                      <tr style={{ borderTop: "1px solid var(--line)" }}>
+                        <NomeCel cor={r.cor} valor={r.nome} placeholder="Novo canal" reservaChevron onSalvo={salvo} onChange={(nv) => nomeReceita(ri, nv)} onRemover={() => pedirExcluir(r.nome || "este canal de venda", () => removerReceita(ri))} />
+                        {mesesVis.map((m) => <Celula key={m} valor={r.v[m]} onSalvo={salvo} onChange={(nv) => editarReceita(ri, m, nv)} />)}
+                        <Total>{fmt(totalDe(r.v))}</Total>
+                      </tr>
+                    )}
+                    {temPend && (
+                      <tr>
+                        <td style={{ ...tdRot, padding: 0, height: 0, overflow: "visible", verticalAlign: "top" }}>
+                          <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>a receber</div>
+                        </td>
+                        {mesesVis.map((m) => {
+                          const pend = r.pend![m] || 0;
+                          if (pend <= 0) return <td key={m} style={{ ...tdNum, padding: 0, height: 0 }} />;
+                          return (
+                            <td key={m} className="oc-num" style={{ ...tdNum, padding: 0, height: 0, verticalAlign: "top" }}>
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, lineHeight: 1, marginTop: -12 }}>
+                                <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A receber (ainda não somado)">{fmt(pend)}</span>
+                                <span style={{ display: "inline-flex", gap: 4 }}>
+                                  <button onClick={() => abrirPagarEst("rec", "", r.nome, m)} title="Confirmar recebimento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(16,185,129,.16)", color: "#10B981" }}><Check size={12} strokeWidth={3} /></button>
+                                  <button onClick={() => pedirExcluir(`recebíveis a receber de "${r.nome}" em ${MES[m]}`, () => removerPendentesMes("rec", "", r.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "#EF4444" }}><X size={12} strokeWidth={3} /></button>
+                                </span>
+                              </div>
+                            </td>
+                          );
+                        })}
+                        <td style={{ ...tdNum, padding: 0 }} />
+                      </tr>
+                    )}
+                  </FragBloco>
+                );
+              })}
               <AddSubtil span={mesesVis.length + 2} texto="cadastrar canal de venda" onClick={addReceita} />
               <tr style={{ borderTop: "2px solid var(--line-2)", background: "var(--card-2)" }}>
                 <td style={{ ...tdRot, fontWeight: 800, background: "var(--card-2)" }}>Receitas totais</td>
@@ -522,19 +710,69 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                         </tr>
                         {/* itens (folhas editáveis: nome e valores). Linhas do calendário são só-leitura. */}
                         {aberto && g.itens.map((it, ii) => it.cal ? (
-                          <tr key={ii} style={{ borderTop: "1px solid var(--line)" }}>
-                            <CalNomeCel nome={it.nome} onSalvo={salvo}
-                              onRenomear={(nv) => renomearCal(g.nome, it.nome, nv)}
-                              onRemover={() => pedirExcluir(`"${it.nome}" (lançado pelo Calendário)`, () => removerCal(g.nome, it.nome))} />
-                            {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(it.v[m])}</td>)}
-                            <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
-                          </tr>
+                          <FragBloco key={ii}>
+                            <tr style={{ borderTop: "1px solid var(--line)" }}>
+                              <CalNomeCel nome={it.nome} italico indent={30} onSalvo={salvo}
+                                onRenomear={(nv) => renomearCal("pag", g.nome, it.nome, nv)}
+                                onRemover={() => pedirExcluir(`"${it.nome}" (lançado pelo Calendário)`, () => removerCal("pag", g.nome, it.nome))} />
+                              {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(it.v[m] || 0)}</td>)}
+                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
+                            </tr>
+                            {it.pend && it.pend.some((x) => x > 0) && (
+                              <tr>
+                                <td style={{ ...tdRot, padding: 0, height: 0, overflow: "visible", verticalAlign: "top" }}>
+                                  <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>a pagar</div>
+                                </td>
+                                {mesesVis.map((m) => {
+                                  const pend = it.pend![m] || 0;
+                                  if (pend <= 0) return <td key={m} style={{ ...tdNum, padding: 0, height: 0 }} />;
+                                  return (
+                                    <td key={m} className="oc-num" style={{ ...tdNum, padding: 0, height: 0, verticalAlign: "top" }}>
+                                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, lineHeight: 1, marginTop: -12 }}>
+                                        <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A pagar (ainda não somado)">{fmt(pend)}</span>
+                                        <span style={{ display: "inline-flex", gap: 4 }}>
+                                          <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(16,185,129,.16)", color: "#10B981" }}><Check size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => pedirExcluir(`pagamentos a pagar de "${it.nome}" em ${MES[m]}`, () => removerPendentesMes("pag", g.nome, it.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "#EF4444" }}><X size={12} strokeWidth={3} /></button>
+                                        </span>
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                                <td style={{ ...tdNum, padding: 0, height: 0 }} />
+                              </tr>
+                            )}
+                          </FragBloco>
                         ) : (
-                          <tr key={ii} style={{ borderTop: "1px solid var(--line)" }}>
-                            <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))} />
-                            {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => editarCusto(bi, gi, ii, m, nv)} />)}
-                            <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
-                          </tr>
+                          <FragBloco key={ii}>
+                            <tr style={{ borderTop: "1px solid var(--line)" }}>
+                              <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))} />
+                              {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => editarCusto(bi, gi, ii, m, nv)} />)}
+                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
+                            </tr>
+                            {it.pend && it.pend.some((x) => x > 0) && (
+                              <tr>
+                                <td style={{ ...tdRot, padding: 0, height: 0, overflow: "visible", verticalAlign: "top" }}>
+                                  <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>a pagar</div>
+                                </td>
+                                {mesesVis.map((m) => {
+                                  const pend = it.pend![m] || 0;
+                                  if (pend <= 0) return <td key={m} style={{ ...tdNum, padding: 0, height: 0 }} />;
+                                  return (
+                                    <td key={m} className="oc-num" style={{ ...tdNum, padding: 0, height: 0, verticalAlign: "top" }}>
+                                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, lineHeight: 1, marginTop: -12 }}>
+                                        <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A pagar (ainda não somado)">{fmt(pend)}</span>
+                                        <span style={{ display: "inline-flex", gap: 4 }}>
+                                          <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(16,185,129,.16)", color: "#10B981" }}><Check size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => pedirExcluir(`pagamentos a pagar de "${it.nome}" em ${MES[m]}`, () => removerPendentesMes("pag", g.nome, it.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "#EF4444" }}><X size={12} strokeWidth={3} /></button>
+                                        </span>
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                                <td style={{ ...tdNum, padding: 0, height: 0 }} />
+                              </tr>
+                            )}
+                          </FragBloco>
                         ))}
                         {aberto && <AddSubtil span={mesesVis.length + 2} texto={`cadastrar item em "${g.nome || "grupo"}"`} onClick={() => addItem(bi, gi)} indent={30} />}
                       </FragBloco>
@@ -615,6 +853,35 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
             <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
               <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setAExcluir(null)}>Cancelar</button>
               <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERMELHO }} onClick={() => { aExcluir.onOk(); setAExcluir(null); }}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* popup de pagamento (a partir da Estrutura) — reflete no Calendário */}
+      {pagarEst && (
+        <div onClick={() => setPagarEst(null)} style={{ position: "fixed", inset: 0, zIndex: 96, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 380, padding: 24, border: `1px solid ${VERDE}`, background: "linear-gradient(160deg, rgba(16,185,129,.08), var(--card) 60%)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: VERDE, color: "#fff", flexShrink: 0 }}><Check size={22} strokeWidth={3} /></span>
+              <div>
+                <b style={{ fontSize: 16 }}>{pagarEst.origem === "rec" ? "Confirmar recebimento" : "Confirmar pagamento"}</b>
+                <p className="sub" style={{ margin: "2px 0 0", fontSize: 12.5 }}>{pagarEst.item} · {MES[pagarEst.mes]}/{ano}</p>
+              </div>
+            </div>
+            <div className="field" style={{ marginTop: 16 }}>
+              <label className="f">{pagarEst.origem === "rec" ? "Valor recebido (R$)" : "Valor pago (R$)"}</label>
+              <input value={pagarEst.valor} disabled={pagarEst.varios} onChange={(e) => setPagarEst({ ...pagarEst, valor: mascaraMoedaBR(e.target.value) })} inputMode="decimal" />
+              {pagarEst.varios && <span className="sub" style={{ fontSize: 11, marginTop: 4, display: "inline-block" }}>Há mais de um lançamento neste mês; o valor de cada um é mantido.</span>}
+            </div>
+            <div className="field" style={{ marginTop: 10 }}>
+              <label className="f">{pagarEst.origem === "rec" ? "Data do recebimento" : "Data do pagamento"}</label>
+              <input value={pagarEst.data} onChange={(e) => setPagarEst({ ...pagarEst, data: mascararDataBR(e.target.value) })} placeholder="dd/mm/aaaa" inputMode="numeric" maxLength={10} />
+            </div>
+            <p className="sub" style={{ fontSize: 11.5, marginTop: 8 }}>Ao confirmar, este valor passa a ser somado na Estrutura, no DRE e nos Gráficos (e marca como {pagarEst.origem === "rec" ? "recebido" : "pago"} no Calendário).</p>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setPagarEst(null)}>Cancelar</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarPagarEst}><Check size={15} /> {pagarEst.origem === "rec" ? "Confirmar recebimento" : "Confirmar pagamento"}</button>
             </div>
           </div>
         </div>
@@ -704,24 +971,25 @@ function NomeCel({ cor, valor, placeholder, onChange, onRemover, italico, indent
 
 /** Nome de uma linha vinda do Calendário: mesmo padrão do item (edita ao clicar,
  * lixeira só no foco, "Salvo" ao mudar), com um "i" de observação no lugar do badge. */
-function CalNomeCel({ nome, onRenomear, onRemover, onSalvo }: {
+function CalNomeCel({ nome, onRenomear, onRemover, onSalvo, cor, italico, indent, reservaChevron }: {
   nome: string; onRenomear: (novo: string) => void; onRemover: () => void; onSalvo?: (el: HTMLElement) => void;
+  cor?: string; italico?: boolean; indent?: number; reservaChevron?: boolean;
 }) {
   const [val, setVal] = useState(nome);
   const [focado, setFocado] = useState(false);
   const inicial = useRef("");
   useEffect(() => { setVal(nome); }, [nome]);
   return (
-    <td style={{ ...tdRot, paddingLeft: 30, fontStyle: "italic", color: "var(--muted)" }}>
+    <td style={{ ...tdRot, fontWeight: italico ? 400 : 500, fontStyle: italico ? "italic" : undefined, color: italico ? "var(--muted)" : undefined, paddingLeft: indent }}>
       <span style={{ display: "flex", alignItems: "center", gap: 7, width: "100%" }}>
+        {reservaChevron && <span style={{ width: 13, flexShrink: 0 }} />}
+        {cor && <span style={{ width: 7, height: 7, borderRadius: 99, background: cor, flexShrink: 0 }} />}
         <input value={val} onChange={(e) => setVal(e.target.value)}
-          style={{ flex: 1, minWidth: 40, background: "transparent", border: "1px solid transparent", borderRadius: 6, padding: "3px 5px", font: "inherit", fontStyle: "italic", color: "inherit", outline: "none" }}
+          style={{ flex: 1, minWidth: 40, background: "transparent", border: "1px solid transparent", borderRadius: 6, padding: "3px 5px", font: "inherit", fontStyle: italico ? "italic" : undefined, color: "inherit", outline: "none" }}
           onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--line-2)")}
           onMouseLeave={(e) => { if (document.activeElement !== e.currentTarget) e.currentTarget.style.borderColor = "transparent"; }}
           onFocus={(e) => { setFocado(true); inicial.current = val; e.currentTarget.style.borderColor = "var(--line-2)"; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; const nv = val.trim(); if (nv && nv !== inicial.current) { onRenomear(nv); onSalvo?.(e.currentTarget); } else if (!nv) setVal(inicial.current); setTimeout(() => setFocado(false), 150); }} />
-        <span title="Este item vem do Calendário de Pagamentos (lançado e confirmado lá). Editar ou remover aqui também atualiza no Calendário."
-          style={{ display: "inline-grid", placeItems: "center", width: 14, height: 14, borderRadius: "50%", background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--muted)", fontSize: 9, fontWeight: 800, fontStyle: "normal", cursor: "help", flexShrink: 0 }}>i</span>
         {focado && (
           <button onMouseDown={(e) => e.preventDefault()} onClick={onRemover} title="Excluir (atualiza no Calendário)" aria-label="Excluir"
             style={{ flexShrink: 0, background: "transparent", border: 0, color: "var(--red)", cursor: "pointer", padding: 2, borderRadius: 5, lineHeight: 0 }}>

@@ -346,10 +346,9 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
       {/* modelo baseado na Estrutura de Receitas e Custos */}
       <div className="card" style={{ marginBottom: 16, background: "linear-gradient(150deg, rgba(26,173,226,.08), transparent)", border: "1px solid rgba(26,173,226,.2)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-          <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "rgba(26,173,226,.16)", color: "var(--brand)", fontWeight: 800 }}>i</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <b style={{ fontSize: 15 }}>Como deve ser seu arquivo</b>
-            <p className="sub" style={{ marginTop: 4, lineHeight: 1.55 }}>O modelo tem uma aba para cada ano (2026, 2027 e 2028), com os <b>meses nas colunas</b> e os <b>itens nas linhas</b>. A aba de 2026 já vem preenchida com a sua <b>Estrutura de Receitas e Custos</b>. Edite os valores, adicione ou apague linhas e suba de volta: o sistema mostra só o que mudou.</p>
+            <p className="sub" style={{ marginTop: 4, lineHeight: 1.55 }}>A aba de 2026 já vem preenchida com a sua <b>Estrutura de Receitas e Custos</b>. Edite os valores, adicione ou apague linhas e suba de volta: o sistema mostra só o que mudou.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
               <button className="btn" onClick={baixarExcel} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 14 }}>📊 Baixar arquivo Excel</button>
             </div>
@@ -359,7 +358,7 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
 
       <div className="card" style={{ marginBottom: 16 }}>
         <h3>Envie seu arquivo (Excel .xlsx ou CSV)</h3>
-        <p className="sub">O sistema lê o arquivo e preenche automaticamente a Estrutura de Receitas e Custos.</p>
+        <p className="sub">Após subir a planilha, você confere os dados antes de preenchermos a Estrutura de Receitas e Custos automaticamente.</p>
         <label
           onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
           onDragLeave={() => setArrastando(false)}

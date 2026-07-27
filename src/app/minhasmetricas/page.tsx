@@ -436,6 +436,25 @@ export default function Home() {
   );
 }
 
+/** Avisos/informativos por aba de Finanças. */
+function AvisoFinancas({ aba }: { aba: string }) {
+  const textos: Record<string, React.ReactNode> = {
+    dashboard: <>A <b>Dashboard</b> é preenchida automaticamente com os dados da <b>Estrutura de Receitas e Custos</b>.</>,
+    estrutura: <>Essa é a <b>principal tela de Finanças</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou <b>importando uma planilha</b> de Excel. Todas se complementam e centralizam os dados aqui. <b>28% das empresas</b> preenchem somente por aqui, sem usar o calendário nem a planilha.</>,
+    calendario: <>Além de preencher por <b>planilha de Excel</b> ou direto na <b>Estrutura de Receitas e Custos</b>, o Calendário também oferece esse preenchimento. E, além de preencher, o <b>visual do calendário facilita a tomada de decisões</b>. Cerca de <b>60% das empresas</b> preferem preencher por aqui.</>,
+    importar: <>Cerca de <b>12% dos empresários</b> preferem subir os dados por <b>planilha</b>.</>,
+  };
+  const txt = textos[aba];
+  if (!txt) return null;
+  return (
+    <div style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", gap: 11, borderRadius: 14, padding: "13px 16px",
+      background: "color-mix(in srgb, var(--brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 22%, transparent)" }}>
+      <span style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "var(--brand)", color: "#fff", fontSize: 13, fontWeight: 800 }}>i</span>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--txt)" }}>{txt}</p>
+    </div>
+  );
+}
+
 /** Seletor: Calendário de Pagamentos ou de Recebimentos. */
 function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "recebimentos") => void }) {
   const opcoes = [
@@ -505,9 +524,9 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
   });
   const abas: { key: typeof aba; label: string; Icon: typeof LayoutDashboard }[] = [
     { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
+    { key: "relatorios", label: "Relatórios", Icon: FileText },
     { key: "estrutura", label: "Estrutura de Receitas e Custos", Icon: Layers },
     { key: "calendario", label: "Calendário", Icon: CalendarDays },
-    { key: "relatorios", label: "Relatórios", Icon: FileText },
     { key: "importar", label: "Importar planilha", Icon: Upload },
   ];
   return (
@@ -528,6 +547,9 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
           </button>
         ))}
       </div>
+
+      {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
+      {!(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
 
       {aba === "estrutura" ? <EstruturaFinancas ano={ano} />
         : aba === "dashboard" ? <FinancasDashboard ano={ano} />
