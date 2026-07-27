@@ -149,7 +149,7 @@ export default function FinancasDashboard({ ano = 2026 }: { ano?: number }) {
         })}
         <span style={{ marginLeft: "auto" }}><BotaoOcultar /></span>
         <button onClick={toggleFull} title={full ? "Sair da tela cheia" : "Expandir para tela cheia"}
-          style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "rgba(56,189,248,.12)", color: AZUL }}>
+          style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}>
           {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </button>
       </div>
