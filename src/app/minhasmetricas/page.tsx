@@ -19,6 +19,7 @@ import {
 import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
 import { useBrand } from "@/lib/brand";
 import ResumoHome from "@/components/dash/ResumoHome";
+import CropLogo from "@/components/CropLogo";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
 import Assistente from "@/components/dash/Assistente";
@@ -126,18 +127,23 @@ export default function Home() {
     }
   }, []);
 
-  /** Troca a foto do avatar: lê o arquivo escolhido e guarda no navegador. */
+  /** Troca a foto do avatar: abre a tela de recorte (quadrado) e guarda o recorte no navegador. */
+  const [recorteFoto, setRecorteFoto] = useState<string | null>(null);
   function escolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const arq = e.target.files?.[0];
+    e.target.value = "";
     if (!arq) return;
     const r = new FileReader();
-    r.onload = () => {
-      const url = String(r.result);
-      setFotoPerfil(url);
-      try { localStorage.setItem("me_foto_perfil", url); } catch { /* imagem grande demais: fica só na sessão */ }
-    };
+    r.onload = () => setRecorteFoto(String(r.result));
     r.readAsDataURL(arq);
-    e.target.value = "";
+  }
+  function salvarFotoPerfil(url: string) {
+    setFotoPerfil(url);
+    try { localStorage.setItem("me_foto_perfil", url); } catch { /* imagem grande demais: fica só na sessão */ }
+  }
+  function removerFotoPerfil() {
+    setFotoPerfil("");
+    try { localStorage.removeItem("me_foto_perfil"); } catch { /* ignore */ }
   }
 
   // Interliga a identidade: aplica logo/cor da empresa logada (banco) na marca do painel.
@@ -358,6 +364,17 @@ export default function Home() {
         <button className="side-reabrir desk-only" title="Expandir menu" onClick={() => setSideOculta(false)}>
           <ChevronsRight size={18} />
         </button>
+      )}
+
+      {/* recorte quadrado da foto de perfil */}
+      {recorteFoto && (
+        <CropLogo src={recorteFoto} quadrado
+          titulo="Ajustar sua foto"
+          dica="Arraste o quadro e puxe os cantos para recortar sua foto (formato quadrado)."
+          textoRemover="Remover e ficar sem foto"
+          onConfirm={(dataUrl) => { salvarFotoPerfil(dataUrl); setRecorteFoto(null); }}
+          onCancel={() => setRecorteFoto(null)}
+          onRemover={() => { removerFotoPerfil(); setRecorteFoto(null); }} />
       )}
 
       {/* Main */}

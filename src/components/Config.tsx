@@ -1,7 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
 import { ImagePlus, Trash2, Hourglass } from "lucide-react";
-import CropLogo from "@/components/CropLogo";
 import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone } from "@/lib/format";
@@ -116,14 +115,11 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
   // aplica sozinho assim que a cor é escolhida (seletor fecha) ou ao sair do campo hex
   const aplicarCorAuto = () => { if (corPendente && !aplicando && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(cor.trim())) aplicarCor(); };
 
-  // ao escolher a imagem, abre a tela de recorte (lapidação) antes de salvar
-  const [recorte, setRecorte] = useState<string | null>(null);
   function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    e.target.value = "";   // permite reescolher o mesmo arquivo depois
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setRecorte(String(reader.result));
+    reader.onload = () => saveBrand({ logo: String(reader.result) });
     reader.readAsDataURL(file);
   }
 
@@ -243,13 +239,6 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
               </>
             )}
           </label>
-
-          {recorte && (
-            <CropLogo src={recorte}
-              onConfirm={(dataUrl) => { saveBrand({ logo: dataUrl }); setRecorte(null); }}
-              onCancel={() => setRecorte(null)}
-              onRemover={() => { saveBrand({ logo: null }); setRecorte(null); }} />
-          )}
 
           {/* dica de tamanho ideal + fundo branco */}
           <p className="sub" style={{ margin: "8px 0 0", fontSize: 12 }}>

@@ -9,8 +9,9 @@ import { Crop, Check, X, Trash2 } from "lucide-react";
 type Rect = { x: number; y: number; w: number; h: number };
 const MAXW = 520, MAXH = 300, MIN = 28, HANDLE = 14;
 
-export default function CropLogo({ src, onConfirm, onCancel, onRemover }: {
+export default function CropLogo({ src, onConfirm, onCancel, onRemover, quadrado = false, titulo = "Ajustar a logomarca", dica = "Arraste o quadro e puxe os cantos para recortar o pedaço certo.", textoRemover = "Remover e ficar sem logo" }: {
   src: string; onConfirm: (dataUrl: string) => void; onCancel: () => void; onRemover: () => void;
+  quadrado?: boolean; titulo?: string; dica?: string; textoRemover?: string;
 }) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -25,7 +26,8 @@ export default function CropLogo({ src, onConfirm, onCancel, onRemover }: {
     const escala = Math.min(MAXW / nW, MAXH / nH, 1);
     const w = Math.round(nW * escala), h = Math.round(nH * escala);
     setDisp({ w, h });
-    setRect({ x: 0, y: 0, w, h });
+    if (quadrado) { const s = Math.min(w, h); setRect({ x: Math.round((w - s) / 2), y: Math.round((h - s) / 2), w: s, h: s }); }
+    else setRect({ x: 0, y: 0, w, h });
   };
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
@@ -43,8 +45,15 @@ export default function CropLogo({ src, onConfirm, onCancel, onRemover }: {
     if (modo === "mover") {
       x = clamp(base.x + dx, 0, disp.w - base.w);
       y = clamp(base.y + dy, 0, disp.h - base.h);
+    } else if (quadrado) {
+      // cantos travados em quadrado (1:1): âncora no canto oposto
+      let desejado: number, maxLado: number;
+      if (modo === "se") { desejado = Math.max(base.w + dx, base.h + dy); maxLado = Math.min(disp.w - base.x, disp.h - base.y); const s = clamp(desejado, MIN, maxLado); w = h = s; }
+      else if (modo === "nw") { desejado = Math.max(base.w - dx, base.h - dy); maxLado = Math.min(base.x + base.w, base.y + base.h); const s = clamp(desejado, MIN, maxLado); w = h = s; x = base.x + base.w - s; y = base.y + base.h - s; }
+      else if (modo === "ne") { desejado = Math.max(base.w + dx, base.h - dy); maxLado = Math.min(disp.w - base.x, base.y + base.h); const s = clamp(desejado, MIN, maxLado); w = h = s; y = base.y + base.h - s; }
+      else { /* sw */ desejado = Math.max(base.w - dx, base.h + dy); maxLado = Math.min(base.x + base.w, disp.h - base.y); const s = clamp(desejado, MIN, maxLado); w = h = s; x = base.x + base.w - s; }
     } else {
-      // cantos: nw, ne, sw, se
+      // cantos livres: nw, ne, sw, se
       if (modo.includes("w")) { const nx = clamp(base.x + dx, 0, base.x + base.w - MIN); w = base.w + (base.x - nx); x = nx; }
       if (modo.includes("e")) { w = clamp(base.w + dx, MIN, disp.w - base.x); }
       if (modo.includes("n")) { const ny = clamp(base.y + dy, 0, base.y + base.h - MIN); h = base.h + (base.y - ny); y = ny; }
@@ -84,8 +93,8 @@ export default function CropLogo({ src, onConfirm, onCancel, onRemover }: {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Crop size={18} /></span>
           <div>
-            <b style={{ fontSize: 16 }}>Ajustar a logomarca</b>
-            <div className="sub" style={{ fontSize: 12 }}>Arraste o quadro e puxe os cantos para recortar o pedaço certo.</div>
+            <b style={{ fontSize: 16 }}>{titulo}</b>
+            <div className="sub" style={{ fontSize: 12 }}>{dica}</div>
           </div>
         </div>
 
@@ -107,7 +116,7 @@ export default function CropLogo({ src, onConfirm, onCancel, onRemover }: {
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-          <button className="btn ghost" onClick={onRemover} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--red)" }}><Trash2 size={15} /> Remover e ficar sem logo</button>
+          <button className="btn ghost" onClick={onRemover} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--red)" }}><Trash2 size={15} /> {textoRemover}</button>
           <div style={{ flex: 1 }} />
           <button className="btn ghost" onClick={onCancel} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><X size={15} /> Cancelar</button>
           <button className="btn" onClick={confirmar} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} /> Usar recorte</button>
