@@ -445,3 +445,7 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 ::-webkit-scrollbar{width:7px;height:7px}
 ::-webkit-scrollbar-thumb{background:#333;border-radius:10px}
 ::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+
+/* destaque suave que some quando um numero e atualizado (confirmar/excluir) */
+@keyframes numFlash{0%{background:rgba(16,185,129,.22)}100%{background:transparent}}
+.num-flash{display:inline-block;padding:0 3px;margin:0 -3px;border-radius:5px;animation:numFlash 2s ease-out}

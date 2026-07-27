@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pencil, Trash2, Plus, X, Check, ChevronDown, ChevronRight } from "lucide-react";
 import BotaoOcultar from "./ocultar";
+import { AnimNum } from "./AnimNum";
 import { carregarEstrutura, salvarEstrutura, Bloco, Freq, datasDaDespesa, ocConfirmada, valorDaOcorrencia } from "@/app/minhasmetricas/financas-estrutura";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 
@@ -340,10 +341,9 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
     if (form.editId) {
       setDesps((xs) => xs.map((x) => x.id === form.editId ? { ...x, descricao: desc, valor, recorrente, freq, grupo: form.grupo || undefined, item } : x));
     } else if (modal) {
-      // a primeira ocorrência (dia de criação) já entra confirmada
-      const porMes = freq === "mensal" || freq === "unica";
+      // nada entra confirmado no cadastro; a confirmação do pagamento/recebimento é feita na 2ª tela (dia)
       setDesps((xs) => [...xs, { id: uid(), descricao: desc, valor, dia: modal.dia, mes: modal.mes, ano, recorrente, freq, grupo: form.grupo || undefined, item,
-        confirmados: porMes ? [ym(ano, modal.mes)] : [], confirmadosDia: porMes ? undefined : [isoDia(ano, modal.mes, modal.dia)] }]);
+        confirmados: [], confirmadosDia: [] }]);
     }
     setForm(null);
   };
@@ -411,11 +411,11 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
               {totalPrevisto(m) > 0 ? (
                 <div style={{ display: "flex", gap: 14, textAlign: "right" }}>
                   <div style={{ lineHeight: 1.15 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--txt)", display: "block" }} className="oc-num">{fmtR0(totalPrevisto(m))}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--txt)", display: "block" }} className="oc-num"><AnimNum value={totalPrevisto(m)} fmt={fmtR0} /></span>
                     <span style={{ fontSize: 8.5, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".03em" }}>Previsto</span>
                   </div>
                   <div style={{ lineHeight: 1.15 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: VERDE, display: "block" }} className="oc-num">{fmtR0(totalRealizado(m))}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: VERDE, display: "block" }} className="oc-num"><AnimNum value={totalRealizado(m)} fmt={fmtR0} /></span>
                     <span style={{ fontSize: 8.5, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".03em" }}>{cfg.realizadoLabel}</span>
                   </div>
                 </div>

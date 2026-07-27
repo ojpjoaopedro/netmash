@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X } from "lucide-react";
 import BotaoOcultar from "@/components/ocultar";
+import { AnimNum, useCountUp } from "@/components/AnimNum";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 
 /** Moeda "conforme digita" (centavos pela direita) -> 2.000,00 */
@@ -399,8 +400,48 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
     flashT.current = window.setTimeout(() => setFlash(null), 1500);
   };
 
+  // ----- Ctrl+Z: desfaz a última edição/exclusão (estrutura + calendário juntos) -----
+  const dRef = useRef(d);
+  useEffect(() => { dRef.current = d; }, [d]);
+  const undoStack = useRef<{ d: Dados; pag: Pagamento[]; rec: Pagamento[] }[]>([]);
+  const [desfeito, setDesfeito] = useState(false);
+  const desfeitoT = useRef<number | undefined>(undefined);
+  // guarda o estado ATUAL antes de uma alteração; chamar no início de cada handler que muda dados
+  const snapshot = () => {
+    undoStack.current.push({ d: structuredClone(dRef.current), pag: lerPagamentos(), rec: lerRecebimentos() });
+    if (undoStack.current.length > 60) undoStack.current.shift();
+  };
+  const desfazerUndo = () => {
+    const s = undoStack.current.pop();
+    if (!s) return;
+    fecharDesfazer();
+    pularSalvar.current = false;
+    setD(s.d);
+    salvarEstrutura(ano, s.d);
+    salvarPagamentos(s.pag);
+    salvarRecebimentos(s.rec);
+    setDesfeito(true);
+    window.clearTimeout(desfeitoT.current);
+    desfeitoT.current = window.setTimeout(() => setDesfeito(false), 1600);
+  };
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || (e.key !== "z" && e.key !== "Z")) return;
+      const ae = document.activeElement as HTMLElement | null;
+      // se estiver digitando num campo, deixa o "desfazer" nativo do próprio campo agir
+      if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) return;
+      if (!undoStack.current.length) return;
+      e.preventDefault();
+      desfazerUndo();
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ano]);
+
   // carrega os dados do ano selecionado (recarrega ao trocar de ano)
   useEffect(() => {
+    undoStack.current = [];                      // histórico é por ano
     pularSalvar.current = true;                 // não regravar logo após carregar
     setD(carregarEstrutura(ano));
     // padrão: Jan até o mês corrente (data lida só no cliente, evita hidratação)
@@ -457,8 +498,21 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
   const lojaLer = (origem: "pag" | "rec") => (origem === "pag" ? lerPagamentos() : lerRecebimentos());
   const lojaSalvar = (origem: "pag" | "rec", ps: Pagamento[]) => (origem === "pag" ? salvarPagamentos(ps) : salvarRecebimentos(ps));
   const bate = (origem: "pag" | "rec", p: Pagamento, grupo: string, item: string) => (origem === "pag" ? (p.grupo === grupo && p.item === item) : (p.item === item));
-  const renomearCal = (origem: "pag" | "rec", grupo: string, antigo: string, novo: string) => lojaSalvar(origem, lojaLer(origem).map((p) => bate(origem, p, grupo, antigo) ? { ...p, item: novo, descricao: novo } : p));
-  const removerCal = (origem: "pag" | "rec", grupo: string, item: string) => lojaSalvar(origem, lojaLer(origem).filter((p) => !bate(origem, p, grupo, item)));
+  const renomearCal = (origem: "pag" | "rec", grupo: string, antigo: string, novo: string) => { snapshot(); lojaSalvar(origem, lojaLer(origem).map((p) => bate(origem, p, grupo, antigo) ? { ...p, item: novo, descricao: novo } : p)); };
+  const removerCal = (origem: "pag" | "rec", grupo: string, item: string) => { snapshot(); lojaSalvar(origem, lojaLer(origem).filter((p) => !bate(origem, p, grupo, item))); };
+  // editar o valor JÁ CONFIRMADO de um mês (reflete no Calendário): grava o total do mês na 1ª ocorrência confirmada e zera as demais
+  const editarCalMes = (origem: "pag" | "rec", grupo: string, item: string, mes: number, novo: number) => {
+    snapshot();
+    let atribuido = false;
+    lojaSalvar(origem, lojaLer(origem).map((p) => {
+      if (!bate(origem, p, grupo, item)) return p;
+      const ocs = datasDaDespesa(p, ano).filter((o) => o.mes === mes && ocConfirmada(p, o, ano)).sort((a, b) => a.dia - b.dia);
+      if (!ocs.length) return p;
+      const valoresDia = { ...(p.valoresDia || {}) };
+      for (const o of ocs) { valoresDia[o.iso] = atribuido ? 0 : novo; atribuido = true; }
+      return { ...p, valoresDia };
+    }));
+  };
 
   // pagar/receber um mês pendente direto da Estrutura (reflete no Calendário)
   const [pagarEst, setPagarEst] = useState<{ origem: "pag" | "rec"; grupo: string; item: string; mes: number; valor: string; data: string; varios: boolean } | null>(null);
@@ -474,6 +528,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
   };
   // remove (pula) as ocorrências pendentes de um mês (o "x")
   const removerPendentesMes = (origem: "pag" | "rec", grupo: string, item: string, mes: number) => {
+    snapshot();
     lojaSalvar(origem, lojaLer(origem).map((p) => {
       if (!bate(origem, p, grupo, item)) return p;
       const pend = datasDaDespesa(p, ano).filter((o) => o.mes === mes && !ocConfirmada(p, o, ano));
@@ -487,6 +542,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
   };
   const confirmarPagarEst = () => {
     if (!pagarEst) return;
+    snapshot();
     const { origem, grupo, item, mes, valor, data, varios } = pagarEst;
     const val = Number(valor.replace(/\./g, "").replace(",", ".")) || 0;
     const dataISO = brParaISO(data) || data;
@@ -518,31 +574,39 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
 
   /* edição de folhas e nomes (imutável) */
   function editarReceita(ri: number, m: number, valor: number) {
+    snapshot();
     setD((x) => { const r = structuredClone(x); r.receitas[ri].v[m] = valor; return r; });
   }
   function editarCusto(bi: number, gi: number, ii: number, m: number, valor: number) {
+    snapshot();
     setD((x) => { const r = structuredClone(x); r.custos[bi].grupos[gi].itens[ii].v[m] = valor; return r; });
   }
   function nomeReceita(ri: number, nome: string) {
+    snapshot();
     setD((x) => { const r = structuredClone(x); r.receitas[ri].nome = nome; return r; });
   }
   function nomeItem(bi: number, gi: number, ii: number, nome: string) {
+    snapshot();
     setD((x) => { const r = structuredClone(x); r.custos[bi].grupos[gi].itens[ii].nome = nome; return r; });
   }
   const CINZA = "#94a3b8";
   function addReceita() {
+    snapshot();
     setD((x) => { const r = structuredClone(x); r.receitas.push({ nome: "", cor: CINZA, v: v12([]) }); return r; });
   }
   function removerReceita(ri: number) {
+    snapshot();
     const removido = structuredClone(d.receitas[ri]);
     setD((x) => { const r = structuredClone(x); r.receitas.splice(ri, 1); return r; });
     mostrarDesfazer(`"${removido.nome || "canal"}" excluído`, () =>
       setD((x) => { const r = structuredClone(x); r.receitas.splice(ri, 0, removido); return r; }));
   }
   function addItem(bi: number, gi: number) {
+    snapshot();
     setD((x) => { const r = structuredClone(x); r.custos[bi].grupos[gi].itens.push({ nome: "", v: v12([]) }); return r; });
   }
   function removerItem(bi: number, gi: number, ii: number) {
+    snapshot();
     const removido = structuredClone(d.custos[bi].grupos[gi].itens[ii]);
     setD((x) => { const r = structuredClone(x); r.custos[bi].grupos[gi].itens.splice(ii, 1); return r; });
     mostrarDesfazer(`"${removido.nome || "item"}" excluído`, () =>
@@ -550,14 +614,17 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
   }
   const CORES_GRUPO = [AZUL, ROXO, LARANJA, ROSA, VERDE];
   function nomeGrupo(bi: number, gi: number, nome: string) {
+    snapshot();
     setD((x) => { const r = structuredClone(x); r.custos[bi].grupos[gi].nome = nome; return r; });
   }
   function addGrupo(bi: number) {
+    snapshot();
     setD((x) => { const r = structuredClone(x); const g = r.custos[bi].grupos; g.push({ nome: "", cor: CORES_GRUPO[g.length % CORES_GRUPO.length], itens: [] }); return r; });
     // já deixa o grupo novo aberto para cadastrar itens
     setAbertos((p) => new Set(p).add(`${bi}-${d.custos[bi].grupos.length}`));
   }
   function removerGrupo(bi: number, gi: number) {
+    snapshot();
     const removido = structuredClone(d.custos[bi].grupos[gi]);
     setD((x) => { const r = structuredClone(x); r.custos[bi].grupos.splice(gi, 1); return r; });
     mostrarDesfazer(`Grupo "${removido.nome || "grupo"}" excluído`, () =>
@@ -606,7 +673,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
       {/* COMPOSIÇÃO DAS RECEITAS */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px" }}>
-          <BadgeTotal badge="Receitas totais" valor={fmtR(totalDe(recTotais))} cor={VERDE} />
+          <BadgeTotal badge="Receitas totais" valor={totalDe(recTotais)} fmt={fmtR} cor={VERDE} />
         </div>
         <div ref={(el) => { scrolls.current[0] = el; }} onScroll={() => sincronizar(0)} style={{ overflowX: "auto" }}>
           <table style={{ width: larguraMin, borderCollapse: "collapse", tableLayout: "fixed", fontSize: 11 }}>
@@ -622,14 +689,14 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                         <CalNomeCel nome={r.nome} cor={r.cor} reservaChevron onSalvo={salvo}
                           onRenomear={(nv) => renomearCal("rec", "", r.nome, nv)}
                           onRemover={() => pedirExcluir(`"${r.nome}" (lançado pelo Calendário)`, () => removerCal("rec", "", r.nome))} />
-                        {mesesVis.map((m) => { const vazio = Math.abs(r.v[m] || 0) < 0.005; return <td key={m} className="oc-num" style={{ ...tdNum, padding: "6px 4px", color: vazio ? "var(--muted-2)" : undefined }}>{vazio ? "–" : fmt(r.v[m] || 0)}</td>; })}
-                        <td className="oc-num" style={{ ...tdNum, fontWeight: 700 }}>{fmt(totalDe(r.v))}</td>
+                        {mesesVis.map((m) => <Celula key={m} valor={r.v[m] || 0} onSalvo={salvo} onChange={(nv) => editarCalMes("rec", "", r.nome, m, nv)} />)}
+                        <td className="oc-num" style={{ ...tdNum, fontWeight: 700 }}><AnimNum value={totalDe(r.v)} fmt={fmt} /></td>
                       </tr>
                     ) : (
                       <tr style={{ borderTop: "1px solid var(--line)" }}>
                         <NomeCel cor={r.cor} valor={r.nome} placeholder="Novo canal" reservaChevron onSalvo={salvo} onChange={(nv) => nomeReceita(ri, nv)} onRemover={() => pedirExcluir(r.nome || "este canal de venda", () => removerReceita(ri))} />
                         {mesesVis.map((m) => <Celula key={m} valor={r.v[m]} onSalvo={salvo} onChange={(nv) => editarReceita(ri, m, nv)} />)}
-                        <Total>{fmt(totalDe(r.v))}</Total>
+                        <Total><AnimNum value={totalDe(r.v)} fmt={fmt} /></Total>
                       </tr>
                     )}
                     {temPend && (
@@ -661,8 +728,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
               <AddSubtil span={mesesVis.length + 2} texto="cadastrar canal de venda" onClick={addReceita} />
               <tr style={{ borderTop: "2px solid var(--line-2)", background: "var(--card-2)" }}>
                 <td style={{ ...tdRot, fontWeight: 800, background: "var(--card-2)" }}>Receitas totais</td>
-                {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 800 }}>{fmt(recTotais[m])}</td>)}
-                <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: VERDE }}>{fmt(totalDe(recTotais))}</td>
+                {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 800 }}><AnimNum value={recTotais[m]} fmt={fmt} /></td>)}
+                <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: VERDE }}><AnimNum value={totalDe(recTotais)} fmt={fmt} /></td>
               </tr>
             </tbody>
           </table>
@@ -672,7 +739,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
       {/* DETALHAMENTO DOS CUSTOS */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px" }}>
-          <BadgeTotal badge="Custos totais" valor={fmtR(totalDe(custosTotais))} cor={VERMELHO} />
+          <BadgeTotal badge="Custos totais" valor={totalDe(custosTotais)} fmt={fmtR} cor={VERMELHO} />
         </div>
         <div ref={(el) => { scrolls.current[1] = el; }} onScroll={() => sincronizar(1)} style={{ overflowX: "auto" }}>
           <table style={{ width: larguraMin, borderCollapse: "collapse", tableLayout: "fixed", fontSize: 11 }}>
@@ -691,8 +758,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                         {b.nome}
                       </span>
                     </td>
-                    {mesesVis.map((m) => <td key={m} onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}>{fmt(blocosMes[bi][m])}</td>)}
-                    <td onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}>{fmt(totalDe(blocosMes[bi]))}</td>
+                    {mesesVis.map((m) => <td key={m} onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}><AnimNum value={blocosMes[bi][m]} fmt={fmt} /></td>)}
+                    <td onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}><AnimNum value={totalDe(blocosMes[bi])} fmt={fmt} /></td>
                   </tr>
                   {blocoAberto && b.grupos.map((g, gi) => {
                     const id = `${bi}-${gi}`;
@@ -705,8 +772,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                           <GrupoCel cor={g.cor} valor={g.nome} aberto={aberto} onToggle={() => toggleGrupo(id)} onSalvo={salvo}
                             onChange={(nv) => nomeGrupo(bi, gi, nv)}
                             onRemover={() => pedirExcluir(g.nome || "este grupo", () => removerGrupo(bi, gi))} />
-                          {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}>{fmt(gm[m])}</td>)}
-                          <td onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}>{fmt(totalDe(gm))}</td>
+                          {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}><AnimNum value={gm[m]} fmt={fmt} /></td>)}
+                          <td onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}><AnimNum value={totalDe(gm)} fmt={fmt} /></td>
                         </tr>
                         {/* itens (folhas editáveis: nome e valores). Linhas do calendário são só-leitura. */}
                         {aberto && g.itens.map((it, ii) => it.cal ? (
@@ -715,8 +782,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                               <CalNomeCel nome={it.nome} italico indent={30} onSalvo={salvo}
                                 onRenomear={(nv) => renomearCal("pag", g.nome, it.nome, nv)}
                                 onRemover={() => pedirExcluir(`"${it.nome}" (lançado pelo Calendário)`, () => removerCal("pag", g.nome, it.nome))} />
-                              {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(it.v[m] || 0)}</td>)}
-                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
+                              {mesesVis.map((m) => <Celula key={m} valor={it.v[m] || 0} italico onSalvo={salvo} onChange={(nv) => editarCalMes("pag", g.nome, it.nome, m, nv)} />)}
+                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}><AnimNum value={totalDe(it.v)} fmt={fmt} /></td>
                             </tr>
                             {it.pend && it.pend.some((x) => x > 0) && (
                               <tr>
@@ -747,7 +814,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                             <tr style={{ borderTop: "1px solid var(--line)" }}>
                               <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))} />
                               {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => editarCusto(bi, gi, ii, m, nv)} />)}
-                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
+                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}><AnimNum value={totalDe(it.v)} fmt={fmt} /></td>
                             </tr>
                             {it.pend && it.pend.some((x) => x > 0) && (
                               <tr>
@@ -785,8 +852,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
               })}
               <tr style={{ borderTop: "2px solid var(--line-2)", background: "var(--card-2)" }}>
                 <td style={{ ...tdRot, fontWeight: 800, textTransform: "uppercase", background: "var(--card-2)" }}>Custos totais</td>
-                {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 800 }}>{fmt(custosTotais[m])}</td>)}
-                <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: VERMELHO }}>{fmt(totalDe(custosTotais))}</td>
+                {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 800 }}><AnimNum value={custosTotais[m]} fmt={fmt} /></td>)}
+                <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: VERMELHO }}><AnimNum value={totalDe(custosTotais)} fmt={fmt} /></td>
               </tr>
             </tbody>
           </table>
@@ -796,7 +863,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
       {/* RESULTADO · EBITDA · MARGEM */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px" }}>
-          <BadgeTotal badge="Resultado do período" valor={`${totalDe(resultadoMes) >= 0 ? "+" : ""}${fmtR(totalDe(resultadoMes))}`} cor={ROXO} />
+          <BadgeTotal badge="Resultado do período" valor={totalDe(resultadoMes)} fmt={fmtR} prefix={totalDe(resultadoMes) >= 0 ? "+" : ""} cor={ROXO} />
         </div>
         <div ref={(el) => { scrolls.current[2] = el; }} onScroll={() => sincronizar(2)} style={{ overflowX: "auto" }}>
           <table style={{ width: larguraMin, borderCollapse: "collapse", tableLayout: "fixed", fontSize: 11 }}>
@@ -811,6 +878,15 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
           </table>
         </div>
       </div>
+
+      {/* aviso rápido de Ctrl+Z */}
+      {desfeito && (
+        <div style={{ position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 95, pointerEvents: "none",
+          display: "inline-flex", alignItems: "center", gap: 7, background: "#1e293b", color: "#fff", fontSize: 13, fontWeight: 700,
+          padding: "9px 16px", borderRadius: 12, boxShadow: "0 14px 34px -10px rgba(0,0,0,.6)" }}>
+          ↶ Alteração desfeita
+        </div>
+      )}
 
       {/* avisinho "Salvo" ao lado do campo, some em 1,5s — cinza neutro e discreto */}
       {flash && (
@@ -907,11 +983,11 @@ function Colgroup({ c }: { c: Cols }) {
 }
 
 /** Badge do total, alinhado à esquerda acima da tabela. */
-function BadgeTotal({ badge, valor, cor }: { badge: string; valor: string; cor: string }) {
+function BadgeTotal({ badge, valor, fmt: fmtFn, prefix = "", cor }: { badge: string; valor: number; fmt: (n: number) => string; prefix?: string; cor: string }) {
   return (
     <div style={{ display: "inline-block", textAlign: "left", background: cor + "14", border: `1px solid ${cor}44`, borderRadius: 12, padding: "8px 14px" }}>
       <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: cor }}>{badge}</div>
-      <b className="oc-num" style={{ fontSize: 18 }}>{valor}</b>
+      <b className="oc-num" style={{ fontSize: 18 }}><AnimNum value={valor} fmt={fmtFn} prefix={prefix} /></b>
     </div>
   );
 }
@@ -1081,15 +1157,18 @@ function AddSubtil({ span, texto, onClick, indent }: { span: number; texto: stri
 function Celula({ valor, onChange, italico, onSalvo }: { valor: number; onChange: (v: number) => void; italico?: boolean; onSalvo?: (el: HTMLElement) => void }) {
   const [txt, setTxt] = useState<string | null>(null);
   const editando = txt !== null;
+  const selfEdit = useRef(false);
+  // anima ao mudar por fora (confirmar/excluir); não anima enquanto o próprio usuário digita
+  const disp = useCountUp(valor, 2000, !editando && !selfEdit.current);
   return (
     <td className="oc-num" style={{ ...tdNum, fontStyle: italico ? "italic" : undefined, color: italico ? "var(--muted)" : undefined, padding: "6px 4px" }}>
       <input
-        value={editando ? txt! : (Math.abs(valor) < 0.005 ? "" : fmt(valor))}
+        value={editando ? txt! : (Math.abs(disp) < 0.005 ? "" : fmt(disp))}
         placeholder="–"
         onFocus={(e) => { setTxt(Math.abs(valor) < 0.005 ? "" : fmt(valor)); e.currentTarget.style.borderColor = "var(--line-2)"; }}
         onChange={(e) => setTxt(e.target.value)}
         onBlur={(e) => {
-          if (editando) { const nv = parseBR(txt!); if (nv !== valor) { onChange(nv); onSalvo?.(e.currentTarget); } }
+          if (editando) { const nv = parseBR(txt!); if (nv !== valor) { selfEdit.current = true; onChange(nv); onSalvo?.(e.currentTarget); setTimeout(() => { selfEdit.current = false; }, 60); } }
           setTxt(null); e.currentTarget.style.borderColor = "transparent";
         }}
         inputMode="decimal"
@@ -1123,8 +1202,8 @@ function LinhaResultado({ nome, v, total, meses, moeda, dica }: { nome: string; 
           {dica && <span title={dica} style={{ display: "inline-grid", placeItems: "center", cursor: "help", color: "var(--muted)" }}><Info size={13} /></span>}
         </span>
       </td>
-      {meses.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 700, color: Math.abs(v[m]) > 0.005 ? cor(v[m]) : "var(--muted)" }}>{Math.abs(v[m]) < 0.005 ? "–" : f(v[m])}</td>)}
-      <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: cor(total) }}>{f(total)}</td>
+      {meses.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 700, color: Math.abs(v[m]) > 0.005 ? cor(v[m]) : "var(--muted)" }}><AnimNum value={v[m]} fmt={(n) => Math.abs(n) < 0.005 ? "–" : f(n)} /></td>)}
+      <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: cor(total) }}><AnimNum value={total} fmt={f} /></td>
     </tr>
   );
 }
@@ -1139,9 +1218,9 @@ function LinhaMargem({ resultado, receita, totalRes, totalRec, meses }: { result
       {meses.map((m) => {
         const p = pct(resultado[m], receita[m]);
         const vazio = Math.abs(receita[m]) < 0.005;
-        return <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 700, color: vazio ? "var(--muted)" : cor(p) }}>{vazio ? "–" : `${Math.round(p)}%`}</td>;
+        return <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 700, color: vazio ? "var(--muted)" : cor(p) }}>{vazio ? "–" : <AnimNum value={p} fmt={(n) => `${Math.round(n)}%`} />}</td>;
       })}
-      <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: cor(totalPct) }}>{`${totalPct.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}</td>
+      <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: cor(totalPct) }}><AnimNum value={totalPct} fmt={(n) => `${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`} /></td>
     </tr>
   );
 }
