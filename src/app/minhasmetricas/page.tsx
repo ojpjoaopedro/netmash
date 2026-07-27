@@ -155,7 +155,8 @@ export default function Home() {
   }, [empresa]);
 
   const nomeMarca = brand.nome && brand.nome !== "Minha Empresa" ? brand.nome : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
-  const saudacaoNome = (brand.saudacao || perfil?.nome || "").split(" ")[0];
+  // saudação usa o nome da empresa quando definido; senão, saudação personalizada ou 1º nome do usuário
+  const saudacaoNome = (nomeMarca && nomeMarca !== "Minha Empresa") ? nomeMarca : (brand.saudacao || perfil?.nome || "").split(" ")[0];
   const logoH = brand.logoTamanho || 40;
 
   if (carregando) {
