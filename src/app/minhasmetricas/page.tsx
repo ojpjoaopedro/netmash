@@ -439,7 +439,8 @@ export default function Home() {
 /** Avisos/informativos por aba de Finanças. */
 function AvisoFinancas({ aba }: { aba: string }) {
   const textos: Record<string, React.ReactNode> = {
-    dashboard: <>A <b>Dashboard</b> é preenchida automaticamente com os dados da <b>Estrutura de Receitas e Custos</b>.</>,
+    dashboard: <>A <b>Dashboard</b> é preenchida automaticamente com os <b>dados consolidados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
+    relatorios: <>Os <b>Relatórios</b> são preenchidos automaticamente com os <b>dados consolidados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
     estrutura: <>Essa é a <b>principal tela de Finanças</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou <b>importando uma planilha</b> de Excel. Todas se complementam e centralizam os dados aqui. <b>28% das empresas</b> preenchem somente por aqui, sem usar o calendário nem a planilha.</>,
     calendario: <>Além de preencher por <b>planilha de Excel</b> ou direto na <b>Estrutura de Receitas e Custos</b>, o Calendário também oferece esse preenchimento. E, além de preencher, o <b>visual do calendário facilita a tomada de decisões</b>. Cerca de <b>60% das empresas</b> preferem preencher por aqui.</>,
     importar: <>Cerca de <b>12% dos empresários</b> preferem subir os dados por <b>planilha</b>.</>,
