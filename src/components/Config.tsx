@@ -248,7 +248,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
           {brand.logo && (
             <div className="field" style={{ marginTop: 14 }}>
               <label className="f">Tamanho da logo na barra lateral ({brand.logoTamanho || 40}px)</label>
-              <input type="range" min={24} max={110} value={brand.logoTamanho || 40} onChange={(e) => saveBrand({ logoTamanho: Number(e.target.value) })} style={{ padding: 0 }} />
+              <input type="range" min={24} max={110} value={brand.logoTamanho || 40} onChange={(e) => saveBrand({ logoTamanho: Number(e.target.value) })} style={{ padding: 0, accentColor: "var(--brand)" }} />
             </div>
           )}
 
