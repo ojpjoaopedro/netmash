@@ -347,6 +347,10 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
     return nd;
   }, [d, ano, pagVersao]);
 
+  // edição/remoção das linhas do calendário direto por aqui (reflete no Calendário)
+  const renomearCal = (grupo: string, antigo: string, novo: string) => salvarPagamentos(lerPagamentos().map((p) => (p.grupo === grupo && p.item === antigo) ? { ...p, item: novo, descricao: novo } : p));
+  const removerCal = (grupo: string, item: string) => salvarPagamentos(lerPagamentos().filter((p) => !(p.grupo === grupo && p.item === item)));
+
   // colunas visíveis = meses selecionados (em ordem); sem seleção, mostra todos
   const mesesVis = useMemo(() => (sel.size ? [...sel].sort((a, b) => a - b) : MES.map((_, i) => i)), [sel]);
   const totalDe = (v: number[]) => mesesVis.reduce((s, m) => s + v[m], 0);
@@ -519,11 +523,9 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                         {/* itens (folhas editáveis: nome e valores). Linhas do calendário são só-leitura. */}
                         {aberto && g.itens.map((it, ii) => it.cal ? (
                           <tr key={ii} style={{ borderTop: "1px solid var(--line)" }}>
-                            <td style={{ ...tdRot, paddingLeft: 30, fontStyle: "italic", color: "var(--muted)" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{it.nome}
-                                <span style={{ fontSize: 8.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", padding: "1px 6px", borderRadius: 99, textTransform: "uppercase", letterSpacing: ".04em" }}>calendário</span>
-                              </span>
-                            </td>
+                            <CalNomeCel nome={it.nome} onSalvo={salvo}
+                              onRenomear={(nv) => renomearCal(g.nome, it.nome, nv)}
+                              onRemover={() => pedirExcluir(`"${it.nome}" (lançado pelo Calendário)`, () => removerCal(g.nome, it.nome))} />
                             {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(it.v[m])}</td>)}
                             <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
                           </tr>
@@ -691,6 +693,37 @@ function NomeCel({ cor, valor, placeholder, onChange, onRemover, italico, indent
           onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; if (valor !== inicial.current) onSalvo?.(e.currentTarget); setTimeout(() => setFocado(false), 150); }} />
         {onRemover && focado && (
           <button onMouseDown={(e) => e.preventDefault()} onClick={onRemover} title="Excluir" aria-label="Excluir"
+            style={{ flexShrink: 0, background: "transparent", border: 0, color: "var(--red)", cursor: "pointer", padding: 2, borderRadius: 5, lineHeight: 0 }}>
+            <Trash2 size={13} />
+          </button>
+        )}
+      </span>
+    </td>
+  );
+}
+
+/** Nome de uma linha vinda do Calendário: mesmo padrão do item (edita ao clicar,
+ * lixeira só no foco, "Salvo" ao mudar), com um "i" de observação no lugar do badge. */
+function CalNomeCel({ nome, onRenomear, onRemover, onSalvo }: {
+  nome: string; onRenomear: (novo: string) => void; onRemover: () => void; onSalvo?: (el: HTMLElement) => void;
+}) {
+  const [val, setVal] = useState(nome);
+  const [focado, setFocado] = useState(false);
+  const inicial = useRef("");
+  useEffect(() => { setVal(nome); }, [nome]);
+  return (
+    <td style={{ ...tdRot, paddingLeft: 30, fontStyle: "italic", color: "var(--muted)" }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 7, width: "100%" }}>
+        <input value={val} onChange={(e) => setVal(e.target.value)}
+          style={{ flex: 1, minWidth: 40, background: "transparent", border: "1px solid transparent", borderRadius: 6, padding: "3px 5px", font: "inherit", fontStyle: "italic", color: "inherit", outline: "none" }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--line-2)")}
+          onMouseLeave={(e) => { if (document.activeElement !== e.currentTarget) e.currentTarget.style.borderColor = "transparent"; }}
+          onFocus={(e) => { setFocado(true); inicial.current = val; e.currentTarget.style.borderColor = "var(--line-2)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; const nv = val.trim(); if (nv && nv !== inicial.current) { onRenomear(nv); onSalvo?.(e.currentTarget); } else if (!nv) setVal(inicial.current); setTimeout(() => setFocado(false), 150); }} />
+        <span title="Este item vem do Calendário de Pagamentos (lançado e confirmado lá). Editar ou remover aqui também atualiza no Calendário."
+          style={{ display: "inline-grid", placeItems: "center", width: 14, height: 14, borderRadius: "50%", background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--muted)", fontSize: 9, fontWeight: 800, fontStyle: "normal", cursor: "help", flexShrink: 0 }}>i</span>
+        {focado && (
+          <button onMouseDown={(e) => e.preventDefault()} onClick={onRemover} title="Excluir (atualiza no Calendário)" aria-label="Excluir"
             style={{ flexShrink: 0, background: "transparent", border: 0, color: "var(--red)", cursor: "pointer", padding: 2, borderRadius: 5, lineHeight: 0 }}>
             <Trash2 size={13} />
           </button>
