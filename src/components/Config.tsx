@@ -112,6 +112,8 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
     setAplicando(true);
     window.setTimeout(() => { saveBrand({ cor }); setAplicando(false); }, 5000);
   }
+  // aplica sozinho assim que a cor é escolhida (seletor fecha) ou ao sair do campo hex
+  const aplicarCorAuto = () => { if (corPendente && !aplicando && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(cor.trim())) aplicarCor(); };
 
   function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -254,11 +256,10 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
           <div className="field" style={{ marginTop: 16 }}>
             <label className="f">Cor de destaque</label>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <input type="color" value={cor} onChange={(e) => setCor(e.target.value)} style={{ width: 52, height: 40, padding: 4 }} />
-              <input value={cor} onChange={(e) => setCor(e.target.value)} style={{ flex: 1, minWidth: 140 }} />
-              <button className="btn" onClick={aplicarCor} disabled={!corPendente || aplicando} style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: corPendente ? 1 : 0.5 }}>Aplicar</button>
+              <input type="color" value={cor} onChange={(e) => setCor(e.target.value)} onBlur={aplicarCorAuto} style={{ width: 52, height: 40, padding: 4 }} />
+              <input value={cor} onChange={(e) => setCor(e.target.value)} onBlur={aplicarCorAuto} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} style={{ flex: 1, minWidth: 140 }} />
             </div>
-            <span className="sub" style={{ fontSize: 12 }}>escolha a cor e clique em Aplicar para mudar a cor de todo o painel</span>
+            <span className="sub" style={{ fontSize: 12 }}>escolha a cor e o painel é atualizado automaticamente</span>
           </div>
         </div>
         )}
