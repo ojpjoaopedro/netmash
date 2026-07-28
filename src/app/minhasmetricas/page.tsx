@@ -565,6 +565,19 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
     const at = pegarAlvo(); if (at) aplicar(at);
     return assinarNav(aplicar);
   }, []);
+
+  // tour guiado das 5 abas: aparece 1x depois que o Guia de configuração é concluído
+  const [tourOn, setTourOn] = useState(false);
+  useEffect(() => {
+    const ver = () => {
+      try {
+        if (localStorage.getItem("me_guia_concluido") === "1" && localStorage.getItem("me_tour_financas") !== "1") setTourOn(true);
+      } catch { /* ignore */ }
+    };
+    ver();
+    window.addEventListener("me:guia-concluido", ver);
+    return () => window.removeEventListener("me:guia-concluido", ver);
+  }, []);
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
     calendario: "Calendário", relatorios: "Relatórios", importar: "Importar planilha",
@@ -593,6 +606,10 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
           <DollarSign size={22} />
         </span>
         <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
+        <button onClick={() => setTourOn(true)} title="Rever o tutorial das abas"
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "7px 14px", borderRadius: 99 }}>
+          <Sparkles size={14} /> Ver tutorial
+        </button>
       </div>
 
       {/* barra de abas */}
@@ -600,7 +617,7 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
         {abas.map((a, i) => (
           <Fragment key={a.key}>
             {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px" }} />}
-            <button onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={tab(aba === a.key)}>
+            <button data-aba={a.key} onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={tab(aba === a.key)}>
               <a.Icon size={16} /> {a.label}
             </button>
           </Fragment>
@@ -618,6 +635,60 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} />
         : aba === "importar" ? <Importar reload={reload} empresa={empresa} brand={brand} />
         : <EmConstrucao titulo={rotulos[aba]} />}
+
+      {tourOn && <TourFinancas setAba={(k) => { setAba(k); if (k === "calendario") setCalSub(null); }}
+        onFim={() => { setTourOn(false); try { localStorage.setItem("me_tour_financas", "1"); } catch { /* ignore */ } }} />}
+    </div>
+  );
+}
+
+/** Tour guiado das 5 abas de Finanças (aparece após concluir o Guia de configuração). */
+function TourFinancas({ setAba, onFim }: { setAba: (k: "dashboard" | "estrutura" | "calendario" | "relatorios" | "importar") => void; onFim: () => void }) {
+  const STEPS: { key: "dashboard" | "relatorios" | "estrutura" | "calendario" | "importar"; emoji: string; titulo: string; texto: React.ReactNode; nota?: React.ReactNode }[] = [
+    { key: "dashboard", emoji: "📊", titulo: "Dashboard", texto: <>É o <b>resultado de tudo</b> que você preenche na <b>Estrutura de Receitas e Custos</b>. Ela se monta sozinha e pode ser <b>editada e configurada</b> do jeito que a sua empresa preferir.</> },
+    { key: "relatorios", emoji: "📄", titulo: "Relatórios", texto: <>Aqui você <b>gera arquivos</b> (como o DRE), faz <b>comparativos</b> e visualiza os <b>gráficos</b> gerados a partir da Estrutura de Receitas e Custos.</> },
+    { key: "estrutura", emoji: "🧱", titulo: "Estrutura de Receitas e Custos", texto: <>A <b>mais importante</b>: é aqui que os dados são <b>de fato colocados</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou pela <b>Importação de planilha</b>.</> },
+    { key: "calendario", emoji: "🗓️", titulo: "Calendário", texto: <>Preencha <b>despesas</b> e <b>faturamento</b> pelas <b>datas</b>. Dá para já deixar <b>provisionado</b> o que está previsto para entrar e sair.</> },
+    { key: "importar", emoji: "📥", titulo: "Importar planilha", texto: <>Primeiro preencha a <b>Estrutura</b> com os primeiros números. Depois <b>baixe o Excel</b> na Estrutura (botão <b>📊 Baixar arquivo Excel</b>), complete os dados nele e <b>suba de volta aqui</b>. Os dados vão <b>automaticamente</b> para a Estrutura.</>, nota: <>↘ Procure o botão <b>📊 Baixar arquivo Excel</b> na aba Estrutura.</> },
+  ];
+  const [step, setStep] = useState(0);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const cur = STEPS[step];
+  useEffect(() => { setAba(cur.key); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
+  useEffect(() => {
+    const upd = () => { const el = document.querySelector(`[data-aba="${cur.key}"]`); if (el) { const r = el.getBoundingClientRect(); setRect({ left: r.left, top: r.top, width: r.width, height: r.height }); } };
+    upd(); const t = window.setTimeout(upd, 90);
+    window.addEventListener("resize", upd); window.addEventListener("scroll", upd, true);
+    return () => { window.clearTimeout(t); window.removeEventListener("resize", upd); window.removeEventListener("scroll", upd, true); };
+  }, [step, cur.key]);
+  if (!rect) return null;
+  const popW = 340;
+  const left = Math.max(16, Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 1200) - popW - 16));
+  const top = rect.top + rect.height + 16;
+  const ultimo = step === STEPS.length - 1;
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 150 }}>
+      {/* clareira em volta da aba (escurece o resto) */}
+      <div style={{ position: "fixed", left: rect.left - 7, top: rect.top - 7, width: rect.width + 14, height: rect.height + 14, borderRadius: 12, boxShadow: "0 0 0 9999px rgba(15,23,42,.62)", border: "2px solid var(--brand)", pointerEvents: "none", transition: "all .2s" }} />
+      {/* balão */}
+      <div style={{ position: "fixed", left, top, width: popW, maxWidth: "calc(100vw - 32px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, boxShadow: "0 22px 54px -12px rgba(0,0,0,.55)", padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 18 }}>{cur.emoji}</span>
+          <b style={{ fontSize: 15.5, flex: 1 }}>{cur.titulo}</b>
+          <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 9px", borderRadius: 99 }}>{step + 1} de {STEPS.length}</span>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--txt)" }}>{cur.texto}</p>
+        {cur.nota && <p className="sub" style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.5 }}>{cur.nota}</p>}
+        {/* trilha de progresso */}
+        <div style={{ display: "flex", gap: 5, margin: "14px 0" }}>
+          {STEPS.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 99, background: i <= step ? "var(--brand)" : "var(--line)" }} />)}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {step > 0 && <button className="btn ghost sm" onClick={() => setStep((s) => s - 1)}>Anterior</button>}
+          <div style={{ flex: 1 }} />
+          <button className="btn sm" onClick={() => (ultimo ? onFim() : setStep((s) => s + 1))}>{ultimo ? "Concluir ✓" : "Próximo →"}</button>
+        </div>
+      </div>
     </div>
   );
 }
