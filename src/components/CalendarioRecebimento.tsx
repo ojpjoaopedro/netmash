@@ -68,15 +68,12 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
 
   return (
     <div className="card" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
-      <b style={{ fontSize: 16 }}>Calendário financeiro</b>
-      <p className="sub" style={{ margin: "6px 0 12px", fontSize: 12.5, lineHeight: 1.5 }}>
-        Recebimentos e pagamentos do mês, com o que já foi feito e o que está previsto.
-      </p>
+      <b style={{ fontSize: 16, marginBottom: 12 }}>Calendário financeiro</b>
 
       {/* legenda */}
       <div style={{ display: "flex", gap: 18, marginBottom: 10, flexWrap: "wrap" }}>
-        <Legenda cor={REC} texto="Recebimentos" aberto={info === "rec"} onClick={() => setInfo(info === "rec" ? null : "rec")} dica="Cobranças a receber e já recebidas naquele dia (entra dinheiro)." />
-        <Legenda cor={PAG} texto="Pagamentos" aberto={info === "pag"} onClick={() => setInfo(info === "pag" ? null : "pag")} dica="Contas a pagar e já pagas naquele dia (sai dinheiro)." />
+        <Legenda cor={REC} texto="Recebimentos" aberto={info === "rec"} onClick={() => setInfo(info === "rec" ? null : "rec")} dica="Cobranças a receber e já recebidas." />
+        <Legenda cor={PAG} texto="Pagamentos" aberto={info === "pag"} onClick={() => setInfo(info === "pag" ? null : "pag")} dica="Contas a pagar e já pagas." />
       </div>
 
       {/* navegação de mês */}

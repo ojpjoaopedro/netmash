@@ -62,6 +62,25 @@ function soColunas<T extends Record<string, unknown>>(f: T): Partial<T> {
   return out as Partial<T>;
 }
 
+// Campos extras do cartão que não são colunas do banco: guardados no navegador,
+// por id do funcionário, e mesclados de volta ao carregar (persistem no Supabase também).
+const EXTRA_FUNC = ["foto", "email", "cpf", "pix", "nascimento"] as const;
+const K_FUNC_EXTRA = "me_func_extra";
+type FuncExtras = Record<string, Record<string, unknown>>;
+function lerFuncExtras(): FuncExtras { return ls<FuncExtras>(K_FUNC_EXTRA, {}); }
+function guardarFuncExtras(id: string, patch: Record<string, unknown>) {
+  const e: Record<string, unknown> = {};
+  for (const k of EXTRA_FUNC) if (k in patch) e[k] = patch[k];
+  if (!Object.keys(e).length) return;
+  const m = lerFuncExtras();
+  m[id] = { ...(m[id] || {}), ...e };
+  lsSet(K_FUNC_EXTRA, m);
+}
+function aplicarFuncExtras(list: Funcionario[]): Funcionario[] {
+  const m = lerFuncExtras();
+  return list.map((f) => (m[f.id] ? ({ ...f, ...m[f.id] } as Funcionario) : f));
+}
+
 export type Empresa = {
   id: string;
   nome: string;
@@ -290,29 +309,34 @@ export async function delLancamento(id: string): Promise<void> {
 export async function getFuncionarios(): Promise<Funcionario[]> {
   if (!supabaseReady || !supabase) {
     seedDemo();
-    return ls<Funcionario[]>(K.func, []);
+    return aplicarFuncExtras(ls<Funcionario[]>(K.func, []));
   }
   const { data } = await supabase.from("funcionarios").select("*").order("nome");
-  return (data ?? []) as Funcionario[];
+  return aplicarFuncExtras((data ?? []) as Funcionario[]);
 }
 
 export async function addFuncionario(f: Omit<Funcionario, "id" | "empresa_id">): Promise<void> {
   if (!supabaseReady || !supabase) {
     const arr = ls<Funcionario[]>(K.func, []);
-    arr.push({ ...f, id: uid(), empresa_id: DEMO_EMP });
+    const id = uid();
+    arr.push({ ...f, id, empresa_id: DEMO_EMP });
     lsSet(K.func, arr);
+    guardarFuncExtras(id, f as Record<string, unknown>);
     return;
   }
   const emp = await getEmpresa();
-  await supabase.from("funcionarios").insert({ ...soColunas(f), empresa_id: emp?.id });
+  const { data } = await supabase.from("funcionarios").insert({ ...soColunas(f), empresa_id: emp?.id }).select("id").single();
+  if (data?.id) guardarFuncExtras(data.id as string, f as Record<string, unknown>);
 }
 
 export async function updateFuncionario(id: string, patch: Partial<Funcionario>): Promise<void> {
+  guardarFuncExtras(id, patch as Record<string, unknown>);   // email/cpf/pix/nascimento/foto ficam no navegador
   if (!supabaseReady || !supabase) {
     lsSet(K.func, ls<Funcionario[]>(K.func, []).map((f) => (f.id === id ? { ...f, ...patch } : f)));
     return;
   }
-  await supabase.from("funcionarios").update(soColunas(patch)).eq("id", id);
+  const cols = soColunas(patch);
+  if (Object.keys(cols).length) await supabase.from("funcionarios").update(cols).eq("id", id);
 }
 
 export async function delFuncionario(id: string): Promise<void> {

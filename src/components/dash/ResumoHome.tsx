@@ -195,6 +195,8 @@ function PulsoDoDia() {
 const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const mesDe = (iso: string) => Number(iso.slice(5, 7)) - 1;   // 0-11
 const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+// só nome + 1 sobrenome (ex.: "Robert Augusto Magalhães" -> "Robert Augusto")
+const nomeCurto = (n?: string) => { const p = (n || "").trim().split(/\s+/).filter(Boolean); return p.length ? p.slice(0, 2).join(" ") : "Sem nome"; };
 
 /**
  * Aniversários do mês corrente, montados a partir da Equipe cadastrada:
@@ -234,7 +236,7 @@ function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
           <div style={{ display: "grid", gap: 7 }}>
             {niver.map((f) => (
               <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome || "Sem nome"}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nomeCurto(f.nome)}</span>
                 <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 10px", borderRadius: 99 }}>
                   🎈 {diaMes(f.nascimento!)}
                 </span>
@@ -252,7 +254,7 @@ function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
           <div style={{ display: "grid", gap: 7 }}>
             {admis.map((f) => (
               <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome || "Sem nome"}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nomeCurto(f.nome)}</span>
                 <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 10px", borderRadius: 99 }}>
                   {diaMes(f.admissao!)} · {anosDe(f.admissao!)}
                 </span>
