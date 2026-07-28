@@ -3,15 +3,12 @@ import { useState } from "react";
 import { SecHead } from "./Kit";
 import { gerarDeck, gerarRelatorio, abrirHtml, slug, SECOES, type Secao, type DadosApres } from "@/lib/apresentacao";
 import { ultimosMeses, mesesEntre, rotuloMes } from "@/lib/format";
-import type { Metrica } from "@/lib/indicadores";
-import type { Lancamento, Funcionario } from "@/lib/db";
+import type { Funcionario } from "@/lib/db";
 
 type Props = {
-  metrs: Metrica[];
-  lancs: Lancamento[];
   funcs: Funcionario[];
-  saldoInicial: number;
   brand: { nome: string; logo: string | null };
+  ano: number;
 };
 
 export default function GerarApresentacao(props: Props) {
@@ -20,7 +17,7 @@ export default function GerarApresentacao(props: Props) {
   const [de, setDe] = useState<string>(ultimosMeses(6)[0]);
   const [ate, setAte] = useState<string>(ultimosMeses(1)[0]);
   const [secoes, setSecoes] = useState<Record<Secao, boolean>>({
-    financeiro: true, comercial: true, marketing: true, cliente: true, colaboradores: true,
+    faturamento: true, despesas: true, resultado: true, fatCanal: true, despGrupo: true, graficos: true, equipe: true, aniversarios: true,
   });
 
   const mesesLista = modo === "custom" ? mesesEntre(de, ate) : ultimosMeses(periodo);
@@ -62,11 +59,9 @@ export default function GerarApresentacao(props: Props) {
       <div className="card" style={{ marginTop: 14 }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>O que mostrar na apresentação</h3>
         <p className="sub" style={{ marginBottom: 12 }}>Marque as áreas que você quer apresentar.</p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div className="puzzle">
           {SECOES.map((s) => (
-            <button key={s.key} onClick={() => toggle(s.key)}
-              className={`chip ${secoes[s.key] ? "cyan" : "muted"}`}
-              style={{ cursor: "pointer", border: secoes[s.key] ? "1px solid var(--brand)" : "1px solid var(--line)", padding: "8px 14px", fontSize: 13.5 }}>
+            <button key={s.key} onClick={() => toggle(s.key)} className={`puzzle-piece ${secoes[s.key] ? "on" : ""}`}>
               {secoes[s.key] ? "✓ " : ""}{s.label}
             </button>
           ))}

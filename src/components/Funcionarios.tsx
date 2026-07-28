@@ -317,13 +317,11 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
                 {/* faixa superior em gradiente da cor de destaque */}
                 <div style={{ height: 64, background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))" }} />
 
-                {/* lixeira (aparece ao focar) */}
-                {focoId === f.id && (
-                  <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
-                    style={{ position: "absolute", top: 12, left: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(255,255,255,.92)", color: VERMELHO, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
-                    <Trash2 size={14} />
-                  </button>
-                )}
+                {/* lixeira: aparece ao passar o mouse no card ou ao focar um campo */}
+                <button className="card-trash" title="Remover" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
+                  style={{ position: "absolute", top: 12, left: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(255,255,255,.92)", color: VERMELHO, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
+                  <Trash2 size={14} />
+                </button>
 
                 {/* status flutuante sobre a faixa */}
                 <button onClick={() => f.ativo ? setADesativar({ f, data: hojeISO() }) : setAAtivar(f)} title={f.ativo ? "Clique para desativar" : "Clique para ativar"}

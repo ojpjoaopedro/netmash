@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, Compass, Settings,
@@ -444,7 +444,7 @@ export default function Home() {
         {view === "planejamento" && <EmConstrucao titulo="Planejamento" />}
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
-        {view === "apresentacao" && <GerarApresentacao metrs={effMetrs} lancs={lancs} funcs={funcs} saldoInicial={saldoInicial} brand={brandObj} />}
+        {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
         {view === "importar" && <Importar reload={carregarDados} empresa={empresa} brand={brand} />}
         {view === "empresa" && <Config empresa={empresa} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
@@ -518,8 +518,8 @@ function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "rec
 function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebimentos"; ano: number; onVoltar: () => void }) {
   return (
     <div>
-      <button onClick={onVoltar} title="Voltar" style={{ display: "inline-grid", placeItems: "center", width: 38, height: 38, marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
-        <ArrowLeft size={17} />
+      <button onClick={onVoltar} title="Voltar" style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
+        <ArrowLeft size={17} /> Voltar
       </button>
       <CalendarioPagamentos anoInicial={ano} tipo={tipo} />
     </div>
@@ -577,10 +577,13 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
 
       {/* barra de abas */}
       <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
-        {abas.map((a) => (
-          <button key={a.key} onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={tab(aba === a.key)}>
-            <a.Icon size={16} /> {a.label}
-          </button>
+        {abas.map((a, i) => (
+          <Fragment key={a.key}>
+            {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px" }} />}
+            <button onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={tab(aba === a.key)}>
+              <a.Icon size={16} /> {a.label}
+            </button>
+          </Fragment>
         ))}
       </div>
 

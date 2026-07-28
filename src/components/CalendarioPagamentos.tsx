@@ -383,7 +383,6 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       {/* seletor de ano + legenda */}
       <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", padding: "14px 18px", marginBottom: 16 }}>
         <label style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)" }}>Ano</span>
           <select value={ano} onChange={(e) => setAno(Number(e.target.value))} style={{ width: "auto", padding: "6px 10px" }}>
             {ANOS.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
@@ -395,8 +394,6 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
           </span>
         </b>
         <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 12, color: "var(--muted)", flexWrap: "wrap" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: BRAND, display: "inline-block" }} /> {cfg.legenda}</span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: CLARO, display: "inline-block" }} /> {cfg.aConfirmar}</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: AMBAR, display: "inline-block" }} /> Feriado nacional</span>
           <BotaoOcultar />
         </div>

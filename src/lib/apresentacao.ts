@@ -1,25 +1,27 @@
-import { resumo, serieFluxoMeses, custoFolha } from "./calc";
-import { CATALOGO, ytd, def, statusMeta, type Metrica, type Categoria } from "./indicadores";
-import { brl, brlCompact, pct, rotuloMes, hoje, dataBR } from "./format";
-import type { Lancamento, Funcionario } from "./db";
+import { custoFolha } from "./calc";
+import { brl, brlCompact, pct, hoje, dataBR } from "./format";
+import type { Funcionario } from "./db";
+import { carregarEstruturaComPagamentos, MES, type Dados } from "@/app/minhasmetricas/financas-estrutura";
 
 const ACCENT = "#1AADE2";
+const MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-export type Secao = "financeiro" | "cliente" | "comercial" | "marketing" | "colaboradores";
+export type Secao = "faturamento" | "despesas" | "resultado" | "fatCanal" | "despGrupo" | "graficos" | "equipe" | "aniversarios";
 export const SECOES: { key: Secao; label: string }[] = [
-  { key: "financeiro", label: "Finanças" },
-  { key: "comercial", label: "Comercial" },
-  { key: "marketing", label: "Marketing" },
-  { key: "cliente", label: "Saúde do Cliente" },
-  { key: "colaboradores", label: "Colaboradores" },
+  { key: "faturamento", label: "Faturamento" },
+  { key: "despesas", label: "Despesas" },
+  { key: "resultado", label: "Resultado final" },
+  { key: "fatCanal", label: "Faturamento por canal" },
+  { key: "despGrupo", label: "Despesas por grupos" },
+  { key: "graficos", label: "Gráficos" },
+  { key: "equipe", label: "Equipe" },
+  { key: "aniversarios", label: "Aniversariantes do mês" },
 ];
 
 export type DadosApres = {
-  metrs: Metrica[];
-  lancs: Lancamento[];
   funcs: Funcionario[];
-  saldoInicial: number;
   brand: { nome: string; logo: string | null };
+  ano: number;
 };
 
 function esc(s: string): string {
@@ -29,65 +31,137 @@ export function slug(s: string): string {
   return (s || "empresa").normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "empresa";
 }
-function corStatus(s: "ok" | "warn" | "bad"): string {
-  return s === "ok" ? "#10B981" : s === "warn" ? "#F59E0B" : "#EF4444";
-}
-function fmtUnidade(v: number, u: string): string {
-  if (u === "BRL") return brl(v);
-  if (u === "%") return pct(v);
-  if (u === "score") return v.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
-  return v.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
-}
 function logoOuNome(b: DadosApres["brand"]): string {
   return b.logo ? `<img class="logo" src="${b.logo}" alt="${esc(b.nome)}" />` : `<div class="logo-nome">${esc(b.nome)}</div>`;
 }
 function bigCard(label: string, valor: string, nota?: string, cor?: string): string {
   return `<div class="card"><div class="card-label">${esc(label)}</div><div class="card-valor"${cor ? ` style="color:${cor}"` : ""}>${esc(valor)}</div>${nota ? `<div class="card-nota">${esc(nota)}</div>` : ""}</div>`;
 }
-function kpiCard(key: string, metrs: Metrica[]): string {
-  const d = def(key); if (!d) return "";
-  const { value, pct: p } = ytd(metrs, key);
-  const status = statusMeta(p, d.invert);
-  const cor = corStatus(status);
-  const txt = status === "ok" ? "No ritmo" : status === "warn" ? "Atenção" : "Abaixo";
-  const barra = Math.max(0, Math.min(p, 100));
-  return `<div class="card kpi"><div class="card-label">${esc(d.label)}</div><div class="card-valor">${esc(fmtUnidade(value, d.unidade))}</div><div class="kpi-bar"><i style="width:${barra}%;background:${cor}"></i></div><div class="kpi-foot"><span class="chip" style="color:${cor};border-color:${cor}55;background:${cor}1a">${txt}</span><span class="kpi-meta">${p}% da meta</span></div></div>`;
+
+/* ---------- dados da Estrutura de Receitas e Custos ---------- */
+function idxMeses(meses: string[], ano: number): number[] {
+  const idx = meses.filter((m) => Number(m.slice(0, 4)) === ano).map((m) => Number(m.slice(5, 7)) - 1).filter((m) => m >= 0 && m < 12);
+  return idx.length ? idx : Array.from({ length: 12 }, (_, i) => i);
 }
-function blocoArea(cat: Categoria, metrs: Metrica[]): string {
-  return CATALOGO.filter((d) => d.categoria === cat).map((d) => kpiCard(d.key, metrs)).join("");
+const fatMes = (d: Dados, mi: number) => d.receitas.reduce((s, r) => s + (r.v[mi] || 0), 0);
+const despMes = (d: Dados, mi: number) => d.custos.reduce((s, b) => s + b.grupos.reduce((s2, g) => s2 + g.itens.reduce((s3, it) => s3 + (it.v[mi] || 0), 0), 0), 0);
+function porCanal(d: Dados, idx: number[]): { nome: string; valor: number }[] {
+  return d.receitas.map((r) => ({ nome: r.nome || "(sem nome)", valor: idx.reduce((s, mi) => s + (r.v[mi] || 0), 0) })).filter((x) => x.valor > 0.005).sort((a, b) => b.valor - a.valor);
 }
-function svgFluxo(lancs: Lancamento[], meses: string[], saldoInicial: number): string {
-  const serie = serieFluxoMeses(lancs, meses, saldoInicial);
-  const W = 1000, H = 420, padL = 70, padR = 24, padT = 24, padB = 56;
+function porGrupo(d: Dados, idx: number[]): { nome: string; valor: number }[] {
+  return d.custos.flatMap((b) => b.grupos).map((g) => ({ nome: g.nome || "(sem nome)", valor: idx.reduce((s, mi) => s + g.itens.reduce((s2, it) => s2 + (it.v[mi] || 0), 0), 0) })).filter((x) => x.valor > 0.005).sort((a, b) => b.valor - a.valor);
+}
+
+/* ---------- gráficos SVG ---------- */
+function svgBarras(pts: { rotulo: string; valor: number }[], cor: string): string {
+  const W = 1000, H = 380, padL = 74, padR = 24, padT = 20, padB = 52;
   const plotW = W - padL - padR, plotH = H - padT - padB;
-  const max = Math.max(1, ...serie.map((p) => Math.max(p.entradas, p.saidas)));
-  const slot = plotW / Math.max(1, serie.length);
-  const barW = Math.min(48, (slot - 16) / 2), gap = 6;
+  const max = Math.max(1, ...pts.map((p) => p.valor));
+  const slot = plotW / Math.max(1, pts.length);
+  const barW = Math.min(58, slot - 16);
   let bars = "", labels = "";
-  serie.forEach((p, i) => {
+  pts.forEach((p, i) => {
     const cx = padL + slot * i + slot / 2;
-    const hE = (p.entradas / max) * plotH, hS = (p.saidas / max) * plotH;
-    bars += `<rect x="${(cx - barW - gap / 2).toFixed(1)}" y="${(padT + plotH - hE).toFixed(1)}" width="${barW.toFixed(1)}" height="${hE.toFixed(1)}" rx="4" fill="#10B981"></rect><rect x="${(cx + gap / 2).toFixed(1)}" y="${(padT + plotH - hS).toFixed(1)}" width="${barW.toFixed(1)}" height="${hS.toFixed(1)}" rx="4" fill="#EF4444"></rect>`;
-    labels += `<text x="${cx.toFixed(1)}" y="${(H - padB + 24).toFixed(1)}" class="axis-x">${esc(rotuloMes(p.mes))}</text>`;
+    const h = (p.valor / max) * plotH;
+    bars += `<rect x="${(cx - barW / 2).toFixed(1)}" y="${(padT + plotH - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${cor}"></rect>`;
+    labels += `<text x="${cx.toFixed(1)}" y="${(H - padB + 22).toFixed(1)}" class="axis-x">${esc(p.rotulo)}</text>`;
   });
   let grid = "";
-  for (let g = 0; g <= 4; g++) {
-    const val = (max / 4) * g, y = padT + plotH - (val / max) * plotH;
-    grid += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(W - padR).toFixed(1)}" y2="${y.toFixed(1)}" class="grid"></line><text x="${(padL - 10).toFixed(1)}" y="${(y + 4).toFixed(1)}" class="axis-y">${esc(brlCompact(val))}</text>`;
-  }
-  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet">${grid}${bars}${labels}</svg><div class="legend"><span><i style="background:#10B981"></i> Entradas</span><span><i style="background:#EF4444"></i> Saídas</span></div>`;
+  for (let g = 0; g <= 4; g++) { const val = (max / 4) * g, y = padT + plotH - (val / max) * plotH; grid += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(W - padR).toFixed(1)}" y2="${y.toFixed(1)}" class="grid"></line><text x="${(padL - 10).toFixed(1)}" y="${(y + 4).toFixed(1)}" class="axis-y">${esc(brlCompact(val))}</text>`; }
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet">${grid}${bars}${labels}</svg>`;
 }
-function tabelaColaboradores(funcs: Funcionario[]): string {
+function svgDuplo(pts: { rotulo: string; a: number; b: number }[], corA: string, corB: string, legA: string, legB: string): string {
+  const W = 1000, H = 400, padL = 74, padR = 24, padT = 20, padB = 52;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const max = Math.max(1, ...pts.map((p) => Math.max(p.a, p.b)));
+  const slot = plotW / Math.max(1, pts.length);
+  const barW = Math.min(40, (slot - 14) / 2), gap = 6;
+  let bars = "", labels = "";
+  pts.forEach((p, i) => {
+    const cx = padL + slot * i + slot / 2;
+    const hA = (p.a / max) * plotH, hB = (p.b / max) * plotH;
+    bars += `<rect x="${(cx - barW - gap / 2).toFixed(1)}" y="${(padT + plotH - hA).toFixed(1)}" width="${barW.toFixed(1)}" height="${hA.toFixed(1)}" rx="4" fill="${corA}"></rect><rect x="${(cx + gap / 2).toFixed(1)}" y="${(padT + plotH - hB).toFixed(1)}" width="${barW.toFixed(1)}" height="${hB.toFixed(1)}" rx="4" fill="${corB}"></rect>`;
+    labels += `<text x="${cx.toFixed(1)}" y="${(H - padB + 22).toFixed(1)}" class="axis-x">${esc(p.rotulo)}</text>`;
+  });
+  let grid = "";
+  for (let g = 0; g <= 4; g++) { const val = (max / 4) * g, y = padT + plotH - (val / max) * plotH; grid += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(W - padR).toFixed(1)}" y2="${y.toFixed(1)}" class="grid"></line><text x="${(padL - 10).toFixed(1)}" y="${(y + 4).toFixed(1)}" class="axis-y">${esc(brlCompact(val))}</text>`; }
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet">${grid}${bars}${labels}</svg><div class="legend"><span><i style="background:${corA}"></i> ${esc(legA)}</span><span><i style="background:${corB}"></i> ${esc(legB)}</span></div>`;
+}
+
+/* ---------- tabelas ---------- */
+function tabelaBreak(linhas: { nome: string; valor: number }[], titulo: string, cor: string): string {
+  const tot = linhas.reduce((s, l) => s + l.valor, 0);
+  const rows = linhas.length
+    ? linhas.map((l) => `<tr><td><span class="dot" style="background:${cor}"></span>${esc(l.nome)}</td><td style="text-align:right">${esc(brl(l.valor))}</td><td style="text-align:right;color:var(--muted)">${tot > 0 ? Math.round((l.valor / tot) * 100) : 0}%</td></tr>`).join("")
+    : `<tr><td colspan="3" style="text-align:center;color:var(--muted)">Sem dados no período.</td></tr>`;
+  return `<table class="tbl" style="margin-top:26px"><thead><tr><th>${esc(titulo)}</th><th style="text-align:right">Valor</th><th style="text-align:right">Participação</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td style="font-weight:800">Total</td><td style="text-align:right;font-weight:800">${esc(brl(tot))}</td><td></td></tr></tfoot></table>`;
+}
+function tabelaEquipe(funcs: Funcionario[]): string {
   const f = custoFolha(funcs);
   const ativos = funcs.filter((x) => x.ativo);
   const linhas = ativos.length
-    ? ativos.map((c) => `<tr><td>${esc(c.nome)}</td><td>${esc(c.cargo || "—")}</td><td style="text-align:right">${esc(brl(c.salario))}</td><td style="text-align:right">${esc(brl(c.salario + c.beneficios))}</td></tr>`).join("")
+    ? ativos.map((c) => `<tr><td>${esc(c.nome)}</td><td>${esc(c.cargo || "-")}</td><td style="text-align:right">${esc(brl(c.salario))}</td><td style="text-align:right">${esc(brl(c.salario + c.beneficios))}</td></tr>`).join("")
     : `<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhum colaborador cadastrado.</td></tr>`;
   return `<div class="grid g3" style="margin-top:24px">${bigCard("Colaboradores ativos", String(f.ativos))}${bigCard("Salários / mês", brl(f.salarios))}${bigCard("Custo total folha", brl(f.total), "com benefícios", "#F59E0B")}</div>
     <table class="tbl"><thead><tr><th>Nome</th><th>Cargo</th><th style="text-align:right">Salário</th><th style="text-align:right">Custo total</th></tr></thead><tbody>${linhas}</tbody></table>`;
 }
+function blocoAniversarios(funcs: Funcionario[]): string {
+  const mA = new Date().getMonth() + 1;
+  const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  const nome1 = (n: string) => (n || "").trim().split(/\s+/).slice(0, 2).join(" ");
+  const niver = funcs.filter((f) => f.ativo && f.nascimento && Number(f.nascimento.slice(5, 7)) === mA);
+  const admis = funcs.filter((f) => f.ativo && f.admissao && Number(f.admissao.slice(5, 7)) === mA);
+  const lista = (arr: Funcionario[], campo: "nascimento" | "admissao") => arr.length
+    ? `<div class="grid g2" style="margin-top:14px">${arr.map((f) => `<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-weight:700">${esc(nome1(f.nome))}</span><span class="chip" style="color:var(--accent);border-color:${ACCENT}55;background:${ACCENT}1a">${esc(dm((f[campo] as string)))}</span></div>`).join("")}</div>`
+    : `<p class="muted" style="margin-top:10px">Ninguém neste mês.</p>`;
+  return `<h3 class="sub2">🎂 Aniversário</h3>${lista(niver, "nascimento")}<h3 class="sub2" style="margin-top:26px">🏆 Aniversário de casa (admissão)</h3>${lista(admis, "admissao")}`;
+}
 
-const TITULO_AREA: Record<Categoria, string> = { financeiro: "Financeiro", cliente: "Saúde do Cliente", comercial: "Comercial", marketing: "Marketing" };
+/* ---------- totais e slides ---------- */
+function totais(data: DadosApres, meses: string[]) {
+  const d = carregarEstruturaComPagamentos(data.ano);
+  const idx = idxMeses(meses, data.ano);
+  const fat = idx.reduce((s, mi) => s + fatMes(d, mi), 0);
+  const desp = idx.reduce((s, mi) => s + despMes(d, mi), 0);
+  return { d, idx, fat, desp, resultado: fat - desp, margem: fat > 0 ? ((fat - desp) / fat) * 100 : 0 };
+}
+
+function slidesDe(data: DadosApres, meses: string[], secoes: Set<Secao>): { titulo: string; html: string }[] {
+  const { d, idx, fat, desp, resultado, margem } = totais(data, meses);
+  const serie = idx.map((mi) => ({ rotulo: MES[mi], fat: fatMes(d, mi), desp: despMes(d, mi) }));
+  const out: { titulo: string; html: string }[] = [];
+
+  if (secoes.has("faturamento")) {
+    out.push({ titulo: "Faturamento", html: `<div class="grid g2" style="margin-top:30px">${bigCard("Faturamento total", brl(fat), "No período", "#10B981")}${bigCard("Média por mês", brl(idx.length ? fat / idx.length : 0))}</div><div class="card" style="margin-top:20px;padding:26px 28px">${svgBarras(serie.map((s) => ({ rotulo: s.rotulo, valor: s.fat })), "#10B981")}</div>` });
+  }
+  if (secoes.has("despesas")) {
+    out.push({ titulo: "Despesas", html: `<div class="grid g2" style="margin-top:30px">${bigCard("Despesas totais", brl(desp), "No período", "#EF4444")}${bigCard("Média por mês", brl(idx.length ? desp / idx.length : 0))}</div><div class="card" style="margin-top:20px;padding:26px 28px">${svgBarras(serie.map((s) => ({ rotulo: s.rotulo, valor: s.desp })), "#EF4444")}</div>` });
+  }
+  if (secoes.has("resultado")) {
+    out.push({ titulo: "Resultado final", html: `<div class="grid g2" style="margin-top:30px">${bigCard("Faturamento", brl(fat), "No período", "#10B981")}${bigCard("Despesas", brl(desp), "No período", "#EF4444")}${bigCard("Resultado (lucro)", brl(resultado), "Faturamento - Despesas", resultado >= 0 ? "#10B981" : "#EF4444")}${bigCard("Margem", pct(margem), "Resultado / faturamento")}</div><div class="card" style="margin-top:20px;padding:26px 28px">${svgBarras(serie.map((s) => ({ rotulo: s.rotulo, valor: s.fat - s.desp })), ACCENT)}</div>` });
+  }
+  if (secoes.has("fatCanal")) {
+    out.push({ titulo: "Faturamento por canal", html: tabelaBreak(porCanal(d, idx), "Canal de venda", "#10B981") });
+  }
+  if (secoes.has("despGrupo")) {
+    out.push({ titulo: "Despesas por grupos", html: tabelaBreak(porGrupo(d, idx), "Grupo de custo", "#EF4444") });
+  }
+  if (secoes.has("graficos")) {
+    out.push({ titulo: "Gráficos", html: `<div class="card" style="margin-top:26px;padding:26px 28px">${svgDuplo(serie.map((s) => ({ rotulo: s.rotulo, a: s.fat, b: s.desp })), "#10B981", "#EF4444", "Faturamento", "Despesas")}</div>` });
+  }
+  if (secoes.has("equipe")) {
+    out.push({ titulo: "Equipe", html: tabelaEquipe(data.funcs) });
+  }
+  if (secoes.has("aniversarios")) {
+    out.push({ titulo: `Aniversariantes de ${MESES_PT[new Date().getMonth()]}`, html: blocoAniversarios(data.funcs) });
+  }
+  return out;
+}
+
+function periodoTxt(meses: string[], ano: number): string {
+  const idx = idxMeses(meses, ano);
+  return `${MES[idx[0]]} - ${MES[idx[idx.length - 1]]} de ${ano} (${idx.length} ${idx.length === 1 ? "mês" : "meses"})`;
+}
 
 function baseCss(): string {
   return `*{margin:0;padding:0;box-sizing:border-box}
@@ -99,64 +173,40 @@ function baseCss(): string {
   .logo-nome{font-size:clamp(34px,6vw,72px);font-weight:800;color:var(--accent);letter-spacing:-.03em}
   .eyebrow{color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.16em;font-size:13px}
   .muted{color:var(--muted)}
+  .sub2{font-size:15px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
   .grid{display:grid;gap:18px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 24px}
   .card-label{color:var(--muted);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
   .card-valor{font-size:clamp(24px,3.2vw,40px);font-weight:800;margin-top:8px;letter-spacing:-.02em}
   .card-nota{color:var(--muted);font-size:13px;margin-top:6px}
-  .kpi-bar{height:7px;border-radius:99px;background:#1f1f1f;margin:14px 0 10px;overflow:hidden}.kpi-bar i{display:block;height:100%;border-radius:99px}
-  .kpi-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .chip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;border:1px solid}
-  .kpi-meta{color:var(--muted);font-size:13px;font-weight:600}
   .chart{width:100%;height:auto;display:block}
   line.grid{stroke:#1d1d1d;stroke-width:1}.axis-x{fill:#9aa0a6;font-size:15px;text-anchor:middle}.axis-y{fill:#9aa0a6;font-size:14px;text-anchor:end}
   .legend{display:flex;gap:24px;justify-content:center;margin-top:18px;color:var(--muted);font-weight:600;font-size:15px}.legend span{display:inline-flex;align-items:center;gap:8px}.legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
-  .tbl{width:100%;border-collapse:collapse;margin-top:18px;font-size:15px}.tbl th{color:var(--muted);font-size:12px;text-transform:uppercase;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}.tbl td{padding:11px 12px;border-bottom:1px solid var(--line)}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:8px;vertical-align:middle}
+  .tbl{width:100%;border-collapse:collapse;margin-top:18px;font-size:15px}.tbl th{color:var(--muted);font-size:12px;text-transform:uppercase;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}.tbl td{padding:11px 12px;border-bottom:1px solid var(--line)}.tbl tfoot td{border-bottom:0}
   @media(max-width:760px){.g2,.g3{grid-template-columns:1fr!important}.grid{gap:12px}.card{padding:18px 18px}.tbl{font-size:13px}.tbl th,.tbl td{padding:8px 8px}}`;
-}
-
-function slidesDe(data: DadosApres, meses: string[], secoes: Set<Secao>): { titulo: string; html: string }[] {
-  const { metrs, lancs, funcs, saldoInicial } = data;
-  const r = resumo(lancs, meses, saldoInicial);
-  const out: { titulo: string; html: string }[] = [];
-  if (secoes.has("financeiro")) {
-    out.push({ titulo: "Resumo financeiro", html: `<div class="grid g3" style="margin-top:34px">${bigCard("Saldo em caixa", brl(r.saldo), "Disponível hoje", r.saldo >= 0 ? "#10B981" : "#EF4444")}${bigCard("Faturamento", brl(r.faturamento), "No período")}${bigCard("Despesas", brl(r.despesas), "No período", "#EF4444")}${bigCard("Lucro", brl(r.lucro), "No período", r.lucro >= 0 ? "#10B981" : "#EF4444")}${bigCard("Margem", pct(r.margem), "Lucro / faturamento")}${bigCard("A receber / a pagar", `${brlCompact(r.aReceber)} / ${brlCompact(r.aPagar)}`, "Em aberto")}</div>` });
-    out.push({ titulo: "Fluxo de caixa", html: `<div class="card" style="margin-top:30px;padding:28px 30px">${svgFluxo(lancs, meses, saldoInicial)}</div>` });
-    out.push({ titulo: "Indicadores financeiros", html: `<div class="grid g3" style="margin-top:34px">${blocoArea("financeiro", metrs)}</div>` });
-  }
-  (["cliente", "comercial", "marketing"] as Categoria[]).forEach((cat) => {
-    if (secoes.has(cat)) out.push({ titulo: TITULO_AREA[cat], html: `<div class="grid g3" style="margin-top:34px">${blocoArea(cat, metrs)}</div>` });
-  });
-  if (secoes.has("colaboradores")) out.push({ titulo: "Colaboradores", html: tabelaColaboradores(funcs) });
-  return out;
-}
-
-function periodoTxt(meses: string[]): string {
-  return `${rotuloMes(meses[0])} – ${rotuloMes(meses[meses.length - 1])} (${meses.length} ${meses.length === 1 ? "mês" : "meses"})`;
 }
 
 /** Deck de slides navegável. */
 export function gerarDeck(data: DadosApres, meses: string[], secoes: Set<Secao>): string {
-  const { lancs, saldoInicial, brand } = data;
-  const ano = new Date().getFullYear();
-  const r = resumo(lancs, meses, saldoInicial);
-  const ptxt = periodoTxt(meses);
+  const { brand, ano } = data;
+  const t = totais(data, meses);
+  const ptxt = periodoTxt(meses, ano);
   const conteudo = slidesDe(data, meses, secoes);
 
   const slides: string[] = [];
   slides.push(`<section class="slide capa">${logoOuNome(brand)}<h1>Relatório de Resultados <span class="accent">${ano}</span></h1><p class="capa-sub">${esc(ptxt)}</p><p class="muted capa-data">Gerado em ${esc(dataBR(hoje()))} · ${esc(brand.nome)}</p></section>`);
   conteudo.forEach((s) => slides.push(`<section class="slide"><div class="slide-inner"><p class="eyebrow">Visão geral</p><h2>${esc(s.titulo)}</h2>${s.html}</div></section>`));
-  slides.push(`<section class="slide capa encerra"><h1>Obrigado<span class="accent">.</span></h1><p class="capa-sub">${esc(brand.nome)}</p><div class="card" style="margin-top:24px;min-width:300px;text-align:center"><div class="card-label">Lucro do período</div><div class="card-valor" style="color:${r.lucro >= 0 ? "#10B981" : "#EF4444"}">${esc(brl(r.lucro))}</div><div class="card-nota">${esc(ptxt)}</div></div><button class="expbtn-big" onclick="exportarPDF()">⬇ Baixar em PDF</button></section>`);
+  slides.push(`<section class="slide capa encerra"><h1>Obrigado<span class="accent">.</span></h1><p class="capa-sub">${esc(brand.nome)}</p><div class="card" style="margin-top:24px;min-width:300px;text-align:center"><div class="card-label">Resultado do período</div><div class="card-valor" style="color:${t.resultado >= 0 ? "#10B981" : "#EF4444"}">${esc(brl(t.resultado))}</div><div class="card-nota">${esc(ptxt)}</div></div><button class="expbtn-big" onclick="exportarPDF()">⬇ Baixar em PDF</button></section>`);
 
   const total = slides.length;
   const css = `${baseCss()}
     html,body{height:100%;overflow:hidden;background:var(--bg)}
     #deck{position:fixed;inset:0;overflow:hidden;background:var(--bg)}
-    /* Palco 16:9 (1280x720) escalado para caber em qualquer tela */
     .stage{position:absolute;top:50%;left:50%;--sw:1280px;--sh:720px;width:var(--sw);height:var(--sh);background:var(--bg);overflow:hidden;
       transform:translate(-50%,-50%) scale(1);transform-origin:center center}
     .slide{position:absolute;inset:0;width:var(--sw);height:var(--sh);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 78px;opacity:0;visibility:hidden;overflow:hidden;transition:opacity .35s ease;text-align:center}
-    /* colunas fixas dentro do palco (não colapsar no viewport mobile) */
     .stage .g2{grid-template-columns:repeat(2,1fr)!important}
     .stage .g3{grid-template-columns:repeat(3,1fr)!important}
     .slide.active{opacity:1;visibility:visible}
@@ -165,7 +215,6 @@ export function gerarDeck(data: DadosApres, meses: string[], secoes: Set<Secao>)
     .capa h1{font-size:78px;margin-top:18px}.capa-sub{font-size:26px;color:var(--accent);font-weight:700;margin-top:18px}.capa-data{margin-top:14px;font-size:16px}.encerra h1{font-size:104px}
     .logo{max-height:150px}.logo-nome{font-size:66px}
     .card-valor{font-size:36px}.card{padding:22px 26px}.grid{gap:20px}
-    /* CELULAR: abre na vertical (retrato) — conteúdo empilhado e rolável, sem faixa horizontal */
     .stage.portrait .slide{padding:50px 34px;overflow-y:auto;overflow-x:hidden}
     .stage.portrait .slide:not(.capa){justify-content:flex-start}
     .stage.portrait .g2,.stage.portrait .g3{grid-template-columns:1fr!important}
@@ -200,9 +249,8 @@ function exportarPDF(){var B=document.querySelectorAll('.expbtn,.expbtn-big');fu
 
 /** Relatório de uma página (rolável). */
 export function gerarRelatorio(data: DadosApres, meses: string[], secoes: Set<Secao>): string {
-  const { brand } = data;
-  const ano = new Date().getFullYear();
-  const ptxt = periodoTxt(meses);
+  const { brand, ano } = data;
+  const ptxt = periodoTxt(meses, ano);
   const conteudo = slidesDe(data, meses, secoes);
   const css = `${baseCss()}
     body{padding:48px max(24px,5vw);max-width:1200px;margin:0 auto}

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { BarChart3, LayoutGrid, Calendar, Info, ChevronDown } from "lucide-react";
-import { lerRecebimentos, lerPagamentos, datasDaDespesa, ocConfirmada, valorDaOcorrencia } from "@/app/minhasmetricas/financas-estrutura";
+import { lerRecebimentos, lerPagamentos, datasDaDespesa, ocConfirmada, valorDaOcorrencia, carregarEstruturaComPagamentos } from "@/app/minhasmetricas/financas-estrutura";
 import { mascararDataBR, brParaISO } from "@/lib/format";
 
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -33,7 +33,8 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
     const h = () => setVersao((v) => v + 1);
     window.addEventListener("me:recebimentos", h);
     window.addEventListener("me:pagamentos", h);
-    return () => { window.removeEventListener("me:recebimentos", h); window.removeEventListener("me:pagamentos", h); };
+    window.addEventListener("me:estrutura", h);
+    return () => { window.removeEventListener("me:recebimentos", h); window.removeEventListener("me:pagamentos", h); window.removeEventListener("me:estrutura", h); };
   }, []);
 
   const hojeISO = useMemo(() => {
@@ -79,21 +80,29 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
     return { recRealizado, recPrevisto, recAtraso, pagPagas, pagAPagar, pagAtraso };
   }, [montado, versao, ano, deISO, ateISO, hojeISO]);
 
-  // faturamento por canal (soma de todas as ocorrências de recebimento, por canal, no período)
+  // meses (0..11) do ano que caem dentro do período selecionado
+  const mesesPeriodo = useMemo(() => {
+    const out: number[] = [];
+    for (let m = 0; m < 12; m++) {
+      const ini = `${ano}-${String(m + 1).padStart(2, "0")}-01`;
+      const ult = new Date(ano, m + 1, 0).getDate();
+      const fim = `${ano}-${String(m + 1).padStart(2, "0")}-${String(ult).padStart(2, "0")}`;
+      if (fim >= deISO && ini <= ateISO) out.push(m);
+    }
+    return out;
+  }, [ano, deISO, ateISO]);
+
+  // faturamento por canal: puxa da Composição das Receitas (Estrutura), somando os meses do período
   const porCanal = useMemo(() => {
     void versao;
-    const m: Record<string, number> = {};
-    if (montado) {
-      for (const p of lerRecebimentos()) {
-        for (const o of datasDaDespesa(p, ano)) {
-          if (!noPeriodo(o.iso)) continue;
-          const nome = (p.item || "Sem canal").trim() || "Sem canal";
-          m[nome] = (m[nome] || 0) + valorDaOcorrencia(p, o, ano);
-        }
-      }
-    }
-    return Object.entries(m).map(([nome, valor], i) => ({ nome, valor, cor: PALETA[i % PALETA.length] })).sort((a, b) => b.valor - a.valor);
-  }, [montado, versao, ano, deISO, ateISO]);
+    if (!montado) return [] as { nome: string; valor: number; cor: string }[];
+    const d = carregarEstruturaComPagamentos(ano);
+    return d.receitas
+      .map((r) => ({ nome: (r.nome || "Sem canal").trim() || "Sem canal", valor: mesesPeriodo.reduce((s, mi) => s + (r.v[mi] || 0), 0) }))
+      .filter((x) => x.valor > 0.005)
+      .sort((a, b) => b.valor - a.valor)
+      .map((x, i) => ({ ...x, cor: PALETA[i % PALETA.length] }));
+  }, [montado, versao, ano, mesesPeriodo]);
 
   const itens: Item[] = [
     { tipo: "canal", titulo: "Faturamento por canal", dica: "Faturamento do período separado por canal de venda (lançado no Calendário).", canal: porCanal },
