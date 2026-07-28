@@ -4,6 +4,7 @@ import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pe
 import BotaoOcultar from "@/components/ocultar";
 import { AnimNum } from "@/components/AnimNum";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
+import { supabase, supabaseReady } from "@/lib/supabase";
 
 /** Moeda "conforme digita" (centavos pela direita) -> 2.000,00 */
 const mascaraMoedaBR = (v: string) => { const n = (v || "").replace(/\D/g, ""); return n ? (parseInt(n, 10) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""; };
@@ -55,9 +56,38 @@ export function carregarEstrutura(ano: number = 2026): Dados {
   } catch { return ano === 2026 ? PADRAO : zerarValores(PADRAO); }
 }
 
-/** Salva a estrutura de um ano específico. */
+/** Salva a estrutura de um ano específico (cache local + banco). */
 export function salvarEstrutura(ano: number, d: Dados) {
-  if (typeof window !== "undefined") { try { localStorage.setItem(chaveAno(ano), JSON.stringify(d)); } catch { /* ignore */ } }
+  if (typeof window !== "undefined") { try { localStorage.setItem(chaveAno(ano), JSON.stringify(d)); window.dispatchEvent(new Event("me:estrutura")); } catch { /* ignore */ } }
+  void salvarEstruturaBanco(ano, d);
+}
+
+// ── Persistência no banco (Supabase) ─────────────────────────────────────────
+// Cache do id da empresa (1 por projeto) para não consultar toda hora.
+let _empresaId: string | null | undefined;
+async function empresaIdAtual(): Promise<string | null> {
+  if (_empresaId !== undefined) return _empresaId ?? null;
+  if (!supabaseReady || !supabase) { _empresaId = null; return null; }
+  try { const { data } = await supabase.from("empresas").select("id").limit(1).single(); _empresaId = (data?.id as string) ?? null; } catch { _empresaId = null; }
+  return _empresaId ?? null;
+}
+async function salvarEstruturaBanco(ano: number, d: Dados) {
+  if (!supabaseReady || !supabase) return;
+  const eid = await empresaIdAtual(); if (!eid) return;
+  try { await supabase.from("financas_estrutura").upsert({ empresa_id: eid, ano, dados: d, updated_at: new Date().toISOString() }, { onConflict: "empresa_id,ano" }); } catch { /* ignore */ }
+}
+/** Puxa a estrutura do banco para o cache local. Se o banco estiver vazio e
+ *  já houver dado local, sobe o local para o banco (migração automática). */
+export async function sincronizarEstrutura(ano: number): Promise<boolean> {
+  if (!supabaseReady || !supabase || typeof window === "undefined") return false;
+  const eid = await empresaIdAtual(); if (!eid) return false;
+  try {
+    const { data } = await supabase.from("financas_estrutura").select("dados").eq("empresa_id", eid).eq("ano", ano).maybeSingle();
+    if (data?.dados) { localStorage.setItem(chaveAno(ano), JSON.stringify(data.dados)); window.dispatchEvent(new Event("me:estrutura")); return true; }
+    const local = localStorage.getItem(chaveAno(ano));
+    if (local) { await supabase.from("financas_estrutura").upsert({ empresa_id: eid, ano, dados: JSON.parse(local) }, { onConflict: "empresa_id,ano" }); }
+  } catch { /* ignore */ }
+  return false;
 }
 
 /* ── Integração com o Calendário de Pagamentos ─────────────────────────────── */
@@ -448,6 +478,10 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
     const atual = new Date().getMonth();
     setSel(new Set(Array.from({ length: atual + 1 }, (_, i) => i)));
     setCarregado(true);
+    // busca no banco (fonte da verdade) e, se veio algo, recarrega do cache
+    let vivo = true;
+    sincronizarEstrutura(ano).then((ok) => { if (ok && vivo) { pularSalvar.current = true; setD(carregarEstrutura(ano)); } });
+    return () => { vivo = false; };
   }, [ano]);
   useEffect(() => {
     if (!carregado) return;
