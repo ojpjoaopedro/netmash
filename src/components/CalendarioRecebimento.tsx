@@ -84,8 +84,8 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
       </div>
 
       {/* grade compacta */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
-        {SEM.map((s) => <div key={s} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 700, color: "var(--muted)", paddingBottom: 3 }}>{s}</div>)}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {SEM.map((s) => <div key={s} style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "var(--muted)", paddingBottom: 6 }}>{s}</div>)}
         {Array.from({ length: primeiroDiaSemana }).map((_, i) => <div key={`b${i}`} />)}
         {Array.from({ length: diasNoMes }, (_, i) => i + 1).map((d) => {
           const di = iso(d);
@@ -95,15 +95,15 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
           const sel = diaSel === di;
           return (
             <button key={d} onClick={() => setDiaSel(sel ? null : di)}
-              style={{ position: "relative", height: 38, borderRadius: 9, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+              style={{ position: "relative", height: 58, borderRadius: 11, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 600,
                 background: sel ? "var(--brand)" : "transparent", color: sel ? "var(--brand-ct,#fff)" : "var(--txt)", display: "grid", placeItems: "center", transition: ".12s" }}
               onMouseEnter={(e) => { if (!sel) e.currentTarget.style.background = "var(--bg-2)"; }}
               onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = "transparent"; }}>
               {d}
               {(temRec || temPag) && (
-                <span style={{ position: "absolute", bottom: 4, display: "flex", gap: 3 }}>
-                  {temRec && <span style={{ width: 5, height: 5, borderRadius: "50%", background: sel ? "var(--brand-ct,#fff)" : REC }} />}
-                  {temPag && <span style={{ width: 5, height: 5, borderRadius: "50%", background: sel ? "var(--brand-ct,#fff)" : PAG }} />}
+                <span style={{ position: "absolute", bottom: 8, display: "flex", gap: 4 }}>
+                  {temRec && <span style={{ width: 7, height: 7, borderRadius: "50%", background: sel ? "var(--brand-ct,#fff)" : REC }} />}
+                  {temPag && <span style={{ width: 7, height: 7, borderRadius: "50%", background: sel ? "var(--brand-ct,#fff)" : PAG }} />}
                 </span>
               )}
             </button>
