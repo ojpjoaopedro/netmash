@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X } from "lucide-react";
+import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X, GripVertical } from "lucide-react";
 import BotaoOcultar from "@/components/ocultar";
 import { AnimNum } from "@/components/AnimNum";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
@@ -646,6 +646,13 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
     mostrarDesfazer(`"${removido.nome || "item"}" excluído`, () =>
       setD((x) => { const r = structuredClone(x); r.custos[bi].grupos[gi].itens.splice(ii, 0, removido); return r; }));
   }
+  // arrastar para reordenar itens dentro do mesmo grupo
+  const arrastarItem = useRef<{ bi: number; gi: number; ii: number } | null>(null);
+  function moverItem(bi: number, gi: number, de: number, para: number) {
+    if (de === para) return;
+    snapshot();
+    setD((x) => { const r = structuredClone(x); const arr = r.custos[bi].grupos[gi].itens; const [m] = arr.splice(de, 1); arr.splice(para, 0, m); return r; });
+  }
   const CORES_GRUPO = [AZUL, ROXO, LARANJA, ROSA, VERDE];
   function nomeGrupo(bi: number, gi: number, nome: string) {
     snapshot();
@@ -846,7 +853,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                         ) : (
                           <FragBloco key={ii}>
                             <tr style={{ borderTop: "1px solid var(--line)" }}>
-                              <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))} />
+                              <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))}
+                                drag={{ onStart: () => { arrastarItem.current = { bi, gi, ii }; }, onDrop: () => { const a = arrastarItem.current; if (a && a.bi === bi && a.gi === gi) moverItem(bi, gi, a.ii, ii); arrastarItem.current = null; } }} />
                               {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => editarCusto(bi, gi, ii, m, nv)} />)}
                               <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
                             </tr>
@@ -1051,14 +1059,21 @@ function THead({ icone, titulo, cor, meses }: { icone: React.ReactNode; titulo: 
  * `reservaChevron` guarda o espaço da setinha para as bolinhas ficarem alinhadas
  * com as dos grupos (que têm o chevron de expandir).
  */
-function NomeCel({ cor, valor, placeholder, onChange, onRemover, italico, indent, reservaChevron, onSalvo, lider, peso }: {
+function NomeCel({ cor, valor, placeholder, onChange, onRemover, italico, indent, reservaChevron, onSalvo, lider, peso, drag }: {
   cor?: string; valor: string; placeholder: string; onChange: (v: string) => void; onRemover?: () => void; italico?: boolean; indent?: number; reservaChevron?: boolean; onSalvo?: (el: HTMLElement) => void; lider?: React.ReactNode; peso?: number;
+  drag?: { onStart: () => void; onDrop: () => void };
 }) {
   const [focado, setFocado] = useState(false);
+  const [sobre, setSobre] = useState(false);
   const inicial = useRef("");
   return (
-    <td style={{ ...tdRot, fontWeight: italico ? 400 : (peso ?? 500), fontStyle: italico ? "italic" : undefined, color: italico ? "var(--muted)" : undefined, paddingLeft: indent }}>
+    <td onDragOver={drag ? (e) => { e.preventDefault(); if (!sobre) setSobre(true); } : undefined}
+      onDragLeave={drag ? () => setSobre(false) : undefined}
+      onDrop={drag ? (e) => { e.preventDefault(); setSobre(false); drag.onDrop(); } : undefined}
+      style={{ ...tdRot, fontWeight: italico ? 400 : (peso ?? 500), fontStyle: italico ? "italic" : undefined, color: italico ? "var(--muted)" : undefined, paddingLeft: indent, boxShadow: sobre ? "inset 0 2px 0 0 var(--brand)" : undefined }}>
       <span style={{ display: "flex", alignItems: "center", gap: 7, width: "100%" }}>
+        {drag && <span draggable onDragStart={drag.onStart} onDragEnd={() => setSobre(false)} title="Arrastar para reordenar"
+          style={{ cursor: "grab", color: "var(--muted-2)", flexShrink: 0, display: "grid", placeItems: "center" }}><GripVertical size={13} /></span>}
         {lider}
         {reservaChevron && !lider && <span style={{ width: 13, flexShrink: 0 }} />}
         {cor && <span style={{ width: 7, height: 7, borderRadius: 99, background: cor, flexShrink: 0 }} />}

@@ -492,7 +492,7 @@ export default function Home() {
 }
 
 /** Avisos/informativos por aba de Finanças. */
-function AvisoFinancas({ aba, onTutorial }: { aba: string; onTutorial?: () => void }) {
+function AvisoFinancas({ aba }: { aba: string }) {
   const textos: Record<string, React.ReactNode> = {
     dashboard: <>A <b>Dashboard</b> é preenchida automaticamente com os <b>dados consolidados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
     relatorios: <>Os <b>Relatórios</b> são preenchidos automaticamente com os <b>dados consolidados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
@@ -503,16 +503,10 @@ function AvisoFinancas({ aba, onTutorial }: { aba: string; onTutorial?: () => vo
   const txt = textos[aba];
   if (!txt) return null;
   return (
-    <div style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 11, borderRadius: 14, padding: "13px 16px",
+    <div style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", gap: 11, borderRadius: 14, padding: "13px 16px",
       background: "color-mix(in srgb, var(--brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 22%, transparent)" }}>
       <span style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "var(--brand)", color: "#fff", fontSize: 13, fontWeight: 800 }}>i</span>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--txt)", flex: 1 }}>{txt}</p>
-      {onTutorial && (
-        <button onClick={onTutorial} title="Rever o tutorial das abas"
-          style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "var(--card)", border: "1px solid color-mix(in srgb, var(--brand) 30%, transparent)", padding: "7px 14px", borderRadius: 99 }}>
-          <Sparkles size={14} /> Ver tutorial
-        </button>
-      )}
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--txt)" }}>{txt}</p>
     </div>
   );
 }
@@ -624,10 +618,14 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
             </button>
           </Fragment>
         ))}
+        <button onClick={() => setTourOn(true)} title="Rever o tutorial das abas"
+          style={{ marginLeft: "auto", alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "7px 14px", borderRadius: 99 }}>
+          <Sparkles size={14} /> Ver tutorial
+        </button>
       </div>
 
       {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
-      {!(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} onTutorial={() => setTourOn(true)} />}
+      {!(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
 
       {aba === "estrutura" ? <EstruturaFinancas ano={ano} />
         : aba === "dashboard" ? <FinancasDashboard ano={ano} />
@@ -647,11 +645,11 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
 /** Tour guiado das 5 abas de Finanças (aparece após concluir o Guia de configuração). */
 function TourFinancas({ setAba, onFim }: { setAba: (k: "dashboard" | "estrutura" | "calendario" | "relatorios" | "importar") => void; onFim: () => void }) {
   const STEPS: { key: "dashboard" | "relatorios" | "estrutura" | "calendario" | "importar"; emoji: string; titulo: string; texto: React.ReactNode; nota?: React.ReactNode }[] = [
-    { key: "dashboard", emoji: "📊", titulo: "Dashboard", texto: <>É o <b>resultado de tudo</b> que você preenche na <b>Estrutura de Receitas e Custos</b>. Ela se monta sozinha e pode ser <b>editada e configurada</b> do jeito que a sua empresa preferir.</> },
+    { key: "dashboard", emoji: "📊", titulo: "Dashboard", texto: <>É o <b>resultado de tudo</b> que você preenche na <b>Estrutura de Receitas e Custos</b>.</> },
     { key: "relatorios", emoji: "📄", titulo: "Relatórios", texto: <>Aqui você <b>gera arquivos</b> (como o DRE), faz <b>comparativos</b> e visualiza os <b>gráficos</b> gerados a partir da Estrutura de Receitas e Custos.</> },
-    { key: "estrutura", emoji: "🧱", titulo: "Estrutura de Receitas e Custos", texto: <>A <b>mais importante</b>: é aqui que os dados são <b>de fato colocados</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou pela <b>Importação de planilha</b>.</> },
+    { key: "estrutura", emoji: "🧱", titulo: "Estrutura", texto: <>A <b>mais importante</b>: é aqui que os dados são <b>de fato colocados</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou pela <b>Importação de planilha</b>.</> },
     { key: "calendario", emoji: "🗓️", titulo: "Calendário", texto: <>Preencha <b>despesas</b> e <b>faturamento</b> pelas <b>datas</b>. Dá para já deixar <b>provisionado</b> o que está previsto para entrar e sair.</> },
-    { key: "importar", emoji: "📥", titulo: "Importar planilha", texto: <>Primeiro preencha a <b>Estrutura</b> com os primeiros números. Depois <b>baixe o Excel</b> na Estrutura (botão <b>📊 Baixar arquivo Excel</b>), complete os dados nele e <b>suba de volta aqui</b>. Os dados vão <b>automaticamente</b> para a Estrutura.</>, nota: <>↘ Procure o botão <b>📊 Baixar arquivo Excel</b> na aba Estrutura.</> },
+    { key: "importar", emoji: "📥", titulo: "Importar planilha", texto: <>Primeiro preencha a <b>Estrutura</b> com os primeiros números. Depois <b>baixe o Excel</b>, complete os dados nele e <b>suba de volta aqui</b>. Os dados vão <b>automaticamente</b> para a Estrutura.</> },
   ];
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
