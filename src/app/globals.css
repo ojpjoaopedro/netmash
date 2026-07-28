@@ -454,16 +454,3 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 @keyframes numFlash{0%{background:rgba(16,185,129,.22)}100%{background:transparent}}
 .num-flash{display:inline-block;padding:0 3px;margin:0 -3px;border-radius:5px;animation:numFlash 2s ease-out}
 
-/* chips em formato de quebra-cabeca que se juntam (Gerar apresentacao) */
-.puzzle{display:flex;flex-wrap:wrap;row-gap:0;column-gap:22px;align-items:center}
-.puzzle-piece{position:relative;padding:15px 30px;background:var(--bg-2);color:var(--muted);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;border:0;border-radius:10px;transition:background .15s,color .15s;white-space:nowrap}
-.puzzle-piece.on{background:color-mix(in srgb,var(--brand) 18%,var(--bg-2));color:var(--brand)}
-/* encaixe lateral: saliência à direita, recorte à esquerda */
-.puzzle-piece::after{content:"";position:absolute;right:-11px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:inherit;z-index:1}
-.puzzle-piece::before{content:"";position:absolute;left:-11px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:var(--card);z-index:2}
-.puzzle-piece:last-child::after{display:none}
-/* encaixe vertical: saliência embaixo, recorte em cima (peça e recorte no inner span) */
-.puzzle-piece .pp-in::before,.puzzle-piece .pp-in::after{content:"";position:absolute;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%}
-.puzzle-piece .pp-in::before{top:-11px;background:var(--card);z-index:2}
-.puzzle-piece .pp-in::after{bottom:-11px;background:var(--bg-2);z-index:1}
-.puzzle-piece.on .pp-in::after{background:color-mix(in srgb,var(--brand) 18%,var(--bg-2))}

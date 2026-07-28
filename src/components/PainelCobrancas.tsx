@@ -121,9 +121,9 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
     { tipo: "canal", titulo: "Faturamento por canal", dica: "Faturamento do período separado por canal de venda.", canal: porCanal },
     { tipo: "lista", titulo: "Despesa", dica: "A pagar e despesas em atraso vêm do Calendário; as despesas realizadas vêm da Estrutura de Custos.",
       lados: [
+        { rotulo: "Despesas pagas", m: custosEstrutura, cor: VERDE },
         { rotulo: "A pagar", m: dados.pagAPagar, cor: AMBAR },
         { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO },
-        { rotulo: "Despesas pagas", m: custosEstrutura, cor: VERDE },
       ] },
     { tipo: "barras", titulo: "Vencidos", dica: "Vencidos e ainda não confirmados: faturamento em atraso comparado a despesas em atraso.",
       a: { rotulo: "Faturamento em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO } },
@@ -263,10 +263,9 @@ function ListaLados({ lados }: { lados: Lado[] }) {
             <span className="sub" style={{ fontSize: 12 }}>{x.rotulo}</span>
             <b className="oc-num" style={{ fontSize: 17, color: x.cor }}>{fmt(x.m.valor)}</b>
           </div>
-          <div style={{ height: 8, borderRadius: 6, background: "var(--line)", overflow: "hidden", margin: "7px 0 4px" }}>
+          <div style={{ height: 8, borderRadius: 6, background: "var(--line)", overflow: "hidden", marginTop: 7 }}>
             <div style={{ height: "100%", width: `${Math.max(2, (x.m.valor / max) * 100)}%`, background: x.cor, borderRadius: 6 }} />
           </div>
-          <span className="sub" style={{ fontSize: 11.5 }}>{x.m.qtd} {x.m.qtd === 1 ? "lançamento" : "lançamentos"}</span>
         </div>
       ))}
     </>
@@ -297,34 +296,55 @@ function CanalLista({ canal }: { canal: Canal[] }) {
   );
 }
 
-/** Modo gráfico: pizza de várias fatias. */
+/** Modo gráfico: pizza de várias fatias (SVG), com % em cada fatia. */
 function PizzaCanal({ canal, vazio = "Nenhum dado no período." }: { canal: Canal[]; vazio?: string }) {
-  const total = canal.reduce((s, c) => s + c.valor, 0);
-  let acc = 0;
-  const partes = canal.map((c) => {
-    const ini = total > 0 ? (acc / total) * 100 : 0;
-    acc += c.valor;
-    const fim = total > 0 ? (acc / total) * 100 : 0;
-    return `${c.cor} ${ini}% ${fim}%`;
+  const dados = canal.filter((c) => c.valor > 0.005);
+  const total = dados.reduce((s, c) => s + c.valor, 0);
+  if (total <= 0) return (
+    <>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+        <div style={{ width: 150, height: 150, borderRadius: "50%", background: "conic-gradient(var(--line) 0 100%)" }} />
+      </div>
+      <p className="sub" style={{ fontSize: 12.5 }}>{vazio}</p>
+    </>
+  );
+  const cx = 100, cy = 100, r = 82, expl = 5;
+  let a0 = -Math.PI / 2;
+  const fatias = dados.map((c) => {
+    const frac = c.valor / total;
+    const a1 = a0 + frac * 2 * Math.PI;
+    const mid = (a0 + a1) / 2;
+    const ox = Math.cos(mid) * expl, oy = Math.sin(mid) * expl;
+    const large = frac > 0.5 ? 1 : 0;
+    // fatia única (100%): desenha um círculo cheio
+    const path = frac >= 0.999
+      ? `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z`
+      : `M ${(cx + ox).toFixed(2)} ${(cy + oy).toFixed(2)} L ${(cx + ox + r * Math.cos(a0)).toFixed(2)} ${(cy + oy + r * Math.sin(a0)).toFixed(2)} A ${r} ${r} 0 ${large} 1 ${(cx + ox + r * Math.cos(a1)).toFixed(2)} ${(cy + oy + r * Math.sin(a1)).toFixed(2)} Z`;
+    const lr = r * 0.62;
+    const lx = cx + ox + lr * Math.cos(mid), ly = cy + oy + lr * Math.sin(mid);
+    a0 = a1;
+    return { path, cor: c.cor, lx, ly, pct: Math.round(frac * 100) };
   });
-  const fundo = total > 0 ? `conic-gradient(${partes.join(", ")})` : "conic-gradient(var(--line) 0 100%)";
   return (
     <>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-        <div style={{ width: 140, height: 140, borderRadius: "50%", background: fundo }} />
-      </div>
-      {total === 0 ? <p className="sub" style={{ fontSize: 12.5 }}>{vazio}</p> : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {canal.map((c, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: c.cor, flexShrink: 0 }} />
-              <span className="sub" style={{ fontSize: 12, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</span>
-              <span className="sub" style={{ fontSize: 11.5 }}>{Math.round((c.valor / total) * 100)}%</span>
-              <b className="oc-num" style={{ fontSize: 13 }}>{fmt(c.valor)}</b>
-            </div>
+        <svg viewBox="0 0 200 200" style={{ width: "100%", maxWidth: 190, height: "auto", display: "block" }}>
+          {fatias.map((s, i) => <path key={i} d={s.path} fill={s.cor} stroke="var(--card)" strokeWidth="1.5" />)}
+          {fatias.map((s, i) => s.pct >= 5 && (
+            <text key={"t" + i} x={s.lx.toFixed(1)} y={s.ly.toFixed(1)} textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="800" fill="#fff">{s.pct}%</text>
           ))}
-        </div>
-      )}
+        </svg>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {dados.map((c, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: c.cor, flexShrink: 0 }} />
+            <span className="sub" style={{ fontSize: 12, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</span>
+            <span className="sub" style={{ fontSize: 11.5 }}>{Math.round((c.valor / total) * 100)}%</span>
+            <b className="oc-num" style={{ fontSize: 13 }}>{fmt(c.valor)}</b>
+          </div>
+        ))}
+      </div>
     </>
   );
 }

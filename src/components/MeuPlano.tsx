@@ -1,16 +1,21 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Crown, Shield, Check, ArrowUpRight, Wallet } from "lucide-react";
+import { Crown, Shield, Check, ArrowUpRight, Wallet, Compass } from "lucide-react";
 import BotaoOcultar from "./ocultar";
 
 // Valores oficiais do modelo de assinatura (mesmos do painel Super Admin)
 const PRECO_SUPERADMIN = 79.9; // por administrador principal da empresa
 const PRECO_ACESSO = 39.9;     // por acesso adicional (admin)
+const PRECO_PLANEJAMENTO = 29.9; // módulo Planejamento estratégico
 const TEL = "5562994797664";   // WhatsApp do Minhas Métricas
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function upgrade() {
   const msg = "Olá! Quero fazer o upgrade do meu plano no Minhas Métricas e adicionar mais acessos (admins).";
+  window.open(`https://wa.me/${TEL}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+}
+function ativarPlanejamento() {
+  const msg = "Olá! Quero ativar o módulo de Planejamento estratégico (R$ 29,90/mês) no Minhas Métricas.";
   window.open(`https://wa.me/${TEL}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
 }
 
@@ -64,6 +69,28 @@ export default function MeuPlano() {
               <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Acesso (Admin)</div>
               <b className="oc-num" style={{ fontSize: 20 }}>{fmt(PRECO_ACESSO)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
               <div className="sub" style={{ fontSize: 12, marginTop: 2 }}>por cada usuário adicional com acesso</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* módulo adicional: Planejamento estratégico */}
+      <div className="card" style={{ padding: 22 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+            <span style={{ width: 46, height: 46, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Compass size={23} /></span>
+            <div style={{ minWidth: 0 }}>
+              <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Módulo adicional</div>
+              <b style={{ fontSize: 16 }}>Planejamento estratégico</b>
+              <div className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>Defina metas e pilares e acompanhe o plano da sua empresa.</div>
+            </div>
+          </div>
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <b className="oc-num" style={{ fontSize: 22 }}>{fmt(PRECO_PLANEJAMENTO)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
+            <div style={{ marginTop: 8 }}>
+              <button className="btn" onClick={ativarPlanejamento} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", fontSize: 14 }}>
+                <ArrowUpRight size={16} /> Ativar
+              </button>
             </div>
           </div>
         </div>

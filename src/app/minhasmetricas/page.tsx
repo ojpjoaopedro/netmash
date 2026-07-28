@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
-import { assinarNav, pegarAlvo } from "@/lib/nav";
+import { assinarNav, pegarAlvo, navegar } from "@/lib/nav";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import {
   getPerfil, getEmpresa, getLancamentos, getFuncionarios, getClientes, logout,
@@ -441,7 +441,7 @@ export default function Home() {
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
         {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} reload={carregarDados} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
-        {view === "planejamento" && <EmConstrucao titulo="Planejamento" />}
+        {view === "planejamento" && <TelaPlanejamento />}
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
@@ -657,11 +657,14 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
 
       {/* barra de abas */}
       <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
-        {abas.map((a) => (
-          <button key={a.key} onClick={() => setAba(a.key)} style={tab(aba === a.key)}
-            className={a.key === "beneficios" && destaqueBenef ? "destaque-benef" : undefined}>
-            <a.Icon size={16} /> {a.label}
-          </button>
+        {abas.map((a, i) => (
+          <Fragment key={a.key}>
+            {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px" }} />}
+            <button onClick={() => setAba(a.key)} style={tab(aba === a.key)}
+              className={a.key === "beneficios" && destaqueBenef ? "destaque-benef" : undefined}>
+              <a.Icon size={16} /> {a.label}
+            </button>
+          </Fragment>
         ))}
       </div>
 
@@ -678,6 +681,27 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
 }
 
 /** Tela ainda sem conteúdo definido — placeholder padrão de "em construção". */
+/** Planejamento: convida a fazer upgrade e leva à tela do Plano. */
+function TelaPlanejamento() {
+  return (
+    <div className="card" style={{ padding: 0, overflow: "hidden", borderRadius: 18 }}>
+      <div style={{ padding: "44px 32px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, background: "linear-gradient(140deg, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%)" }}>
+        <span style={{ width: 66, height: 66, borderRadius: 18, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)" }}>
+          <Compass size={32} />
+        </span>
+        <div style={{ maxWidth: 460 }}>
+          <h2 style={{ margin: 0, fontSize: 23 }}>Planejamento estratégico</h2>
+          <p className="sub" style={{ marginTop: 8, lineHeight: 1.6 }}>Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo.</p>
+        </div>
+        <button className="btn" onClick={() => navegar({ view: "config", aba: "plano" })} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", fontSize: 14.5, marginTop: 4 }}>
+          <ArrowUpCircle size={18} /> Fazer upgrade
+        </button>
+        <p className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>A partir de R$ 29,90 / mês.</p>
+      </div>
+    </div>
+  );
+}
+
 function EmConstrucao({ titulo }: { titulo: string }) {
   return (
     <div className="card" style={{ padding: "56px 32px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>

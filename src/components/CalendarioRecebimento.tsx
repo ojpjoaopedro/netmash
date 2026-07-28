@@ -59,12 +59,20 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
   const iso = (d: number) => `${ano}-${String(mes + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   const det = diaSel ? mapa[diaSel] : undefined;
 
-  const linhas: { rotulo: string; valor: number; cor: string; cheio: boolean }[] = det ? [
+  // nomes (canais/itens) dos lançamentos do dia, por categoria — para a descrição
+  const nomesDe = (diaISO: string) => {
+    const r: Record<string, string[]> = { Recebido: [], "A receber": [], Pago: [], "A pagar": [] };
+    for (const p of lerRecebimentos()) for (const o of datasDaDespesa(p, ano)) if (o.iso === diaISO) r[ocConfirmada(p, o, ano) ? "Recebido" : "A receber"].push((p.item || p.descricao || "Recebimento").trim());
+    for (const p of lerPagamentos()) for (const o of datasDaDespesa(p, ano)) if (o.iso === diaISO) r[ocConfirmada(p, o, ano) ? "Pago" : "A pagar"].push((p.item || p.descricao || "Despesa").trim());
+    return r;
+  };
+  const nomes = diaSel ? nomesDe(diaSel) : null;
+  const linhas: { rotulo: string; valor: number; cor: string; cheio: boolean; desc: string }[] = det ? [
     { rotulo: "Recebido", valor: det.recConf, cor: REC, cheio: true },
     { rotulo: "A receber", valor: det.recPend, cor: REC, cheio: false },
     { rotulo: "Pago", valor: det.pagConf, cor: PAG, cheio: true },
     { rotulo: "A pagar", valor: det.pagPend, cor: PAG, cheio: false },
-  ].filter((l) => l.valor > 0) : [];
+  ].filter((l) => l.valor > 0).map((l) => ({ ...l, desc: nomes ? [...new Set(nomes[l.rotulo])].filter(Boolean).join(", ") : "" })) : [];
 
   return (
     <div className="card" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
@@ -122,8 +130,11 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
               {linhas.map((l, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, background: l.cheio ? l.cor : "transparent", border: `2px solid ${l.cor}` }} />
-                  <span className="sub" style={{ fontSize: 12.5, flex: 1 }}>{l.rotulo}</span>
-                  <b className="oc-num" style={{ fontSize: 15, color: l.cor }}>{fmt(l.valor)}</b>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="sub" style={{ fontSize: 12.5 }}>{l.rotulo}</div>
+                    {l.desc && <div className="sub" style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.desc}</div>}
+                  </div>
+                  <b className="oc-num" style={{ fontSize: 15, color: l.cor, flexShrink: 0 }}>{fmt(l.valor)}</b>
                 </div>
               ))}
             </div>

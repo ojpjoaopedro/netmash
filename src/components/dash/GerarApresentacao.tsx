@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { SecHead } from "./Kit";
 import { gerarDeck, gerarRelatorio, abrirHtml, slug, SECOES, type Secao, type DadosApres } from "@/lib/apresentacao";
 import { ultimosMeses, mesesEntre, rotuloMes } from "@/lib/format";
@@ -59,12 +60,21 @@ export default function GerarApresentacao(props: Props) {
       <div className="card" style={{ marginTop: 14 }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>O que mostrar na apresentação</h3>
         <p className="sub" style={{ marginBottom: 12 }}>Marque as áreas que você quer apresentar.</p>
-        <div className="puzzle">
-          {SECOES.map((s) => (
-            <button key={s.key} onClick={() => toggle(s.key)} className={`puzzle-piece ${secoes[s.key] ? "on" : ""}`}>
-              <span className="pp-in">{secoes[s.key] ? "✓ " : ""}{s.label}</span>
-            </button>
-          ))}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
+          {SECOES.map((s) => {
+            const on = secoes[s.key];
+            return (
+              <button key={s.key} onClick={() => toggle(s.key)}
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%", transition: ".15s",
+                  border: on ? "1.5px solid var(--brand)" : "1.5px solid var(--line-2)", background: on ? "color-mix(in srgb, var(--brand) 8%, transparent)" : "var(--bg-2)" }}>
+                <span style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, display: "grid", placeItems: "center", transition: ".15s",
+                  background: on ? "var(--brand)" : "transparent", border: on ? "1.5px solid var(--brand)" : "1.5px solid var(--line-2)", color: "var(--brand-ct,#fff)" }}>
+                  {on && <Check size={14} strokeWidth={3.5} />}
+                </span>
+                <span style={{ fontWeight: 700, fontSize: 13.5, color: on ? "var(--brand)" : "var(--txt)" }}>{s.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

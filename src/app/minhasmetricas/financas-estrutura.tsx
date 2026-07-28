@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X } from "lucide-react";
 import BotaoOcultar from "@/components/ocultar";
-import { AnimNum, useCountUp } from "@/components/AnimNum";
+import { AnimNum } from "@/components/AnimNum";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 
 /** Moeda "conforme digita" (centavos pela direita) -> 2.000,00 */
@@ -690,13 +690,13 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                           onRenomear={(nv) => renomearCal("rec", "", r.nome, nv)}
                           onRemover={() => pedirExcluir(`"${r.nome}" (lançado pelo Calendário)`, () => removerCal("rec", "", r.nome))} />
                         {mesesVis.map((m) => <Celula key={m} valor={r.v[m] || 0} onSalvo={salvo} onChange={(nv) => editarCalMes("rec", "", r.nome, m, nv)} />)}
-                        <td className="oc-num" style={{ ...tdNum, fontWeight: 700 }}><AnimNum value={totalDe(r.v)} fmt={fmt} /></td>
+                        <td className="oc-num" style={{ ...tdNum, fontWeight: 700 }}>{fmt(totalDe(r.v))}</td>
                       </tr>
                     ) : (
                       <tr style={{ borderTop: "1px solid var(--line)" }}>
                         <NomeCel cor={r.cor} valor={r.nome} placeholder="Novo canal" reservaChevron onSalvo={salvo} onChange={(nv) => nomeReceita(ri, nv)} onRemover={() => pedirExcluir(r.nome || "este canal de venda", () => removerReceita(ri))} />
                         {mesesVis.map((m) => <Celula key={m} valor={r.v[m]} onSalvo={salvo} onChange={(nv) => editarReceita(ri, m, nv)} />)}
-                        <Total><AnimNum value={totalDe(r.v)} fmt={fmt} /></Total>
+                        <Total>{fmt(totalDe(r.v))}</Total>
                       </tr>
                     )}
                     {temPend && (
@@ -758,8 +758,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                         {b.nome}
                       </span>
                     </td>
-                    {mesesVis.map((m) => <td key={m} onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}><AnimNum value={blocosMes[bi][m]} fmt={fmt} /></td>)}
-                    <td onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}><AnimNum value={totalDe(blocosMes[bi])} fmt={fmt} /></td>
+                    {mesesVis.map((m) => <td key={m} onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}>{fmt(blocosMes[bi][m])}</td>)}
+                    <td onClick={() => toggleBloco(bi)} className="oc-num" style={{ ...tdNum, fontWeight: 800, cursor: "pointer" }}>{fmt(totalDe(blocosMes[bi]))}</td>
                   </tr>
                   {blocoAberto && b.grupos.map((g, gi) => {
                     const id = `${bi}-${gi}`;
@@ -772,8 +772,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                           <GrupoCel cor={g.cor} valor={g.nome} aberto={aberto} onToggle={() => toggleGrupo(id)} onSalvo={salvo}
                             onChange={(nv) => nomeGrupo(bi, gi, nv)}
                             onRemover={() => pedirExcluir(g.nome || "este grupo", () => removerGrupo(bi, gi))} />
-                          {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}><AnimNum value={gm[m]} fmt={fmt} /></td>)}
-                          <td onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}><AnimNum value={totalDe(gm)} fmt={fmt} /></td>
+                          {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}>{fmt(gm[m])}</td>)}
+                          <td onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}>{fmt(totalDe(gm))}</td>
                         </tr>
                         {/* itens (folhas editáveis: nome e valores). Linhas do calendário são só-leitura. */}
                         {aberto && g.itens.map((it, ii) => it.cal ? (
@@ -783,7 +783,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                                 onRenomear={(nv) => renomearCal("pag", g.nome, it.nome, nv)}
                                 onRemover={() => pedirExcluir(`"${it.nome}" (lançado pelo Calendário)`, () => removerCal("pag", g.nome, it.nome))} />
                               {mesesVis.map((m) => <Celula key={m} valor={it.v[m] || 0} italico onSalvo={salvo} onChange={(nv) => editarCalMes("pag", g.nome, it.nome, m, nv)} />)}
-                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}><AnimNum value={totalDe(it.v)} fmt={fmt} /></td>
+                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
                             </tr>
                             {it.pend && it.pend.some((x) => x > 0) && (
                               <tr>
@@ -814,7 +814,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                             <tr style={{ borderTop: "1px solid var(--line)" }}>
                               <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))} />
                               {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => editarCusto(bi, gi, ii, m, nv)} />)}
-                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}><AnimNum value={totalDe(it.v)} fmt={fmt} /></td>
+                              <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
                             </tr>
                             {it.pend && it.pend.some((x) => x > 0) && (
                               <tr>
@@ -1157,18 +1157,15 @@ function AddSubtil({ span, texto, onClick, indent }: { span: number; texto: stri
 function Celula({ valor, onChange, italico, onSalvo }: { valor: number; onChange: (v: number) => void; italico?: boolean; onSalvo?: (el: HTMLElement) => void }) {
   const [txt, setTxt] = useState<string | null>(null);
   const editando = txt !== null;
-  const selfEdit = useRef(false);
-  // anima ao mudar por fora (confirmar/excluir); não anima enquanto o próprio usuário digita
-  const disp = useCountUp(valor, 2000, !editando && !selfEdit.current);
   return (
     <td className="oc-num" style={{ ...tdNum, fontStyle: italico ? "italic" : undefined, color: italico ? "var(--muted)" : undefined, padding: "6px 4px" }}>
       <input
-        value={editando ? txt! : (Math.abs(disp) < 0.005 ? "" : fmt(disp))}
+        value={editando ? txt! : (Math.abs(valor) < 0.005 ? "" : fmt(valor))}
         placeholder="–"
         onFocus={(e) => { setTxt(Math.abs(valor) < 0.005 ? "" : fmt(valor)); e.currentTarget.style.borderColor = "var(--line-2)"; }}
         onChange={(e) => setTxt(e.target.value)}
         onBlur={(e) => {
-          if (editando) { const nv = parseBR(txt!); if (nv !== valor) { selfEdit.current = true; onChange(nv); onSalvo?.(e.currentTarget); setTimeout(() => { selfEdit.current = false; }, 60); } }
+          if (editando) { const nv = parseBR(txt!); if (nv !== valor) { onChange(nv); onSalvo?.(e.currentTarget); } }
           setTxt(null); e.currentTarget.style.borderColor = "transparent";
         }}
         inputMode="decimal"
@@ -1191,6 +1188,22 @@ function Total({ children }: { children: React.ReactNode }) {
 // só para agrupar linhas sem quebrar a tabela
 function FragBloco({ children }: { children: React.ReactNode }) { return <>{children}</>; }
 
+/** Ícone "i" que abre a explicação ao clicar. */
+function InfoClick({ texto }: { texto: string }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-grid", placeItems: "center" }}>
+      <button onClick={() => setAberto((v) => !v)} title="Sobre" style={{ background: "transparent", border: 0, cursor: "pointer", padding: 0, display: "grid", placeItems: "center", color: aberto ? "var(--brand)" : "var(--muted)" }}><Info size={13} /></button>
+      {aberto && (
+        <>
+          <div onClick={() => setAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+          <div style={{ position: "absolute", left: 0, top: "calc(100% + 6px)", zIndex: 61, width: 260, background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.4)", padding: 12, fontSize: 12.5, lineHeight: 1.5, fontWeight: 400, color: "var(--txt)", whiteSpace: "normal", textAlign: "left" }}>{texto}</div>
+        </>
+      )}
+    </span>
+  );
+}
+
 function LinhaResultado({ nome, v, total, meses, moeda, dica }: { nome: string; v: number[]; total: number; meses: number[]; moeda?: boolean; dica?: string }) {
   const cor = (n: number) => (n >= 0 ? VERDE : VERMELHO);
   const f = (n: number) => (moeda ? `${n >= 0 ? "" : "-"}R$ ${Math.abs(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : fmt(n));
@@ -1199,7 +1212,7 @@ function LinhaResultado({ nome, v, total, meses, moeda, dica }: { nome: string; 
       <td style={{ ...tdRot, fontWeight: 700 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {nome}
-          {dica && <span title={dica} style={{ display: "inline-grid", placeItems: "center", cursor: "help", color: "var(--muted)" }}><Info size={13} /></span>}
+          {dica && <InfoClick texto={dica} />}
         </span>
       </td>
       {meses.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 700, color: Math.abs(v[m]) > 0.005 ? cor(v[m]) : "var(--muted)" }}><AnimNum value={v[m]} fmt={(n) => Math.abs(n) < 0.005 ? "–" : f(n)} /></td>)}
