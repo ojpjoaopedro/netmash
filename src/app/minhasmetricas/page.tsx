@@ -65,7 +65,6 @@ const ANOS = ["2026", "2027", "2028"];
 // SISTEMA fica oculto (recolhível): tudo que não é o essencial do dia a dia
 const SISTEMA_KEYS: string[] = [];
 const OPERACOES = [
-  { key: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
   { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "config", label: "Configurações", Icon: Settings },
 ] as const;
@@ -464,7 +463,7 @@ export default function Home() {
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <TelaPlanejamento />}
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} />}
-        {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} />}
+        {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} brand={brandObj} ano={Number(anoSel)} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
         {view === "importar" && <Importar reload={carregarDados} empresa={empresa} brand={brand} />}

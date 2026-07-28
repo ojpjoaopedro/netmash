@@ -326,6 +326,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   const doDia = (m: number, dia: number): Ocor[] => porDia[`${m}-${dia}`] || [];
 
   if (!carregado) return null;
+  const HOJE = new Date();   // destaque do dia atual (recalcula a cada render/dia)
 
   // o nome do lançamento vem do item/canal escolhido
   const salvarForm = () => {
@@ -428,14 +429,17 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                 const temDesp = ocs.length > 0;
                 const temConfirmado = ocs.some((o) => o.confirmado);
                 const soPendente = temDesp && !temConfirmado;   // dia só com pagamentos a confirmar
+                const ehHoje = ano === HOJE.getFullYear() && m === HOJE.getMonth() && dia === HOJE.getDate();
                 return (
-                  <button key={dia} onClick={() => { setForm(null); setHover(null); setModal({ mes: m, dia }); }} title={temDesp ? undefined : (fer || undefined)}
+                  <button key={dia} onClick={() => { setForm(null); setHover(null); setModal({ mes: m, dia }); }} title={ehHoje ? "Hoje" : (temDesp ? undefined : (fer || undefined))}
                     onMouseEnter={(e) => { if (temDesp) { window.clearTimeout(fecharHoverT.current); const r = e.currentTarget.getBoundingClientRect(); setHover({ mes: m, dia, x: r.left + r.width / 2, y: r.top }); } }}
                     onMouseMove={(e) => { if (temDesp) { window.clearTimeout(fecharHoverT.current); if (!hover || hover.mes !== m || hover.dia !== dia) { const r = e.currentTarget.getBoundingClientRect(); setHover({ mes: m, dia, x: r.left + r.width / 2, y: r.top }); } } }}
                     onMouseLeave={() => { fecharHoverT.current = window.setTimeout(() => setHover(null), 420); }}
                     style={{ position: "relative", aspectRatio: "1", display: "grid", placeItems: "center", cursor: "pointer", border: 0, fontFamily: "inherit",
-                      borderRadius: "50%", background: temDesp ? (soPendente ? "rgba(147,197,253,.22)" : "rgba(26,173,226,.16)") : "transparent", color: "var(--txt)", fontSize: 11.5, fontWeight: temDesp ? 700 : 500 }}>
-                    {dia}
+                      borderRadius: "50%",
+                      background: temDesp ? (soPendente ? "rgba(147,197,253,.22)" : "rgba(26,173,226,.16)") : "transparent",
+                      color: "var(--txt)", fontSize: 11.5, fontWeight: ehHoje || temDesp ? 700 : 500 }}>
+                    {ehHoje ? <span style={{ borderBottom: "2px solid var(--muted-2)", paddingBottom: 1, lineHeight: 1 }}>{dia}</span> : dia}
                     {fer && <i style={{ position: "absolute", top: 3, right: 6, width: 5, height: 5, borderRadius: 99, background: AMBAR }} />}
                     {temDesp && <i style={{ position: "absolute", bottom: 2, width: 5, height: 5, borderRadius: 99, background: soPendente ? CLARO : BRAND }} />}
                   </button>

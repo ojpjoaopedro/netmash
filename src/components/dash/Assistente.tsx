@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, ArrowRight, MessageCircle, Plus, Mic, MicOff, FileSpreadsheet, Check, Camera } from "lucide-react";
+import { Sparkles, Send, ArrowRight, MessageCircle, Plus, Mic, MicOff, FileSpreadsheet, Check, Camera, Presentation } from "lucide-react";
+import GerarApresentacao from "./GerarApresentacao";
 import { Lancamento, Cliente, Funcionario, addLancamento, Tipo } from "@/lib/db";
 import { Metrica } from "@/lib/indicadores";
 import { brl } from "@/lib/format";
@@ -46,9 +47,9 @@ function criarSR(): SR | null {
   return Ctor ? new Ctor() : null;
 }
 
-export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial, nome, reload, onImportar }: Ctx & { nome: string; reload?: () => void; onImportar?: () => void }) {
+export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial, nome, reload, onImportar, brand, ano }: Ctx & { nome: string; reload?: () => void; onImportar?: () => void; brand: { nome: string; logo: string | null }; ano: number }) {
   const ctx: Ctx = { metrs, lancs, clientes, funcs, saldoInicial };
-  const [modo, setModo] = useState<"perguntar" | "registrar">("perguntar");
+  const [modo, setModo] = useState<"perguntar" | "registrar" | "apresentar">("perguntar");
 
   // ---- modo PERGUNTAR ----
   const [msgs, setMsgs] = useState<Msg[]>([
@@ -151,11 +152,14 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
 
       {/* Alternância de modo */}
       <div className="period" style={{ width: "fit-content", marginBottom: 14 }}>
+        <button className={modo === "apresentar" ? "active" : ""} onClick={() => setModo("apresentar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Presentation size={14} /> Apresentação</button>
         <button className={modo === "perguntar" ? "active" : ""} onClick={() => setModo("perguntar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageCircle size={14} /> Perguntar</button>
         <button className={modo === "registrar" ? "active" : ""} onClick={() => setModo("registrar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Registrar</button>
       </div>
 
-      {modo === "perguntar" ? (
+      {modo === "apresentar" ? (
+        <GerarApresentacao funcs={funcs} brand={brand} ano={ano} />
+      ) : modo === "perguntar" ? (
         <>
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
             {msgs.map((m, i) => m.de === "user" ? (
