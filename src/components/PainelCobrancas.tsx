@@ -53,8 +53,8 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
 
   const dados = useMemo(() => {
     void versao;
-    const recRealizado = zero(), recPrevisto = zero(), recAReceber = zero(), recAtraso = zero();
-    const pagPagas = zero(), pagAtraso = zero();
+    const recRealizado = zero(), recPrevisto = zero(), recAtraso = zero();
+    const pagPagas = zero(), pagAPagar = zero(), pagAtraso = zero();
     const add = (m: Metrica, v: number) => { m.valor += v; m.qtd += 1; };
     if (montado) {
       for (const p of lerRecebimentos()) {
@@ -63,7 +63,7 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
           const v = valorDaOcorrencia(p, o, ano);
           add(recPrevisto, v);
           if (ocConfirmada(p, o, ano)) add(recRealizado, v);
-          else { add(recAReceber, v); if (o.iso < hojeISO) add(recAtraso, v); }
+          else if (o.iso < hojeISO) add(recAtraso, v);
         }
       }
       for (const p of lerPagamentos()) {
@@ -71,20 +71,20 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
           if (!noPeriodo(o.iso)) continue;
           const v = valorDaOcorrencia(p, o, ano);
           if (ocConfirmada(p, o, ano)) add(pagPagas, v);
-          else if (o.iso < hojeISO) add(pagAtraso, v);
+          else { add(pagAPagar, v); if (o.iso < hojeISO) add(pagAtraso, v); }
         }
       }
     }
-    return { recRealizado, recPrevisto, recAReceber, recAtraso, pagPagas, pagAtraso };
+    return { recRealizado, recPrevisto, recAtraso, pagPagas, pagAPagar, pagAtraso };
   }, [montado, versao, ano, deISO, ateISO, hojeISO]);
 
   const cards = [
-    { titulo: "Recebimento", dica: "Recebíveis já confirmados no Calendário comparados ao total previsto (confirmados + a receber) no período.",
+    { titulo: "Faturamento", dica: "Faturamento já realizado (confirmado no Calendário) comparado ao total previsto (realizado + a receber) no período.",
       a: { rotulo: "Previsto", m: dados.recPrevisto, cor: "var(--brand)" }, b: { rotulo: "Realizado", m: dados.recRealizado, cor: "var(--brand)" } },
-    { titulo: "Pagamento", dica: "O que ainda está a receber comparado ao que já foi pago (contas confirmadas) no período.",
-      a: { rotulo: "A receber", m: dados.recAReceber, cor: AMBAR }, b: { rotulo: "Contas pagas", m: dados.pagPagas, cor: AMBAR } },
-    { titulo: "Vencidos", dica: "Vencidos e ainda não confirmados: recebíveis atrasados comparados a pagamentos atrasados.",
-      a: { rotulo: "Recebíveis em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Pagamentos em atraso", m: dados.pagAtraso, cor: VERMELHO } },
+    { titulo: "Despesa", dica: "O que ainda está a pagar comparado ao que já foi pago (contas confirmadas) no período.",
+      a: { rotulo: "A pagar", m: dados.pagAPagar, cor: AMBAR }, b: { rotulo: "Contas pagas", m: dados.pagPagas, cor: AMBAR } },
+    { titulo: "Vencidos", dica: "Vencidos e ainda não confirmados: faturamento em atraso comparado a despesas em atraso.",
+      a: { rotulo: "Faturamento em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO } },
   ];
 
   const abrirFiltro = () => { setPresetTmp(preset); setDeTmp(de); setAteTmp(ate); setFiltroAberto(true); };

@@ -72,8 +72,8 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
 
       {/* legenda */}
       <div style={{ display: "flex", gap: 18, marginBottom: 10, flexWrap: "wrap" }}>
-        <Legenda cor={REC} texto="Recebimentos" aberto={info === "rec"} onClick={() => setInfo(info === "rec" ? null : "rec")} dica="Cobranças a receber e já recebidas." />
-        <Legenda cor={PAG} texto="Pagamentos" aberto={info === "pag"} onClick={() => setInfo(info === "pag" ? null : "pag")} dica="Contas a pagar e já pagas." />
+        <Legenda cor={REC} texto="Faturamento" aberto={info === "rec"} onClick={() => setInfo(info === "rec" ? null : "rec")} dica="Faturamento a receber e já recebido." />
+        <Legenda cor={PAG} texto="Despesas" aberto={info === "pag"} onClick={() => setInfo(info === "pag" ? null : "pag")} dica="Contas a pagar e já pagas." />
       </div>
 
       {/* navegação de mês */}

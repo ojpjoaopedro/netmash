@@ -309,34 +309,58 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
               );
             }
 
-            // MODO CARD: cartão completo
+            // MODO CARD: cartão moderno — faixa em gradiente, avatar em destaque, dados centralizados
             return (
-              <div key={f.id} className="card equipe-card" style={{ padding: 13, opacity: f.ativo ? 1 : 0.72, position: "relative" }}>
-                {trash}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, paddingRight: 26 }}>
-                  {avatar(42)}
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <CampoNome valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 13.5, fontWeight: 700 }} />
+              <div key={f.id} className="card equipe-card" style={{ padding: 0, overflow: "hidden", borderRadius: 18, opacity: f.ativo ? 1 : 0.72, position: "relative", transition: "transform .18s, box-shadow .18s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 20px 42px -24px rgba(0,0,0,.5)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = ""; }}>
+                {/* faixa superior em gradiente da cor de destaque */}
+                <div style={{ height: 64, background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))" }} />
+
+                {/* lixeira (aparece ao focar) */}
+                {focoId === f.id && (
+                  <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
+                    style={{ position: "absolute", top: 12, left: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(255,255,255,.92)", color: VERMELHO, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
+                    <Trash2 size={14} />
+                  </button>
+                )}
+
+                {/* status flutuante sobre a faixa */}
+                <button onClick={() => f.ativo ? setADesativar({ f, data: hojeISO() }) : setAAtivar(f)} title={f.ativo ? "Clique para desativar" : "Clique para ativar"}
+                  style={{ position: "absolute", top: 12, right: 12, display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: 0, fontFamily: "inherit", background: "rgba(255,255,255,.92)", color: f.ativo ? VERDE : VERMELHO, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "4px 10px", borderRadius: 99, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.ativo ? VERDE : VERMELHO }} /> {f.ativo ? "Ativo" : "Inativo"}
+                </button>
+
+                {/* avatar sobreposto */}
+                <div style={{ display: "flex", justifyContent: "center", marginTop: -34 }}>
+                  <div style={{ width: 68, height: 68, borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))", color: "var(--brand-ct,#fff)", fontWeight: 800, fontSize: 23, border: "3px solid var(--card)", boxShadow: "0 6px 16px -6px rgba(0,0,0,.45)" }}>
+                    {iniciais(f.nome) || <Users size={26} />}
                   </div>
                 </div>
 
-                <div style={{ marginTop: 9, display: "grid", gap: 2 }}>
-                  <LinhaEdit icone={<Briefcase size={13} />} valor={f.cargo} placeholder="Cargo" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cargo: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<Phone size={13} />} valor={f.contato} placeholder="Telefone" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<Mail size={13} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} />
-                  <LinhaEdit icone={<CreditCard size={13} />} prefixo="CPF" valor={f.cpf} formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} />
-                  <LinhaEdit icone={<KeyRound size={13} />} prefixo="Pix" valor={f.pix} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<Cake size={13} />} prefixo="Nasc." valor={f.nascimento} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nascimento: v || null }, el)} />
-                  <LinhaEdit icone={<CalendarDays size={13} />} prefixo="Adm." valor={f.admissao} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { admissao: v || null }, el)} />
+                {/* nome + cargo centralizados */}
+                <div style={{ padding: "8px 16px 0" }}>
+                  <CampoNome valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center" }} />
+                  <div style={{ marginTop: 2 }}>
+                    <Campo valor={f.cargo} placeholder="Cargo" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cargo: v.trim() || null }, el)} style={{ fontSize: 12.5, fontWeight: 600, textAlign: "center", color: "var(--muted)" }} />
+                  </div>
+                </div>
+
+                {/* dados */}
+                <div style={{ padding: "12px 16px 16px", marginTop: 10, display: "grid", gap: 10, borderTop: "1px solid var(--line)" }}>
+                  <LinhaEdit icone={<Phone size={14} />} valor={f.contato} placeholder="Telefone" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} />
+                  <LinhaEdit icone={<Mail size={14} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} />
+                  <LinhaEdit icone={<CreditCard size={14} />} prefixo="CPF" valor={f.cpf} formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} />
+                  <LinhaEdit icone={<KeyRound size={14} />} prefixo="Pix" valor={f.pix} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} />
+                  <LinhaEdit icone={<Cake size={14} />} prefixo="Nasc." valor={f.nascimento} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nascimento: v || null }, el)} />
+                  <LinhaEdit icone={<CalendarDays size={14} />} prefixo="Adm." valor={f.admissao} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { admissao: v || null }, el)} />
                 </div>
 
                 {!f.ativo && f.desativado_em && (
-                  <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, color: AMARELO, background: "rgba(245,158,11,.12)", padding: "4px 10px", borderRadius: 8 }}>
+                  <div style={{ margin: "0 16px 14px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, color: AMARELO, background: "rgba(245,158,11,.12)", padding: "4px 10px", borderRadius: 8 }}>
                     Desativado em {brData(f.desativado_em)}
                   </div>
                 )}
-
-                <div>{pill(9)}</div>
               </div>
             );
           })}
@@ -346,14 +370,14 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
             <button onClick={novoInline}
               style={modo === "lista"
                 ? { minHeight: 50, display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit", borderRadius: 12, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }
-                : { minHeight: 180, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", fontFamily: "inherit", borderRadius: 16, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
+                : { minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", fontFamily: "inherit", borderRadius: 18, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.color = "var(--muted)"; }}>
               {modo === "lista" ? (
                 <><Plus size={16} /> <b style={{ fontSize: 13 }}>Cadastrar equipe</b></>
               ) : (
                 <>
-                  <span style={{ width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><Plus size={22} /></span>
+                  <span style={{ width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Plus size={22} /></span>
                   <b style={{ fontSize: 13.5 }}>Cadastrar equipe</b>
                 </>
               )}
