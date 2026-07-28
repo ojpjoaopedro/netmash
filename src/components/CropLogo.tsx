@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Crop, Check, X, Trash2 } from "lucide-react";
+import { Crop, Check, X } from "lucide-react";
 
 /**
  * Tela de "lapidação" da logomarca: o usuário arrasta e redimensiona um retângulo
@@ -9,8 +9,8 @@ import { Crop, Check, X, Trash2 } from "lucide-react";
 type Rect = { x: number; y: number; w: number; h: number };
 const MAXW = 520, MAXH = 300, MIN = 28, HANDLE = 14;
 
-export default function CropLogo({ src, onConfirm, onCancel, onRemover, quadrado = false, titulo = "Ajustar a logomarca", dica = "Arraste o quadro e puxe os cantos para recortar o pedaço certo.", textoRemover = "Remover e ficar sem logo" }: {
-  src: string; onConfirm: (dataUrl: string) => void; onCancel: () => void; onRemover: () => void;
+export default function CropLogo({ src, onConfirm, onCancel, quadrado = false, titulo = "Ajustar a logomarca" }: {
+  src: string; onConfirm: (dataUrl: string) => void; onCancel: () => void; onRemover?: () => void;
   quadrado?: boolean; titulo?: string; dica?: string; textoRemover?: string;
 }) {
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -92,10 +92,7 @@ export default function CropLogo({ src, onConfirm, onCancel, onRemover, quadrado
       <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: MAXW + 48, padding: 22 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Crop size={18} /></span>
-          <div>
-            <b style={{ fontSize: 16 }}>{titulo}</b>
-            <div className="sub" style={{ fontSize: 12 }}>{dica}</div>
-          </div>
+          <b style={{ fontSize: 16 }}>{titulo}</b>
         </div>
 
         <div ref={boxRef} style={{ position: "relative", width: disp?.w, height: disp?.h, margin: "16px auto 4px", touchAction: "none", userSelect: "none", maxWidth: "100%" }}>
@@ -115,9 +112,7 @@ export default function CropLogo({ src, onConfirm, onCancel, onRemover, quadrado
           )}
         </div>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-          <button className="btn ghost" onClick={onRemover} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--red)" }}><Trash2 size={15} /> {textoRemover}</button>
-          <div style={{ flex: 1 }} />
+        <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button className="btn ghost" onClick={onCancel} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><X size={15} /> Cancelar</button>
           <button className="btn" onClick={confirmar} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} /> Usar recorte</button>
         </div>

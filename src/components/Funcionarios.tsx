@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Users, Phone, Mail, CreditCard, KeyRound, Cake, CalendarDays, Briefcase, Trash2, Plus, Power } from "lucide-react";
+import { Users, User, Phone, Mail, CreditCard, KeyRound, Cake, CalendarDays, Briefcase, Trash2, Plus, Power } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
@@ -334,7 +334,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
                 {/* avatar sobreposto */}
                 <div style={{ display: "flex", justifyContent: "center", marginTop: -34 }}>
                   <div style={{ width: 68, height: 68, borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))", color: "var(--brand-ct,#fff)", fontWeight: 800, fontSize: 23, border: "3px solid var(--card)", boxShadow: "0 6px 16px -6px rgba(0,0,0,.45)" }}>
-                    {iniciais(f.nome) || <Users size={26} />}
+                    <User size={30} />
                   </div>
                 </div>
 

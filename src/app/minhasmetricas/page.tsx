@@ -350,6 +350,13 @@ export default function Home() {
               ? <img src={fotoPerfil} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : <User size={20} />}
             <span className="av-edit"><Camera size={14} /></span>
+            {fotoPerfil && (
+              <button className="av-x" title="Remover foto" onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); removerFotoPerfil(); }}
+                style={{ position: "absolute", top: -4, right: -4, width: 18, height: 18, borderRadius: "50%", display: "grid", placeItems: "center", cursor: "pointer", border: "2px solid var(--card)", background: "#EF4444", color: "#fff", padding: 0, lineHeight: 0 }}>
+                <X size={11} strokeWidth={3} />
+              </button>
+            )}
             <input type="file" accept="image/*" onChange={escolherFoto} style={{ display: "none" }} />
           </label>
           <div className="who">
@@ -487,8 +494,8 @@ function AvisoFinancas({ aba }: { aba: string }) {
 /** Seletor: Calendário de Pagamentos ou de Recebimentos. */
 function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "recebimentos") => void }) {
   const opcoes = [
-    { key: "pagamentos" as const, titulo: "Calendário de Pagamentos", desc: "Contas a pagar, com vencimentos e despesas recorrentes.", Icon: ArrowUpCircle, cor: "#EF4444" },
-    { key: "recebimentos" as const, titulo: "Calendário de Recebimentos", desc: "Recebíveis marcados por data.", Icon: ArrowDownCircle, cor: "#10B981" },
+    { key: "pagamentos" as const, titulo: "Despesas", desc: "Contas a pagar, com vencimentos e despesas recorrentes.", Icon: ArrowUpCircle, cor: "#EF4444" },
+    { key: "recebimentos" as const, titulo: "Faturamento", desc: "Faturamento marcado por data.", Icon: ArrowDownCircle, cor: "#10B981" },
   ];
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
