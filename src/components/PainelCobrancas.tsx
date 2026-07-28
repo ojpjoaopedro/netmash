@@ -104,10 +104,27 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
       .map((x, i) => ({ ...x, cor: PALETA[i % PALETA.length] }));
   }, [montado, versao, ano, mesesPeriodo]);
 
+  // despesas realizadas: puxa da Estrutura de Custos (soma dos custos no período)
+  const custosEstrutura = useMemo<Metrica>(() => {
+    void versao;
+    if (!montado) return zero();
+    const d = carregarEstruturaComPagamentos(ano);
+    let valor = 0, qtd = 0;
+    for (const b of d.custos) for (const g of b.grupos) for (const it of g.itens) {
+      const v = mesesPeriodo.reduce((s, mi) => s + (it.v[mi] || 0), 0);
+      if (v > 0.005) { valor += v; qtd++; }
+    }
+    return { valor, qtd };
+  }, [montado, versao, ano, mesesPeriodo]);
+
   const itens: Item[] = [
-    { tipo: "canal", titulo: "Faturamento por canal", dica: "Faturamento do período separado por canal de venda (lançado no Calendário).", canal: porCanal },
-    { tipo: "progresso", titulo: "Despesa", dica: "O que ainda está a pagar comparado ao que já foi pago (contas confirmadas) no período.",
-      a: { rotulo: "A pagar", m: dados.pagAPagar, cor: AMBAR }, b: { rotulo: "Contas pagas", m: dados.pagPagas, cor: AMBAR } },
+    { tipo: "canal", titulo: "Faturamento por canal", dica: "Faturamento do período separado por canal de venda.", canal: porCanal },
+    { tipo: "lista", titulo: "Despesa", dica: "A pagar e despesas em atraso vêm do Calendário; as despesas realizadas vêm da Estrutura de Custos.",
+      lados: [
+        { rotulo: "A pagar", m: dados.pagAPagar, cor: AMBAR },
+        { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO },
+        { rotulo: "Despesas realizadas", m: custosEstrutura, cor: AMBAR },
+      ] },
     { tipo: "barras", titulo: "Vencidos", dica: "Vencidos e ainda não confirmados: faturamento em atraso comparado a despesas em atraso.",
       a: { rotulo: "Faturamento em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO } },
   ];
@@ -172,8 +189,8 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
         {itens.map((it, i) => (
           <CaixaCard key={i} titulo={it.titulo} dica={it.dica} aberto={infoAberto === i} onInfo={() => setInfoAberto(infoAberto === i ? null : i)} onFechar={() => setInfoAberto(null)}>
             {modo === "card"
-              ? (it.tipo === "canal" ? <CanalLista canal={it.canal} /> : <DoisLados a={it.a} b={it.b} />)
-              : (it.tipo === "canal" ? <PizzaCanal canal={it.canal} /> : it.tipo === "barras" ? <Barras c={it} /> : <Pizza c={it} />)}
+              ? (it.tipo === "canal" ? <CanalLista canal={it.canal} /> : it.tipo === "lista" ? <ListaLados lados={it.lados} /> : <DoisLados a={it.a} b={it.b} />)
+              : (it.tipo === "canal" ? <PizzaCanal canal={it.canal} /> : it.tipo === "lista" ? <BarrasN lados={it.lados} /> : <Barras c={it} />)}
           </CaixaCard>
         ))}
       </div>
@@ -185,7 +202,8 @@ type Lado = { rotulo: string; m: Metrica; cor: string };
 type Canal = { nome: string; valor: number; cor: string };
 type Item =
   | { tipo: "canal"; titulo: string; dica: string; canal: Canal[] }
-  | { tipo: "progresso" | "barras"; titulo: string; dica: string; a: Lado; b: Lado };
+  | { tipo: "lista"; titulo: string; dica: string; lados: Lado[] }
+  | { tipo: "barras"; titulo: string; dica: string; a: Lado; b: Lado };
 type CardG = { titulo: string; a: Lado; b: Lado };
 
 /** Caixa do card com cabeçalho e o "i" clicável. */
@@ -201,7 +219,6 @@ function CaixaCard({ titulo, dica, aberto, onInfo, onFechar, children }: { titul
               <div onClick={onFechar} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
               <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 51, width: 230, background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.4)", padding: 12, fontSize: 12.5, lineHeight: 1.5, color: "var(--txt)", textAlign: "left", fontWeight: 400 }}>
                 {dica}
-                <div style={{ marginTop: 8, color: "var(--muted)" }}>Estes dados são preenchidos automaticamente pelo <b>Calendário</b>.</div>
               </div>
             </>
           )}
@@ -230,6 +247,43 @@ function DoisLados({ a, b }: { a: Lado; b: Lado }) {
         </div>
       ))}
     </>
+  );
+}
+
+/** Modo card: N linhas (valor + barra + nº de lançamentos). */
+function ListaLados({ lados }: { lados: Lado[] }) {
+  const max = Math.max(1, ...lados.map((l) => l.m.valor));
+  return (
+    <>
+      {lados.map((x, j) => (
+        <div key={j} style={{ marginBottom: j < lados.length - 1 ? 14 : 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+            <span className="sub" style={{ fontSize: 12 }}>{x.rotulo}</span>
+            <b className="oc-num" style={{ fontSize: 17, color: x.cor }}>{fmt(x.m.valor)}</b>
+          </div>
+          <div style={{ height: 8, borderRadius: 6, background: "var(--line)", overflow: "hidden", margin: "7px 0 4px" }}>
+            <div style={{ height: "100%", width: `${Math.max(2, (x.m.valor / max) * 100)}%`, background: x.cor, borderRadius: 6 }} />
+          </div>
+          <span className="sub" style={{ fontSize: 11.5 }}>{x.m.qtd} {x.m.qtd === 1 ? "lançamento" : "lançamentos"}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** Modo gráfico: N barras (uma por lado). */
+function BarrasN({ lados }: { lados: Lado[] }) {
+  const max = Math.max(1, ...lados.map((l) => l.m.valor));
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 14, height: 150, padding: "0 4px" }}>
+      {lados.map((x, j) => (
+        <div key={j} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end" }}>
+          <b className="oc-num" style={{ fontSize: 11.5, color: x.cor }}>{fmt(x.m.valor)}</b>
+          <div style={{ width: "70%", maxWidth: 54, height: `${Math.max(3, (x.m.valor / max) * 100)}%`, background: x.cor, borderRadius: "7px 7px 0 0", transition: "height .3s" }} />
+          <span className="sub" style={{ fontSize: 11, textAlign: "center", lineHeight: 1.2 }}>{x.rotulo}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -285,38 +339,6 @@ function PizzaCanal({ canal }: { canal: Canal[] }) {
           ))}
         </div>
       )}
-    </>
-  );
-}
-
-function Pizza({ c }: { c: CardG }) {
-  // pizza de progresso: o TOTAL é o círculo inteiro; a fatia cheia é o que já foi feito
-  const desp = c.titulo === "Despesa";
-  // faturamento: a = Previsto (total), b = Realizado (feito), resto = Previsto - Realizado (a receber)
-  // despesa: total = A pagar + Pagas; feito = Pagas; resto = A pagar
-  const total = desp ? c.a.m.valor + c.b.m.valor : c.a.m.valor;
-  const feito = c.b.m.valor;
-  const restante = desp ? c.a.m.valor : Math.max(0, c.a.m.valor - c.b.m.valor);
-  const feitoRotulo = c.b.rotulo;                              // "Realizado" / "Contas pagas"
-  const restoRotulo = desp ? c.a.rotulo : "A receber";         // "A pagar" / "A receber"
-  const corFeito = c.b.cor;
-  const corResto = `color-mix(in srgb, ${c.b.cor} 30%, #fff)`;
-  const frac = total > 0 ? (feito / total) * 100 : 0;
-  const fundo = total > 0 ? `conic-gradient(${corFeito} 0 ${frac}%, ${corResto} ${frac}% 100%)` : "conic-gradient(var(--line) 0 100%)";
-  return (
-    <>
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-        <div style={{ width: 140, height: 140, borderRadius: "50%", background: fundo }} />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {[{ rotulo: feitoRotulo, valor: feito, cor: corFeito }, { rotulo: restoRotulo, valor: restante, cor: corResto }].map((it, j) => (
-          <div key={j} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 3, background: it.cor, flexShrink: 0 }} />
-            <span className="sub" style={{ fontSize: 12, flex: 1 }}>{it.rotulo}</span>
-            <b className="oc-num" style={{ fontSize: 13, color: c.b.cor }}>{fmt(it.valor)}</b>
-          </div>
-        ))}
-      </div>
     </>
   );
 }
