@@ -202,11 +202,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <CampoLabel label="Telefone" valor={d.telefone} formatar={mascararTelefone} onSalvar={(v, el) => { set({ telefone: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
           <CampoLabel label="CPF" valor={d.cpf} formatar={mascararCPF} validar={cpfValido} onInvalido={() => setAviso({ titulo: "CPF inválido", texto: "O CPF digitado não é válido. Confira os números e digite novamente." })} onSalvar={(v, el) => { set({ cpf: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="Chave Pix" valor={d.pix} onSalvar={(v, el) => { set({ pix: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <CampoLabel label="Data de nascimento" valor={d.nascimento} tipo="date" erroData={errosData[`${d.id}:nasc`]} onErroData={(m) => setErroData(`${d.id}:nasc`, m)} onSalvar={(v, el) => { set({ nascimento: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="Data de admissão" valor={d.admissao || ""} tipo="date" erroData={errosData[`${d.id}:adm`]} onErroData={(m) => setErroData(`${d.id}:adm`, m)} onSalvar={(v, el) => { set({ admissao: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
         </div>
 
         {!sup && (

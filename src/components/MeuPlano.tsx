@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Crown, Shield, Check, ArrowUpRight, Wallet, Compass } from "lucide-react";
+import { Crown, Shield, Check, ArrowUpRight, Compass } from "lucide-react";
 import BotaoOcultar from "./ocultar";
 
 // Valores oficiais do modelo de assinatura (mesmos do painel Super Admin)
@@ -60,16 +60,20 @@ export default function MeuPlano() {
             <div>
               <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Super Admin</div>
               <b className="oc-num" style={{ fontSize: 20 }}>{fmt(PRECO_SUPERADMIN)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
-              <div className="sub" style={{ fontSize: 12, marginTop: 2 }}>o administrador principal da empresa</div>
             </div>
+            <span style={{ marginLeft: "auto", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 800, color: "#10B981", background: "rgba(16,185,129,.14)", padding: "6px 12px", borderRadius: 99 }}>
+              <Check size={13} /> Ativado
+            </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, background: "var(--bg-2)", borderRadius: 14, padding: "16px 18px" }}>
             <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(26,173,226,.16)", color: "var(--brand)", flexShrink: 0 }}><Shield size={22} /></span>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Acesso (Admin)</div>
               <b className="oc-num" style={{ fontSize: 20 }}>{fmt(PRECO_ACESSO)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
-              <div className="sub" style={{ fontSize: 12, marginTop: 2 }}>por cada usuário adicional com acesso</div>
             </div>
+            <button className="btn" onClick={upgrade} style={{ marginLeft: "auto", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", fontSize: 14 }}>
+              <ArrowUpRight size={16} /> Ativar
+            </button>
           </div>
         </div>
       </div>
@@ -80,7 +84,6 @@ export default function MeuPlano() {
           <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
             <span style={{ width: 46, height: 46, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Compass size={23} /></span>
             <div style={{ minWidth: 0 }}>
-              <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Módulo adicional</div>
               <b style={{ fontSize: 16 }}>Planejamento estratégico</b>
               <div className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>Defina metas e pilares e acompanhe o plano da sua empresa.</div>
             </div>
@@ -96,30 +99,6 @@ export default function MeuPlano() {
         </div>
       </div>
 
-      {/* como fazer upgrade */}
-      <div className="card" style={{ padding: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ minWidth: 0 }}>
-            <b style={{ fontSize: 16 }}>Como fazer o upgrade</b>
-            <ul style={{ margin: "10px 0 0", paddingLeft: 20, color: "var(--muted)", fontSize: 13.5, lineHeight: 1.8 }}>
-              <li>Cada novo <b style={{ color: "var(--txt)" }}>Acesso (Admin)</b> dá acesso ao painel para mais uma pessoa da sua equipe.</li>
-              <li>Cada acesso adicional custa <b style={{ color: "var(--txt)" }}>{fmt(PRECO_ACESSO)} / mês</b>, somados ao seu plano.</li>
-              <li>Você define as <b style={{ color: "var(--txt)" }}>permissões</b> de cada admin (o que ele vê no menu) em Meus Usuários.</li>
-              <li>O <b style={{ color: "var(--txt)" }}>Super Admin</b> continua único, com acesso total.</li>
-            </ul>
-            <p className="sub" style={{ fontSize: 12.5, marginTop: 10 }}>
-              Exemplo: 1 Super Admin + 2 Acessos = {fmt(PRECO_SUPERADMIN + 2 * PRECO_ACESSO)} / mês.
-            </p>
-          </div>
-          <button className="btn" onClick={upgrade} style={{ display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0, padding: "12px 22px", fontSize: 14 }}>
-            <ArrowUpRight size={17} /> Fazer upgrade
-          </button>
-        </div>
-      </div>
-
-      <p className="sub" style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
-        <Wallet size={13} /> Valores mensais por assinatura. O upgrade é feito com o nosso time pelo WhatsApp.
-      </p>
     </div>
   );
 }

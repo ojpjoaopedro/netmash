@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Users, User, Phone, Mail, CreditCard, KeyRound, Cake, CalendarDays, Briefcase, Trash2, Plus, Power } from "lucide-react";
+import { Users, User, Phone, Mail, CreditCard, KeyRound, Cake, Briefcase, Trash2, Plus, Power } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
@@ -83,15 +83,15 @@ function CampoNome({ valor, onSalvar, placeholder, style, onFocar, onDesfocar }:
 }
 
 /** Linha com ícone + prefixo fixo + campo editável (telefone, CPF, Pix, datas…). */
-function LinhaEdit({ icone, prefixo, valor, placeholder, tipo, onSalvar, onFocar, onDesfocar, formatar }: {
-  icone: React.ReactNode; prefixo?: string; valor: string | null | undefined;
+function LinhaEdit({ icone, prefixo, prefixoClaro, valor, placeholder, tipo, onSalvar, onFocar, onDesfocar, formatar }: {
+  icone: React.ReactNode; prefixo?: string; prefixoClaro?: boolean; valor: string | null | undefined;
   placeholder?: string; tipo?: string; onSalvar: (v: string, el: HTMLElement) => void;
   onFocar?: () => void; onDesfocar?: () => void; formatar?: (v: string) => string;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--muted)", minWidth: 0 }}>
       <span style={{ flexShrink: 0, display: "grid", placeItems: "center", color: "var(--brand)" }}>{icone}</span>
-      {prefixo && <span style={{ flexShrink: 0 }}>{prefixo}</span>}
+      {prefixo && <span style={{ flexShrink: 0, color: prefixoClaro ? "var(--muted-2)" : undefined }}>{prefixo}</span>}
       <Campo valor={valor} placeholder={placeholder} tipo={tipo} formatar={formatar} onSalvar={onSalvar} onFocar={onFocar} onDesfocar={onDesfocar} style={{ fontSize: 12.5 }} />
     </div>
   );
@@ -348,10 +348,9 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
                 <div style={{ padding: "12px 16px 16px", marginTop: 10, display: "grid", gap: 10, borderTop: "1px solid var(--line)" }}>
                   <LinhaEdit icone={<Phone size={14} />} valor={f.contato} placeholder="Telefone" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} />
                   <LinhaEdit icone={<Mail size={14} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} />
-                  <LinhaEdit icone={<CreditCard size={14} />} prefixo="CPF" valor={f.cpf} formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} />
-                  <LinhaEdit icone={<KeyRound size={14} />} prefixo="Pix" valor={f.pix} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} />
+                  <LinhaEdit icone={<CreditCard size={14} />} prefixo="CPF" prefixoClaro valor={f.cpf} formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} />
+                  <LinhaEdit icone={<KeyRound size={14} />} prefixo="Pix" prefixoClaro valor={f.pix} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} />
                   <LinhaEdit icone={<Cake size={14} />} prefixo="Nasc." valor={f.nascimento} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nascimento: v || null }, el)} />
-                  <LinhaEdit icone={<CalendarDays size={14} />} prefixo="Adm." valor={f.admissao} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { admissao: v || null }, el)} />
                 </div>
 
                 {!f.ativo && f.desativado_em && (

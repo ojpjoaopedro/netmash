@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { ImagePlus, Trash2, Hourglass } from "lucide-react";
 import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
-import { mascararTelefone } from "@/lib/format";
+import { mascararTelefone, emailValido } from "@/lib/format";
 
 function mascaraCnpj(v: string): string {
   const d = v.replace(/\D/g, "").slice(0, 14);
@@ -75,6 +75,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
   const [cnpj, setCnpj] = useState(empresa?.cnpj ?? "");
   const [cor, setCor] = useState(brand.cor ?? "#1AADE2");
   const [extra, setExtra] = useState<DadosExtra>(() => lerExtra(empresa?.id));
+  const [emailErro, setEmailErro] = useState("");
   const upExtra = (p: Partial<DadosExtra>) => setExtra((e) => ({ ...e, ...p }));
   // altera um campo do endereço e já recompõe o endereço completo (para os relatórios)
   const upEndereco = (p: Partial<DadosExtra>) => setExtra((e) => { const n = { ...e, ...p }; return { ...n, endereco: comporEndereco(n) }; });
@@ -179,7 +180,11 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
           </div>
           {/* E-mail (maior) primeiro, depois Contato e Inscrição Estadual */}
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 14 }}>
-            <div className="field"><label className="f">E-mail principal</label><input value={extra.email} onChange={(e) => upExtra({ email: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} inputMode="email" /></div>
+            <div className="field"><label className="f">E-mail principal</label>
+              <input value={extra.email} onChange={(e) => { upExtra({ email: e.target.value }); if (emailErro) setEmailErro(""); }}
+                onBlur={(e) => { const v = e.currentTarget.value.trim(); if (v && !emailValido(v)) { setEmailErro("E-mail inválido. Use o formato nome@empresa.com."); upExtra({ email: "" }); e.currentTarget.value = ""; salvarCampo(e.currentTarget); return; } setEmailErro(""); salvarCampo(e.currentTarget); }} inputMode="email" />
+              {emailErro && <span style={{ color: "var(--red)", fontSize: 11.5, marginTop: 4, display: "block" }}>{emailErro}</span>}
+            </div>
             <div className="field"><label className="f">Contato</label><input value={extra.contato} onChange={(e) => upExtra({ contato: mascararTelefone(e.target.value) })} onBlur={(e) => salvarCampo(e.currentTarget)} inputMode="tel" /></div>
             <div className="field"><label className="f">Inscrição Estadual</label><input value={extra.ie} onChange={(e) => upExtra({ ie: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Opcional" /></div>
           </div>
@@ -201,9 +206,6 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
             <div className="field"><label className="f">Bairro</label><input value={extra.bairro} onChange={(e) => upEndereco({ bairro: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
             <div className="field"><label className="f">Cidade</label><input value={extra.cidade} onChange={(e) => upEndereco({ cidade: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
             <div className="field"><label className="f">Estado</label><input value={extra.uf} onChange={(e) => upEndereco({ uf: e.target.value.toUpperCase().slice(0, 2) })} onBlur={(e) => salvarCampo(e.currentTarget)} maxLength={2} /></div>
-          </div>
-          <div className="row">
-            <div className="field"><label className="f">Banco · Agência · Conta</label><input value={extra.banco} onChange={(e) => upExtra({ banco: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Ex: Itaú · Ag. 0000 · Conta 00000-0" /></div>
           </div>
         </div>
         )}

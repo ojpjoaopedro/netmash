@@ -84,14 +84,15 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
     window.addEventListener("storage", bump);
     window.addEventListener("me:diretores", bump);
     window.addEventListener("me:estrutura", bump);
-    return () => { window.clearInterval(id); window.removeEventListener("focus", bump); window.removeEventListener("storage", bump); window.removeEventListener("me:diretores", bump); window.removeEventListener("me:estrutura", bump); };
+    window.addEventListener("me:termos", bump);
+    return () => { window.clearInterval(id); window.removeEventListener("focus", bump); window.removeEventListener("storage", bump); window.removeEventListener("me:diretores", bump); window.removeEventListener("me:estrutura", bump); window.removeEventListener("me:termos", bump); };
   }, []);
 
   // ── avaliação das etapas (relê o localStorage a cada tick) ──────────────────
   void tick;
   const dir = lerJSON<{ sup?: Record<string, string> }>("me_diretores");
   const sup = dir?.sup || {};
-  const superOK = ["nome", "area", "telefone", "cpf", "pix", "nascimento"].every((k) => String(sup[k] || "").trim());
+  const superOK = ["nome", "area", "telefone", "cpf", "nascimento"].every((k) => String(sup[k] || "").trim());
 
   const extra = lerJSON<Record<string, string>>(`me_empresa_extra:${empresa?.id || "default"}`) || {};
   const nomeEmpresaOK = !!empresa?.nome && !["Minha Empresa", "Minha Empresa (demonstração)"].includes(empresa.nome);
@@ -100,15 +101,14 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
 
   const logoOK = !!brand?.logo;
   const equipeOK = (funcsCount || 0) >= 1;
-  const cal = lerJSON<unknown[]>("me_calendario_pagamentos");
-  const calOK = Array.isArray(cal) && cal.length >= 1;
+  const termosOK = lerJSON<boolean>("me_termos_aceite") === true;
 
   const itens: Item[] = [
     { key: "super", label: "Preencher dados do SuperAdmin", feito: superOK, nav: { view: "config", aba: "usuarios" } },
     { key: "empresa", label: "Preencher dados da empresa", feito: empresaOK, nav: { view: "config", aba: "dados" } },
     { key: "logo", label: "Cadastrar a logomarca", feito: logoOK, nav: { view: "config", aba: "personalizacao" } },
     { key: "equipe", label: "Cadastrar 1 membro da equipe", feito: equipeOK, nav: { view: "config", aba: "equipe" } },
-    { key: "calendario", label: "Cadastrar 1 despesa no calendário", feito: calOK, nav: { view: "financas", aba: "calendario", sub: "pagamentos" } },
+    { key: "termos", label: "Aceitar os termos de uso", feito: termosOK, nav: { view: "config", aba: "termos" } },
   ];
   const feitos = itens.filter((i) => i.feito).length;
   const total = itens.length;

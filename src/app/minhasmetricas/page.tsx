@@ -6,7 +6,7 @@ import {
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
-  Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight,
+  Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -132,6 +132,7 @@ export default function Home() {
 
   /** Troca a foto do avatar: abre a tela de recorte (quadrado) e guarda o recorte no navegador. */
   const [recorteFoto, setRecorteFoto] = useState<string | null>(null);
+  const [confirmarRemoverFoto, setConfirmarRemoverFoto] = useState(false);
   function escolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const arq = e.target.files?.[0];
     e.target.value = "";
@@ -352,7 +353,7 @@ export default function Home() {
             <span className="av-edit"><Camera size={14} /></span>
             {fotoPerfil && (
               <button className="av-x" title="Remover foto" onMouseDown={(e) => e.preventDefault()}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); removerFotoPerfil(); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmarRemoverFoto(true); }}
                 style={{ position: "absolute", top: -4, right: -4, width: 18, height: 18, borderRadius: "50%", display: "grid", placeItems: "center", cursor: "pointer", border: "2px solid var(--card)", background: "#EF4444", color: "#fff", padding: 0, lineHeight: 0 }}>
                 <X size={11} strokeWidth={3} />
               </button>
@@ -385,6 +386,26 @@ export default function Home() {
           onConfirm={(dataUrl) => { salvarFotoPerfil(dataUrl); setRecorteFoto(null); }}
           onCancel={() => setRecorteFoto(null)}
           onRemover={() => { removerFotoPerfil(); setRecorteFoto(null); }} />
+      )}
+
+      {/* confirmação de remover a foto de perfil */}
+      {confirmarRemoverFoto && (
+        <div onClick={() => setConfirmarRemoverFoto(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 380, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.14)", color: "#EF4444", flexShrink: 0 }}><Trash2 size={19} /></span>
+              <div>
+                <b style={{ fontSize: 15 }}>Remover a foto?</b>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>Sua foto de perfil será apagada e volta o ícone padrão.</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 18, justifyContent: "flex-end" }}>
+              <button className="btn ghost" onClick={() => setConfirmarRemoverFoto(false)}>Cancelar</button>
+              <button className="btn" style={{ background: "#EF4444" }} onClick={() => { removerFotoPerfil(); setConfirmarRemoverFoto(false); }}>Remover</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Main */}

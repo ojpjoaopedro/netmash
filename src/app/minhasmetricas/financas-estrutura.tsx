@@ -1188,16 +1188,22 @@ function Total({ children }: { children: React.ReactNode }) {
 // só para agrupar linhas sem quebrar a tabela
 function FragBloco({ children }: { children: React.ReactNode }) { return <>{children}</>; }
 
-/** Ícone "i" que abre a explicação ao clicar. */
+/** Ícone "i" que abre a explicação ao clicar (posição fixa: não é cortado pela tabela). */
 function InfoClick({ texto }: { texto: string }) {
-  const [aberto, setAberto] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const ref = useRef<HTMLButtonElement>(null);
+  const abrir = () => {
+    if (pos) { setPos(null); return; }
+    const r = ref.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 6, left: Math.min(r.left, window.innerWidth - 272) });
+  };
   return (
-    <span style={{ position: "relative", display: "inline-grid", placeItems: "center" }}>
-      <button onClick={() => setAberto((v) => !v)} title="Sobre" style={{ background: "transparent", border: 0, cursor: "pointer", padding: 0, display: "grid", placeItems: "center", color: aberto ? "var(--brand)" : "var(--muted)" }}><Info size={13} /></button>
-      {aberto && (
+    <span style={{ display: "inline-grid", placeItems: "center" }}>
+      <button ref={ref} onClick={abrir} title="Sobre" style={{ background: "transparent", border: 0, cursor: "pointer", padding: 0, display: "grid", placeItems: "center", color: pos ? "var(--brand)" : "var(--muted)" }}><Info size={13} /></button>
+      {pos && (
         <>
-          <div onClick={() => setAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
-          <div style={{ position: "absolute", left: 0, top: "calc(100% + 6px)", zIndex: 61, width: 260, background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.4)", padding: 12, fontSize: 12.5, lineHeight: 1.5, fontWeight: 400, color: "var(--txt)", whiteSpace: "normal", textAlign: "left" }}>{texto}</div>
+          <div onClick={() => setPos(null)} style={{ position: "fixed", inset: 0, zIndex: 120 }} />
+          <div style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 121, width: 260, background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.5)", padding: 12, fontSize: 12.5, lineHeight: 1.5, fontWeight: 400, color: "var(--txt)", whiteSpace: "normal", textAlign: "left" }}>{texto}</div>
         </>
       )}
     </span>
