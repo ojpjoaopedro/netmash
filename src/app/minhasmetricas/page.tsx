@@ -20,6 +20,8 @@ import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicado
 import { useBrand } from "@/lib/brand";
 import ResumoHome from "@/components/dash/ResumoHome";
 import PainelCobrancas from "@/components/PainelCobrancas";
+import CalendarioRecebimento from "@/components/CalendarioRecebimento";
+import PromoParaVoce from "@/components/PromoParaVoce";
 import CropLogo from "@/components/CropLogo";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
@@ -423,6 +425,12 @@ export default function Home() {
         )}
         {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
         {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} /></div>}
+        {view === "dashboard" && (
+          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, alignItems: "start" }}>
+            <CalendarioRecebimento ano={Number(anoSel)} />
+            <PromoParaVoce />
+          </div>
+        )}
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
         {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} reload={carregarDados} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
