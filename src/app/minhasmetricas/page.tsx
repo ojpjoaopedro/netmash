@@ -492,7 +492,7 @@ export default function Home() {
 }
 
 /** Avisos/informativos por aba de Finanças. */
-function AvisoFinancas({ aba }: { aba: string }) {
+function AvisoFinancas({ aba, onTutorial }: { aba: string; onTutorial?: () => void }) {
   const textos: Record<string, React.ReactNode> = {
     dashboard: <>A <b>Dashboard</b> é preenchida automaticamente com os <b>dados consolidados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
     relatorios: <>Os <b>Relatórios</b> são preenchidos automaticamente com os <b>dados consolidados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
@@ -503,10 +503,16 @@ function AvisoFinancas({ aba }: { aba: string }) {
   const txt = textos[aba];
   if (!txt) return null;
   return (
-    <div style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", gap: 11, borderRadius: 14, padding: "13px 16px",
+    <div style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 11, borderRadius: 14, padding: "13px 16px",
       background: "color-mix(in srgb, var(--brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 22%, transparent)" }}>
       <span style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "var(--brand)", color: "#fff", fontSize: 13, fontWeight: 800 }}>i</span>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--txt)" }}>{txt}</p>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--txt)", flex: 1 }}>{txt}</p>
+      {onTutorial && (
+        <button onClick={onTutorial} title="Rever o tutorial das abas"
+          style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "var(--card)", border: "1px solid color-mix(in srgb, var(--brand) 30%, transparent)", padding: "7px 14px", borderRadius: 99 }}>
+          <Sparkles size={14} /> Ver tutorial
+        </button>
+      )}
     </div>
   );
 }
@@ -606,10 +612,6 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
           <DollarSign size={22} />
         </span>
         <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
-        <button onClick={() => setTourOn(true)} title="Rever o tutorial das abas"
-          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "7px 14px", borderRadius: 99 }}>
-          <Sparkles size={14} /> Ver tutorial
-        </button>
       </div>
 
       {/* barra de abas */}
@@ -625,7 +627,7 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
       </div>
 
       {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
-      {!(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
+      {!(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} onTutorial={() => setTourOn(true)} />}
 
       {aba === "estrutura" ? <EstruturaFinancas ano={ano} />
         : aba === "dashboard" ? <FinancasDashboard ano={ano} />
