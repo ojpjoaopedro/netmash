@@ -84,7 +84,7 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
     { titulo: "Contas a receber x Contas pagas", dica: "O que ainda está a receber comparado ao que já foi pago (contas confirmadas) no período.",
       a: { rotulo: "A receber", m: dados.recAReceber, cor: AMBAR }, b: { rotulo: "Contas pagas", m: dados.pagPagas, cor: AMBAR } },
     { titulo: "Recebíveis em atraso x Pagamentos em atraso", dica: "Vencidos e ainda não confirmados: recebíveis atrasados comparados a pagamentos atrasados.",
-      a: { rotulo: "Receb. em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Pag. em atraso", m: dados.pagAtraso, cor: VERMELHO } },
+      a: { rotulo: "Recebíveis em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Pagamentos em atraso", m: dados.pagAtraso, cor: VERMELHO } },
   ];
 
   const abrirFiltro = () => { setPresetTmp(preset); setDeTmp(de); setAteTmp(ate); setFiltroAberto(true); };
