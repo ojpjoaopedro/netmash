@@ -658,9 +658,9 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
             return (
               <button key={m} onClick={() => toggleMes(i)} style={{
                 padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                border: on ? "1px solid transparent" : "1px solid var(--line-2)",
-                background: on ? "#475569" : "transparent",
-                color: on ? "#fff" : "var(--muted)", transition: ".12s",
+                border: on ? "1px solid var(--brand)" : "1px solid var(--line-2)",
+                background: on ? "var(--brand)" : "transparent",
+                color: on ? "var(--brand-ct,#fff)" : "var(--muted)", transition: ".12s",
               }}
                 onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = "var(--bg-2)"; }}
                 onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "transparent"; }}>{m}</button>

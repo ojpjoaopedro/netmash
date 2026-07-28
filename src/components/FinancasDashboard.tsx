@@ -142,7 +142,7 @@ export default function FinancasDashboard({ ano = 2026 }: { ano?: number }) {
           const on = sel.has(m);
           return (
             <button key={m} onClick={() => toggle(m)}
-              style={{ padding: "7px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "#334155" : "rgba(148,163,184,.28)"}`, background: on ? "#334155" : "transparent", color: on ? "#fff" : "#94a3b8" }}>
+              style={{ padding: "7px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "var(--brand)" : "rgba(148,163,184,.28)"}`, background: on ? "var(--brand)" : "transparent", color: on ? "var(--brand-ct,#fff)" : "#94a3b8" }}>
               {nome}
             </button>
           );

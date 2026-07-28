@@ -78,7 +78,7 @@ export default function AnaliseResultados({ onVoltar, ano = 2026 }: { onVoltar: 
             const on = sel.has(m);
             return (
               <button key={m} onClick={() => toggle(m)}
-                style={{ padding: "6px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "#475569" : "var(--line-2)"}`, background: on ? "#475569" : "transparent", color: on ? "#fff" : "var(--muted)" }}>
+                style={{ padding: "6px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "var(--brand)" : "var(--line-2)"}`, background: on ? "var(--brand)" : "transparent", color: on ? "var(--brand-ct,#fff)" : "var(--muted)" }}>
                 {nome}
               </button>
             );
