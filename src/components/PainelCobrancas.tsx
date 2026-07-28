@@ -5,7 +5,7 @@ import { lerRecebimentos, lerPagamentos, datasDaDespesa, ocConfirmada, valorDaOc
 import { mascararDataBR, brParaISO } from "@/lib/format";
 
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const AMBAR = "#F59E0B", VERMELHO = "#EF4444";
+const AMBAR = "#F59E0B", VERMELHO = "#EF4444", VERDE = "#10B981";
 const PALETA = ["#8B5CF6", "#14B8A6", "#3B82F6", "#EC4899", "#F59E0B", "#10B981", "#EF4444", "#6366F1", "#0EA5E9", "#A855F7"];
 
 type Metrica = { valor: number; qtd: number };
@@ -123,7 +123,7 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
       lados: [
         { rotulo: "A pagar", m: dados.pagAPagar, cor: AMBAR },
         { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO },
-        { rotulo: "Despesas realizadas", m: custosEstrutura, cor: AMBAR },
+        { rotulo: "Despesas pagas", m: custosEstrutura, cor: VERDE },
       ] },
     { tipo: "barras", titulo: "Vencidos", dica: "Vencidos e ainda não confirmados: faturamento em atraso comparado a despesas em atraso.",
       a: { rotulo: "Faturamento em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO } },
@@ -190,7 +190,9 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
           <CaixaCard key={i} titulo={it.titulo} dica={it.dica} aberto={infoAberto === i} onInfo={() => setInfoAberto(infoAberto === i ? null : i)} onFechar={() => setInfoAberto(null)}>
             {modo === "card"
               ? (it.tipo === "canal" ? <CanalLista canal={it.canal} /> : it.tipo === "lista" ? <ListaLados lados={it.lados} /> : <DoisLados a={it.a} b={it.b} />)
-              : (it.tipo === "canal" ? <PizzaCanal canal={it.canal} /> : it.tipo === "lista" ? <BarrasN lados={it.lados} /> : <Barras c={it} />)}
+              : (it.tipo === "canal" ? <PizzaCanal canal={it.canal} vazio="Nenhum faturamento no período." />
+                  : it.tipo === "lista" ? <PizzaCanal canal={it.lados.map((l) => ({ nome: l.rotulo, valor: l.m.valor, cor: l.cor }))} vazio="Nenhuma despesa no período." />
+                  : <Barras c={it} />)}
           </CaixaCard>
         ))}
       </div>
@@ -271,22 +273,6 @@ function ListaLados({ lados }: { lados: Lado[] }) {
   );
 }
 
-/** Modo gráfico: N barras (uma por lado). */
-function BarrasN({ lados }: { lados: Lado[] }) {
-  const max = Math.max(1, ...lados.map((l) => l.m.valor));
-  return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 14, height: 150, padding: "0 4px" }}>
-      {lados.map((x, j) => (
-        <div key={j} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end" }}>
-          <b className="oc-num" style={{ fontSize: 11.5, color: x.cor }}>{fmt(x.m.valor)}</b>
-          <div style={{ width: "70%", maxWidth: 54, height: `${Math.max(3, (x.m.valor / max) * 100)}%`, background: x.cor, borderRadius: "7px 7px 0 0", transition: "height .3s" }} />
-          <span className="sub" style={{ fontSize: 11, textAlign: "center", lineHeight: 1.2 }}>{x.rotulo}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /** Modo card: faturamento por canal (lista com barra de participação). */
 function CanalLista({ canal }: { canal: Canal[] }) {
   const total = canal.reduce((s, c) => s + c.valor, 0);
@@ -311,8 +297,8 @@ function CanalLista({ canal }: { canal: Canal[] }) {
   );
 }
 
-/** Modo gráfico: pizza de várias fatias (uma por canal). */
-function PizzaCanal({ canal }: { canal: Canal[] }) {
+/** Modo gráfico: pizza de várias fatias. */
+function PizzaCanal({ canal, vazio = "Nenhum dado no período." }: { canal: Canal[]; vazio?: string }) {
   const total = canal.reduce((s, c) => s + c.valor, 0);
   let acc = 0;
   const partes = canal.map((c) => {
@@ -327,7 +313,7 @@ function PizzaCanal({ canal }: { canal: Canal[] }) {
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
         <div style={{ width: 140, height: 140, borderRadius: "50%", background: fundo }} />
       </div>
-      {total === 0 ? <p className="sub" style={{ fontSize: 12.5 }}>Nenhum faturamento no período.</p> : (
+      {total === 0 ? <p className="sub" style={{ fontSize: 12.5 }}>{vazio}</p> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {canal.map((c, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>

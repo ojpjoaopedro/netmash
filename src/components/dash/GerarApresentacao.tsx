@@ -62,7 +62,7 @@ export default function GerarApresentacao(props: Props) {
         <div className="puzzle">
           {SECOES.map((s) => (
             <button key={s.key} onClick={() => toggle(s.key)} className={`puzzle-piece ${secoes[s.key] ? "on" : ""}`}>
-              {secoes[s.key] ? "✓ " : ""}{s.label}
+              <span className="pp-in">{secoes[s.key] ? "✓ " : ""}{s.label}</span>
             </button>
           ))}
         </div>
