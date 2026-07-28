@@ -5,7 +5,7 @@ import { lerRecebimentos, lerPagamentos, datasDaDespesa, ocConfirmada, valorDaOc
 import { mascararDataBR, brParaISO } from "@/lib/format";
 
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF4444";
+const AMBAR = "#F59E0B", VERMELHO = "#EF4444";
 
 type Metrica = { valor: number; qtd: number };
 const zero = (): Metrica => ({ valor: 0, qtd: 0 });
@@ -80,9 +80,9 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
 
   const cards = [
     { titulo: "Recebíveis realizados x Previsto", dica: "Recebíveis já confirmados no Calendário comparados ao total previsto (confirmados + a receber) no período.",
-      a: { rotulo: "Realizado", m: dados.recRealizado, cor: VERDE }, b: { rotulo: "Previsto", m: dados.recPrevisto, cor: "var(--brand)" } },
+      a: { rotulo: "Realizado", m: dados.recRealizado, cor: "var(--brand)" }, b: { rotulo: "Previsto", m: dados.recPrevisto, cor: "var(--brand)" } },
     { titulo: "Contas a receber x Contas pagas", dica: "O que ainda está a receber comparado ao que já foi pago (contas confirmadas) no período.",
-      a: { rotulo: "A receber", m: dados.recAReceber, cor: AMBAR }, b: { rotulo: "Contas pagas", m: dados.pagPagas, cor: VERDE } },
+      a: { rotulo: "A receber", m: dados.recAReceber, cor: AMBAR }, b: { rotulo: "Contas pagas", m: dados.pagPagas, cor: AMBAR } },
     { titulo: "Recebíveis em atraso x Pagamentos em atraso", dica: "Vencidos e ainda não confirmados: recebíveis atrasados comparados a pagamentos atrasados.",
       a: { rotulo: "Receb. em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Pag. em atraso", m: dados.pagAtraso, cor: VERMELHO } },
   ];
