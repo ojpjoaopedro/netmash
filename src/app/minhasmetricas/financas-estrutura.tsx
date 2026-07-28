@@ -5,6 +5,7 @@ import BotaoOcultar from "@/components/ocultar";
 import { AnimNum } from "@/components/AnimNum";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { supabase, supabaseReady } from "@/lib/supabase";
+import { createPortal } from "react-dom";
 
 /** Moeda "conforme digita" (centavos pela direita) -> 2.000,00 */
 const mascaraMoedaBR = (v: string) => { const n = (v || "").replace(/\D/g, ""); return n ? (parseInt(n, 10) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""; };
@@ -404,6 +405,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
   const [blocosFechados, setBlocosFechados] = useState<Set<number>>(new Set()); // blocos recolhidos
   const toggleBloco = (bi: number) => setBlocosFechados((p) => { const n = new Set(p); if (n.has(bi)) n.delete(bi); else n.add(bi); return n; });
   const [aExcluir, setAExcluir] = useState<{ nome: string; onOk: () => void } | null>(null);
+  const [avisoBloqueio, setAvisoBloqueio] = useState<string | null>(null);
   const pedirExcluir = (nome: string, onOk: () => void) => setAExcluir({ nome, onOk });
 
   // "desfazer exclusão" com contagem regressiva de 10s visível na tela
@@ -653,6 +655,10 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
     snapshot();
     setD((x) => { const r = structuredClone(x); const arr = r.custos[bi].grupos[gi].itens; const [m] = arr.splice(de, 1); arr.splice(para, 0, m); return r; });
   }
+  function ordenarItens(bi: number, gi: number) {
+    snapshot();
+    setD((x) => { const r = structuredClone(x); r.custos[bi].grupos[gi].itens.sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" })); return r; });
+  }
   const CORES_GRUPO = [AZUL, ROXO, LARANJA, ROSA, VERDE];
   function nomeGrupo(bi: number, gi: number, nome: string) {
     snapshot();
@@ -812,7 +818,10 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
                         <tr style={{ borderTop: "1px solid var(--line)" }}>
                           <GrupoCel cor={g.cor} valor={g.nome} aberto={aberto} onToggle={() => toggleGrupo(id)} onSalvo={salvo}
                             onChange={(nv) => nomeGrupo(bi, gi, nv)}
-                            onRemover={() => pedirExcluir(g.nome || "este grupo", () => removerGrupo(bi, gi))} />
+                            onOrdenar={() => ordenarItens(bi, gi)}
+                            onRemover={() => g.financeiro
+                              ? setAvisoBloqueio(`O grupo "${g.nome}" alimenta o cálculo do EBITDA e não pode ser apagado. Você pode zerar os valores dos itens, mas o grupo precisa continuar.`)
+                              : pedirExcluir(g.nome || "este grupo", () => removerGrupo(bi, gi))} />
                           {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}>{fmt(gm[m])}</td>)}
                           <td onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}>{fmt(totalDe(gm))}</td>
                         </tr>
@@ -914,7 +923,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
             <tbody>
               <LinhaResultado nome="Resultado (Lucro)" v={resultadoMes} total={totalDe(resultadoMes)} meses={mesesVis} moeda />
               <LinhaResultado nome="EBITDA" v={ebitdaMes} total={totalDe(ebitdaMes)} meses={mesesVis} moeda
-                dica="EBITDA: lucro antes de juros, impostos, depreciação e amortização. É o resultado operacional somando de volta os custos financeiros (empréstimos e juros), pra mostrar quanto a operação gera antes desses efeitos." />
+                dica="EBITDA: quanto a operação gera antes de juros, impostos, depreciação e amortização (soma de volta os custos financeiros)." />
               <LinhaMargem resultado={resultadoMes} receita={recTotais} totalRes={totalDe(resultadoMes)} totalRec={totalDe(recTotais)} meses={mesesVis} />
             </tbody>
           </table>
@@ -951,6 +960,25 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
           </button>
           {/* contador regressivo até 0 */}
           <span style={{ width: 22, height: 22, borderRadius: 99, display: "grid", placeItems: "center", background: "rgba(255,255,255,.14)", fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{segRestante}</span>
+        </div>
+      )}
+
+      {/* recado ao tentar apagar grupo do EBITDA */}
+      {avisoBloqueio && (
+        <div onClick={() => setAvisoBloqueio(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 82, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 420, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(245,158,11,.16)", color: "#F59E0B", flexShrink: 0, fontSize: 20 }}>⚠️</span>
+              <div>
+                <b style={{ fontSize: 15 }}>Não é possível apagar</b>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>{avisoBloqueio}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", marginTop: 18 }}>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setAvisoBloqueio(null)}>Entendi</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1011,7 +1039,7 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
 /* ── peças ─────────────────────────────────────────────────────────────── */
 type Cols = { W_ROT: number; W_MES: number; W_TOT: number; meses: number[] };
 const tdRot: React.CSSProperties = { padding: "8px 12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", position: "sticky", left: 0, background: "var(--card)", zIndex: 1 };
-const tdNum: React.CSSProperties = { padding: "8px 8px", textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" };
+const tdNum: React.CSSProperties = { padding: "8px 8px", textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" };
 
 /** Larguras fixas das colunas — o mesmo colgroup em todas as tabelas alinha Jan..Dez. */
 function Colgroup({ c }: { c: Cols }) {
@@ -1046,8 +1074,8 @@ function THead({ icone, titulo, cor, meses }: { icone: React.ReactNode; titulo: 
             <span style={{ fontSize: 12, fontWeight: 800, textTransform: "none", letterSpacing: 0, color: "var(--txt)", lineHeight: 1.15 }}>{titulo}</span>
           </span>
         </th>
-        {meses.map((m) => <th key={m} style={th}>{MES[m]}</th>)}
-        <th style={th}>Total</th>
+        {meses.map((m) => <th key={m} style={{ ...th, borderLeft: "1px solid var(--line)" }}>{MES[m]}</th>)}
+        <th style={{ ...th, borderLeft: "1px solid var(--line)" }}>Total</th>
       </tr>
     </thead>
   );
@@ -1131,8 +1159,8 @@ function CalNomeCel({ nome, onRenomear, onRemover, onSalvo, cor, italico, indent
  * está aberto surge um lápis quase transparente; clicando nele é que o nome vira
  * editável (e aparece a lixeira). Fora disso, o nome é só texto clicável.
  */
-function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover }: {
-  cor: string; valor: string; aberto: boolean; onToggle: () => void; onChange: (v: string) => void; onSalvo?: (el: HTMLElement) => void; onRemover?: () => void;
+function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, onOrdenar }: {
+  cor: string; valor: string; aberto: boolean; onToggle: () => void; onChange: (v: string) => void; onSalvo?: (el: HTMLElement) => void; onRemover?: () => void; onOrdenar?: () => void;
 }) {
   const [editando, setEditando] = useState(false);
   const inicial = useRef("");
@@ -1167,6 +1195,12 @@ function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover }
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = ".3")}>
                 <Pencil size={12} />
               </button>
+            )}
+            {aberto && onOrdenar && (
+              <button onClick={onOrdenar} title="Ordenar itens de A a Z" aria-label="Ordenar A-Z"
+                style={{ flexShrink: 0, background: "transparent", border: 0, color: "var(--muted)", cursor: "pointer", padding: "1px 4px", fontFamily: "inherit", fontSize: 10, fontWeight: 800, letterSpacing: ".02em", lineHeight: 1.2, borderRadius: 5, opacity: .3, transition: ".15s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = ".3")}>A–Z</button>
             )}
             <span onClick={onToggle} style={{ flex: 1, alignSelf: "stretch", cursor: "pointer" }} />
           </>
@@ -1239,21 +1273,22 @@ function FragBloco({ children }: { children: React.ReactNode }) { return <>{chil
 
 /** Ícone "i" que abre a explicação ao clicar (posição fixa: não é cortado pela tabela). */
 function InfoClick({ texto }: { texto: string }) {
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<{ bottom: number; left: number } | null>(null);
   const ref = useRef<HTMLButtonElement>(null);
   const abrir = () => {
     if (pos) { setPos(null); return; }
     const r = ref.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 6, left: Math.min(r.left, window.innerWidth - 272) });
+    if (r) setPos({ bottom: window.innerHeight - r.top + 6, left: Math.max(12, Math.min(r.left, window.innerWidth - 272)) });
   };
   return (
     <span style={{ display: "inline-grid", placeItems: "center" }}>
       <button ref={ref} onClick={abrir} title="Sobre" style={{ background: "transparent", border: 0, cursor: "pointer", padding: 0, display: "grid", placeItems: "center", color: pos ? "var(--brand)" : "var(--muted)" }}><Info size={13} /></button>
-      {pos && (
+      {pos && typeof document !== "undefined" && createPortal(
         <>
           <div onClick={() => setPos(null)} style={{ position: "fixed", inset: 0, zIndex: 120 }} />
-          <div style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 121, width: 260, background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.5)", padding: 12, fontSize: 12.5, lineHeight: 1.5, fontWeight: 400, color: "var(--txt)", whiteSpace: "normal", textAlign: "left" }}>{texto}</div>
-        </>
+          <div style={{ position: "fixed", bottom: pos.bottom, left: pos.left, zIndex: 121, width: 250, maxHeight: "50vh", overflow: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.5)", padding: 12, fontSize: 12.5, lineHeight: 1.5, fontWeight: 400, color: "var(--txt)", whiteSpace: "normal", textAlign: "left" }}>{texto}</div>
+        </>,
+        document.body,
       )}
     </span>
   );

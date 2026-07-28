@@ -146,13 +146,18 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
   const aoDesfocar = () => { focoT.current = window.setTimeout(() => setFocoId(null), 200); };
 
   // cria um card em branco na hora, pronto para preencher direto na tela
+  const [criando, setCriando] = useState(false);
   async function novoInline() {
+    if (criando) return;                 // evita abrir vários com cliques repetidos
+    setCriando(true);
     setFiltro("ativos");
-    await addFuncionario({
-      nome: "", cargo: null, departamento: null, salario: 0, beneficios: 0,
-      admissao: null, ativo: true, contato: null, foto: null, email: null, cpf: null, pix: null, nascimento: null,
-    });
-    reload();
+    try {
+      await addFuncionario({
+        nome: "", cargo: null, departamento: null, salario: 0, beneficios: 0,
+        admissao: null, ativo: true, contato: null, foto: null, email: null, cpf: null, pix: null, nascimento: null,
+      });
+      await reload();
+    } finally { setCriando(false); }
   }
 
   // confirmação (amarela) de desativação, com a data escolhida
@@ -364,11 +369,11 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
 
           {/* card final para cadastrar — cria um card em branco na hora (só nos ativos) */}
           {filtro === "ativos" && (
-            <button onClick={novoInline}
+            <button onClick={novoInline} disabled={criando}
               style={modo === "lista"
-                ? { minHeight: 50, display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit", borderRadius: 12, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }
-                : { minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", fontFamily: "inherit", borderRadius: 18, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; }}
+                ? { minHeight: 50, display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", borderRadius: 12, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }
+                : { minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", borderRadius: 18, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
+              onMouseEnter={(e) => { if (!criando) { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; } }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.color = "var(--muted)"; }}>
               {modo === "lista" ? (
                 <><Plus size={16} /> <b style={{ fontSize: 13 }}>Cadastrar equipe</b></>
