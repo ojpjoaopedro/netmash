@@ -79,11 +79,11 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
   }, [montado, versao, ano, deISO, ateISO, hojeISO]);
 
   const cards = [
-    { titulo: "Recebíveis realizados x Previsto", dica: "Recebíveis já confirmados no Calendário comparados ao total previsto (confirmados + a receber) no período.",
+    { titulo: "Recebimento", dica: "Recebíveis já confirmados no Calendário comparados ao total previsto (confirmados + a receber) no período.",
       a: { rotulo: "Previsto", m: dados.recPrevisto, cor: "var(--brand)" }, b: { rotulo: "Realizado", m: dados.recRealizado, cor: "var(--brand)" } },
-    { titulo: "Contas a receber x Contas pagas", dica: "O que ainda está a receber comparado ao que já foi pago (contas confirmadas) no período.",
+    { titulo: "Pagamento", dica: "O que ainda está a receber comparado ao que já foi pago (contas confirmadas) no período.",
       a: { rotulo: "A receber", m: dados.recAReceber, cor: AMBAR }, b: { rotulo: "Contas pagas", m: dados.pagPagas, cor: AMBAR } },
-    { titulo: "Recebíveis em atraso x Pagamentos em atraso", dica: "Vencidos e ainda não confirmados: recebíveis atrasados comparados a pagamentos atrasados.",
+    { titulo: "Vencidos", dica: "Vencidos e ainda não confirmados: recebíveis atrasados comparados a pagamentos atrasados.",
       a: { rotulo: "Recebíveis em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Pagamentos em atraso", m: dados.pagAtraso, cor: VERMELHO } },
   ];
 
