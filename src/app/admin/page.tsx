@@ -3,9 +3,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, Trash2, LogOut, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Settings, Pencil, Eye, Send,
-  ArrowLeft, Receipt, ExternalLink, Image as ImageIcon, Palette, FileText, Ticket,
-  HeartPulse, ShoppingCart, Megaphone, Package, GitCompareArrows,
+  LayoutDashboard, KeyRound, Pencil, Eye, Send,
+  ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText,
+  HeartPulse, ShoppingCart, Megaphone, Package,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl } from "@/lib/format";
@@ -284,11 +284,7 @@ export default function Admin() {
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "empresas", label: "Empresas", Icon: Building2 },
-    { k: "produtos", label: "Produtos", Icon: Package },
-    { k: "cupons", label: "Cupons", Icon: Ticket },
-    { k: "vendas", label: "Vendas", Icon: Receipt },
     { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
-    { k: "config", label: "Configurações", Icon: Settings },
   ];
 
   const detalhe = detalheId ? (data?.empresas.find((e) => e.id === detalheId) ?? null) : null;
@@ -309,13 +305,11 @@ export default function Admin() {
       </button>
       <div className="adm-shell">
         <aside className="adm-side">
-          <div className="adm-brand"><ShieldCheck size={18} /> Super Admin</div>
+          <div className="adm-brand"><img src="/logos/Minhas metricas.png" alt="Minhas Métricas" style={{ height: 30, width: "auto", maxWidth: "100%", objectFit: "contain" }} /></div>
           <nav className="adm-nav">
             {NAV.map(({ k, label, Icon }) => (
               <button key={k} className={aba === k ? "on" : ""} onClick={() => setAba(k)}><Icon size={18} /> {label}</button>
             ))}
-            <button onClick={() => window.open("/gerarproposta", "_blank", "noopener")}><FileText size={18} /> Gerar proposta</button>
-            <button onClick={() => window.open("/treino-mba01", "_blank", "noopener")}><GitCompareArrows size={18} /> Simulador</button>
           </nav>
           <div className="adm-side-foot">
             <button onClick={entrarComOutra}><LogOut size={15} /> Sair</button>
@@ -324,7 +318,7 @@ export default function Admin() {
 
         <main className="adm-main">
           {detalhe ? (
-            <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onSalvarCor={salvarCor} onSalvarDados={salvarDados} equipe={{ acessos, novoAcesso, setNovoAcesso, criar: criarAcesso, criarUm: criarAcessoDireto, remover: removerAcesso, toggleArea, salvando: salvAcesso, erro: erroAcesso, ok: okAcesso }} />
+            <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onExcluir={(emp) => acao("excluir", { empresaId: emp.id }, `Excluir a empresa "${emp.nome}"? Isso apaga a empresa e todos os dados dela (lançamentos, clientes, equipe). Não dá para desfazer.`)} onSalvarCor={salvarCor} onSalvarDados={salvarDados} equipe={{ acessos, novoAcesso, setNovoAcesso, criar: criarAcesso, criarUm: criarAcessoDireto, remover: removerAcesso, toggleArea, salvando: salvAcesso, erro: erroAcesso, ok: okAcesso }} />
           ) : (
           <>
 
@@ -530,10 +524,11 @@ function Aviso({ titulo, texto, botao, botaoTxt, botao2, botao2Txt }: { titulo: 
 
 const COR_PRESETS = ["#1AADE2", "#E11D48", "#16A34A", "#7C3AED", "#F59E0B", "#0EA5E9", "#EC4899", "#0F172A"];
 
-function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados, equipe }: {
+function DetalheEmpresa({ e, onBack, onEditar, onExcluir, onSalvarCor, onSalvarDados, equipe }: {
   e: Empresa;
   onBack: () => void;
   onEditar: (e: Empresa) => void;
+  onExcluir: (e: Empresa) => void;
   onSalvarCor: (empresaId: string, cor: string) => Promise<void> | void;
   onSalvarDados: (empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; cidade?: string; estado?: string; responsavel?: string; email?: string; logo?: string }) => Promise<void> | void;
   equipe: {
@@ -592,7 +587,10 @@ function DetalheEmpresa({ e, onBack, onEditar, onSalvarCor, onSalvarDados, equip
 
   return (
     <div className="adm-det">
-      <button className="adm-det-back" onClick={onBack}><ArrowLeft size={16} /> Voltar para a lista</button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <button className="adm-det-back" onClick={onBack}><ArrowLeft size={16} /> Voltar para a lista</button>
+        <button className="adm-btn sm danger" onClick={() => onExcluir(e)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Trash2 size={14} /> Excluir empresa</button>
+      </div>
 
       <div className="adm-det-head">
         <div className="adm-det-logo">{e.logo_url ? <img src={e.logo_url} alt="Logo" /> : <span>{inicial}</span>}</div>
