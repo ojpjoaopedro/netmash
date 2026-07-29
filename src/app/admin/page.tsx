@@ -369,7 +369,7 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th className="num">Equipe</th><th style={{ textAlign: "center" }}>Acesso</th><th>Ações</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th className="num">Equipe</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={3} style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
                     {data?.empresas.map((e) => (
                       <tr key={e.id}>
@@ -394,16 +394,18 @@ export default function Admin() {
                             <span className="adm-switch-knob" />
                           </button>
                         </td>
-                        <td>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            <button className="adm-btn sm" disabled={!!busy} title="Entrar no painel desta empresa (sem login)" onClick={() => verPainel(e)}><Eye size={13} /> Ver painel</button>
-                            <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => reenviarAcesso(e)}><Send size={13} /> Reenviar acesso</button>
-                            {!ehPadrao(e) && <button className="adm-btn sm danger" disabled={!!busy} title="Excluir empresa" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={13} /> Excluir</button>}
-                          </div>
+                        <td style={{ whiteSpace: "nowrap" }}>
+                          <button className="adm-btn sm" disabled={!!busy} title="Entrar no painel desta empresa (sem login)" onClick={() => verPainel(e)}><Eye size={13} /> Ver painel</button>
+                        </td>
+                        <td style={{ whiteSpace: "nowrap" }}>
+                          <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => reenviarAcesso(e)}><Send size={13} /> Reenviar acesso</button>
+                        </td>
+                        <td style={{ whiteSpace: "nowrap" }}>
+                          {!ehPadrao(e) && <button className="adm-btn sm danger" disabled={!!busy} title="Excluir empresa" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={13} /> Excluir</button>}
                         </td>
                       </tr>
                     ))}
-                    {!data?.empresas.length && <tr><td colSpan={7} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={9} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -590,7 +592,8 @@ const CSS = `
 .adm-btn.ghost{background:#161616;border:1px solid #333;color:#f4f5f7}
 .adm-btn.ghost:hover{border-color:#1AADE2;filter:none}
 .adm-btn.warn{background:#2a1d10;border:1px solid #6b4e1f;color:#F59E0B}
-.adm-btn.danger{background:#2a1212;border:1px solid #6b1f1f;color:#EF4444}
+.adm-btn.danger{background:color-mix(in srgb,#EF4444 12%,transparent);border:1px solid color-mix(in srgb,#EF4444 34%,transparent);color:#EF4444}
+.adm-btn.danger:hover{background:color-mix(in srgb,#EF4444 20%,transparent)}
 .adm-perms{display:grid;gap:12px;margin-top:18px;max-width:660px}
 .adm-perm{display:flex;gap:14px;background:#121212;border:1px solid #222;border-radius:14px;padding:18px}
 .adm-pico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
