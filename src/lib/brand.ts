@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 /**
  * Marca white-label + tema. Guardado no navegador (localStorage) para o MVP.
@@ -72,16 +73,24 @@ export function useBrand() {
   const [theme, setThemeState] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
-    setBrand(read());
-    const t = (localStorage.getItem(KEY_THEME) as "dark" | "light") || "dark";
-    setThemeState(t);
-    document.body.classList.toggle("theme-light", t === "light");
+    const carregar = () => {
+      setBrand(read());
+      const t = (localStorage.getItem(KEY_THEME) as "dark" | "light") || "dark";
+      setThemeState(t);
+      document.body.classList.toggle("theme-light", t === "light");
+    };
+    carregar();
+    // quando a marca/tema vier do banco (sync ao abrir o painel), recarrega
+    window.addEventListener("me:brand", carregar);
+    return () => window.removeEventListener("me:brand", carregar);
   }, []);
 
   const save = useCallback((patch: Partial<Brand>) => {
     setBrand((cur) => {
       const next = { ...cur, ...patch };
-      localStorage.setItem(KEY, JSON.stringify(next));
+      const cru = JSON.stringify(next);
+      localStorage.setItem(KEY, cru);
+      salvarEstadoRemoto(KEY, cru);
       aplicarCor(next.cor);
       return next;
     });
@@ -91,6 +100,7 @@ export function useBrand() {
     setThemeState((t) => {
       const next = t === "dark" ? "light" : "dark";
       localStorage.setItem(KEY_THEME, next);
+      salvarEstadoRemoto(KEY_THEME, next);
       document.body.classList.toggle("theme-light", next === "light");
       return next;
     });
@@ -99,6 +109,7 @@ export function useBrand() {
   const setTheme = useCallback((t: "dark" | "light") => {
     setThemeState(t);
     localStorage.setItem(KEY_THEME, t);
+    salvarEstadoRemoto(KEY_THEME, t);
     document.body.classList.toggle("theme-light", t === "light");
   }, []);
 

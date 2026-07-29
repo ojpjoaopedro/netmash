@@ -5,6 +5,7 @@ import {
   Eye, EyeOff, Lock, SlidersHorizontal, LayoutDashboard, DollarSign, Megaphone, Sparkles, Compass, Presentation, Settings,
 } from "lucide-react";
 import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 const AZUL = "#1AADE2", VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF4444";
 
@@ -42,7 +43,7 @@ function ler(): Store {
   try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s && s.sup) { if (s.sup.nome === "Super Admin") s.sup.nome = ""; return s; } } catch { /* ignore */ }
   return { sup: { ...SUPER_PADRAO }, admins: [] };
 }
-function salvar(s: Store) { if (typeof window !== "undefined") { localStorage.setItem(KEY, JSON.stringify(s)); window.dispatchEvent(new Event("me:diretores")); } }
+function salvar(s: Store) { if (typeof window !== "undefined") { const cru = JSON.stringify(s); localStorage.setItem(KEY, cru); salvarEstadoRemoto(KEY, cru); window.dispatchEvent(new Event("me:diretores")); } }
 
 function iniciais(nome: string): string {
   return nome.trim().split(/\s+/).map((p) => p[0]).join("").toUpperCase().slice(0, 2);

@@ -5,6 +5,7 @@ import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { navegar, AlvoNav } from "@/lib/nav";
 import { somLigado } from "@/lib/ui-sound";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 const KEY_MIN = "me_guia_min";
 const KEY_OK = "me_guia_concluido";
@@ -121,7 +122,7 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
     if (!montado) return;
     const atual = localStorage.getItem(KEY_OK) === "1";
     if (atual !== tudoOK) {
-      try { localStorage.setItem(KEY_OK, tudoOK ? "1" : "0"); window.dispatchEvent(new Event("me:guia-concluido")); } catch { /* ignore */ }
+      try { const cru = tudoOK ? "1" : "0"; localStorage.setItem(KEY_OK, cru); salvarEstadoRemoto(KEY_OK, cru); window.dispatchEvent(new Event("me:guia-concluido")); } catch { /* ignore */ }
     }
   }, [tudoOK, montado]);
 
@@ -142,7 +143,7 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
 
   if (!montado) return null;
 
-  const trocarMin = (v: boolean) => { setMin(v); try { localStorage.setItem(KEY_MIN, v ? "1" : "0"); } catch { /* ignore */ } };
+  const trocarMin = (v: boolean) => { setMin(v); try { const cru = v ? "1" : "0"; localStorage.setItem(KEY_MIN, cru); salvarEstadoRemoto(KEY_MIN, cru); } catch { /* ignore */ } };
   const ir = (a: AlvoNav) => navegar(a);
 
   const guia = tudoOK ? null : (min ? (

@@ -1,6 +1,7 @@
 "use client";
 // Sons de interface (Web Audio — sem arquivos). Clique suave na navegação e
-// um "chime" ao salvar. Pode ser ligado/desligado (fica salvo no navegador).
+// um "chime" ao salvar. Pode ser ligado/desligado (fica salvo no navegador e no banco).
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 let ctx: AudioContext | null = null;
 let ligado = true;
@@ -9,7 +10,7 @@ if (typeof window !== "undefined") ligado = localStorage.getItem("me_som") !== "
 export function somLigado(): boolean { return ligado; }
 export function setSom(v: boolean): void {
   ligado = v;
-  if (typeof window !== "undefined") localStorage.setItem("me_som", v ? "1" : "0");
+  if (typeof window !== "undefined") { const cru = v ? "1" : "0"; localStorage.setItem("me_som", cru); salvarEstadoRemoto("me_som", cru); }
   if (v) playTick(560); // feedback ao ligar
 }
 

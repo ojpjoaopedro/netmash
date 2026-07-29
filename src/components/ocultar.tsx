@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 const KEY = "me_ocultar_valores";
 
@@ -26,7 +27,7 @@ export function useOcultar() {
   }, []);
   const toggle = () => {
     const n = !ler();
-    try { localStorage.setItem(KEY, n ? "1" : "0"); } catch { /* ignore */ }
+    try { const cru = n ? "1" : "0"; localStorage.setItem(KEY, cru); salvarEstadoRemoto(KEY, cru); } catch { /* ignore */ }
     aplicar(n);
     window.dispatchEvent(new Event("me:ocultar"));
   };

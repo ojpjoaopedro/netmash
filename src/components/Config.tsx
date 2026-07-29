@@ -4,6 +4,7 @@ import { ImagePlus, Trash2, Hourglass } from "lucide-react";
 import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone, emailValido } from "@/lib/format";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 function mascaraCnpj(v: string): string {
   const d = v.replace(/\D/g, "").slice(0, 14);
@@ -46,7 +47,7 @@ function lerExtra(id?: string | null): DadosExtra {
   try { return { ...EXTRA_VAZIO, ...JSON.parse(localStorage.getItem(chaveExtra(id)) || "{}") }; } catch { return EXTRA_VAZIO; }
 }
 function salvarExtra(id: string | null | undefined, d: DadosExtra) {
-  if (typeof window !== "undefined") localStorage.setItem(chaveExtra(id), JSON.stringify(d));
+  if (typeof window !== "undefined") { const cru = JSON.stringify(d); localStorage.setItem(chaveExtra(id), cru); salvarEstadoRemoto(chaveExtra(id), cru); }
 }
 
 /** Posição para o selinho "Salvo" colar logo após o texto digitado. */

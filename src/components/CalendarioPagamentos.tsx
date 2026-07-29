@@ -5,6 +5,7 @@ import BotaoOcultar from "./ocultar";
 import { AnimNum } from "./AnimNum";
 import { carregarEstrutura, salvarEstrutura, Bloco, Freq, datasDaDespesa, ocConfirmada, valorDaOcorrencia } from "@/app/minhasmetricas/financas-estrutura";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 /** Dropdown em árvore igual à Estrutura de Custos: blocos, grupos (bolinha + seta) e itens, com cadastrar. */
 export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: { blocos: Bloco[]; grupo: string; item: string; onSelecionar: (g: string, i: string) => void; onRenomear?: (grupo: string, antigo: string, novo: string) => void }) {
@@ -268,7 +269,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   const [baixaPrim, setBaixaPrim] = useState<{ id: string; iso: string; valor: number; item: string; recorrente: boolean } | null>(null);
 
   useEffect(() => { setDesps(ler(cfg.key)); setCarregado(true); }, [cfg.key]);
-  useEffect(() => { if (carregado) { localStorage.setItem(cfg.key, JSON.stringify(desps)); window.dispatchEvent(new Event(cfg.evento)); } }, [desps, carregado, cfg.key, cfg.evento]);
+  useEffect(() => { if (carregado) { const cru = JSON.stringify(desps); localStorage.setItem(cfg.key, cru); salvarEstadoRemoto(cfg.key, cru); window.dispatchEvent(new Event(cfg.evento)); } }, [desps, carregado, cfg.key, cfg.evento]);
 
   // blocos de custo (com grupos e itens) para direcionar o pagamento ao lugar certo na Estrutura
   const [estruturaVersao, setEstruturaVersao] = useState(0);

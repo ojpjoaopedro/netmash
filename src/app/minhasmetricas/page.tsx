@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, Fragment } from "react";
+import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, Compass, Settings,
@@ -13,6 +13,7 @@ import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
 import { assinarNav, pegarAlvo, navegar } from "@/lib/nav";
 import { supabase, supabaseReady } from "@/lib/supabase";
+import { salvarEstadoRemoto, apagarEstadoRemoto, sincronizarEstado } from "@/lib/estado-remoto";
 import {
   getPerfil, getEmpresa, getLancamentos, getFuncionarios, getClientes, logout,
   Perfil, Empresa, Lancamento, Funcionario, Cliente,
@@ -131,6 +132,29 @@ export default function Home() {
     }
   }, []);
 
+  // Sincroniza TODO o painel com o banco ao abrir: puxa o que está salvo no banco
+  // para o navegador (e, na 1ª vez, sobe o que já existia localmente).
+  const sincronizou = useRef(false);
+  useEffect(() => {
+    if (sincronizou.current || !supabaseReady || !empresa) return;
+    sincronizou.current = true;
+    const eb = empresa as { id?: string } | null;
+    const chaves = [
+      "me_calendario_pagamentos", "me_calendario_recebimentos",
+      "me_diretores", "me_func_extra",
+      "fin_brand", "fin_theme", "me_foto_perfil",
+      "me_termos_aceite", "me_termos_aceite:privacidade", "me_termos_aceite:servicos", "me_termos_aceite:protecao",
+      "me_guia_concluido", "me_guia_min", "me_tour_financas",
+      "me_som", "me_ocultar_valores", "me_bemvindo_fechado",
+      "me_empresa_extra:default", ...(eb?.id ? [`me_empresa_extra:${eb.id}`] : []),
+    ];
+    void sincronizarEstado(chaves).then(() => {
+      // reaplica no que a página lê só uma vez na montagem
+      setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
+      setFotoPerfil(localStorage.getItem("me_foto_perfil") || "");
+    });
+  }, [empresa]);
+
   /** Troca a foto do avatar: abre a tela de recorte (quadrado) e guarda o recorte no navegador. */
   const [recorteFoto, setRecorteFoto] = useState<string | null>(null);
   const [confirmarRemoverFoto, setConfirmarRemoverFoto] = useState(false);
@@ -144,11 +168,11 @@ export default function Home() {
   }
   function salvarFotoPerfil(url: string) {
     setFotoPerfil(url);
-    try { localStorage.setItem("me_foto_perfil", url); } catch { /* imagem grande demais: fica só na sessão */ }
+    try { localStorage.setItem("me_foto_perfil", url); salvarEstadoRemoto("me_foto_perfil", url); } catch { /* imagem grande demais: fica só na sessão */ }
   }
   function removerFotoPerfil() {
     setFotoPerfil("");
-    try { localStorage.removeItem("me_foto_perfil"); } catch { /* ignore */ }
+    try { localStorage.removeItem("me_foto_perfil"); apagarEstadoRemoto("me_foto_perfil"); } catch { /* ignore */ }
   }
 
   // Interliga a identidade: aplica logo/cor da empresa logada (banco) na marca do painel.
@@ -429,7 +453,7 @@ export default function Home() {
           <div className="card" style={{ marginBottom: 16, borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <h3 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>👋 Bem-vindo ao seu painel!</h3>
-              <button className="iconbtn" title="Fechar" onClick={() => { setBemVindoFechado(true); if (typeof window !== "undefined") localStorage.setItem("me_bemvindo_fechado", "1"); }}>✕</button>
+              <button className="iconbtn" title="Fechar" onClick={() => { setBemVindoFechado(true); if (typeof window !== "undefined") { localStorage.setItem("me_bemvindo_fechado", "1"); salvarEstadoRemoto("me_bemvindo_fechado", "1"); } }}>✕</button>
             </div>
             <p className="sub" style={{ marginBottom: 14 }}>Comece configurando sua empresa. O restante do painel se monta a partir daí.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -637,7 +661,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
 
       {tourOn && <TourFinancas setAba={(k) => { setAba(k); if (k === "calendario") setCalSub(null); }}
         onVerVideo={() => setVideoTut(true)}
-        onFim={() => { setTourOn(false); try { localStorage.setItem("me_tour_financas", "1"); } catch { /* ignore */ } }} />}
+        onFim={() => { setTourOn(false); try { localStorage.setItem("me_tour_financas", "1"); salvarEstadoRemoto("me_tour_financas", "1"); } catch { /* ignore */ } }} />}
 
       {videoTut && (
         <div onClick={() => setVideoTut(false)} style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", background: "rgba(15,23,42,.6)", backdropFilter: "blur(3px)", padding: 20 }}>

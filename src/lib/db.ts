@@ -1,4 +1,5 @@
 import { supabase, supabaseReady } from "./supabase";
+import { salvarEstadoRemoto } from "./estado-remoto";
 import { uid, hoje } from "./format";
 
 // ============================================================
@@ -75,6 +76,7 @@ function guardarFuncExtras(id: string, patch: Record<string, unknown>) {
   const m = lerFuncExtras();
   m[id] = { ...(m[id] || {}), ...e };
   lsSet(K_FUNC_EXTRA, m);
+  salvarEstadoRemoto(K_FUNC_EXTRA, JSON.stringify(m));
 }
 function aplicarFuncExtras(list: Funcionario[]): Funcionario[] {
   const m = lerFuncExtras();

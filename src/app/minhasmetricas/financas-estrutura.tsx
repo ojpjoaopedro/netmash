@@ -6,6 +6,7 @@ import SeletorAno from "@/components/SeletorAno";
 import { AnimNum } from "@/components/AnimNum";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { supabase, supabaseReady } from "@/lib/supabase";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { createPortal } from "react-dom";
 
 /** Moeda "conforme digita" (centavos pela direita) -> 2.000,00 */
@@ -156,7 +157,7 @@ export function lerPagamentos(): Pagamento[] {
   try { return JSON.parse(localStorage.getItem(CHAVE_PAG) || "[]"); } catch { return []; }
 }
 export function salvarPagamentos(ps: Pagamento[]) {
-  if (typeof window !== "undefined") { try { localStorage.setItem(CHAVE_PAG, JSON.stringify(ps)); window.dispatchEvent(new Event("me:pagamentos")); } catch { /* ignore */ } }
+  if (typeof window !== "undefined") { try { const cru = JSON.stringify(ps); localStorage.setItem(CHAVE_PAG, cru); salvarEstadoRemoto(CHAVE_PAG, cru); window.dispatchEvent(new Event("me:pagamentos")); } catch { /* ignore */ } }
 }
 const CHAVE_REC = "me_calendario_recebimentos";
 export function lerRecebimentos(): Pagamento[] {
@@ -164,7 +165,7 @@ export function lerRecebimentos(): Pagamento[] {
   try { return JSON.parse(localStorage.getItem(CHAVE_REC) || "[]"); } catch { return []; }
 }
 export function salvarRecebimentos(ps: Pagamento[]) {
-  if (typeof window !== "undefined") { try { localStorage.setItem(CHAVE_REC, JSON.stringify(ps)); window.dispatchEvent(new Event("me:recebimentos")); } catch { /* ignore */ } }
+  if (typeof window !== "undefined") { try { const cru = JSON.stringify(ps); localStorage.setItem(CHAVE_REC, cru); salvarEstadoRemoto(CHAVE_REC, cru); window.dispatchEvent(new Event("me:recebimentos")); } catch { /* ignore */ } }
 }
 
 /** Meses (0..11) em que a despesa incide no ano dado. */

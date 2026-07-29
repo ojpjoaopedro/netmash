@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { FileText, X, Check } from "lucide-react";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import PoliticaPrivacidade from "./PoliticaPrivacidade";
 import ServicosFinanceiros from "./ServicosFinanceiros";
 import ProtecaoDeDados from "./ProtecaoDeDados";
@@ -45,8 +46,11 @@ export default function TermosDeUso() {
     setAceites(novo);
     try {
       localStorage.setItem(CHAVE_DOC(id), "true");
+      salvarEstadoRemoto(CHAVE_DOC(id), "true");
       const todos = DOCS.every((d) => d.id && novo[d.id]);
-      localStorage.setItem("me_termos_aceite", todos ? "true" : "false");
+      const agreg = todos ? "true" : "false";
+      localStorage.setItem("me_termos_aceite", agreg);
+      salvarEstadoRemoto("me_termos_aceite", agreg);
       window.dispatchEvent(new Event("me:termos"));
     } catch { /* ignore */ }
   };
