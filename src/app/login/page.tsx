@@ -41,7 +41,7 @@ export default function LoginPage() {
     try {
       if (modo === "login") {
         await login(email.trim(), senha);
-        router.push("/minhasmetricas");
+        router.push("/dashboard/home");
       } else if (modo === "cadastro") {
         await cadastrarComCodigo(nome.trim(), empresa.trim(), email.trim(), senha, codigo.trim());
         await login(email.trim(), senha);
@@ -55,7 +55,7 @@ export default function LoginPage() {
         if (senha !== senha2) throw new Error("As senhas não conferem.");
         await definirSenha(senha);
         setMsg("✅ Senha definida! Entrando…");
-        router.push("/minhasmetricas");
+        router.push("/dashboard/home");
       }
     } catch (err) {
       const m = err instanceof Error ? err.message : "Erro";

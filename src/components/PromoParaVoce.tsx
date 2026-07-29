@@ -9,7 +9,7 @@ export default function PromoParaVoce() {
   const [url, setUrl] = useState("");
   const [copiado, setCopiado] = useState(false);
 
-  useEffect(() => { if (typeof window !== "undefined") setUrl(window.location.origin + "/minhasmetricas"); }, []);
+  useEffect(() => { if (typeof window !== "undefined") setUrl(window.location.origin + "/dashboard/home"); }, []);
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
     window.addEventListener("keydown", h);

@@ -45,6 +45,18 @@ type View =
   | "dashboard" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
   | "assistente" | "equipe" | "apresentacao" | "importar" | "empresa";
 
+// URL <-> seção: o endereço muda por seção (nomes genéricos), a empresa nunca aparece.
+const VIEW_SEG: Record<string, string> = {
+  dashboard: "home", financas: "financas", planejamento: "planejamento", clientes: "clientes",
+  assistente: "assistente", config: "config", equipe: "equipe", empresa: "empresa",
+  importar: "importar", apresentacao: "apresentacao", marketing: "marketing",
+};
+const SEG_VIEW: Record<string, View> = {
+  home: "dashboard", dashboard: "dashboard", financas: "financas", planejamento: "planejamento",
+  clientes: "clientes", assistente: "assistente", config: "config", equipe: "equipe",
+  empresa: "empresa", importar: "importar", apresentacao: "apresentacao", marketing: "marketing",
+};
+
 const METRICAS = [
   { key: "dashboard", label: "Home", Icon: LayoutDashboard },
   { key: "financas", label: "Finanças", Icon: DollarSign },
@@ -72,7 +84,7 @@ const OPERACOES = [
   { key: "config", label: "Configurações", Icon: Settings },
 ] as const;
 
-export default function Home() {
+export default function Home({ secao }: { secao?: string } = {}) {
   const router = useRouter();
   const { brand, save: saveBrand, theme, toggleTheme } = useBrand();
   const [carregando, setCarregando] = useState(true);
@@ -82,7 +94,13 @@ export default function Home() {
   const [funcs, setFuncs] = useState<Funcionario[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [metrs, setMetrs] = useState<Metrica[]>([]);
-  const [view, setView] = useState<View>("dashboard");
+  const [view, setView] = useState<View>((secao && SEG_VIEW[secao]) || "dashboard");
+  // reflete a seção atual na URL (/dashboard/<seção>), sem recarregar o painel
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = "/dashboard/" + (VIEW_SEG[view] || "home");
+    if (window.location.pathname !== url) window.history.replaceState(null, "", url);
+  }, [view]);
   // o Guia de configuração pede navegação; a página troca a view
   useEffect(() => assinarNav((a) => setView(a.view as View)), []);
   const [editor, setEditor] = useState<Categoria | null>(null);

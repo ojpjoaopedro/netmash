@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
       { source: "/gerarproposta", destination: "/gerarproposta.html" },
     ];
   },
+  // Endereço fixo do painel: todos usam /dashboard/home (o /minhasmetricas antigo
+  // continua funcionando, mas encaminha para o endereço novo).
+  async redirects() {
+    return [
+      { source: "/minhasmetricas", destination: "/dashboard/home", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;
