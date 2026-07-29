@@ -317,7 +317,7 @@ export default function Admin() {
       </button>
       <div className="adm-shell">
         <aside className="adm-side">
-          <div className="adm-brand"><img src="/logos/Minhas metricas.png" alt="Minhas Métricas" style={{ height: 30, width: "auto", maxWidth: "100%", objectFit: "contain" }} /></div>
+          <div className="adm-brand"><img src="/logos/Minhas metricas.png" alt="Minhas Métricas" style={{ height: 52, width: "auto", maxWidth: "100%", objectFit: "contain", borderRadius: 12 }} /></div>
           <nav className="adm-nav">
             {NAV.map(({ k, label, Icon }) => (
               <button key={k} className={aba === k ? "on" : ""} onClick={() => setAba(k)}><Icon size={18} /> {label}</button>
