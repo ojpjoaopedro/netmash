@@ -369,11 +369,40 @@ export async function POST(req: NextRequest) {
     await s.auth.admin.updateUserById(userId, { ban_duration: "none" });
     return NextResponse.json({ ok: true });
   }
+  // Gera um link mágico para o super admin ENTRAR no painel da empresa sem login/senha
+  // (abrir numa aba anônima). Serve para visualizar como está por dentro.
+  if (action === "acessar" && empresaId) {
+    const { data: e } = await s.from("empresas").select("dono_id").eq("id", empresaId).single();
+    const donoId = (e as { dono_id?: string } | null)?.dono_id;
+    if (!donoId) return NextResponse.json({ error: "Esta empresa não tem um responsável para acessar." }, { status: 400 });
+    const { data: donoAuth } = await s.auth.admin.getUserById(donoId);
+    const email = donoAuth?.user?.email;
+    if (!email) return NextResponse.json({ error: "O responsável não tem e-mail." }, { status: 400 });
+    const origin = new URL(req.url).origin;
+    const { data: link, error } = await s.auth.admin.generateLink({ type: "magiclink", email, options: { redirectTo: `${origin}/dashboard/home` } });
+    const url2 = (link as { properties?: { action_link?: string } } | null)?.properties?.action_link;
+    if (error || !url2) return NextResponse.json({ error: "Não consegui gerar o acesso agora." }, { status: 400 });
+    return NextResponse.json({ ok: true, link: url2 });
+  }
   if (action === "excluir" && empresaId) {
     const { data: e } = await s.from("empresas").select("dono_id").eq("id", empresaId).single();
-    await s.from("empresas").delete().eq("id", empresaId); // cascata apaga lançamentos/clientes/etc.
     const donoId = (e as { dono_id?: string } | null)?.dono_id;
-    if (donoId) await s.auth.admin.deleteUser(donoId);
+    // trava de segurança: nunca excluir a empresa PADRÃO (conta super admin)
+    if (donoId) {
+      const { data: donoAuth } = await s.auth.admin.getUserById(donoId);
+      const donoEmail = (donoAuth?.user?.email || "").toLowerCase();
+      if (SUPERS.includes(donoEmail)) return NextResponse.json({ error: "Não é possível excluir a empresa padrão (Minhas Métricas)." }, { status: 400 });
+    }
+    // pega os acessos (colaboradores) desta empresa antes de apagar, para liberar os e-mails também
+    const { data: colabs } = await s.from("perfis").select("id").eq("empresa_id", empresaId);
+    // apaga a empresa (cascata: lançamentos, clientes, funcionários, financas_estrutura, painel_estado)
+    await s.from("empresas").delete().eq("id", empresaId);
+    // apaga os logins (auth) do dono e dos acessos, liberando os e-mails para novo cadastro
+    if (donoId) { try { await s.auth.admin.deleteUser(donoId); } catch { /* ignore */ } }
+    for (const c of (colabs || [])) {
+      const cid = (c as { id?: string }).id;
+      if (cid && cid !== donoId) { try { await s.auth.admin.deleteUser(cid); } catch { /* ignore */ } }
+    }
     return NextResponse.json({ ok: true });
   }
   return NextResponse.json({ error: "Ação inválida." }, { status: 400 });

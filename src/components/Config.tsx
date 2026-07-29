@@ -1,19 +1,11 @@
 "use client";
 import { useRef, useState } from "react";
-import { ImagePlus, Trash2, Hourglass } from "lucide-react";
+import { ImagePlus, Trash2, Hourglass, Lock } from "lucide-react";
 import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone, emailValido } from "@/lib/format";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
-function mascaraCnpj(v: string): string {
-  const d = v.replace(/\D/g, "").slice(0, 14);
-  if (d.length > 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
-  if (d.length > 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
-  if (d.length > 5) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
-  if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
-  return d;
-}
 
 /* Principais segmentos de mercado (setores da economia brasileira). O último
    é "Outro", que libera um campo livre para digitar. */
@@ -68,12 +60,12 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
   brand: Brand; saveBrand: (p: Partial<Brand>) => void;
   secao?: "tudo" | "dados" | "identidade";
 }) {
-  const [nome, setNome] = useState(empresa?.nome ?? brand.nome ?? "");
+  const nome = empresa?.nome ?? brand.nome ?? "";
   const [segmento, setSegmento] = useState(empresa?.segmento ?? "");
   // "Outro" só liga quando a pessoa escolhe digitar. Segmento salvo que não
   // está na lista aparece como opção selecionada no próprio menu (abaixo).
   const [segOutro, setSegOutro] = useState(false);
-  const [cnpj, setCnpj] = useState(empresa?.cnpj ?? "");
+  const cnpj = empresa?.cnpj ?? "";
   const [cor, setCor] = useState(brand.cor ?? "#1AADE2");
   const [extra, setExtra] = useState<DadosExtra>(() => lerExtra(empresa?.id));
   const [emailErro, setEmailErro] = useState("");
@@ -160,7 +152,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
           <h3>🏢 Dados da empresa</h3>
           {/* Nome, Segmento e CNPJ na mesma linha */}
           <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 14 }}>
-            <div className="field"><label className="f">Nome da empresa</label><input value={nome} onChange={(e) => setNome(e.target.value)} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
+            <div className="field"><label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Nome da empresa <Lock size={11} style={{ opacity: .6 }} /></label><input value={nome} readOnly title="Definido no cadastro, não editável" style={{ opacity: .8, cursor: "default" }} /></div>
             <div className="field">
               <label className="f">Segmento</label>
               {segOutro ? (
@@ -177,7 +169,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
                 </select>
               )}
             </div>
-            <div className="field"><label className="f">CNPJ</label><input value={cnpj} onChange={(e) => setCnpj(mascaraCnpj(e.target.value))} onBlur={(e) => salvarCampo(e.currentTarget)} inputMode="numeric" /></div>
+            <div className="field"><label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>CNPJ <Lock size={11} style={{ opacity: .6 }} /></label><input value={cnpj} readOnly title="Definido no cadastro, não editável" style={{ opacity: .8, cursor: "default" }} inputMode="numeric" /></div>
           </div>
           {/* E-mail (maior) primeiro, depois Contato e Inscrição Estadual */}
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 14 }}>

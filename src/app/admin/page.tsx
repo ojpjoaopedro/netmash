@@ -74,6 +74,8 @@ export default function Admin() {
   const [estado, setEstado] = useState<"carregando" | "semlogin" | "negado" | "ok" | "erro">("carregando");
   const [data, setData] = useState<Resp | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [verLink, setVerLink] = useState<{ nome: string; link: string } | null>(null);
+  const [copiado, setCopiado] = useState(false);
   const [form, setForm] = useState<Form | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [erroForm, setErroForm] = useState("");
@@ -206,6 +208,16 @@ export default function Admin() {
     setBusy(null);
     window.alert(res.ok ? `Acesso reenviado para ${e.dono.email}.` : "Não consegui reenviar o acesso agora.");
   }
+  // Gera o link mágico para visualizar o painel da empresa sem login (abrir em aba anônima).
+  async function verPainel(e: Empresa) {
+    if (demo) { setVerLink({ nome: e.nome, link: `${window.location.origin}/dashboard/home` }); return; }
+    setBusy("ver-" + e.id);
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acessar", empresaId: e.id }) });
+    setBusy(null);
+    if (!res.ok) { window.alert("Não consegui gerar o acesso agora."); return; }
+    const j = await res.json();
+    setVerLink({ nome: e.nome, link: j.link as string });
+  }
   async function entrarComOutra() { if (supabase) await supabase.auth.signOut(); router.push("/login"); }
 
   async function tokenH() { const { data: sess } = await supabase!.auth.getSession(); return { Authorization: `Bearer ${sess.session?.access_token}` }; }
@@ -317,9 +329,6 @@ export default function Admin() {
         </aside>
 
         <main className="adm-main">
-          {detalhe ? (
-            <DetalheEmpresa key={detalhe.id} e={detalhe} onBack={() => setDetalheId(null)} onEditar={abrirEdicao} onExcluir={(emp) => acao("excluir", { empresaId: emp.id }, `Excluir a empresa "${emp.nome}"? Isso apaga a empresa e todos os dados dela (lançamentos, clientes, equipe). Não dá para desfazer.`)} onSalvarCor={salvarCor} onSalvarDados={salvarDados} equipe={{ acessos, novoAcesso, setNovoAcesso, criar: criarAcesso, criarUm: criarAcessoDireto, remover: removerAcesso, toggleArea, salvando: salvAcesso, erro: erroAcesso, ok: okAcesso }} />
-          ) : (
           <>
 
           {aba === "visao" && (
@@ -337,7 +346,7 @@ export default function Admin() {
                   <thead><tr><th>Empresa</th><th>E-mail de acesso</th><th>Plano</th><th>Mensal</th><th>Criada</th></tr></thead>
                   <tbody>
                     {data?.empresas.slice(0, 6).map((e) => (
-                      <tr key={e.id} className="adm-clickrow" onClick={() => setDetalheId(e.id)} title="Ver detalhes">
+                      <tr key={e.id}>
                         <td><b>{e.nome}</b>{ehPadrao(e) && <span className="adm-badge-padrao">Padrão</span>}</td>
                         <td className="adm-sub">{e.dono?.email || "—"}</td>
                         <td>{e.plano || "—"}</td>
@@ -367,7 +376,7 @@ export default function Admin() {
                         <td>
                           <div className="adm-emp">
                             <div className="adm-emp-logo">{e.logo_url ? <img src={e.logo_url} alt="" /> : <span>{(e.nome || "?").trim().charAt(0).toUpperCase()}</span>}</div>
-                            <b className="adm-link" onClick={() => setDetalheId(e.id)} title="Ver detalhes">{e.nome}</b>
+                            <b>{e.nome}</b>
                           </div>
                         </td>
                         <td>{e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}</td>
@@ -387,7 +396,9 @@ export default function Admin() {
                         </td>
                         <td>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <button className="adm-btn sm" disabled={!!busy} title="Entrar no painel desta empresa (sem login)" onClick={() => verPainel(e)}><Eye size={13} /> Ver painel</button>
                             <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => reenviarAcesso(e)}><Send size={13} /> Reenviar acesso</button>
+                            {!ehPadrao(e) && <button className="adm-btn sm danger" disabled={!!busy} title="Excluir empresa" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={13} /> Excluir</button>}
                           </div>
                         </td>
                       </tr>
@@ -443,9 +454,23 @@ export default function Admin() {
             </>
           )}
           </>
-          )}
         </main>
       </div>
+
+      {verLink && (
+        <div className="adm-modalbg" onClick={() => { setVerLink(null); setCopiado(false); }}>
+          <div className="adm-modal" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: 520 }}>
+            <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}><Eye size={18} /> Ver painel · {verLink.nome}</h2>
+            <p className="adm-sub" style={{ marginTop: 6, lineHeight: 1.55 }}>Copie o link abaixo e cole numa <b>aba anônima</b> (Ctrl+Shift+N no Chrome). Você entra direto no painel da empresa, sem login nem senha. O link vale por cerca de 1 hora.</p>
+            <input readOnly value={verLink.link} onFocus={(ev) => ev.currentTarget.select()} style={{ width: "100%", marginTop: 14, padding: "11px 12px", fontSize: 12.5, borderRadius: 10, border: "1px solid var(--line-2, #2a2a2a)", background: "var(--card-2, #0d0d0d)", color: "inherit" }} />
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button className="adm-btn" style={{ flex: 1, justifyContent: "center" }} onClick={async () => { try { await navigator.clipboard.writeText(verLink.link); setCopiado(true); window.setTimeout(() => setCopiado(false), 2000); } catch { /* ignore */ } }}>{copiado ? "✅ Copiado!" : "Copiar link"}</button>
+              <button className="adm-btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setVerLink(null); setCopiado(false); }}>Fechar</button>
+            </div>
+            <p className="adm-sub" style={{ marginTop: 12, fontSize: 11.5, lineHeight: 1.5, opacity: .85 }}>Dica: use aba anônima para não desconectar você da conta de administrador. Nessa visualização você entra como a empresa (acesso total).</p>
+          </div>
+        </div>
+      )}
 
       {form && (
         <div className="adm-modalbg" onClick={() => !salvando && setForm(null)}>
@@ -523,201 +548,6 @@ function Aviso({ titulo, texto, botao, botaoTxt, botao2, botao2Txt }: { titulo: 
 }
 
 const COR_PRESETS = ["#1AADE2", "#E11D48", "#16A34A", "#7C3AED", "#F59E0B", "#0EA5E9", "#EC4899", "#0F172A"];
-
-function DetalheEmpresa({ e, onBack, onEditar, onExcluir, onSalvarCor, onSalvarDados, equipe }: {
-  e: Empresa;
-  onBack: () => void;
-  onEditar: (e: Empresa) => void;
-  onExcluir: (e: Empresa) => void;
-  onSalvarCor: (empresaId: string, cor: string) => Promise<void> | void;
-  onSalvarDados: (empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; cidade?: string; estado?: string; responsavel?: string; email?: string; logo?: string }) => Promise<void> | void;
-  equipe: {
-    acessos: Acesso[] | null;
-    novoAcesso: { nome: string; email: string; senha: string; areas: string[] };
-    setNovoAcesso: (v: { nome: string; email: string; senha: string; areas: string[] }) => void;
-    criar: () => void;
-    criarUm: (d: { nome: string; email: string; areas: string[] }) => Promise<boolean>;
-    remover: (userId: string) => void;
-    toggleArea: (k: string) => void;
-    salvando: boolean;
-    erro: string;
-    ok: string;
-  };
-}) {
-  const inicial = (e.nome || "?").trim().charAt(0).toUpperCase();
-  const criado = e.criado_em ? new Date(e.criado_em) : null;
-  const meses = criado ? Math.max(0, Math.round((Date.now() - criado.getTime()) / (1000 * 60 * 60 * 24 * 30))) : 0;
-  const desde = meses < 1 ? "menos de 1 mês" : meses === 1 ? "1 mês" : `${meses} meses`;
-  const [cor, setCor] = useState((e.cor || "#1AADE2").toUpperCase());
-  const [salvandoCor, setSalvandoCor] = useState(false);
-  const [corSalva, setCorSalva] = useState(false);
-  const mudarCor = (c: string) => { setCor(c.toUpperCase()); setCorSalva(false); };
-  async function salvarCorClick() { setSalvandoCor(true); await onSalvarCor(e.id, cor); setSalvandoCor(false); setCorSalva(true); }
-
-  // Edição inline dos dados cadastrais.
-  const [dados, setDados] = useState({ nome: e.nome, cnpj: e.cnpj || "", cidade: e.cidade || "", estado: e.estado || "", responsavel: e.dono?.nome || "" });
-  const [salvandoDados, setSalvandoDados] = useState(false);
-  const [dadosSalvos, setDadosSalvos] = useState(false);
-  const setD = (k: keyof typeof dados, v: string) => { setDados((d) => ({ ...d, [k]: v })); setDadosSalvos(false); };
-  const dirty = dados.nome !== e.nome || dados.cnpj !== (e.cnpj || "") || dados.cidade !== (e.cidade || "") || dados.estado !== (e.estado || "") || dados.responsavel !== (e.dono?.nome || "");
-  async function salvarDadosClick() {
-    setSalvandoDados(true);
-    await onSalvarDados(e.id, { nomeEmpresa: dados.nome, cnpj: dados.cnpj, cidade: dados.cidade, estado: dados.estado, responsavel: dados.responsavel });
-    setSalvandoDados(false); setDadosSalvos(true);
-  }
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  function escolherLogo(file: File) { const r = new FileReader(); r.onload = () => { const url = String(r.result); setLogoPreview(url); onSalvarDados(e.id, { logo: url }); }; r.readAsDataURL(file); }
-  const logoMostrar = logoPreview || e.logo_url;
-
-  // Equipe & Acessos — linhas de funcionários (o "+" adiciona uma nova).
-  type EmpRow = { nome: string; email: string; areas: string[]; enviando?: boolean; enviado?: boolean };
-  const [empRows, setEmpRows] = useState<EmpRow[]>([{ nome: "", email: "", areas: [] }]);
-  const updRow = (i: number, patch: Partial<EmpRow>) => setEmpRows((r) => r.map((x, k) => (k === i ? { ...x, ...patch } : x)));
-  const toggleRowArea = (i: number, key: string) => setEmpRows((r) => r.map((x, k) => (k === i ? { ...x, areas: x.areas.includes(key) ? x.areas.filter((a) => a !== key) : [...x.areas, key] } : x)));
-  const addRow = () => setEmpRows((r) => [...r, { nome: "", email: "", areas: [] }]);
-  const rmRow = (i: number) => setEmpRows((r) => (r.length > 1 ? r.filter((_, k) => k !== i) : r));
-  async function enviarRow(i: number) {
-    const row = empRows[i];
-    if (!row.email.includes("@")) return;
-    updRow(i, { enviando: true });
-    const ok = await equipe.criarUm({ nome: row.nome, email: row.email, areas: row.areas });
-    updRow(i, { enviando: false, enviado: ok });
-  }
-  const colabs = (equipe.acessos ?? []).filter((p) => p.papel !== "dono");
-
-  return (
-    <div className="adm-det">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <button className="adm-det-back" onClick={onBack}><ArrowLeft size={16} /> Voltar para a lista</button>
-        <button className="adm-btn sm danger" onClick={() => onExcluir(e)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Trash2 size={14} /> Excluir empresa</button>
-      </div>
-
-      <div className="adm-det-head">
-        <div className="adm-det-logo">{e.logo_url ? <img src={e.logo_url} alt="Logo" /> : <span>{inicial}</span>}</div>
-        <div className="adm-det-htxt">
-          <h1>{e.nome}</h1>
-          <div className="adm-det-meta">
-            {e.acessoCortado ? <span className="adm-badge cortado">Acesso cortado</span> : <span className="adm-badge ativo">Ativo</span>}
-            {e.slug && <a href={`/${e.slug}`} target="_blank" rel="noopener" className="adm-det-slug"><ExternalLink size={13} /> minhasmetricas.com/{e.slug}</a>}
-          </div>
-        </div>
-      </div>
-
-      <div className="adm-det-grid">
-        <div className="adm-det-card">
-          <h4><Building2 size={15} /> Dados cadastrais</h4>
-          <div className="adm-det-form">
-            <label className="adm-det-f"><span>Nome da empresa</span><input value={dados.nome} onChange={(ev) => setD("nome", ev.target.value)} /></label>
-            <label className="adm-det-f"><span>CNPJ</span><input value={dados.cnpj} onChange={(ev) => setD("cnpj", mascaraCnpj(ev.target.value))} placeholder="00.000.000/0000-00" inputMode="numeric" /></label>
-            <label className="adm-det-f"><span>Cidade</span><input value={dados.cidade} onChange={(ev) => setD("cidade", ev.target.value)} placeholder="Ex: Goiânia" /></label>
-            <label className="adm-det-f"><span>Estado</span><input value={dados.estado} onChange={(ev) => setD("estado", ev.target.value.toUpperCase().slice(0, 2))} placeholder="Ex: GO" maxLength={2} /></label>
-            <label className="adm-det-f"><span>Responsável principal</span><input value={dados.responsavel} onChange={(ev) => setD("responsavel", ev.target.value)} /></label>
-          </div>
-          <button className="adm-btn sm" style={{ marginTop: 16 }} disabled={!dirty || salvandoDados} onClick={salvarDadosClick}>
-            {salvandoDados ? "Salvando…" : dadosSalvos && !dirty ? "✓ Salvo" : "Salvar alterações"}
-          </button>
-          <p style={{ marginTop: 12, fontSize: 11.5, color: "var(--adm-muted, #94a3b8)" }}>Cadastrado em {dataBR(e.criado_em)}</p>
-        </div>
-
-        <div className="adm-det-card adm-eqp-card">
-          <h4><KeyRound size={15} /> Equipe &amp; Acessos</h4>
-
-          {/* Super Administrador (responsável principal) */}
-          <div className="adm-eqp-super">
-            <div className="adm-eqp-super-ico"><ShieldCheck size={18} /></div>
-            <div className="adm-eqp-super-txt">
-              <span className="adm-eqp-tag">Super Administrador</span>
-              <b>{e.dono?.nome || dados.responsavel || "Responsável"}</b>
-              <span className="adm-eqp-super-mail">{e.dono?.email || "—"}</span>
-            </div>
-            <span className="adm-eqp-super-badge">Acesso total</span>
-          </div>
-
-          {/* Funcionários */}
-          <div className="adm-eqp-sec">
-            <h5 className="adm-det-h5">Acessos de funcionários</h5>
-            <p className="adm-sub" style={{ margin: "0 0 14px" }}>Adicione cada funcionário e marque o que ele pode ver. O Dashboard aparece para todos.</p>
-
-            {empRows.map((row, i) => (
-              <div className={"adm-eqp-emp" + (row.enviado ? " enviado" : "")} key={i}>
-                <div className="adm-eqp-emp-top">
-                  <span className="adm-eqp-emp-n">{i + 1}</span>
-                  <input className="adm-eqp-inp" placeholder="Nome do funcionário" value={row.nome} onChange={(ev) => updRow(i, { nome: ev.target.value })} disabled={row.enviado} />
-                  {empRows.length > 1 && !row.enviado && <button className="adm-eqp-x" onClick={() => rmRow(i)} title="Remover"><X size={15} /></button>}
-                </div>
-                <input className="adm-eqp-inp" type="email" placeholder="email@empresa.com (login)" value={row.email} onChange={(ev) => updRow(i, { email: ev.target.value })} disabled={row.enviado} />
-                <div className="adm-areas">
-                  {AREAS.map((a) => (
-                    <button type="button" key={a.k} className={"adm-area" + (row.areas.includes(a.k) ? " on" : "")} onClick={() => !row.enviado && toggleRowArea(i, a.k)} disabled={row.enviado}>
-                      <a.Icon size={13} /> {a.l}
-                    </button>
-                  ))}
-                </div>
-                <div className="adm-eqp-emp-foot">
-                  {row.enviado
-                    ? <span className="adm-eqp-sent"><Send size={12} /> Acesso enviado para {row.email}</span>
-                    : <button className="adm-eqp-send" disabled={row.enviando || !row.email.includes("@")} onClick={() => enviarRow(i)}>{row.enviando ? "Enviando…" : <><Send size={13} /> Criar e enviar acesso</>}</button>}
-                </div>
-              </div>
-            ))}
-
-            <button className="adm-eqp-add" onClick={addRow}><Plus size={16} /> Adicionar funcionário</button>
-          </div>
-
-          {/* Quem já tem acesso (colaboradores criados) */}
-          {colabs.length > 0 && (
-            <div className="adm-eqp-sec">
-              <h5 className="adm-det-h5">Quem já tem acesso</h5>
-              {colabs.map((p) => (
-                <div key={p.id} className="adm-acrow">
-                  <div><b>{p.nome || "—"}</b><div className="adm-sub">{p.email}</div></div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="adm-sub">{p.areas && p.areas.length ? p.areas.map((k) => AREAS.find((a) => a.k === k)?.l || k).join(", ") : "só dashboard"}</span>
-                    <button className="adm-btn sm danger" onClick={() => equipe.remover(p.id)}><Trash2 size={13} /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="adm-det-card">
-          <h4><Palette size={15} /> Cor principal</h4>
-          <p className="adm-sub" style={{ margin: "0 0 14px" }}>Essa cor vira o destaque da página pública da empresa{e.slug ? <> (minhasmetricas.com/{e.slug})</> : null}.</p>
-          <div className="adm-cor-row">
-            <input type="color" className="adm-cor-pick" value={cor} onChange={(ev) => mudarCor(ev.target.value)} />
-            <input type="text" className="adm-cor-hex" value={cor} onChange={(ev) => mudarCor(ev.target.value)} maxLength={7} />
-          </div>
-          <div className="adm-cor-presets">
-            {COR_PRESETS.map((c) => (
-              <button key={c} type="button" className={"adm-cor-sw" + (cor === c ? " on" : "")} style={{ background: c }} onClick={() => mudarCor(c)} title={c} />
-            ))}
-          </div>
-          <div className="adm-cor-prev" style={{ borderColor: cor }}>
-            <span className="adm-cor-dot" style={{ background: cor }} />
-            <span style={{ color: cor, fontWeight: 800 }}>Prévia do destaque</span>
-            <span className="adm-cor-btn" style={{ background: cor }}>Entrar no painel →</span>
-          </div>
-          <button className="adm-btn sm" style={{ marginTop: 14 }} disabled={salvandoCor} onClick={salvarCorClick}>
-            {salvandoCor ? "Salvando…" : corSalva ? "✓ Cor salva" : "Salvar cor"}
-          </button>
-        </div>
-
-        <div className="adm-det-card">
-          <h4><ImageIcon size={15} /> Logomarca</h4>
-          <div className="adm-det-logobox">
-            {logoMostrar ? <img src={logoMostrar} alt="Logo da empresa" /> : <span className="adm-sub">Nenhuma logo enviada ainda</span>}
-          </div>
-          <label className="adm-btn sm ghost" style={{ marginTop: 12, cursor: "pointer" }}>
-            <ImageIcon size={13} /> {logoMostrar ? "Trocar logo" : "Enviar logo"}
-            <input type="file" accept="image/*" style={{ display: "none" }} onChange={(ev) => { const f = ev.target.files?.[0]; if (f) escolherLogo(f); }} />
-          </label>
-        </div>
-
-      </div>
-    </div>
-  );
-}
 
 const CSS = `
 .adm{min-height:100vh;background:#0A0A0A;color:#f4f5f7;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}

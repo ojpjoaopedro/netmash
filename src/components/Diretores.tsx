@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
+import { supabase, supabaseReady } from "@/lib/supabase";
 
 const AZUL = "#1AADE2", VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF4444";
 
@@ -142,12 +143,18 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
   const [s1, setS1] = useState(""); const [s2, setS2] = useState("");
   const [verSenha, setVerSenha] = useState(false);
   const [senhaErro, setSenhaErro] = useState(""); const [senhaOk, setSenhaOk] = useState(false);
+  const [senhaSalvando, setSenhaSalvando] = useState(false);
   const abrirSenha = () => { setS1(""); setS2(""); setSenhaErro(""); setSenhaOk(false); setVerSenha(false); setSenhaAberta(true); };
-  const salvarSenha = () => {
+  const salvarSenha = async () => {
     if (s1.length < 6) { setSenhaErro("A senha precisa ter pelo menos 6 caracteres."); return; }
     if (s1 !== s2) { setSenhaErro("As senhas não conferem. Digite a mesma senha nos dois campos."); return; }
-    try { localStorage.setItem("me_senha", s1); } catch { /* ignore */ }
-    setSenhaErro(""); setSenhaOk(true);
+    setSenhaErro(""); setSenhaSalvando(true);
+    // altera a senha DE VERDADE no login do usuário (Supabase Auth)
+    if (supabaseReady && supabase) {
+      const { error } = await supabase.auth.updateUser({ password: s1 });
+      if (error) { setSenhaSalvando(false); setSenhaErro("Não consegui alterar a senha agora. Faça login de novo e tente outra vez."); return; }
+    }
+    setSenhaSalvando(false); setSenhaOk(true);
     window.setTimeout(() => setSenhaAberta(false), 1300);
   };
   const [focoId, setFocoId] = useState<string | null>(null);
@@ -389,7 +396,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
 
             <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
               <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setSenhaAberta(false)}>Cancelar</button>
-              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={salvarSenha} disabled={senhaOk}>Salvar</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={salvarSenha} disabled={senhaOk || senhaSalvando}>{senhaSalvando ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>
         </div>
