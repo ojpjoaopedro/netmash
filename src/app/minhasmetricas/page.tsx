@@ -7,6 +7,7 @@ import {
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
   Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
+  PlayCircle, Play,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -441,7 +442,7 @@ export default function Home() {
         {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
         {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} /></div>}
         {view === "dashboard" && (
-          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, alignItems: "start" }}>
+          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16, alignItems: "start" }}>
             <CalendarioRecebimento ano={Number(anoSel)} />
             <PromoParaVoce />
           </div>
@@ -507,7 +508,7 @@ function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "rec
     { key: "recebimentos" as const, titulo: "Faturamento", desc: "Faturamento marcado por data.", Icon: ArrowDownCircle, cor: "#10B981" },
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 14 }}>
       {opcoes.map((o) => (
         <button key={o.key} onClick={() => onEscolher(o.key)} className="card"
           style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", padding: 22, display: "flex", alignItems: "center", gap: 16, border: "1px solid var(--line)", background: "var(--card)" }}>
@@ -555,12 +556,15 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
     return assinarNav(aplicar);
   }, []);
 
-  // tour guiado das 5 abas: aparece 1x depois que o Guia de configuração é concluído
+  // pop-up do vídeo-tutorial (ainda não gravado)
+  const [videoTut, setVideoTut] = useState(false);
+  // tour guiado das 5 abas: aparece 1x na 1ª vez que o cliente entra em Finanças
+  // e/ou ao concluir o Guia de configuração (o que vier primeiro).
   const [tourOn, setTourOn] = useState(false);
   useEffect(() => {
     const ver = () => {
       try {
-        if (localStorage.getItem("me_guia_concluido") === "1" && localStorage.getItem("me_tour_financas") !== "1") setTourOn(true);
+        if (localStorage.getItem("me_tour_financas") !== "1") setTourOn(true);
       } catch { /* ignore */ }
     };
     ver();
@@ -590,25 +594,31 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
   return (
     <div>
       {/* título */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
           <DollarSign size={22} />
         </span>
-        <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
+        <h2 style={{ margin: 0, fontSize: "clamp(21px, 6vw, 27px)", fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
+        <button data-tour="video" onClick={() => setVideoTut(true)} title="Assistir ao vídeo-tutorial"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "6px 12px", borderRadius: 99 }}>
+          <PlayCircle size={18} /> Vídeo
+        </button>
       </div>
 
-      {/* barra de abas */}
-      <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
-        {abas.map((a, i) => (
-          <Fragment key={a.key}>
-            {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px" }} />}
-            <button data-aba={a.key} onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={tab(aba === a.key)}>
-              <a.Icon size={16} /> {a.label}
-            </button>
-          </Fragment>
-        ))}
+      {/* barra de abas: tabs rolam na horizontal; "Ver tutorial" fica fixo à direita */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
+        <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0, overflowX: "auto" }}>
+          {abas.map((a, i) => (
+            <Fragment key={a.key}>
+              {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px", flexShrink: 0 }} />}
+              <button data-aba={a.key} onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={tab(aba === a.key)}>
+                <a.Icon size={16} /> {a.label}
+              </button>
+            </Fragment>
+          ))}
+        </div>
         <button onClick={() => setTourOn(true)} title="Rever o tutorial das abas"
-          style={{ marginLeft: "auto", alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "7px 14px", borderRadius: 99 }}>
+          style={{ flexShrink: 0, alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "7px 14px", borderRadius: 99 }}>
           <Sparkles size={14} /> Ver tutorial
         </button>
       </div>
@@ -626,30 +636,57 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
         : <EmConstrucao titulo={rotulos[aba]} />}
 
       {tourOn && <TourFinancas setAba={(k) => { setAba(k); if (k === "calendario") setCalSub(null); }}
+        onVerVideo={() => setVideoTut(true)}
         onFim={() => { setTourOn(false); try { localStorage.setItem("me_tour_financas", "1"); } catch { /* ignore */ } }} />}
+
+      {videoTut && (
+        <div onClick={() => setVideoTut(false)} style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", background: "rgba(15,23,42,.6)", backdropFilter: "blur(3px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 640, background: "var(--card)", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,.35)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid var(--line)" }}>
+              <b style={{ fontSize: 15 }}>Vídeo-tutorial · Finanças</b>
+              <button onClick={() => setVideoTut(false)} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: 2 }}><X size={20} /></button>
+            </div>
+            {/* tela do player (16:9) */}
+            <div style={{ position: "relative", aspectRatio: "16 / 9", background: "radial-gradient(120% 120% at 50% 40%, #1f2937, #0b1220)", display: "grid", placeItems: "center" }}>
+              <span style={{ width: 76, height: 76, borderRadius: "50%", display: "grid", placeItems: "center", background: "rgba(255,255,255,.14)", border: "2px solid rgba(255,255,255,.55)", color: "#fff", backdropFilter: "blur(2px)" }}>
+                <Play size={34} fill="#fff" strokeWidth={0} style={{ marginLeft: 4 }} />
+              </span>
+              {/* barra de progresso decorativa */}
+              <div style={{ position: "absolute", left: 16, right: 16, bottom: 14, height: 4, borderRadius: 99, background: "rgba(255,255,255,.22)" }}>
+                <div style={{ width: "0%", height: "100%", borderRadius: 99, background: "#fff" }} />
+              </div>
+            </div>
+            <div style={{ padding: "16px 18px 20px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "var(--txt)" }}>Tutorial será enviado em breve</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-/** Tour guiado das 5 abas de Finanças (aparece após concluir o Guia de configuração). */
-function TourFinancas({ setAba, onFim }: { setAba: (k: "dashboard" | "estrutura" | "calendario" | "relatorios" | "importar") => void; onFim: () => void }) {
-  const STEPS: { key: "dashboard" | "relatorios" | "estrutura" | "calendario" | "importar"; emoji: string; titulo: string; texto: React.ReactNode; nota?: React.ReactNode }[] = [
+/** Tour guiado das abas de Finanças + vídeo (aparece na 1ª entrada e/ou ao concluir o Guia). */
+function TourFinancas({ setAba, onFim, onVerVideo }: { setAba: (k: "dashboard" | "estrutura" | "calendario" | "relatorios" | "importar") => void; onFim: () => void; onVerVideo: () => void }) {
+  const STEPS: { key?: "dashboard" | "relatorios" | "estrutura" | "calendario" | "importar"; seletor?: string; emoji: string; titulo: string; texto: React.ReactNode; nota?: React.ReactNode }[] = [
     { key: "dashboard", emoji: "📊", titulo: "Dashboard", texto: <>É o <b>resultado de tudo</b> que você preenche na <b>Estrutura de Receitas e Custos</b>.</> },
     { key: "relatorios", emoji: "📄", titulo: "Relatórios", texto: <>Aqui você <b>gera arquivos</b> (como o DRE), faz <b>comparativos</b> e visualiza os <b>gráficos</b> gerados a partir da Estrutura de Receitas e Custos.</> },
     { key: "estrutura", emoji: "🧱", titulo: "Estrutura", texto: <>A <b>mais importante</b>: é aqui que os dados são <b>de fato colocados</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou pela <b>Importação de planilha</b>.</> },
     { key: "calendario", emoji: "🗓️", titulo: "Calendário", texto: <>Preencha <b>despesas</b> e <b>faturamento</b> pelas <b>datas</b>. Dá para já deixar <b>provisionado</b> o que está previsto para entrar e sair.</> },
     { key: "importar", emoji: "📥", titulo: "Importar planilha", texto: <>Primeiro preencha a <b>Estrutura</b> com os primeiros números. Depois <b>baixe o Excel</b>, complete os dados nele e <b>suba de volta aqui</b>. Os dados vão <b>automaticamente</b> para a Estrutura.</> },
+    { seletor: '[data-tour="video"]', emoji: "🎬", titulo: "Vídeo-tutorial", texto: <>Assista ao <b>vídeo-tutorial</b> de Finanças.</> },
   ];
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const cur = STEPS[step];
-  useEffect(() => { setAba(cur.key); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
+  useEffect(() => { if (cur.key) setAba(cur.key); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
   useEffect(() => {
-    const upd = () => { const el = document.querySelector(`[data-aba="${cur.key}"]`); if (el) { const r = el.getBoundingClientRect(); setRect({ left: r.left, top: r.top, width: r.width, height: r.height }); } };
+    const sel = cur.seletor || `[data-aba="${cur.key}"]`;
+    const upd = () => { const el = document.querySelector(sel); if (el) { const r = el.getBoundingClientRect(); setRect({ left: r.left, top: r.top, width: r.width, height: r.height }); } };
     upd(); const t = window.setTimeout(upd, 90);
     window.addEventListener("resize", upd); window.addEventListener("scroll", upd, true);
     return () => { window.clearTimeout(t); window.removeEventListener("resize", upd); window.removeEventListener("scroll", upd, true); };
-  }, [step, cur.key]);
+  }, [step, cur.key, cur.seletor]);
   if (!rect) return null;
   const popW = 340;
   const left = Math.max(16, Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 1200) - popW - 16));
@@ -675,7 +712,7 @@ function TourFinancas({ setAba, onFim }: { setAba: (k: "dashboard" | "estrutura"
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {step > 0 && <button className="btn ghost sm" onClick={() => setStep((s) => s - 1)}>Anterior</button>}
           <div style={{ flex: 1 }} />
-          <button className="btn sm" onClick={() => (ultimo ? onFim() : setStep((s) => s + 1))}>{ultimo ? "Concluir ✓" : "Próximo →"}</button>
+          <button className="btn sm" onClick={() => { if (ultimo) { onFim(); onVerVideo(); } else setStep((s) => s + 1); }}>{ultimo ? "Assistir ✓" : "Próximo →"}</button>
         </div>
       </div>
     </div>
@@ -732,14 +769,14 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
         <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
           <Settings size={22} />
         </span>
-        <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: "-.6px" }}>Configurações</h2>
+        <h2 style={{ margin: 0, fontSize: "clamp(21px, 6vw, 27px)", fontWeight: 800, letterSpacing: "-.6px" }}>Configurações</h2>
       </div>
 
-      {/* barra de abas */}
-      <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
+      {/* barra de abas: rola na horizontal no mobile */}
+      <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: "auto", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         {abas.map((a, i) => (
           <Fragment key={a.key}>
-            {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px" }} />}
+            {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px", flexShrink: 0 }} />}
             <button onClick={() => setAba(a.key)} style={tab(aba === a.key)}
               className={a.key === "beneficios" && destaqueBenef ? "destaque-benef" : undefined}>
               <a.Icon size={16} /> {a.label}

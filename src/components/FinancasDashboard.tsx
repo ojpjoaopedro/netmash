@@ -10,6 +10,18 @@ const fmtR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDig
 const fmtK = (n: number) => (Math.abs(n) >= 1000 ? `R$ ${Math.round(n / 1000)}k` : `R$ ${Math.round(n)}`);
 const somaMes = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) => s + (l.v[m] || 0), 0);
 
+/** true em telas de celular (≤640px). */
+function useEstreito() {
+  const [estreito, setEstreito] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const upd = () => setEstreito(mq.matches);
+    upd(); mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
+  }, []);
+  return estreito;
+}
+
 /** Gráfico de linha em SVG (faturamento/despesas). Escala a fonte pela largura via viewBox. */
 function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: number[]; cor: string; alto?: boolean }) {
   if (meses.length === 0) return <div style={{ display: "grid", placeItems: "center", width: "100%", minHeight: 120, color: "#64748b", fontSize: 13, fontStyle: "italic" }}>Sem dados no período</div>;
@@ -50,11 +62,13 @@ function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: n
 /** Barras horizontais de composição. */
 function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: string }[]; alto?: boolean }) {
   const max = Math.max(1, ...itens.map((i) => i.valor));
+  const estreito = useEstreito();
+  const larguraRot = estreito ? 96 : (alto ? 260 : 220);
   return (
     <div style={{ display: "grid", gap: alto ? 10 : 13, alignContent: "center", height: "100%" }}>
       {itens.map((it) => (
-        <div key={it.nome} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: alto ? 260 : 220, flexShrink: 0, fontSize: alto ? 14 : 13, color: "#a3b0c4", textAlign: "right", whiteSpace: "nowrap", fontStyle: "italic" }}>{it.nome}</span>
+        <div key={it.nome} style={{ display: "flex", alignItems: "center", gap: estreito ? 8 : 12 }}>
+          <span style={{ width: larguraRot, flexShrink: 0, fontSize: alto ? 14 : (estreito ? 11.5 : 13), color: "#a3b0c4", textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontStyle: "italic" }}>{it.nome}</span>
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
             <div style={{ height: alto ? 24 : 20, borderRadius: 7, background: it.cor, width: `${Math.max(4, (it.valor / max) * 100)}%`, boxShadow: `0 0 16px -2px ${it.cor}99` }} />
             <span className="oc-num" style={{ fontSize: alto ? 15 : 13.5, fontWeight: 800, color: "#eef2f7", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
@@ -86,7 +100,7 @@ function Resumo({ icone, rotulo, valor, cor, borda, fundo }: { icone: React.Reac
   return (
     <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "center", gap: 12, background: fundo, border: `1px solid ${borda}`, borderRadius: 16, padding: "16px 20px" }}>
       {icone}
-      <div><div style={{ fontSize: 10.5, color: "#7c8aa5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}>{rotulo}</div><b className="oc-num" style={{ fontSize: 24, color: cor, letterSpacing: "-.02em" }}>{valor}</b></div>
+      <div><div style={{ fontSize: 10.5, color: "#7c8aa5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}>{rotulo}</div><b className="oc-num" style={{ fontSize: "clamp(18px, 5vw, 24px)", color: cor, letterSpacing: "-.02em" }}>{valor}</b></div>
     </div>
   );
 }

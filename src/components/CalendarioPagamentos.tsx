@@ -45,7 +45,7 @@ export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: 
         <ChevronDown size={15} style={{ flexShrink: 0, color: "var(--muted)", transform: aberto ? "rotate(180deg)" : "none", transition: ".15s" }} />
       </button>
       {aberto && (
-        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxHeight: pos.maxH, overflowY: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
+        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxWidth: "calc(100vw - 24px)", maxHeight: pos.maxH, overflowY: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
           {blocos.map((b, bi) => (
             <div key={bi}>
               <div style={{ padding: "8px 8px 4px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)" }}>{b.nome}</div>
@@ -146,7 +146,7 @@ export function SeletorReceita({ canais, item, onSelecionar, onRenomear }: { can
         <ChevronDown size={15} style={{ flexShrink: 0, color: "var(--muted)", transform: aberto ? "rotate(180deg)" : "none", transition: ".15s" }} />
       </button>
       {aberto && (
-        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxHeight: pos.maxH, overflowY: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
+        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxWidth: "calc(100vw - 24px)", maxHeight: pos.maxH, overflowY: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
           <div style={{ padding: "8px 8px 4px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)" }}>Canais de receita</div>
           {canais.map((c, i) => editI === i ? (
             <div key={i} style={{ display: "flex", gap: 6, padding: "3px 4px" }}>
@@ -416,7 +416,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       </div>
 
       {/* 12 meses */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: 14 }}>
         {MES_NOME.map((nome, m) => (
           <div key={m} className="card" style={{ padding: 16 }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
@@ -562,7 +562,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
         return (
           <div onMouseEnter={() => window.clearTimeout(fecharHoverT.current)} onMouseLeave={() => { fecharHoverT.current = window.setTimeout(() => setHover(null), 200); }}
             style={{ position: "fixed", left: hover.x, top: hover.y, transform: "translate(-50%, -100%)", zIndex: 95, paddingBottom: 12,
-            background: "#0f172a", color: "#fff", borderRadius: 12, boxShadow: "0 16px 40px -12px rgba(0,0,0,.6)", minWidth: 250, border: "1px solid rgba(148,163,184,.2)" }}>
+            background: "#0f172a", color: "#fff", borderRadius: 12, boxShadow: "0 16px 40px -12px rgba(0,0,0,.6)", minWidth: 250, maxWidth: "calc(100vw - 24px)", border: "1px solid rgba(148,163,184,.2)" }}>
             <div style={{ padding: "12px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid rgba(148,163,184,.2)" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#7c8aa5" }}>Dia {hover.dia}</span>

@@ -161,7 +161,7 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
             {filtroAberto && (
               <>
                 <div onClick={() => setFiltroAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-                <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 41, width: 250, background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 12, boxShadow: "0 18px 44px -12px rgba(0,0,0,.4)", padding: 12 }}>
+                <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 41, width: 250, maxWidth: "calc(100vw - 24px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 12, boxShadow: "0 18px 44px -12px rgba(0,0,0,.4)", padding: 12 }}>
                   {OPCOES.map((o) => (
                     <label key={o.v} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", cursor: "pointer", fontSize: 13.5, borderRadius: 8 }}>
                       <input type="radio" name="periodo-cobrancas" checked={presetTmp === o.v} onChange={() => setPresetTmp(o.v)} style={{ accentColor: "var(--brand)", width: 16, height: 16 }} />
@@ -219,7 +219,7 @@ function CaixaCard({ titulo, dica, aberto, onInfo, onFechar, children }: { titul
           {aberto && (
             <>
               <div onClick={onFechar} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
-              <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 51, width: 230, background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.4)", padding: 12, fontSize: 12.5, lineHeight: 1.5, color: "var(--txt)", textAlign: "left", fontWeight: 400 }}>
+              <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 51, width: 230, maxWidth: "calc(100vw - 24px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.4)", padding: 12, fontSize: 12.5, lineHeight: 1.5, color: "var(--txt)", textAlign: "left", fontWeight: 400 }}>
                 {dica}
               </div>
             </>

@@ -294,7 +294,8 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .section-title h2{margin:0;font-size:20px;font-weight:800}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);font-weight:600}
 .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:-1px}
-.period{display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px}
+.period{display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px;max-width:100%;overflow-x:auto}
+@media(max-width:640px){.period{flex-wrap:wrap;overflow-x:visible;justify-content:center}}
 .period button{background:transparent;border:0;color:var(--muted);padding:7px 14px;border-radius:999px;
   cursor:pointer;font-weight:600;font-size:13px}
 .period button.active{background:var(--brand);color:var(--brand-ct,#fff)}
@@ -318,6 +319,9 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .topctrls .period button{padding:6px 12px;font-size:12.5px}
 .desk-only{display:inline-flex}
 @media(max-width:900px){.desk-only{display:none}}
+/* barra de abas rolável na horizontal (sem barra de rolagem visível) */
+.abas-scroll{scrollbar-width:none;-ms-overflow-style:none}
+.abas-scroll::-webkit-scrollbar{display:none}
 
 /* ===== Mobile: top bar + drawer + bottom nav ===== */
 .mobiletop{display:none}

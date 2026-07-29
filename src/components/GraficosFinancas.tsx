@@ -92,7 +92,7 @@ export default function GraficosFinancas({ onVoltar, ano = 2026 }: { onVoltar: (
       </div>
 
       {/* linha 1: faturamento, custos, lucro */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 14 }}>
         <Card titulo="Faturamento" total={g.totRec} totalCor={VERDE}><Grafico series={[{ cor: AZUL, valores: g.recMes }]} fmtPt={fmtK} mostrarValores /></Card>
         <Card titulo="Custos totais" total={g.totCus} totalCor={VERDE}><Grafico series={[{ cor: MARROM, valores: g.cusMes }]} fmtPt={fmtK} mostrarValores /></Card>
         <Card titulo="Lucro" total={g.totRes} totalCor={VERDE}><Grafico series={[{ cor: AZUL, valores: g.res }]} fmtPt={fmtK} mostrarValores /></Card>
@@ -113,7 +113,7 @@ export default function GraficosFinancas({ onVoltar, ano = 2026 }: { onVoltar: (
       </div>
 
       {/* linha 3: ebitda, margem */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 14 }}>
         <Card titulo="EBITDA" total={g.totEbt} totalCor={VERDE}><Grafico series={[{ cor: AZUL, valores: g.ebt }]} fmtPt={fmtK} mostrarValores /></Card>
         <Card titulo="Margem líquida (%)" destaque={`${Math.round(g.margemMedia)}%`}><Grafico series={[{ cor: AZUL, valores: g.margem }]} fmtPt={(n) => `${Math.round(n)}%`} pct mostrarValores /></Card>
       </div>

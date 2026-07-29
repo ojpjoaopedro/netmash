@@ -201,9 +201,9 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
         <>
           <div className="card" style={{ marginBottom: 14 }}>
             <p className="sub" style={{ marginBottom: 10 }}>Escreva ou fale o que entrou/saiu. Ex.: <i>&ldquo;gastei 150 com gasolina hoje&rdquo;</i>. Eu monto o lançamento e você confirma.</p>
-            <form onSubmit={(e) => { e.preventDefault(); interpretar(entrada); }} style={{ display: "flex", gap: 8 }}>
+            <form onSubmit={(e) => { e.preventDefault(); interpretar(entrada); }} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input value={entrada} onChange={(e) => setEntrada(e.target.value)} placeholder="Ex: recebi 2 mil de venda hoje"
-                style={{ flex: 1, background: "var(--card)", border: "1px solid var(--line-2)", color: "var(--txt)", borderRadius: 12, padding: "12px 14px", fontSize: 14 }} />
+                style={{ flex: "1 1 160px", minWidth: 0, background: "var(--card)", border: "1px solid var(--line-2)", color: "var(--txt)", borderRadius: 12, padding: "12px 14px", fontSize: 14 }} />
               <button type="button" onClick={ouvir} className={"btn " + (gravando ? "" : "ghost")} title="Falar" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {gravando ? <MicOff size={16} /> : <Mic size={16} />}{gravando ? "Ouvindo…" : ""}
               </button>

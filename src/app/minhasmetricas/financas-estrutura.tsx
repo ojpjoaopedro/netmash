@@ -402,6 +402,13 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   const [carregado, setCarregado] = useState(false);
   const pularSalvar = useRef(false);   // evita gravar os dados de um ano na chave de outro ao trocar
   const [sel, setSel] = useState<Set<number>>(new Set()); // meses exibidos (vazio só antes de carregar)
+  const [estreito, setEstreito] = useState(false);        // tela de celular: colunas mais compactas
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const upd = () => setEstreito(mq.matches);
+    upd(); mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
+  }, []);
   const [abertos, setAbertos] = useState<Set<string>>(new Set()); // grupos expandidos
   const [blocosFechados, setBlocosFechados] = useState<Set<number>>(new Set()); // blocos recolhidos
   const toggleBloco = (bi: number) => setBlocosFechados((p) => { const n = new Set(p); if (n.has(bi)) n.delete(bi); else n.add(bi); return n; });
@@ -478,8 +485,10 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
     pularSalvar.current = true;                 // não regravar logo após carregar
     setD(carregarEstrutura(ano));
     // padrão: Jan até o mês corrente (data lida só no cliente, evita hidratação)
+    // no celular abre só com o mês corrente, para não nascer com muito scroll horizontal
     const atual = new Date().getMonth();
-    setSel(new Set(Array.from({ length: atual + 1 }, (_, i) => i)));
+    const estreitoAgora = typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches;
+    setSel(estreitoAgora ? new Set([atual]) : new Set(Array.from({ length: atual + 1 }, (_, i) => i)));
     setCarregado(true);
     // busca no banco (fonte da verdade) e, se veio algo, recarrega do cache
     let vivo = true;
@@ -692,7 +701,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
 
   // larguras FIXAS iguais nas três tabelas: é isso que alinha Jan..Dez de ponta
   // a ponta entre Receitas, Custos e Resultado
-  const W_ROT = 224, W_MES = 116, W_TOT = 128;
+  const W_ROT = estreito ? 132 : 224, W_MES = estreito ? 82 : 116, W_TOT = estreito ? 92 : 128;
   const larguraMin = W_ROT + mesesVis.length * W_MES + W_TOT;
   const cols = { W_ROT, W_MES, W_TOT, meses: mesesVis };
 
@@ -953,8 +962,8 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       {/* barra "desfazer exclusão" — com contagem regressiva visível de 7s */}
       {desfazer && (
         <div style={{ position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 85,
-          display: "flex", alignItems: "center", gap: 14, background: "#1e293b", color: "#fff",
-          padding: "10px 12px 10px 18px", borderRadius: 12, boxShadow: "0 14px 34px -10px rgba(0,0,0,.6)" }}>
+          display: "flex", alignItems: "center", flexWrap: "wrap", justifyContent: "center", gap: 14, background: "#1e293b", color: "#fff",
+          padding: "10px 12px 10px 18px", borderRadius: 12, boxShadow: "0 14px 34px -10px rgba(0,0,0,.6)", maxWidth: "calc(100vw - 24px)" }}>
           <span style={{ fontSize: 13 }}>{desfazer.texto}</span>
           <button onClick={() => { desfazer.onDesfazer(); fecharDesfazer(); }}
             style={{ background: "transparent", border: 0, color: "#38BDF8", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
