@@ -7,7 +7,7 @@ import { carregarEstrutura, salvarEstrutura, Bloco, Freq, datasDaDespesa, ocConf
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 
 /** Dropdown em árvore igual à Estrutura de Custos: blocos, grupos (bolinha + seta) e itens, com cadastrar. */
-function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: { blocos: Bloco[]; grupo: string; item: string; onSelecionar: (g: string, i: string) => void; onRenomear?: (grupo: string, antigo: string, novo: string) => void }) {
+export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: { blocos: Bloco[]; grupo: string; item: string; onSelecionar: (g: string, i: string) => void; onRenomear?: (grupo: string, antigo: string, novo: string) => void }) {
   const [aberto, setAberto] = useState(false);
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [novoEm, setNovoEm] = useState<string | null>(null);
@@ -110,7 +110,7 @@ function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: { bloco
 }
 
 /** Seletor de canal de receita (lista simples, com bolinha e cadastrar), para os recebimentos. */
-function SeletorReceita({ canais, item, onSelecionar, onRenomear }: { canais: { nome: string; cor?: string }[]; item: string; onSelecionar: (i: string) => void; onRenomear?: (antigo: string, novo: string) => void }) {
+export function SeletorReceita({ canais, item, onSelecionar, onRenomear }: { canais: { nome: string; cor?: string }[]; item: string; onSelecionar: (i: string) => void; onRenomear?: (antigo: string, novo: string) => void }) {
   const [aberto, setAberto] = useState(false);
   const [novo, setNovo] = useState(false);
   const [novoNome, setNovoNome] = useState("");
@@ -265,6 +265,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   const fecharHoverT = useRef<number | undefined>(undefined);   // atraso para o tooltip não sumir ao levar o mouse até ele
   const [aExcluir, setAExcluir] = useState<{ d: Despesa; venym: number; iso: string; porMes: boolean } | null>(null);
   const [pagar, setPagar] = useState<{ d: Despesa; mesGer: number; iso: string; valor: string; data: string } | null>(null);
+  const [baixaPrim, setBaixaPrim] = useState<{ id: string; iso: string; valor: number; item: string; recorrente: boolean } | null>(null);
 
   useEffect(() => { setDesps(ler(cfg.key)); setCarregado(true); }, [cfg.key]);
   useEffect(() => { if (carregado) { localStorage.setItem(cfg.key, JSON.stringify(desps)); window.dispatchEvent(new Event(cfg.evento)); } }, [desps, carregado, cfg.key, cfg.evento]);
@@ -343,10 +344,24 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       setDesps((xs) => xs.map((x) => x.id === form.editId ? { ...x, descricao: desc, valor, recorrente, freq, grupo: form.grupo || undefined, item } : x));
     } else if (modal) {
       // nada entra confirmado no cadastro; a confirmação do pagamento/recebimento é feita na 2ª tela (dia)
-      setDesps((xs) => [...xs, { id: uid(), descricao: desc, valor, dia: modal.dia, mes: modal.mes, ano, recorrente, freq, grupo: form.grupo || undefined, item,
+      const novoId = uid();
+      const isoPrim = isoDia(ano, modal.mes, modal.dia);
+      setDesps((xs) => [...xs, { id: novoId, descricao: desc, valor, dia: modal.dia, mes: modal.mes, ano, recorrente, freq, grupo: form.grupo || undefined, item,
         confirmados: [], confirmadosDia: [] }]);
+      setForm(null);
+      setBaixaPrim({ id: novoId, iso: isoPrim, valor, item: desc, recorrente });
+      return;
     }
     setForm(null);
+  };
+  // dar baixa na 1ª parcela (ou no lançamento único) logo após cadastrar
+  const confirmarBaixaPrim = () => {
+    if (!baixaPrim) return;
+    setDesps((xs) => xs.map((x) => x.id === baixaPrim.id ? {
+      ...x,
+      confirmadosDia: Array.from(new Set([...(x.confirmadosDia || []), baixaPrim.iso])),
+    } : x));
+    setBaixaPrim(null);
   };
   // pagar: abre o popup para confirmar/ajustar valor e data (por ocorrência)
   const abrirPagar = (o: Ocor) => setPagar({ d: o.d, mesGer: o.mesGer, iso: o.iso, valor: o.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), data: isoParaBR(o.iso) });
@@ -627,6 +642,26 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setPagar(null)}>Cancelar</button>
               <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarPagamento}><Check size={15} /> {tipo === "recebimentos" ? "Confirmar recebimento" : "Confirmar pagamento"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* dar baixa na 1ª parcela logo após cadastrar uma conta recorrente */}
+      {baixaPrim && (
+        <div onClick={() => setBaixaPrim(null)} style={{ position: "fixed", inset: 0, zIndex: 97, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 380, padding: 24, border: `1px solid ${VERDE}`, background: "linear-gradient(160deg, rgba(16,185,129,.08), var(--card) 60%)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: VERDE, color: "#fff", flexShrink: 0 }}><Check size={22} strokeWidth={3} /></span>
+              <div>
+                <b style={{ fontSize: 16 }}>{tipo === "recebimentos" ? (baixaPrim.recorrente ? "Já recebeu a primeira?" : "Já recebeu?") : (baixaPrim.recorrente ? "Já pagou a primeira?" : "Já pagou?")}</b>
+                <p className="sub" style={{ margin: "2px 0 0", fontSize: 12.5 }}>{baixaPrim.item} · {fmtR(baixaPrim.valor)} · {isoParaBR(baixaPrim.iso)}</p>
+              </div>
+            </div>
+            <p className="sub" style={{ fontSize: 12.5, marginTop: 12, lineHeight: 1.5 }}>{baixaPrim.recorrente ? "Conta cadastrada. Quer dar baixa na primeira parcela agora? As próximas você confirma na data de cada uma." : "Lançamento cadastrado. Quer dar baixa agora? Você também pode confirmar depois, na data."}</p>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setBaixaPrim(null)}>Agora não</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarBaixaPrim}><Check size={15} /> {tipo === "recebimentos" ? "Confirmar recebimento" : "Confirmar pagamento"}</button>
             </div>
           </div>
         </div>

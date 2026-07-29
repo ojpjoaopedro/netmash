@@ -1,12 +1,17 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, ArrowRight, MessageCircle, Plus, Mic, MicOff, FileSpreadsheet, Check, Camera, Presentation } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { Sparkles, Send, ArrowRight, MessageCircle, Plus, Mic, MicOff, Check, Presentation } from "lucide-react";
 import GerarApresentacao from "./GerarApresentacao";
 import { Lancamento, Cliente, Funcionario, addLancamento, Tipo } from "@/lib/db";
 import { Metrica } from "@/lib/indicadores";
-import { brl } from "@/lib/format";
+import { brl, isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { PERGUNTAS, responder, type Resposta, type Bloco, type Tom, type Ctx } from "@/lib/assistente";
-import { parseLancamento, parseLancamentoOCR, type LancParsed } from "@/lib/lancParser";
+import { parseLancamento, type LancParsed } from "@/lib/lancParser";
+import { SeletorCusto, SeletorReceita } from "@/components/CalendarioPagamentos";
+import { carregarEstrutura, lerPagamentos, salvarPagamentos, lerRecebimentos, salvarRecebimentos } from "@/app/minhasmetricas/financas-estrutura";
+
+const uidLanc = () => Math.random().toString(36).slice(2);
+const mascaraMoedaBR = (v: string) => { const n = (v || "").replace(/\D/g, ""); return n ? (parseInt(n, 10) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""; };
 
 const COR: Record<Tom, string> = { good: "var(--green)", bad: "var(--red)", warn: "var(--amber)", info: "var(--accent)" };
 
@@ -47,13 +52,13 @@ function criarSR(): SR | null {
   return Ctor ? new Ctor() : null;
 }
 
-export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial, nome, reload, onImportar, brand, ano }: Ctx & { nome: string; reload?: () => void; onImportar?: () => void; brand: { nome: string; logo: string | null }; ano: number }) {
+export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial, nome, reload, brand, ano }: Ctx & { nome: string; reload?: () => void; brand: { nome: string; logo: string | null }; ano: number }) {
   const ctx: Ctx = { metrs, lancs, clientes, funcs, saldoInicial };
   const [modo, setModo] = useState<"perguntar" | "registrar" | "apresentar">("perguntar");
 
   // ---- modo PERGUNTAR ----
   const [msgs, setMsgs] = useState<Msg[]>([
-    { de: "bot", resp: { titulo: `Oi${nome ? `, ${nome}` : ""}! 👋`, blocos: [{ tipo: "p", texto: "Sou seu assistente. Em “Perguntar” eu respondo sobre seus números. Em “Registrar” você lança gastos e recebimentos por texto, voz 🎤 ou planilha 📊." }] } },
+    { de: "bot", resp: { titulo: `Oi${nome ? `, ${nome}` : ""}! 👋`, blocos: [{ tipo: "p", texto: "Sou seu assistente. Eu respondo sobre os seus números." }] } },
   ]);
   const [txt, setTxt] = useState("");
   const fimRef = useRef<HTMLDivElement>(null);
@@ -72,27 +77,17 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
   const [salvando, setSalvando] = useState(false);
   const [msgReg, setMsgReg] = useState("");
   const [erroReg, setErroReg] = useState("");
-  const [lendoImg, setLendoImg] = useState(false);
-  const [progOCR, setProgOCR] = useState(0);
   const srRef = useRef<SR | null>(null);
-  const imgRef = useRef<HTMLInputElement>(null);
-
-  async function lerImagem(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setErroReg(""); setMsgReg(""); setPrevia(null); setLendoImg(true); setProgOCR(0);
-    try {
-      const { recognize } = await import("tesseract.js");
-      const { data } = await recognize(file, "por", { logger: (m: { status: string; progress: number }) => { if (m.status === "recognizing text") setProgOCR(Math.round(m.progress * 100)); } });
-      const p = parseLancamentoOCR(data.text || "");
-      if (!p) setErroReg("Não achei um valor na imagem. Tente um print mais nítido, ou digite/fale o lançamento.");
-      else { setEntrada(""); setPrevia(p); }
-    } catch {
-      setErroReg("Não consegui ler a imagem. Tente novamente.");
-    }
-    setLendoImg(false);
-  }
+  // data digitada em pt-BR (texto), sincronizada com previa.data (ISO)
+  const [dataTxt, setDataTxt] = useState("");
+  const previaAberta = useRef(false);
+  useEffect(() => {
+    const aberta = !!previa;
+    if (aberta && !previaAberta.current) setDataTxt(isoParaBR(previa!.data));
+    previaAberta.current = aberta;
+  }, [previa]);
+  // estrutura do ano (para os seletores de grupo/item e canal)
+  const estrutura = useMemo(() => carregarEstrutura(ano), [ano, previa]);
 
   function interpretar(texto: string) {
     setErroReg(""); setMsgReg("");
@@ -120,15 +115,30 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
 
   async function salvarLanc() {
     if (!previa) return;
+    if (!previa.item || !previa.item.trim()) { setErroReg(previa.tipo === "despesa" ? "Escolha o grupo e o item." : "Escolha o canal de venda."); return; }
+    if (previa.tipo === "despesa" && !previa.grupo) { setErroReg("Escolha o grupo."); return; }
     setSalvando(true); setErroReg("");
     try {
+      const iso = previa.data;                       // YYYY-MM-DD
+      const y = Number(iso.slice(0, 4)), m = Number(iso.slice(5, 7)) - 1, dia = Number(iso.slice(8, 10)) || 1;
+      const ym = y * 12 + m;
+      // grava no Calendário → aparece na Estrutura de Receitas e Custos
+      const novo = {
+        id: uidLanc(), descricao: previa.item, valor: previa.valor, dia, mes: m, ano: y,
+        recorrente: false, freq: "unica" as const,
+        grupo: previa.tipo === "despesa" ? previa.grupo : undefined, item: previa.item,
+        confirmados: previa.pago ? [ym] : [], confirmadosDia: [] as string[],
+      };
+      if (previa.tipo === "despesa") salvarPagamentos([...lerPagamentos(), novo]);
+      else salvarRecebimentos([...lerRecebimentos(), novo]);
+      // mantém também no histórico (para o "Perguntar")
       await addLancamento({
-        tipo: previa.tipo, descricao: previa.descricao, categoria: null, valor: previa.valor,
-        data_competencia: previa.data, vencimento: previa.data, pago: previa.pago,
-        data_pagamento: previa.pago ? previa.data : null, forma: null, contato: null, origem: "assistente",
+        tipo: previa.tipo, descricao: previa.item, categoria: previa.grupo || null, valor: previa.valor,
+        data_competencia: iso, vencimento: iso, pago: previa.pago,
+        data_pagamento: previa.pago ? iso : null, forma: null, contato: null, origem: "assistente",
       });
-      setPrevia(null); setEntrada("");
-      setMsgReg(`✅ ${previa.tipo === "receita" ? "Recebimento" : "Despesa"} de ${brl(previa.valor)} registrado!`);
+      setPrevia(null); setEntrada(""); setDataTxt("");
+      setMsgReg(`✅ ${previa.tipo === "receita" ? "Faturamento" : "Despesa"} de ${brl(previa.valor)} lançado na Estrutura!`);
       reload?.();
     } catch {
       setErroReg("Não consegui salvar. Tente novamente.");
@@ -136,7 +146,7 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
     setSalvando(false);
   }
 
-  const EXEMPLOS = ["gastei 150 com gasolina hoje", "recebi 2 mil de venda", "paguei 89,90 de internet ontem"];
+  const EXEMPLOS = ["Recebi 2000 de um cliente", "Paguei 1200 de fornecedor", "Gastei 350 com marketing", "Paguei 89,90 de internet"];
 
   return (
     <>
@@ -200,17 +210,10 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
               <button type="submit" className="btn">Interpretar</button>
             </form>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-              <button className="btn ghost sm" onClick={() => imgRef.current?.click()} disabled={lendoImg} style={{ display: "flex", alignItems: "center", gap: 6 }}><Camera size={13} /> {lendoImg ? `Lendo… ${progOCR}%` : "Imagem / print"}</button>
-              {onImportar && <button className="btn ghost sm" onClick={onImportar} style={{ display: "flex", alignItems: "center", gap: 6 }}><FileSpreadsheet size={13} /> Importar planilha</button>}
-              <input ref={imgRef} type="file" accept="image/*" onChange={lerImagem} style={{ display: "none" }} />
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
               {EXEMPLOS.map((ex) => <button key={ex} className="btn ghost sm" onClick={() => { setEntrada(ex); interpretar(ex); }}>{ex}</button>)}
             </div>
           </div>
 
-          {lendoImg && <div className="card" style={{ marginBottom: 12, textAlign: "center" }}><p className="sub">📷 Lendo a imagem… {progOCR}% (a primeira leitura baixa o idioma e pode demorar alguns segundos)</p></div>}
-          {erroReg && <div className="err" style={{ marginBottom: 12 }}>{erroReg}</div>}
           {msgReg && <div className="ok" style={{ marginBottom: 12 }}>{msgReg}</div>}
 
           {previa && (
@@ -221,13 +224,21 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
                 <button className={previa.tipo === "despesa" ? "active" : ""} onClick={() => setPrevia({ ...previa, tipo: "despesa" })}>📤 Despesa</button>
               </div>
               <div className="grid two">
-                <div className="field"><label className="f">Descrição</label><input value={previa.descricao} onChange={(e) => setPrevia({ ...previa, descricao: e.target.value })} /></div>
-                <div className="field"><label className="f">Valor (R$)</label><input value={String(previa.valor).replace(".", ",")} onChange={(e) => setPrevia({ ...previa, valor: Number(e.target.value.replace(/\./g, "").replace(",", ".")) || 0 })} inputMode="decimal" /></div>
-                <div className="field"><label className="f">Data</label><input type="date" value={previa.data} onChange={(e) => setPrevia({ ...previa, data: e.target.value })} /></div>
+                <div className="field"><label className="f">{previa.tipo === "receita" ? "Canal de venda" : "Grupo e item"}</label>
+                  {previa.tipo === "despesa"
+                    ? <SeletorCusto blocos={estrutura.custos} grupo={previa.grupo || ""} item={previa.item || ""} onSelecionar={(g, i) => setPrevia({ ...previa, grupo: g, item: i, descricao: i })} />
+                    : <SeletorReceita canais={estrutura.receitas.map((r) => ({ nome: r.nome, cor: r.cor }))} item={previa.item || ""} onSelecionar={(i) => setPrevia({ ...previa, grupo: "", item: i, descricao: i })} />}
+                </div>
+                <div className="field"><label className="f">Valor (R$)</label>
+                  <input value={previa.valor ? mascaraMoedaBR(String(Math.round(previa.valor * 100))) : ""} placeholder="0,00" inputMode="decimal"
+                    onChange={(e) => { const m = mascaraMoedaBR(e.target.value); setPrevia({ ...previa, valor: Number(m.replace(/\./g, "").replace(",", ".")) || 0 }); }} /></div>
+                <div className="field"><label className="f">Data</label>
+                  <input value={dataTxt} placeholder="dd/mm/aaaa" inputMode="numeric" maxLength={10}
+                    onChange={(e) => { const br = mascararDataBR(e.target.value); setDataTxt(br); const iso = brParaISO(br); if (iso) setPrevia({ ...previa, data: iso }); }} /></div>
                 <div className="field" style={{ justifyContent: "flex-end" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
                     <input type="checkbox" checked={previa.pago} onChange={(e) => setPrevia({ ...previa, pago: e.target.checked })} style={{ width: 18, height: 18 }} />
-                    {previa.tipo === "receita" ? "Já recebido" : "Já pago"} (entra no caixa)
+                    {previa.tipo === "receita" ? "Já recebido" : "Já pago"}
                   </label>
                 </div>
               </div>
@@ -238,6 +249,16 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
             </div>
           )}
         </>
+      )}
+
+      {erroReg && (
+        <div onClick={() => setErroReg("")} style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 360, padding: 24, textAlign: "center" }}>
+            <div style={{ width: 46, height: 46, borderRadius: 14, margin: "0 auto 12px", display: "grid", placeItems: "center", background: "rgba(245,158,11,.16)", color: "var(--amber)", fontSize: 24 }}>!</div>
+            <p style={{ fontSize: 14.5, lineHeight: 1.5, color: "var(--txt)" }}>{erroReg}</p>
+            <button className="btn" onClick={() => setErroReg("")} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>Entendi</button>
+          </div>
+        </div>
       )}
     </>
   );

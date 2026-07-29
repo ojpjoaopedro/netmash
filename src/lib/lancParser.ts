@@ -7,6 +7,8 @@ export type LancParsed = {
   descricao: string;
   data: string;        // YYYY-MM-DD
   pago: boolean;
+  grupo?: string;      // grupo de custo (despesa) escolhido na Estrutura
+  item?: string;       // item de custo (despesa) ou canal de venda (receita)
 };
 
 const RE_RECEITA = /\b(recebi|recebido|receber|vendi|vend[ae]|vendas|ganhei|entrou|entrada|receita|faturei|fatur|me\s+pagaram|cliente\s+pagou)\b/i;

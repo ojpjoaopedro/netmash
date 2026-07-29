@@ -751,7 +751,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                     {temPend && (
                       <tr>
                         <td style={{ ...tdRot, padding: 0, height: 0, overflow: "visible", verticalAlign: "top" }}>
-                          <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>a receber</div>
+                          <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>A receber (previsto no calendário)</div>
                         </td>
                         {mesesVis.map((m) => {
                           const pend = r.pend![m] || 0;
@@ -761,8 +761,8 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, lineHeight: 1, marginTop: -12 }}>
                                 <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A receber (ainda não somado)">{fmt(pend)}</span>
                                 <span style={{ display: "inline-flex", gap: 4 }}>
-                                  <button onClick={() => abrirPagarEst("rec", "", r.nome, m)} title="Confirmar recebimento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(16,185,129,.16)", color: "#10B981" }}><Check size={12} strokeWidth={3} /></button>
-                                  <button onClick={() => pedirExcluir(`recebíveis a receber de "${r.nome}" em ${MES[m]}`, () => removerPendentesMes("rec", "", r.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "#EF4444" }}><X size={12} strokeWidth={3} /></button>
+                                  <button onClick={() => abrirPagarEst("rec", "", r.nome, m)} title="Confirmar recebimento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
+                                  <button onClick={() => pedirExcluir(`recebíveis a receber de "${r.nome}" em ${MES[m]}`, () => removerPendentesMes("rec", "", r.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
                                 </span>
                               </div>
                             </td>
@@ -840,7 +840,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                             {it.pend && it.pend.some((x) => x > 0) && (
                               <tr>
                                 <td style={{ ...tdRot, padding: 0, height: 0, overflow: "visible", verticalAlign: "top" }}>
-                                  <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>a pagar</div>
+                                  <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>A pagar (previsto no calendário)</div>
                                 </td>
                                 {mesesVis.map((m) => {
                                   const pend = it.pend![m] || 0;
@@ -850,8 +850,8 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, lineHeight: 1, marginTop: -12 }}>
                                         <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A pagar (ainda não somado)">{fmt(pend)}</span>
                                         <span style={{ display: "inline-flex", gap: 4 }}>
-                                          <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(16,185,129,.16)", color: "#10B981" }}><Check size={12} strokeWidth={3} /></button>
-                                          <button onClick={() => pedirExcluir(`pagamentos a pagar de "${it.nome}" em ${MES[m]}`, () => removerPendentesMes("pag", g.nome, it.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "#EF4444" }}><X size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => pedirExcluir(`pagamentos a pagar de "${it.nome}" em ${MES[m]}`, () => removerPendentesMes("pag", g.nome, it.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
                                         </span>
                                       </div>
                                     </td>
@@ -872,7 +872,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                             {it.pend && it.pend.some((x) => x > 0) && (
                               <tr>
                                 <td style={{ ...tdRot, padding: 0, height: 0, overflow: "visible", verticalAlign: "top" }}>
-                                  <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>a pagar</div>
+                                  <div style={{ marginTop: -12, paddingLeft: 34, fontStyle: "italic", color: "var(--muted)", fontSize: 10.5 }}>A pagar (previsto no calendário)</div>
                                 </td>
                                 {mesesVis.map((m) => {
                                   const pend = it.pend![m] || 0;
@@ -882,8 +882,8 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, lineHeight: 1, marginTop: -12 }}>
                                         <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A pagar (ainda não somado)">{fmt(pend)}</span>
                                         <span style={{ display: "inline-flex", gap: 4 }}>
-                                          <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(16,185,129,.16)", color: "#10B981" }}><Check size={12} strokeWidth={3} /></button>
-                                          <button onClick={() => pedirExcluir(`pagamentos a pagar de "${it.nome}" em ${MES[m]}`, () => removerPendentesMes("pag", g.nome, it.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "#EF4444" }}><X size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => pedirExcluir(`pagamentos a pagar de "${it.nome}" em ${MES[m]}`, () => removerPendentesMes("pag", g.nome, it.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
                                         </span>
                                       </div>
                                     </td>
