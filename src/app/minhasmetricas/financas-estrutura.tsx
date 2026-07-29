@@ -54,10 +54,13 @@ export function carregarEstrutura(ano: number = 2026): Dados {
     if (cru) return JSON.parse(cru);
     if (ano === 2026) {
       const legado = localStorage.getItem(CHAVE);
-      return legado ? JSON.parse(legado) : PADRAO;
+      if (legado) return JSON.parse(legado);
+      // conta real (banco): empresa nova começa com a ESTRUTURA zerada, não com os
+      // números de exemplo. No modo demonstração, mostra o exemplo (PADRAO).
+      return supabaseReady ? zerarValores(PADRAO) : PADRAO;
     }
     return zerarValores(carregarEstrutura(2026));
-  } catch { return ano === 2026 ? PADRAO : zerarValores(PADRAO); }
+  } catch { return supabaseReady ? zerarValores(PADRAO) : PADRAO; }
 }
 
 /** Salva a estrutura de um ano específico (cache local + banco). */

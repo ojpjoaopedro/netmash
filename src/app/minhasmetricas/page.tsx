@@ -13,7 +13,7 @@ import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
 import { assinarNav, pegarAlvo, navegar } from "@/lib/nav";
 import { supabase, supabaseReady } from "@/lib/supabase";
-import { salvarEstadoRemoto, apagarEstadoRemoto, sincronizarEstado } from "@/lib/estado-remoto";
+import { salvarEstadoRemoto, apagarEstadoRemoto, sincronizarEstado, limparDadosLocaisDaConta } from "@/lib/estado-remoto";
 import {
   getPerfil, getEmpresa, getLancamentos, getFuncionarios, getClientes, logout,
   Perfil, Empresa, Lancamento, Funcionario, Cliente,
@@ -137,6 +137,14 @@ export default function Home({ secao }: { secao?: string } = {}) {
       }
       const p = await getPerfil();
       if (supabaseReady && !p) { router.replace("/login"); return; }
+      // troca de conta no mesmo navegador: zera o cache local para os dados de uma
+      // empresa não vazarem para outra (recarrega do banco em seguida).
+      try {
+        const idConta = p?.id || "";
+        const ultima = localStorage.getItem("me_conta_atual");
+        if (idConta && ultima && ultima !== idConta) limparDadosLocaisDaConta();
+        if (idConta) localStorage.setItem("me_conta_atual", idConta);
+      } catch { /* ignore */ }
       setPerfil(p);
       await carregarDados();
       setCarregando(false);

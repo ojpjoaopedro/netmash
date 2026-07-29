@@ -98,3 +98,24 @@ export async function sincronizarEstado(chaves: string[]): Promise<boolean> {
   } catch { /* ignore */ }
   return veioAlgo;
 }
+
+// Prefixos das chaves que são POR EMPRESA (não podem vazar de uma conta pra outra
+// no mesmo navegador). Ao trocar de conta, limpamos tudo isso e recarregamos do banco.
+const PREFIXOS_CONTA = [
+  "me_financas_estrutura", "me_calendario_", "me_diretores", "me_func_extra",
+  "me_empresa_extra", "fin_brand", "fin_theme", "me_foto_perfil", "me_termos_aceite",
+  "me_ocultar_valores", "me_guia_", "me_tour_", "me_bemvindo_", "me_som", "me_destacar_benef",
+];
+
+/** Apaga do navegador todos os dados que são por empresa (usado ao trocar de conta). */
+export function limparDadosLocaisDaConta() {
+  if (typeof window === "undefined") return;
+  try {
+    const remover: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && PREFIXOS_CONTA.some((p) => k.startsWith(p))) remover.push(k);
+    }
+    remover.forEach((k) => localStorage.removeItem(k));
+  } catch { /* ignore */ }
+}
