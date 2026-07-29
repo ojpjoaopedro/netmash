@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, TrendingUp, Maximize2, Minimize2 } from "lucide-react";
 import { MES, Dados, carregarEstruturaComPagamentos } from "@/app/minhasmetricas/financas-estrutura";
 import BotaoOcultar from "./ocultar";
+import SeletorAno from "./SeletorAno";
 
 const AZUL = "#38BDF8", VERMELHO = "#F43F5E";
 const fmtR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -90,7 +91,7 @@ function Resumo({ icone, rotulo, valor, cor, borda, fundo }: { icone: React.Reac
   );
 }
 
-export default function FinancasDashboard({ ano = 2026 }: { ano?: number }) {
+export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number; setAno?: (a: number) => void }) {
   const [data, setData] = useState<Dados | null>(null);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [full, setFull] = useState(false);
@@ -138,6 +139,7 @@ export default function FinancasDashboard({ ano = 2026 }: { ano?: number }) {
     <div style={{ display: "flex", flexDirection: "column", gap: full ? 16 : 14, height: full ? "100%" : "auto", ...(full ? { width: "min(100vw, calc(100vh * 16 / 9))", maxHeight: "100vh", margin: "0 auto" } : {}) }}>
       {/* seletor de meses + expandir */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {setAno && <SeletorAno ano={ano} setAno={setAno} escuro />}
         {MES.map((nome, m) => {
           const on = sel.has(m);
           return (

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X, GripVertical } from "lucide-react";
 import BotaoOcultar from "@/components/ocultar";
+import SeletorAno from "@/components/SeletorAno";
 import { AnimNum } from "@/components/AnimNum";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -396,7 +397,7 @@ export const resultadoDe = (d: Dados) => menos(somaPorMes(d.receitas), somaPorMe
 /** EBITDA = resultado + custos financeiros (empréstimos e juros) somados de volta. */
 export const ebitdaDe = (d: Dados) => mais(resultadoDe(d), somaPorMes(financeiroItens(d)));
 
-export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
+export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number; setAno?: (a: number) => void }) {
   const [d, setD] = useState<Dados>(PADRAO);
   const [carregado, setCarregado] = useState(false);
   const pularSalvar = useRef(false);   // evita gravar os dados de um ano na chave de outro ao trocar
@@ -699,7 +700,8 @@ export default function EstruturaFinancas({ ano = 2026 }: { ano?: number }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {/* seletor de meses — compacto, cinza moderno + ocultar valores */}
       <div className="card" style={{ padding: 10, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 5 }}>
+          {setAno && <SeletorAno ano={ano} setAno={setAno} />}
           {MES.map((m, i) => {
             const on = sel.has(i);
             return (

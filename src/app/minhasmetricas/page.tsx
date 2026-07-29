@@ -6,7 +6,7 @@ import {
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
-  Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2,
+  Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -40,13 +40,14 @@ import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
 
 type View =
-  | "dashboard" | "financas" | "marketing" | "planejamento" | "config"
+  | "dashboard" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
   | "assistente" | "equipe" | "apresentacao" | "importar" | "empresa";
 
 const METRICAS = [
   { key: "dashboard", label: "Home", Icon: LayoutDashboard },
   { key: "financas", label: "Finanças", Icon: DollarSign },
   { key: "planejamento", label: "Planejamento", Icon: Compass },
+  { key: "clientes", label: "Cadastro de clientes", Icon: UserPlus },
 ] as const;
 // sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
@@ -410,20 +411,7 @@ export default function Home() {
       {/* Main */}
       <main className="main">
         <div className="topctrls">
-          {/* o selo "Painel demonstrativo" agora fica no rodapé do menu, sob o nome */}
-          {/* seletor de ano — fixo no topo de todas as páginas (estilo sutil) */}
-          <div role="group" aria-label="Selecionar ano"
-            style={{ display: "inline-flex", gap: 2, padding: 4, borderRadius: 999, background: "var(--bg-2)", border: "1px solid var(--line)" }}>
-            {ANOS.map((a) => {
-              const on = anoSel === a;
-              return (
-                <button key={a} onClick={() => { playTick(); setAnoSel(a); }}
-                  style={{ padding: "6px 16px", borderRadius: 999, border: 0, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                    background: on ? "var(--card)" : "transparent", color: on ? "var(--txt)" : "var(--muted)",
-                    boxShadow: on ? "0 1px 3px rgba(0,0,0,.14)" : "none" }}>{a}</button>
-              );
-            })}
-          </div>
+          {/* o seletor de ano agora fica dentro de cada tela (Finanças/Calendário têm o seu) */}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
           <button className="btn ghost sm desk-only" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
         </div>
@@ -459,9 +447,10 @@ export default function Home() {
           </div>
         )}
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
-        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} reload={carregarDados} />}
+        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} reload={carregarDados} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
-        {view === "planejamento" && <TelaPlanejamento />}
+        {view === "planejamento" && <TelaUpgrade Icon={Compass} titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." preco="R$ 29,90" />}
+        {view === "clientes" && <TelaUpgrade Icon={UserPlus} titulo="Cadastro de clientes" texto="Cadastre e organize seus clientes em um só lugar. Ative este módulo no seu plano para liberar esta tela." preco="R$ 39,90" />}
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} onImportar={() => setView("importar")} brand={brandObj} ano={Number(anoSel)} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
@@ -494,10 +483,10 @@ export default function Home() {
 /** Avisos/informativos por aba de Finanças. */
 function AvisoFinancas({ aba }: { aba: string }) {
   const textos: Record<string, React.ReactNode> = {
-    dashboard: <>A <b>Dashboard</b> é preenchida automaticamente com os <b>dados consolidados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
-    relatorios: <>Os <b>Relatórios</b> são preenchidos automaticamente com os <b>dados consolidados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
+    dashboard: <>A <b>Dashboard</b> é preenchida automaticamente com os <b>dados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
+    relatorios: <>Os <b>Relatórios</b> são preenchidos automaticamente com os <b>dados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
     estrutura: <>Essa é a <b>principal tela de Finanças</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou <b>importando uma planilha</b> de Excel. Todas se complementam e centralizam os dados aqui. <b>28% das empresas</b> preenchem somente por aqui, sem usar o calendário nem a planilha.</>,
-    calendario: <>Além de preencher por <b>planilha de Excel</b> ou direto na <b>Estrutura de Receitas e Custos</b>, o Calendário também oferece esse preenchimento. E, além de preencher, o <b>visual do calendário facilita a tomada de decisões</b>. Cerca de <b>60% das empresas</b> preferem preencher por aqui.</>,
+    calendario: <>Cerca de <b>60% das empresas</b> preferem preencher por aqui.</>,
     importar: <>Cerca de <b>12% dos empresários</b> preferem subir os dados por <b>planilha</b>.</>,
   };
   const txt = textos[aba];
@@ -551,7 +540,7 @@ function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebime
  * três abas (Dashboard, Estrutura de Receitas e Custos, Calendário de
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
-function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; reload: () => Promise<void> }) {
+function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void; reload: () => Promise<void> }) {
   const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios" | "importar">("dashboard");
   // dentro do Calendário: escolha entre pagamentos e recebimentos (null = mostra as 2 opções)
   const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | null>(null);
@@ -627,8 +616,8 @@ function TelaFinancas({ empresa, brand, ano, reload }: { empresa: Empresa | null
       {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
       {!(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
 
-      {aba === "estrutura" ? <EstruturaFinancas ano={ano} />
-        : aba === "dashboard" ? <FinancasDashboard ano={ano} />
+      {aba === "estrutura" ? <EstruturaFinancas ano={ano} setAno={setAno} />
+        : aba === "dashboard" ? <FinancasDashboard ano={ano} setAno={setAno} />
         : aba === "calendario" ? (calSub
             ? <SubCalendario tipo={calSub} ano={ano} onVoltar={() => setCalSub(null)} />
             : <EscolhaCalendario onEscolher={setCalSub} />)
@@ -772,22 +761,22 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
 }
 
 /** Tela ainda sem conteúdo definido — placeholder padrão de "em construção". */
-/** Planejamento: convida a fazer upgrade e leva à tela do Plano. */
-function TelaPlanejamento() {
+/** Tela de módulo bloqueado: convida a fazer upgrade e leva ao Plano. */
+function TelaUpgrade({ Icon, titulo, texto, preco }: { Icon: typeof Compass; titulo: string; texto: string; preco: string }) {
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden", borderRadius: 18 }}>
       <div style={{ padding: "44px 32px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, background: "linear-gradient(140deg, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%)" }}>
         <span style={{ width: 66, height: 66, borderRadius: 18, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)" }}>
-          <Compass size={32} />
+          <Icon size={32} />
         </span>
         <div style={{ maxWidth: 460 }}>
-          <h2 style={{ margin: 0, fontSize: 23 }}>Planejamento estratégico</h2>
-          <p className="sub" style={{ marginTop: 8, lineHeight: 1.6 }}>Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo.</p>
+          <h2 style={{ margin: 0, fontSize: 23 }}>{titulo}</h2>
+          <p className="sub" style={{ marginTop: 8, lineHeight: 1.6 }}>{texto}</p>
         </div>
         <button className="btn" onClick={() => navegar({ view: "config", aba: "plano" })} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", fontSize: 14.5, marginTop: 4 }}>
           <ArrowUpCircle size={18} /> Fazer upgrade
         </button>
-        <p className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>A partir de R$ 29,90 / mês.</p>
+        <p className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>A partir de {preco} / mês.</p>
       </div>
     </div>
   );
