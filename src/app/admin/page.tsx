@@ -394,14 +394,14 @@ export default function Admin() {
                             <span className="adm-switch-knob" />
                           </button>
                         </td>
-                        <td style={{ whiteSpace: "nowrap" }}>
-                          <button className="adm-btn sm" disabled={!!busy} title="Entrar no painel desta empresa (sem login)" onClick={() => verPainel(e)}><Eye size={13} /> Ver painel</button>
+                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
+                          <button className="adm-btn sm adm-ic" disabled={!!busy} title="Ver painel: entrar nesta empresa sem login" onClick={() => verPainel(e)}><Eye size={16} /></button>
                         </td>
-                        <td style={{ whiteSpace: "nowrap" }}>
-                          <button className="adm-btn sm ghost" disabled={!!busy} onClick={() => reenviarAcesso(e)}><Send size={13} /> Reenviar acesso</button>
+                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
+                          <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Reenviar acesso por e-mail" onClick={() => reenviarAcesso(e)}><Send size={16} /></button>
                         </td>
-                        <td style={{ whiteSpace: "nowrap" }}>
-                          {!ehPadrao(e) && <button className="adm-btn sm danger" disabled={!!busy} title="Excluir empresa" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={13} /> Excluir</button>}
+                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
+                          {!ehPadrao(e) && <button className="adm-btn sm danger adm-ic" disabled={!!busy} title="Excluir empresa (apaga tudo e libera o e-mail)" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={16} /></button>}
                         </td>
                       </tr>
                     ))}
@@ -589,6 +589,7 @@ const CSS = `
 .adm-btn:hover{filter:brightness(1.08)}
 .adm-btn:disabled{opacity:.5;cursor:default}
 .adm-btn.sm{padding:6px 11px;font-size:12.5px;font-weight:700}
+.adm-btn.adm-ic{padding:8px;border-radius:10px;line-height:0}
 .adm-btn.ghost{background:#161616;border:1px solid #333;color:#f4f5f7}
 .adm-btn.ghost:hover{border-color:#1AADE2;filter:none}
 .adm-btn.warn{background:#2a1d10;border:1px solid #6b4e1f;color:#F59E0B}
