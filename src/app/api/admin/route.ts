@@ -20,6 +20,42 @@ function svc(): SupabaseClient | null {
   return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+// ── Duplicação da empresa PADRÃO (white-label) ───────────────────────────────
+type ItemDados = { v?: number[]; pend?: number[] } & Record<string, unknown>;
+type GrupoDados = { itens?: ItemDados[] } & Record<string, unknown>;
+type BlocoDados = { grupos?: GrupoDados[] } & Record<string, unknown>;
+type EstruturaDados = { receitas?: ItemDados[]; custos?: BlocoDados[] };
+
+/** Mesma estrutura (grupos/itens/canais), porém com todos os valores zerados. */
+function zerarEstrutura(d: EstruturaDados): EstruturaDados {
+  const zc = (a?: number[]) => (Array.isArray(a) ? a.map(() => 0) : a);
+  return {
+    receitas: (d?.receitas || []).map((r) => ({ ...r, v: zc(r.v), ...(r.pend ? { pend: zc(r.pend) } : {}) })),
+    custos: (d?.custos || []).map((b) => ({
+      ...b,
+      grupos: (b.grupos || []).map((g) => ({
+        ...g,
+        itens: (g.itens || []).map((it) => ({ ...it, v: zc(it.v), ...(it.pend ? { pend: zc(it.pend) } : {}) })),
+      })),
+    })),
+  };
+}
+
+/** Copia a estrutura de receitas/custos da empresa modelo (padrão) para uma nova
+ *  empresa, com os valores zerados. Best-effort (não derruba a criação). */
+async function copiarEstruturaDaPadrao(s: SupabaseClient, novaEmpresaId: string): Promise<void> {
+  try {
+    const { data: perfilPadrao } = await s.from("perfis").select("id").eq("email", SUPERS_PADRAO[0]).maybeSingle();
+    if (!perfilPadrao?.id) return;
+    const { data: empPadrao } = await s.from("empresas").select("id").eq("dono_id", perfilPadrao.id).order("criado_em", { ascending: true }).limit(1).maybeSingle();
+    if (!empPadrao?.id || empPadrao.id === novaEmpresaId) return;
+    const { data: estruturas } = await s.from("financas_estrutura").select("ano,dados").eq("empresa_id", empPadrao.id);
+    if (!estruturas?.length) return;
+    const linhas = estruturas.map((e) => ({ empresa_id: novaEmpresaId, ano: e.ano as number, dados: zerarEstrutura(e.dados as EstruturaDados) }));
+    await s.from("financas_estrutura").upsert(linhas, { onConflict: "empresa_id,ano" });
+  } catch { /* best-effort */ }
+}
+
 /** Valida o token do chamador e exige que o e-mail esteja na lista de super admins. */
 async function superDoCaller(req: NextRequest, s: SupabaseClient): Promise<{ email: string } | null> {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
@@ -162,6 +198,8 @@ export async function POST(req: NextRequest) {
     const plano = `1 Super Admin + ${funcs.length} Acesso${funcs.length !== 1 ? "s" : ""}`;
     const { data: emp } = await s.from("empresas").select("id").eq("dono_id", sa.user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
     if (emp?.id) await s.from("empresas").update({ nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null }).eq("id", emp.id);
+    // white-label: a nova empresa nasce com a estrutura da padrão (zerada)
+    if (emp?.id) await copiarEstruturaDaPadrao(s, emp.id);
     const emails = [emailResp];
     for (const f of funcs) {
       const email = (f.email || "").trim().toLowerCase();

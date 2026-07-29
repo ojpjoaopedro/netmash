@@ -1,5 +1,6 @@
 "use client";
 import { supabase, supabaseReady } from "@/lib/supabase";
+import { empresaAtualId } from "@/lib/empresa-atual";
 
 /**
  * Espelhamento genérico do painel no banco (tabela painel_estado).
@@ -13,17 +14,8 @@ import { supabase, supabaseReady } from "@/lib/supabase";
  * qualquer chave (listas em JSON, "1"/"0", data-URL de imagem etc.).
  */
 
-// id da empresa (1 por projeto) em cache, para não consultar toda hora.
-let _eid: string | null | undefined;
-async function empresaId(): Promise<string | null> {
-  if (_eid !== undefined) return _eid ?? null;
-  if (!supabaseReady || !supabase) { _eid = null; return null; }
-  try {
-    const { data } = await supabase.from("empresas").select("id").limit(1).single();
-    _eid = (data?.id as string) ?? null;
-  } catch { _eid = null; }
-  return _eid ?? null;
-}
+// empresa do usuário logado (resolvida em @/lib/empresa-atual).
+const empresaId = empresaAtualId;
 
 // mapa chave -> evento a disparar quando o valor vier do banco (para as telas
 // já montadas recarregarem sozinhas).

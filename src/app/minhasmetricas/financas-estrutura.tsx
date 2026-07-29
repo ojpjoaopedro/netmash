@@ -7,6 +7,7 @@ import { AnimNum } from "@/components/AnimNum";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
+import { empresaAtualId } from "@/lib/empresa-atual";
 import { createPortal } from "react-dom";
 
 /** Moeda "conforme digita" (centavos pela direita) -> 2.000,00 */
@@ -66,14 +67,8 @@ export function salvarEstrutura(ano: number, d: Dados) {
 }
 
 // ── Persistência no banco (Supabase) ─────────────────────────────────────────
-// Cache do id da empresa (1 por projeto) para não consultar toda hora.
-let _empresaId: string | null | undefined;
-async function empresaIdAtual(): Promise<string | null> {
-  if (_empresaId !== undefined) return _empresaId ?? null;
-  if (!supabaseReady || !supabase) { _empresaId = null; return null; }
-  try { const { data } = await supabase.from("empresas").select("id").limit(1).single(); _empresaId = (data?.id as string) ?? null; } catch { _empresaId = null; }
-  return _empresaId ?? null;
-}
+// empresa do usuário logado (resolvida em @/lib/empresa-atual).
+const empresaIdAtual = empresaAtualId;
 async function salvarEstruturaBanco(ano: number, d: Dados) {
   if (!supabaseReady || !supabase) return;
   const eid = await empresaIdAtual(); if (!eid) return;

@@ -1,5 +1,6 @@
 import { supabase, supabaseReady } from "./supabase";
 import { salvarEstadoRemoto } from "./estado-remoto";
+import { empresaAtualId, limparCacheEmpresa } from "./empresa-atual";
 import { uid, hoje } from "./format";
 
 // ============================================================
@@ -234,7 +235,9 @@ export async function getEmpresa(): Promise<Empresa | null> {
     seedDemo();
     return ls<Empresa | null>(K.emp, null);
   }
-  const { data } = await supabase.from("empresas").select("*").limit(1).single();
+  const eid = await empresaAtualId();
+  if (!eid) return null;
+  const { data } = await supabase.from("empresas").select("*").eq("id", eid).maybeSingle();
   return data as Empresa | null;
 }
 
@@ -396,6 +399,7 @@ export async function login(email: string, senha: string) {
   if (!supabase) throw new Error("Supabase não configurado");
   const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
   if (error) throw error;
+  limparCacheEmpresa();   // nova sessão => resolve a empresa do novo usuário
 }
 
 export async function cadastrar(email: string, senha: string, nome: string, empresa: string) {
@@ -409,6 +413,7 @@ export async function cadastrar(email: string, senha: string, nome: string, empr
 
 export async function logout() {
   if (supabase) await supabase.auth.signOut();
+  limparCacheEmpresa();
 }
 
 /** Cadastro liberado por código de acesso (recebido na compra). Valida e cria a conta no servidor. */
