@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X, GripVertical } from "lucide-react";
+import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X, GripVertical, Lock } from "lucide-react";
 import BotaoOcultar from "@/components/ocultar";
 import SeletorAno from "@/components/SeletorAno";
 import { AnimNum } from "@/components/AnimNum";
@@ -398,21 +398,56 @@ export const MODELO_LIMPO: Dados = {
           { nome: "Preencha os colaboradores", v: v12([]) },
         ] },
         { nome: "Comissão", cor: LARANJA, itens: [
-          { nome: "Preencha aqui", v: v12([]) },
+          { nome: "Time comercial", v: v12([]) },
         ] },
-        { nome: "Impostos / Encargos", cor: ROXO, itens: [
-          { nome: "Preencha aqui", v: v12([]) },
+        { nome: "Impostos / Férias / 13ª / Resc.", cor: ROXO, itens: [
+          { nome: "FGTS", v: v12([]) },
+          { nome: "DARF", v: v12([]) },
+          { nome: "13º", v: v12([]) },
+          { nome: "Férias", v: v12([]) },
+          { nome: "Rescisão / Admissão", v: v12([]) },
         ] },
         { nome: "Operacional", cor: VERDE, itens: [
-          { nome: "Preencha aqui", v: v12([]) },
+          { nome: "Aluguel", v: v12([]) },
+          { nome: "Internet", v: v12([]) },
+          { nome: "Conta de Energia", v: v12([]) },
+          { nome: "Conta de Água", v: v12([]) },
+          { nome: "Contabilidade", v: v12([]) },
+          { nome: "Conta de Telefone", v: v12([]) },
+          { nome: "Google Workspace", v: v12([]) },
+          { nome: "Hospedagem (MKT)", v: v12([]) },
+          { nome: "Ferramenta de CRM", v: v12([]) },
+          { nome: "WhatsApp Business", v: v12([]) },
+          { nome: "ChatGPT Pago", v: v12([]) },
         ] },
       ],
     },
     {
       nome: "Custos Variáveis",
       grupos: [
-        { nome: "Preencha aqui", cor: ROSA, itens: [
-          { nome: "Preencha aqui", v: v12([]) },
+        { nome: "Marketing e Publicidade", cor: ROSA, itens: [
+          { nome: "Rebranding", v: v12([]) },
+          { nome: "Campanha MetaAds", v: v12([]) },
+        ] },
+        { nome: "Taxas e Antecipações", cor: ROSA, itens: [
+          { nome: "Taxa de cartão", v: v12([]) },
+          { nome: "Demais Taxas", v: v12([]) },
+        ] },
+        { nome: "Terceirizados", cor: VERDE, itens: [
+          { nome: "Correios", v: v12([]) },
+          { nome: "Registro de marca", v: v12([]) },
+          { nome: "Ponto Eletrônico", v: v12([]) },
+          { nome: "Cartório", v: v12([]) },
+          { nome: "Lanches e cafés", v: v12([]) },
+          { nome: "Manutenção", v: v12([]) },
+        ] },
+        // grupos FINANCEIROS: alimentam o EBITDA — não podem ser excluídos
+        { nome: "Pagamento de Empréstimo", cor: LARANJA, financeiro: true, itens: [
+          { nome: "Capital de giro", v: v12([]) },
+          { nome: "IOF", v: v12([]) },
+        ] },
+        { nome: "Impostos e Juros", cor: ROXO, financeiro: true, itens: [
+          { nome: "DAS - ISS", v: v12([]) },
         ] },
       ],
     },
@@ -871,6 +906,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                           <GrupoCel cor={g.cor} valor={g.nome} aberto={aberto} onToggle={() => toggleGrupo(id)} onSalvo={salvo}
                             onChange={(nv) => nomeGrupo(bi, gi, nv)}
                             onOrdenar={() => ordenarItens(bi, gi)}
+                            protegido={g.financeiro}
                             onRemover={() => g.financeiro
                               ? setAvisoBloqueio(`O grupo "${g.nome}" alimenta o cálculo do EBITDA e não pode ser apagado. Você pode zerar os valores dos itens, mas o grupo precisa continuar.`)
                               : pedirExcluir(g.nome || "este grupo", () => removerGrupo(bi, gi))} />
@@ -1211,8 +1247,8 @@ function CalNomeCel({ nome, onRenomear, onRemover, onSalvo, cor, italico, indent
  * está aberto surge um lápis quase transparente; clicando nele é que o nome vira
  * editável (e aparece a lixeira). Fora disso, o nome é só texto clicável.
  */
-function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, onOrdenar }: {
-  cor: string; valor: string; aberto: boolean; onToggle: () => void; onChange: (v: string) => void; onSalvo?: (el: HTMLElement) => void; onRemover?: () => void; onOrdenar?: () => void;
+function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, onOrdenar, protegido }: {
+  cor: string; valor: string; aberto: boolean; onToggle: () => void; onChange: (v: string) => void; onSalvo?: (el: HTMLElement) => void; onRemover?: () => void; onOrdenar?: () => void; protegido?: boolean;
 }) {
   const [editando, setEditando] = useState(false);
   const inicial = useRef("");
@@ -1226,12 +1262,17 @@ function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, 
             <input autoFocus value={valor} onChange={(e) => onChange(e.target.value)} placeholder="Nome do grupo"
               style={{ flex: 1, minWidth: 40, background: "transparent", border: "1px solid var(--line-2)", borderRadius: 6, padding: "3px 5px", font: "inherit", fontWeight: 600, color: "inherit", outline: "none" }}
               onBlur={(e) => { if (valor !== inicial.current) onSalvo?.(e.currentTarget); setEditando(false); }} />
-            {onRemover && (
+            {onRemover && !protegido && (
               // lixeira encostada à direita, longe de onde estava o lápis, para não apagar por engano num clique repetido
               <button onMouseDown={(e) => e.preventDefault()} onClick={onRemover} title="Excluir grupo" aria-label="Excluir grupo"
                 style={{ flexShrink: 0, marginLeft: 6, background: "rgba(239,68,68,.1)", border: 0, color: "var(--red)", cursor: "pointer", padding: 4, borderRadius: 7, lineHeight: 0 }}>
                 <Trash2 size={13} />
               </button>
+            )}
+            {protegido && (
+              <span title="Usado no cálculo do EBITDA. Não pode ser excluído (você pode zerar os valores)." style={{ flexShrink: 0, marginLeft: 6, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--muted)", fontSize: 10, fontWeight: 700 }}>
+                <Lock size={11} /> EBITDA
+              </span>
             )}
           </>
         ) : (
@@ -1240,6 +1281,11 @@ function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, 
             <span onClick={onToggle} style={{ cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "70%" }}>
               {valor || <span style={{ color: "var(--muted)", fontWeight: 400 }}>Novo grupo</span>}
             </span>
+            {protegido && (
+              <span title="Usado no cálculo do EBITDA. Não pode ser excluído (você pode zerar os valores)." style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--muted)", fontSize: 9.5, fontWeight: 800, letterSpacing: ".02em", opacity: .75 }}>
+                <Lock size={10} /> EBITDA
+              </span>
+            )}
             {aberto && (
               <button onClick={() => { inicial.current = valor; setEditando(true); }} title="Editar grupo" aria-label="Editar grupo"
                 style={{ flexShrink: 0, background: "transparent", border: 0, color: "var(--muted)", cursor: "pointer", padding: 2, lineHeight: 0, opacity: .3, transition: ".15s" }}
