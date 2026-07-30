@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ShieldCheck, Building2, Users, Ban, Trash2, LogOut, Plus, X, DollarSign,
+  ShieldCheck, Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Pencil, Eye, EyeOff, Send,
   ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText,
   HeartPulse, ShoppingCart, Megaphone, Package,
@@ -374,23 +374,21 @@ export default function Admin() {
                 <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(16,185,129,.16)", color: "#10B981" }}><DollarSign size={20} /></span><div><b>{brl(t?.faturamento ?? 0)}</b><small>Faturamento (planos)</small></div></div>
                 <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><Building2 size={20} /></span><div><b>{t?.empresas ?? 0}</b><small>Clientes</small></div></div>
                 <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(139,92,246,.16)", color: "#8b5cf6" }}><Users size={20} /></span><div><b>{t?.ativos ?? 0}</b><small>Acessos ativos</small></div></div>
-                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(239,68,68,.16)", color: "#EF4444" }}><Ban size={20} /></span><div><b>{data?.empresas.filter((e) => e.acessoCortado).length ?? 0}</b><small>Cortados</small></div></div>
               </div>
               <h3 className="adm-h3">Últimos clientes</h3>
               <div className="adm-tablewrap">
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>E-mail de acesso</th><th>Plano</th><th>Mensal</th><th>Criada</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>E-mail de acesso</th><th>Plano</th><th>Criada</th></tr></thead>
                   <tbody>
                     {data?.empresas.slice(0, 6).map((e) => (
                       <tr key={e.id}>
                         <td><b>{e.nome}</b>{ehPadrao(e) && <span className="adm-badge-padrao">Padrão</span>}</td>
                         <td className="adm-sub">{e.dono?.email || "—"}</td>
-                        <td>{e.plano || "—"}</td>
-                        <td>{brl(e.valor)}</td>
+                        <td><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
                         <td className="adm-sub">{dataHoraBR(e.criado_em)}</td>
                       </tr>
                     ))}
-                    {!data?.empresas.length && <tr><td colSpan={5} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={4} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -405,20 +403,14 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th className="num">Equipe</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={3} style={{ textAlign: "center" }}>Ações</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={3} style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
                     {data?.empresas.map((e) => (
                       <tr key={e.id}>
-                        <td>
-                          <div className="adm-emp">
-                            <div className="adm-emp-logo">{e.logo_url ? <img src={e.logo_url} alt="" /> : <span>{(e.nome || "?").trim().charAt(0).toUpperCase()}</span>}</div>
-                            <b>{e.nome}</b>
-                          </div>
-                        </td>
+                        <td><b>{e.nome}</b></td>
                         <td>{e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}</td>
-                        <td>{e.plano ? <><div>{e.plano}</div>{e.valor > 0 && <div className="adm-sub">{brl(e.valor)}</div>}</> : <span className="adm-sub">—</span>}</td>
+                        <td><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
                         <td className="adm-sub">{dataBR(e.criado_em)}</td>
-                        <td className="num">{e.nFunc}</td>
                         <td style={{ textAlign: "center" }}>
                           <button
                             type="button"
@@ -441,7 +433,7 @@ export default function Admin() {
                         </td>
                       </tr>
                     ))}
-                    {!data?.empresas.length && <tr><td colSpan={9} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={8} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -461,7 +453,7 @@ export default function Admin() {
               ) : (
                 <div className="adm-card" style={{ padding: 0, overflowX: "auto" }}>
                   <table className="adm-table">
-                    <thead><tr><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Aceito em</th><th>Versão</th></tr></thead>
+                    <thead><tr><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Aceito em</th><th>Versão</th><th></th></tr></thead>
                     <tbody>
                       {data.lgpd.map((r) => (
                         <tr key={r.id}>
@@ -470,6 +462,9 @@ export default function Admin() {
                           <td>{r.empresaNome || "—"}</td>
                           <td className="mono">{dataHoraBR(r.aceito_em)}</td>
                           <td>{r.versao || "1.0"}</td>
+                          <td style={{ textAlign: "right" }}>
+                            <button className="adm-btn sm danger adm-ic" disabled={!!busy} title="Remover este registro" onClick={() => acao("lgpd-remover", { lgpdId: r.id }, `Remover o registro de consentimento de "${r.nome || r.email || "—"}"?`)}><Trash2 size={14} /></button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

@@ -138,6 +138,7 @@ export async function POST(req: NextRequest) {
     nome?: string; areas?: string[]; segmento?: string; cidade?: string; estado?: string; saldoInicial?: number | string;
     precoSuperadmin?: number | string; precoAcesso?: number | string;
     emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
+    lgpdId?: string;
   };
   const { action, userId, empresaId } = body;
 
@@ -331,6 +332,10 @@ export async function POST(req: NextRequest) {
   }
   if (action === "restaurar" && userId) {
     await s.auth.admin.updateUserById(userId, { ban_duration: "none" });
+    return NextResponse.json({ ok: true });
+  }
+  if (action === "lgpd-remover" && body.lgpdId) {
+    await s.from("lgpd_consentimentos").delete().eq("id", body.lgpdId);
     return NextResponse.json({ ok: true });
   }
   // Gera um link mágico para o super admin ENTRAR no painel da empresa sem login/senha
