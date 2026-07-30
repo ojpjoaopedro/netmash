@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, KeyRound, Pencil, Eye, EyeOff, Send,
-  ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText,
+  ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText, Search, Info,
   HeartPulse, ShoppingCart, Megaphone, Package,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
@@ -37,7 +37,7 @@ function mascaraCnpj(v: string): string {
   return d;
 }
 type Aba = "visao" | "empresas" | "produtos" | "cupons" | "vendas" | "permissoes" | "config" | "documentos";
-type LgpdRow = { id: string; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null };
+type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null };
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
@@ -97,6 +97,8 @@ export default function Admin() {
   const [logErro, setLogErro] = useState("");
   const [logBusy, setLogBusy] = useState(false);
   const [logVer, setLogVer] = useState(false);
+  const [buscaLgpd, setBuscaLgpd] = useState("");
+  const [lgpdDet, setLgpdDet] = useState<LgpdRow | null>(null);
 
   const carregar = useCallback(async () => {
     if (!supabaseReady || !supabase) { setData(DEMO_RESP); setDemo(true); setEstado("ok"); return; }
@@ -329,6 +331,11 @@ export default function Admin() {
 
   const t = data?.totais;
   const precos = data?.precos ?? { superadmin: PRECO_SUPERADMIN, acesso: PRECO_ACESSO };
+  const qLgpd = buscaLgpd.trim().toLowerCase();
+  const lgpdLista = (data?.lgpd ?? []).filter((r) => !qLgpd
+    || (r.nome || "").toLowerCase().includes(qLgpd)
+    || (r.email || "").toLowerCase().includes(qLgpd)
+    || (r.empresaNome || "").toLowerCase().includes(qLgpd));
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "empresas", label: "Empresas", Icon: Building2 },
@@ -371,7 +378,7 @@ export default function Admin() {
             <>
               <h1>Visão geral do negócio</h1>
               <div className="adm-kpis" style={{ marginTop: 18 }}>
-                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(16,185,129,.16)", color: "#10B981" }}><DollarSign size={20} /></span><div><b>{brl(t?.faturamento ?? 0)}</b><small>Faturamento (planos)</small></div></div>
+                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(16,185,129,.16)", color: "#10B981" }}><DollarSign size={20} /></span><div><b style={{ fontSize: 15, fontStyle: "italic", color: "var(--muted, #9aa0a6)" }}>Integrar com Stripe</b><small>Faturamento (planos)</small></div></div>
                 <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><Building2 size={20} /></span><div><b>{t?.empresas ?? 0}</b><small>Clientes</small></div></div>
                 <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(139,92,246,.16)", color: "#8b5cf6" }}><Users size={20} /></span><div><b>{t?.ativos ?? 0}</b><small>Acessos ativos</small></div></div>
               </div>
@@ -446,27 +453,40 @@ export default function Admin() {
 
           {aba === "documentos" && (
             <>
-              <h1>Documentos · Consentimentos LGPD</h1>
-              <p className="adm-sub">Registro de quem aceitou a proteção de dados ao entrar na plataforma. {(data?.lgpd?.length ?? 0)} aceite(s).</p>
+              <div className="adm-headrow">
+                <div>
+                  <h1>Documentos · Consentimentos LGPD</h1>
+                  <p className="adm-sub" style={{ marginTop: 4 }}>Registro de quem aceitou a proteção de dados ao entrar na plataforma. {(data?.lgpd?.length ?? 0)} aceite(s).</p>
+                </div>
+                <div style={{ position: "relative" }}>
+                  <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9aa0a6" }} />
+                  <input value={buscaLgpd} onChange={(e) => setBuscaLgpd(e.target.value)} placeholder="Buscar por nome, e-mail ou empresa…"
+                    style={{ width: 320, maxWidth: "60vw", padding: "10px 12px 10px 34px", borderRadius: 12, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card-2,#0d0d0d)", color: "inherit", fontSize: 13.5, outline: "none" }} />
+                </div>
+              </div>
               {(!data?.lgpd || data.lgpd.length === 0) ? (
                 <div className="adm-card" style={{ padding: 22 }}>Nenhum consentimento registrado ainda. Assim que os usuários aceitarem a LGPD no app, os registros aparecem aqui.</div>
               ) : (
                 <div className="adm-card" style={{ padding: 0, overflowX: "auto" }}>
                   <table className="adm-table">
-                    <thead><tr><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Aceito em</th><th>Versão</th><th></th></tr></thead>
+                    <thead><tr><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Aceito em</th><th>Versão</th><th colSpan={2}></th></tr></thead>
                     <tbody>
-                      {data.lgpd.map((r) => (
+                      {lgpdLista.map((r) => (
                         <tr key={r.id}>
                           <td>{r.nome || "—"}</td>
                           <td>{r.email || "—"}</td>
                           <td>{r.empresaNome || "—"}</td>
                           <td className="mono">{dataHoraBR(r.aceito_em)}</td>
                           <td>{r.versao || "1.0"}</td>
+                          <td style={{ textAlign: "right", paddingRight: 4 }}>
+                            <button className="adm-btn sm ghost adm-ic" title="Ver todos os dados deste aceite" onClick={() => setLgpdDet(r)}><Info size={15} /></button>
+                          </td>
                           <td style={{ textAlign: "right" }}>
                             <button className="adm-btn sm danger adm-ic" disabled={!!busy} title="Remover este registro" onClick={() => acao("lgpd-remover", { lgpdId: r.id }, `Remover o registro de consentimento de "${r.nome || r.email || "—"}"?`)}><Trash2 size={14} /></button>
                           </td>
                         </tr>
                       ))}
+                      {lgpdLista.length === 0 && <tr><td colSpan={7} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhum resultado para “{buscaLgpd}”.</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -489,6 +509,35 @@ export default function Admin() {
           </>
         </main>
       </div>
+
+      {lgpdDet && (
+        <div className="adm-modalbg" onClick={() => setLgpdDet(null)}>
+          <div className="adm-modal" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: 520 }}>
+            <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}><FileText size={18} /> Dados do consentimento</h2>
+            <p className="adm-sub" style={{ marginTop: 4, marginBottom: 14 }}>Tudo o que registramos sobre este aceite da LGPD.</p>
+            <div style={{ display: "grid", gap: 10 }}>
+              {[
+                ["Nome", lgpdDet.nome || "—"],
+                ["E-mail", lgpdDet.email || "—"],
+                ["Empresa", lgpdDet.empresaNome || "—"],
+                ["Aceito em", dataHoraBR(lgpdDet.aceito_em)],
+                ["Versão do termo", lgpdDet.versao || "1.0"],
+                ["Dispositivo / navegador", lgpdDet.user_agent || "—"],
+                ["ID do usuário", lgpdDet.user_id || "—"],
+                ["ID do registro", lgpdDet.id],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 10, alignItems: "start", borderBottom: "1px solid var(--line,#222)", paddingBottom: 10 }}>
+                  <span className="adm-sub" style={{ fontWeight: 700 }}>{k}</span>
+                  <span style={{ wordBreak: "break-word", fontSize: 13.5 }}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <button className="adm-btn ghost" onClick={() => setLgpdDet(null)}>Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {verLink && (
         <div className="adm-modalbg" onClick={() => { setVerLink(null); setCopiado(false); }}>

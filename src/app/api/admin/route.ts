@@ -116,8 +116,8 @@ export async function GET(req: NextRequest) {
 
   // Consentimentos LGPD (retorna [] se a tabela ainda não existir)
   const nomeEmp = new Map(empresas.map((e) => [e.id, e.nome]));
-  const { data: lgRows } = await s.from("lgpd_consentimentos").select("id,email,nome,empresa_id,aceito_em,versao").order("aceito_em", { ascending: false });
-  const lgpd = (lgRows ?? []).map((r: { id: string; email: string | null; nome: string | null; empresa_id: string | null; aceito_em: string; versao: string | null }) => ({
+  const { data: lgRows } = await s.from("lgpd_consentimentos").select("id,user_id,email,nome,empresa_id,aceito_em,versao,user_agent").order("aceito_em", { ascending: false });
+  const lgpd = (lgRows ?? []).map((r: { id: string; user_id: string | null; email: string | null; nome: string | null; empresa_id: string | null; aceito_em: string; versao: string | null; user_agent: string | null }) => ({
     ...r, empresaNome: r.empresa_id ? (nomeEmp.get(r.empresa_id) ?? null) : null,
   }));
 
