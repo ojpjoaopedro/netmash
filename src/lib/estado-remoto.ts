@@ -71,12 +71,13 @@ export function lsApagar(chave: string) {
 /**
  * Puxa as chaves informadas do banco para o navegador. Se o banco não tiver a
  * chave mas o navegador tiver, sobe o que já existe (migração automática, 1x).
- * Retorna true se algo veio do banco (para as telas recarregarem).
+ * Retorna os valores que vieram do banco (útil para itens grandes, como a foto,
+ * que podem não caber no localStorage).
  */
-export async function sincronizarEstado(chaves: string[]): Promise<boolean> {
-  if (!supabaseReady || !supabase || typeof window === "undefined") return false;
-  const eid = await empresaId(); if (!eid) return false;
-  let veioAlgo = false;
+export async function sincronizarEstado(chaves: string[]): Promise<Record<string, string>> {
+  const valores: Record<string, string> = {};
+  if (!supabaseReady || !supabase || typeof window === "undefined") return valores;
+  const eid = await empresaId(); if (!eid) return valores;
   try {
     const { data } = await supabase.from("painel_estado").select("chave,dados").eq("empresa_id", eid);
     const noBanco = new Map<string, unknown>((data || []).map((r: { chave: string; dados: unknown }) => [r.chave, r.dados]));
@@ -85,8 +86,8 @@ export async function sincronizarEstado(chaves: string[]): Promise<boolean> {
       if (noBanco.has(chave)) {
         const v = noBanco.get(chave);
         const cru = typeof v === "string" ? v : JSON.stringify(v);
-        try { localStorage.setItem(chave, cru); } catch { /* ignore */ }
-        veioAlgo = true;
+        valores[chave] = cru;
+        try { localStorage.setItem(chave, cru); } catch { /* imagem grande: fica só no banco */ }
         if (EVENTO_DA_CHAVE[chave]) eventos.add(EVENTO_DA_CHAVE[chave]);
       } else {
         const local = localStorage.getItem(chave);
@@ -96,7 +97,7 @@ export async function sincronizarEstado(chaves: string[]): Promise<boolean> {
     // avisa as telas já montadas para recarregarem do cache atualizado
     for (const ev of eventos) window.dispatchEvent(new Event(ev));
   } catch { /* ignore */ }
-  return veioAlgo;
+  return valores;
 }
 
 // Prefixos das chaves que são POR EMPRESA (não podem vazar de uma conta pra outra

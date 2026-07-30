@@ -55,12 +55,12 @@ export function carregarEstrutura(ano: number = 2026): Dados {
     if (ano === 2026) {
       const legado = localStorage.getItem(CHAVE);
       if (legado) return JSON.parse(legado);
-      // conta real (banco): empresa nova começa com a ESTRUTURA zerada, não com os
-      // números de exemplo. No modo demonstração, mostra o exemplo (PADRAO).
-      return supabaseReady ? zerarValores(PADRAO) : PADRAO;
+      // conta real (banco): empresa nova começa com o MODELO LIMPO (genérico).
+      // No modo demonstração, mostra o exemplo com dados da Dynamis (PADRAO).
+      return supabaseReady ? MODELO_LIMPO : PADRAO;
     }
     return zerarValores(carregarEstrutura(2026));
-  } catch { return supabaseReady ? zerarValores(PADRAO) : PADRAO; }
+  } catch { return supabaseReady ? MODELO_LIMPO : PADRAO; }
 }
 
 /** Salva a estrutura de um ano específico (cache local + banco). */
@@ -372,6 +372,48 @@ export const PADRAO: Dados = {
             { nome: "DAS - ISS", v: v12([2092.81, 1518.10, 2150, 1383.33, 2255, 1771.71]) },
           ],
         },
+      ],
+    },
+  ],
+};
+
+/**
+ * Template LIMPO para empresas reais (clientes). Mesma organização do modelo,
+ * porém com nomes genéricos e valores zerados — cada empresa preenche o seu.
+ * (O PADRAO acima, com dados da Dynamis, fica só como demonstração no modo demo.)
+ */
+export const MODELO_LIMPO: Dados = {
+  receitas: [
+    { nome: "Time de vendas", cor: ROXO, v: v12([]) },
+    { nome: "Preencha aqui", cor: LARANJA, v: v12([]) },
+    { nome: "Preencha aqui", cor: "#94a3b8", v: v12([]) },
+  ],
+  custos: [
+    {
+      nome: "Custos Fixos",
+      grupos: [
+        { nome: "Salários", cor: AZUL, itens: [
+          { nome: "Preencha os colaboradores", v: v12([]) },
+          { nome: "Preencha os colaboradores", v: v12([]) },
+          { nome: "Preencha os colaboradores", v: v12([]) },
+        ] },
+        { nome: "Comissão", cor: LARANJA, itens: [
+          { nome: "Preencha aqui", v: v12([]) },
+        ] },
+        { nome: "Impostos / Encargos", cor: ROXO, itens: [
+          { nome: "Preencha aqui", v: v12([]) },
+        ] },
+        { nome: "Operacional", cor: VERDE, itens: [
+          { nome: "Preencha aqui", v: v12([]) },
+        ] },
+      ],
+    },
+    {
+      nome: "Custos Variáveis",
+      grupos: [
+        { nome: "Preencha aqui", cor: ROSA, itens: [
+          { nome: "Preencha aqui", v: v12([]) },
+        ] },
       ],
     },
   ],

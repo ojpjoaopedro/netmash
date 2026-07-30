@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Ban, Trash2, LogOut, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Pencil, Eye, Send,
+  LayoutDashboard, KeyRound, Pencil, Eye, EyeOff, Send,
   ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText,
   HeartPulse, ShoppingCart, Megaphone, Package,
 } from "lucide-react";
@@ -91,6 +91,12 @@ export default function Admin() {
   const [novo, setNovo] = useState<NovoCliente | null>(null);
   const [salvNovo, setSalvNovo] = useState(false);
   const [erroNovo, setErroNovo] = useState("");
+  // login embutido no próprio /admin (não redireciona para /login)
+  const [logEmail, setLogEmail] = useState("");
+  const [logSenha, setLogSenha] = useState("");
+  const [logErro, setLogErro] = useState("");
+  const [logBusy, setLogBusy] = useState(false);
+  const [logVer, setLogVer] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!supabaseReady || !supabase) { setData(DEMO_RESP); setDemo(true); setEstado("ok"); return; }
@@ -103,6 +109,15 @@ export default function Admin() {
     setData(await res.json()); setEstado("ok");
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
+  async function entrarAdmin(ev: React.FormEvent) {
+    ev.preventDefault();
+    if (!supabase) return;
+    setLogErro(""); setLogBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: logEmail.trim(), password: logSenha });
+    setLogBusy(false);
+    if (error) { setLogErro("E-mail ou senha incorretos."); return; }
+    setLogSenha(""); setEstado("carregando"); await carregar();
+  }
   useEffect(() => { if (data?.precos) setPrecoForm({ sa: String(data.precos.superadmin), ac: String(data.precos.acesso) }); }, [data]);
   // Ao abrir o detalhe de uma empresa, já carrega a equipe dela.
   useEffect(() => { if (detalheId) selecionarEmpresa(detalheId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [detalheId]);
@@ -287,8 +302,29 @@ export default function Admin() {
   }
 
   if (estado === "carregando") return <Casca><div className="spin" /></Casca>;
-  if (estado === "semlogin") return <Casca><Aviso titulo="Faça login" texto="Entre com a conta de Super Admin para acessar o painel." botao={() => router.push("/login")} botaoTxt="Ir para o login" /></Casca>;
-  if (estado === "negado") return <Casca><Aviso titulo="Acesso restrito 🔒" texto="Você está logado, mas esta área é só para Super Admin. Entre com a conta de Super Admin." botao={entrarComOutra} botaoTxt="Entrar com outra conta" botao2={() => router.push("/dashboard/home")} botao2Txt="Voltar ao painel" /></Casca>;
+  if (estado === "semlogin" || estado === "negado") {
+    return (
+      <Casca>
+        <div style={{ minHeight: "70vh", display: "grid", placeItems: "center", padding: 20 }}>
+          <form onSubmit={entrarAdmin} className="adm-login">
+            <div className="adm-brand" style={{ justifyContent: "center", marginBottom: 6 }}><img src="/logos/Minhas metricas.png" alt="Minhas Métricas" style={{ height: 46, borderRadius: 10 }} /></div>
+            <h2 style={{ textAlign: "center", margin: "6px 0 2px" }}>Área do Super Admin</h2>
+            <p className="adm-sub" style={{ textAlign: "center", marginBottom: 18 }}>Entre com a conta de administrador.</p>
+            {estado === "negado" && <div className="adm-login-msg">Essa conta não é Super Admin. Entre com a conta de administrador.</div>}
+            {logErro && <div className="adm-login-msg err">{logErro}</div>}
+            <label className="adm-login-l">E-mail</label>
+            <input className="adm-login-i" type="email" value={logEmail} onChange={(e) => setLogEmail(e.target.value)} placeholder="admin@empresa.com" required autoFocus />
+            <label className="adm-login-l">Senha</label>
+            <div style={{ position: "relative" }}>
+              <input className="adm-login-i" type={logVer ? "text" : "password"} value={logSenha} onChange={(e) => setLogSenha(e.target.value)} required style={{ paddingRight: 40 }} />
+              <button type="button" onClick={() => setLogVer((v) => !v)} title={logVer ? "Ocultar" : "Mostrar"} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "transparent", border: 0, cursor: "pointer", color: "#9aa0a6", display: "grid", placeItems: "center" }}>{logVer ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+            </div>
+            <button className="adm-btn" type="submit" disabled={logBusy} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{logBusy ? "Entrando…" : "Entrar"}</button>
+          </form>
+        </div>
+      </Casca>
+    );
+  }
   if (estado === "erro") return <Casca><Aviso titulo="Ops" texto="Não consegui carregar. Tente novamente em instantes." botao={carregar} botaoTxt="Tentar de novo" botao2={entrarComOutra} botao2Txt="Entrar com outra conta" /></Casca>;
 
   const t = data?.totais;
@@ -590,6 +626,14 @@ const CSS = `
 .adm-btn:disabled{opacity:.5;cursor:default}
 .adm-btn.sm{padding:6px 11px;font-size:12.5px;font-weight:700}
 .adm-btn.adm-ic{padding:8px;border-radius:10px;line-height:0}
+.adm-login{width:100%;max-width:380px;background:#121212;border:1px solid #222;border-radius:20px;padding:30px 28px}
+body.theme-light .adm-login{background:#fff;border-color:rgba(0,0,0,.08);box-shadow:0 10px 40px -12px rgba(0,0,0,.15)}
+.adm-login-l{display:block;font-size:12.5px;font-weight:700;color:#9aa0a6;margin:12px 0 6px}
+.adm-login-i{width:100%;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:12px;padding:13px 14px;color:#f4f5f7;font-size:15px;font-family:inherit;outline:none}
+body.theme-light .adm-login-i{background:#f4f4f5;border-color:rgba(0,0,0,.1);color:#18181b}
+.adm-login-i:focus{border-color:#1AADE2}
+.adm-login-msg{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#EF4444;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:6px}
+.adm-login-msg.err{background:rgba(239,68,68,.12)}
 .adm-btn.ghost{background:#161616;border:1px solid #333;color:#f4f5f7}
 .adm-btn.ghost:hover{border-color:#1AADE2;filter:none}
 .adm-btn.warn{background:#2a1d10;border:1px solid #6b4e1f;color:#F59E0B}

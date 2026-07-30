@@ -174,10 +174,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
       "me_som", "me_ocultar_valores", "me_bemvindo_fechado",
       "me_empresa_extra:default", ...(eb?.id ? [`me_empresa_extra:${eb.id}`] : []),
     ];
-    void sincronizarEstado(chaves).then(() => {
+    void sincronizarEstado(chaves).then((vals) => {
       // reaplica no que a página lê só uma vez na montagem
       setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
-      setFotoPerfil(localStorage.getItem("me_foto_perfil") || "");
+      // a foto pode ser grande e não caber no localStorage: pega direto do banco
+      setFotoPerfil(vals["me_foto_perfil"] || localStorage.getItem("me_foto_perfil") || "");
     });
   }, [empresa]);
 
@@ -194,11 +195,13 @@ export default function Home({ secao }: { secao?: string } = {}) {
   }
   function salvarFotoPerfil(url: string) {
     setFotoPerfil(url);
-    try { localStorage.setItem("me_foto_perfil", url); salvarEstadoRemoto("me_foto_perfil", url); } catch { /* imagem grande demais: fica só na sessão */ }
+    salvarEstadoRemoto("me_foto_perfil", url);                                  // banco SEMPRE (independente do localStorage)
+    try { localStorage.setItem("me_foto_perfil", url); } catch { /* imagem grande: fica no banco + na sessão */ }
   }
   function removerFotoPerfil() {
     setFotoPerfil("");
-    try { localStorage.removeItem("me_foto_perfil"); apagarEstadoRemoto("me_foto_perfil"); } catch { /* ignore */ }
+    apagarEstadoRemoto("me_foto_perfil");
+    try { localStorage.removeItem("me_foto_perfil"); } catch { /* ignore */ }
   }
 
   // Interliga a identidade: aplica logo/cor da empresa logada (banco) na marca do painel.
