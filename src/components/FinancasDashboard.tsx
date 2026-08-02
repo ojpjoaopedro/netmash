@@ -63,15 +63,17 @@ function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: st
   const max = Math.max(1, ...itens.map((i) => i.valor));
   const estreito = useEstreito();
   const larguraRot = estreito ? 96 : (alto ? 260 : 220);
+  const altura = alto ? 30 : 24;
   return (
-    <div style={{ display: "grid", gap: alto ? 10 : 13, alignContent: "center", height: "100%" }}>
+    <div style={{ display: "grid", gap: alto ? 14 : 16, alignContent: "center", height: "100%" }}>
       {itens.map((it) => (
         <div key={it.nome} style={{ display: "flex", alignItems: "center", gap: estreito ? 8 : 12 }}>
           <span style={{ width: larguraRot, flexShrink: 0, fontSize: alto ? 14 : (estreito ? 11.5 : 13), color: "#a3b0c4", textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontStyle: "italic" }}>{it.nome}</span>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
-            <div style={{ height: alto ? 24 : 20, borderRadius: 7, background: it.cor, width: `${Math.max(4, (it.valor / max) * 100)}%`, boxShadow: `0 0 16px -2px ${it.cor}99` }} />
-            <span className="oc-num" style={{ fontSize: alto ? 15 : 13.5, fontWeight: 800, color: "#eef2f7", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
+          {/* trilho ocupa todo o espaço; a barra é proporcional à maior */}
+          <div style={{ flex: 1, minWidth: 0, height: altura, borderRadius: 8, background: "rgba(148,163,184,.10)", overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 8, background: it.cor, width: `${Math.max(5, (it.valor / max) * 100)}%`, boxShadow: `0 0 18px -3px ${it.cor}aa` }} />
           </div>
+          <span className="oc-num" style={{ width: estreito ? 78 : 96, flexShrink: 0, textAlign: "right", fontSize: alto ? 15 : 13.5, fontWeight: 800, color: "#eef2f7", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
         </div>
       ))}
     </div>
@@ -108,6 +110,7 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
   const [data, setData] = useState<Dados | null>(null);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [full, setFull] = useState(false);
+  const estreito = useEstreito();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -161,10 +164,12 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
             </button>
           );
         })}
-        <button onClick={toggleFull} title={full ? "Sair da tela cheia" : "Expandir para tela cheia"}
-          style={{ marginLeft: "auto", width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}>
-          {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-        </button>
+        {!estreito && (
+          <button onClick={toggleFull} title={full ? "Sair da tela cheia" : "Expandir para tela cheia"}
+            style={{ marginLeft: "auto", width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}>
+            {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </button>
+        )}
       </div>
 
       {/* 4 painéis */}
@@ -178,7 +183,7 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
         <Painel titulo="Despesas mês a mês" badge={fmtR(calc.totCus)} badgeCor={VERMELHO} chart>
           <LinhaChart meses={calc.meses} valores={calc.cusMes} cor={VERMELHO} alto={full} />
         </Painel>
-        <Painel titulo="Composição dos custos"><Barras itens={calc.custos} alto={full} /></Painel>
+        <Painel titulo="Composição dos custos"><Barras itens={calc.custos.slice(0, 6)} alto={full} /></Painel>
       </div>
 
       {/* resumo receita x custo */}

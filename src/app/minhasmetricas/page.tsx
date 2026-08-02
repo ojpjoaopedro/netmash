@@ -484,7 +484,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
             </div>
 
             <div className="mhome-blue">
-              {[{ aba: "estrutura", label: "Estrutura de custos e receita", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "relatorios", label: "Relatório", Icon: FileText }].map((a) => (
+              {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "relatorios", label: "Relatório", Icon: FileText }].map((a) => (
                 <button key={a.aba} className="mhome-bcard" onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}>
                   <a.Icon size={22} color="#fff" />
                   <span>{a.label}</span>
@@ -737,7 +737,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
       {/* CELULAR: menu de cards (estilo app). Ao tocar, entra na seção. */}
       {estreito && !entrou ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
-          {[...abas, { key: "tutorial" as const, label: "Ver tutorial", Icon: Sparkles }].map((a) => (
+          {[...abas.filter((a) => a.key !== "dashboard" && a.key !== "relatorios"), { key: "tutorial" as const, label: "Ver tutorial", Icon: Sparkles }].map((a) => (
             <button key={a.key}
               onClick={() => { if (a.key === "tutorial") { setTourOn(true); return; } setAba(a.key as typeof aba); if (a.key === "calendario") setCalSub(null); setEntrou(true); }}
               style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "space-between", gap: 16, minHeight: 118, padding: "16px 15px", borderRadius: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left", background: "var(--brand)", border: 0, color: "#fff", boxShadow: "0 12px 26px -14px color-mix(in srgb, var(--brand) 70%, transparent)" }}>
