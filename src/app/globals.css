@@ -437,7 +437,7 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   .msub-top b{font-size:18px;font-weight:800;letter-spacing:-.01em}
   .msub-back{width:38px;height:38px;flex-shrink:0;border-radius:12px;border:0;cursor:pointer;display:grid;place-items:center;
     background:rgba(255,255,255,.92);color:var(--brand);box-shadow:0 6px 16px -8px rgba(0,0,0,.4)}
-  .msub-body{padding:0 14px}
+  .msub-body{padding:0 14px;overflow-x:clip}
   /* telas internas bem compactas no celular */
   .msub-body h2{font-size:18px}
   .msub-body h3{font-size:15px;margin-bottom:8px}
@@ -448,6 +448,8 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   .msub-body .tab-scroll{max-height:72vh;overflow-y:auto}
   /* dashboard escuro do celular: ponta a ponta e o fundo preto vai até o fim da tela */
   .msub-body .dash-escuro{margin:-8px -14px -24px;border-radius:0;border-left:0;border-right:0;border-bottom:0;min-height:calc(100dvh - 96px);padding-bottom:32px}
+  /* formularios de config no celular: cada campo em sua propria linha (menos espremido) */
+  .msub-body .fgrid{grid-template-columns:1fr !important;gap:10px !important}
   .msub-body .field{margin-bottom:8px}
   .msub-body label.f{margin-bottom:3px;font-size:12px}
   .msub-body input:not(.mba-scope *),.msub-body select:not(.mba-scope *),.msub-body textarea:not(.mba-scope *){padding:8px 10px;font-size:13px;border-radius:9px}

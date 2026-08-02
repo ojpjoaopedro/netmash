@@ -56,9 +56,9 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
   return (
     <div className="relatorio-modal" style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(15,23,42,.6)", backdropFilter: "blur(2px)", display: "flex", flexDirection: "column" }}>
       {/* barra superior branca */}
-      <div className="no-print" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 16px", background: "#fff", color: "#0f172a", borderBottom: "1px solid #e2e8f0" }}>
+      <div className="no-print" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, rowGap: 10, flexWrap: "wrap", padding: "10px 16px", background: "#fff", color: "#0f172a", borderBottom: "1px solid #e2e8f0" }}>
         <b style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14 }}><FileText size={16} /> Demonstração de Resultados (DRE)</b>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, rowGap: 8, flexWrap: "wrap" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 99, padding: 2 }}>
             {(["reduzida", "completa"] as const).map((k) => (
               <button key={k} onClick={() => setModo(k)}

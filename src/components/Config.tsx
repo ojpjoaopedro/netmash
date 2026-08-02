@@ -151,7 +151,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
         <div className="card compacto">
           <h3>🏢 Dados da empresa</h3>
           {/* Nome, Segmento e CNPJ na mesma linha */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 14 }}>
+          <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 14 }}>
             <div className="field"><label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Nome da empresa <Lock size={11} style={{ opacity: .6 }} /></label><input value={nome} readOnly title="Definido no cadastro, não editável" style={{ opacity: .8, cursor: "default" }} /></div>
             <div className="field">
               <label className="f">Segmento</label>
@@ -172,7 +172,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
             <div className="field"><label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>CNPJ <Lock size={11} style={{ opacity: .6 }} /></label><input value={cnpj} readOnly title="Definido no cadastro, não editável" style={{ opacity: .8, cursor: "default" }} inputMode="numeric" /></div>
           </div>
           {/* E-mail (maior) primeiro, depois Contato e Inscrição Estadual */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 14 }}>
+          <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 14 }}>
             <div className="field"><label className="f">E-mail principal</label>
               <input value={extra.email} onChange={(e) => { upExtra({ email: e.target.value }); if (emailErro) setEmailErro(""); }}
                 onBlur={(e) => { const v = e.currentTarget.value.trim(); if (v && !emailValido(v)) { setEmailErro("E-mail inválido. Use o formato nome@empresa.com."); upExtra({ email: "" }); e.currentTarget.value = ""; salvarCampo(e.currentTarget); return; } setEmailErro(""); salvarCampo(e.currentTarget); }} inputMode="email" />
@@ -182,7 +182,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
             <div className="field"><label className="f">Inscrição Estadual</label><input value={extra.ie} onChange={(e) => upExtra({ ie: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Opcional" /></div>
           </div>
           {/* Endereço: CEP primeiro (preenche rua, bairro, cidade e estado automaticamente) */}
-          <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1.6fr 0.7fr", gap: 14 }}>
+          <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "0.8fr 1.6fr 0.7fr", gap: 14 }}>
             <div className="field">
               <label className="f">CEP</label>
               <input value={extra.cep}
@@ -194,7 +194,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
             <div className="field"><label className="f">Rua</label><input value={extra.rua} onChange={(e) => upEndereco({ rua: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
             <div className="field"><label className="f">Número</label><input value={extra.numero} onChange={(e) => upEndereco({ numero: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 0.5fr", gap: 14 }}>
+          <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 0.5fr", gap: 14 }}>
             <div className="field"><label className="f">Complemento</label><input value={extra.complemento} onChange={(e) => upEndereco({ complemento: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
             <div className="field"><label className="f">Bairro</label><input value={extra.bairro} onChange={(e) => upEndereco({ bairro: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
             <div className="field"><label className="f">Cidade</label><input value={extra.cidade} onChange={(e) => upEndereco({ cidade: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
