@@ -586,3 +586,18 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 @keyframes numFlash{0%{background:rgba(16,185,129,.22)}100%{background:transparent}}
 .num-flash{display:inline-block;padding:0 3px;margin:0 -3px;border-radius:5px;animation:numFlash 2s ease-out}
 
+/* ============================================================
+   SPLASH DE ENTRADA (login) — frases que entram/saem centralizadas
+   ============================================================ */
+.splash-entrada{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:28px;text-align:center;
+  background:radial-gradient(120% 120% at 50% 0%,color-mix(in srgb,var(--brand) 14%,#fff),#fff 55%)}
+@media(prefers-color-scheme:dark){.splash-entrada{background:radial-gradient(120% 120% at 50% 0%,color-mix(in srgb,var(--brand) 22%,#0b1220),#0b1220 55%)}}
+.splash-frase{margin:0;max-width:15ch;font-size:clamp(24px,6.4vw,44px);font-weight:800;letter-spacing:-.02em;line-height:1.22;
+  color:#0f172a;transition:opacity .55s ease,transform .55s ease}
+@media(prefers-color-scheme:dark){.splash-frase{color:#f1f5f9}}
+.splash-frase.saindo{opacity:0;transform:translateY(-18px)}
+.splash-palavra{display:inline-block;white-space:nowrap}
+.splash-letra{display:inline-block;opacity:0;transform:translateY(18px) scale(.96);
+  animation:splashLetra .5s cubic-bezier(.2,.85,.25,1) forwards}
+@keyframes splashLetra{to{opacity:1;transform:translateY(0) scale(1)}}
+

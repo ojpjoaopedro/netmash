@@ -7,6 +7,42 @@ import { supabaseReady } from "@/lib/supabase";
 
 type Modo = "login" | "cadastro" | "reset" | "novasenha";
 
+/** Splash de entrada: duas frases que entram e saem com animação, bem centralizadas. */
+function SplashEntrada({ onFim }: { onFim: () => void }) {
+  const frases = ["Enquanto você cuida do seu negócio", "Nós cuidamos dos números"];
+  const [i, setI] = useState(0);
+  const [saindo, setSaindo] = useState(false);
+  useEffect(() => {
+    const VISIVEL = 2100, SAIDA = 650;
+    const t1 = window.setTimeout(() => setSaindo(true), VISIVEL);
+    const t2 = window.setTimeout(() => {
+      if (i < frases.length - 1) { setI(i + 1); setSaindo(false); }
+      else onFim();
+    }, VISIVEL + SAIDA);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i]);
+
+  const palavras = frases[i].split(" ");
+  let idx = 0;
+  return (
+    <div className="splash-entrada">
+      <p key={i} className={`splash-frase${saindo ? " saindo" : ""}`}>
+        {palavras.map((palavra, wi) => (
+          <span key={wi}>
+            <span className="splash-palavra">
+              {[...palavra].map((ch, ci) => (
+                <span key={ci} className="splash-letra" style={{ animationDelay: `${(idx++) * 0.035}s` }}>{ch}</span>
+              ))}
+            </span>
+            {wi < palavras.length - 1 ? " " : null}
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [modo, setModo] = useState<Modo>("login");
@@ -20,6 +56,7 @@ export default function LoginPage() {
   const [erro, setErro] = useState("");
   const [msg, setMsg] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [entrando, setEntrando] = useState<string | null>(null);   // destino após o splash de entrada
 
   // Veio do link de e-mail (definir senha de 1º acesso / recuperação)?
   useEffect(() => {
@@ -41,11 +78,11 @@ export default function LoginPage() {
     try {
       if (modo === "login") {
         await login(email.trim(), senha);
-        router.push("/dashboard/home");
+        setEntrando("/dashboard/home");
       } else if (modo === "cadastro") {
         await cadastrarComCodigo(nome.trim(), empresa.trim(), email.trim(), senha, codigo.trim());
         await login(email.trim(), senha);
-        router.push("/guia?novo=1");
+        setEntrando("/guia?novo=1");
       } else if (modo === "reset") {
         await enviarReset(email.trim(), `${window.location.origin}/senha`);
         setMsg("✅ Enviamos um link para o seu e-mail. Abra-o para definir sua senha.");
@@ -54,8 +91,7 @@ export default function LoginPage() {
         if (senha.length < 6) throw new Error("A senha precisa ter ao menos 6 caracteres.");
         if (senha !== senha2) throw new Error("As senhas não conferem.");
         await definirSenha(senha);
-        setMsg("✅ Senha definida! Entrando…");
-        router.push("/dashboard/home");
+        setEntrando("/dashboard/home");
       }
     } catch (err) {
       const m = err instanceof Error ? err.message : "Erro";
@@ -75,6 +111,8 @@ export default function LoginPage() {
     : modo === "cadastro" ? "Use o código que você recebeu na compra"
     : modo === "reset" ? "Digite seu e-mail e enviaremos um link"
     : "Crie a senha do seu primeiro acesso";
+
+  if (entrando) return <SplashEntrada onFim={() => router.push(entrando)} />;
 
   return (
     <div className="auth-wrap">
