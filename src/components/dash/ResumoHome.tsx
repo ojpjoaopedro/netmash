@@ -147,42 +147,42 @@ function PulsoDoDia() {
 
   return (
     <div style={{
-      position: "relative", overflow: "hidden", borderRadius: 18, padding: "18px 20px",
+      position: "relative", overflow: "hidden", borderRadius: 14, padding: "12px 14px",
       background: "linear-gradient(145deg, rgba(56,189,248,.14), rgba(37,99,235,.06) 60%, transparent)",
       border: "1px solid color-mix(in srgb, var(--brand) 22%, transparent)",
       boxShadow: "0 10px 30px -18px rgba(37,99,235,.5)",
     }}>
       {/* aspas gigantes ao fundo, marca d'água da citação */}
-      <Quote size={110} style={{ position: "absolute", right: -14, top: -22, opacity: .08, color: "var(--brand)", transform: "scaleX(-1)", pointerEvents: "none" }} />
+      <Quote size={80} style={{ position: "absolute", right: -10, top: -16, opacity: .08, color: "var(--brand)", transform: "scaleX(-1)", pointerEvents: "none" }} />
       {/* filete de destaque à esquerda */}
-      <span style={{ position: "absolute", left: 0, top: 16, bottom: 16, width: 3, borderRadius: 3, background: "var(--brand)" }} />
+      <span style={{ position: "absolute", left: 0, top: 12, bottom: 12, width: 3, borderRadius: 3, background: "var(--brand)" }} />
 
       <div style={{ position: "relative" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--brand)", color: "#fff", flexShrink: 0, boxShadow: "0 4px 12px -4px color-mix(in srgb, var(--brand) 60%, transparent)" }}><Sparkles size={15} /></span>
-          <b style={{ ...CABECALHO, color: "var(--brand)" }}>Pulso do dia</b>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+          <span style={{ width: 24, height: 24, borderRadius: 8, display: "grid", placeItems: "center", background: "var(--brand)", color: "#fff", flexShrink: 0, boxShadow: "0 4px 12px -4px color-mix(in srgb, var(--brand) 60%, transparent)" }}><Sparkles size={13} /></span>
+          <b style={{ ...CABECALHO, color: "var(--brand)", fontSize: 11 }}>Pulso do dia</b>
         </div>
 
         {/* null no 1º render evita divergência de hidratação: a data é lida só no cliente */}
-        <p style={{ lineHeight: 1.5, fontSize: 17, fontWeight: 700, letterSpacing: "-.01em", fontStyle: "italic" }}>
+        <p style={{ lineHeight: 1.45, fontSize: 14, fontWeight: 700, letterSpacing: "-.01em", fontStyle: "italic" }}>
           {frase ? (
             <>
-              <span style={{ fontSize: 30, fontWeight: 800, color: "var(--brand)", verticalAlign: "-0.18em", marginRight: 2, lineHeight: 0 }}>“</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: "var(--brand)", verticalAlign: "-0.18em", marginRight: 2, lineHeight: 0 }}>“</span>
               {/* sem o ponto final: a frase respira melhor entre as aspas */}
               {frase.t.replace(/\.\s*$/, "")}
-              <span style={{ fontSize: 30, fontWeight: 800, color: "var(--brand)", verticalAlign: "-0.35em", marginLeft: 1, lineHeight: 0 }}>”</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: "var(--brand)", verticalAlign: "-0.35em", marginLeft: 1, lineHeight: 0 }}>”</span>
             </>
           ) : "…"}
         </p>
         {frase?.a && (
-          <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 7 }}>
-            <span style={{ width: 18, height: 2, background: "var(--brand)", borderRadius: 2, opacity: .6 }} />
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--brand)", letterSpacing: ".02em" }}>{frase.a}</span>
+          <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <span style={{ width: 16, height: 2, background: "var(--brand)", borderRadius: 2, opacity: .6 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--brand)", letterSpacing: ".02em" }}>{frase.a}</span>
           </div>
         )}
 
         {frase && (
-          <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap" }}>
             <button className="btn sm" onClick={instagram}><Instagram size={14} /> Compartilhar no Instagram</button>
             <button className="btn ghost sm" onClick={copiar}>{copiado ? <><Check size={14} /> Copiado!</> : <><Copy size={14} /> Copiar</>}</button>
           </div>
@@ -220,10 +220,10 @@ function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
   const vazio = niver.length === 0 && admis.length === 0;
 
   return (
-    <div style={{ borderRadius: 16, padding: 16, background: "linear-gradient(150deg, rgba(37,99,235,.10), transparent)", border: "1px solid color-mix(in srgb, var(--brand) 18%, transparent)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Cake size={15} /></span>
-        <b style={{ ...CABECALHO, color: "var(--brand)" }}>Aniversários de {MESES_PT[mes]}</b>
+    <div style={{ borderRadius: 14, padding: 12, background: "linear-gradient(150deg, rgba(37,99,235,.10), transparent)", border: "1px solid color-mix(in srgb, var(--brand) 18%, transparent)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
+        <span style={{ width: 22, height: 22, borderRadius: 7, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Cake size={13} /></span>
+        <b style={{ ...CABECALHO, color: "var(--brand)", fontSize: 11 }}>Aniversários de {MESES_PT[mes]}</b>
       </div>
 
       {vazio && <p className="sub" style={{ fontStyle: "italic" }}>Nenhum aniversariante neste mês.</p>}
@@ -274,7 +274,7 @@ export default function ResumoHome({ funcs = [], nome }: { funcs?: Funcionario[]
       <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(26,173,226,.18), transparent 70%)", pointerEvents: "none" }} />
 
       {/* Saudação */}
-      <div style={{ marginBottom: 18, position: "relative" }}>
+      <div style={{ marginBottom: 12, position: "relative" }}>
         <div style={{ color: "var(--brand)", opacity: .9, fontSize: 12, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase" }}>{saudacao()}{nome ? `, ${nome}` : ""}</div>
         <div className="sub" style={{ textTransform: "capitalize", fontStyle: "italic", marginTop: 3 }}>{dataHoje()}</div>
       </div>

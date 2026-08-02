@@ -69,7 +69,7 @@ function Confete() {
   return null;
 }
 
-type Item = { key: string; label: string; feito: boolean; nav: AlvoNav };
+type Item = { key: string; label: string; curto: string; feito: boolean; nav: AlvoNav };
 
 export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empresa: Empresa | null; brand: Brand; funcsCount: number }) {
   const [tick, setTick] = useState(0);                 // força reavaliação periódica
@@ -105,11 +105,11 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
   const termosOK = lerJSON<boolean>("me_termos_aceite") === true;
 
   const itens: Item[] = [
-    { key: "super", label: "Preencher dados do SuperAdmin", feito: superOK, nav: { view: "config", aba: "usuarios" } },
-    { key: "empresa", label: "Preencher dados da empresa", feito: empresaOK, nav: { view: "config", aba: "dados" } },
-    { key: "logo", label: "Cadastrar a logomarca", feito: logoOK, nav: { view: "config", aba: "personalizacao" } },
-    { key: "equipe", label: "Cadastrar 1 membro da equipe", feito: equipeOK, nav: { view: "config", aba: "equipe" } },
-    { key: "termos", label: "Aceitar os termos de uso", feito: termosOK, nav: { view: "config", aba: "termos" } },
+    { key: "super", label: "Preencher dados do SuperAdmin", curto: "Dados do administrador", feito: superOK, nav: { view: "config", aba: "usuarios" } },
+    { key: "empresa", label: "Preencher dados da empresa", curto: "Dados da empresa", feito: empresaOK, nav: { view: "config", aba: "dados" } },
+    { key: "logo", label: "Cadastrar a logomarca", curto: "Cadastrar a logomarca", feito: logoOK, nav: { view: "config", aba: "personalizacao" } },
+    { key: "equipe", label: "Cadastrar 1 membro da equipe", curto: "Cadastrar a equipe", feito: equipeOK, nav: { view: "config", aba: "equipe" } },
+    { key: "termos", label: "Aceitar os termos de uso", curto: "Aceitar os termos de uso", feito: termosOK, nav: { view: "config", aba: "termos" } },
   ];
   const feitos = itens.filter((i) => i.feito).length;
   const total = itens.length;
@@ -147,13 +147,13 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
   const ir = (a: AlvoNav) => navegar(a);
 
   const guia = tudoOK ? null : (min ? (
-    <button onClick={() => trocarMin(false)}
-      style={{ position: "fixed", right: 20, bottom: 20, zIndex: 80, display: "inline-flex", alignItems: "center", gap: 10, padding: "11px 16px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", boxShadow: "0 12px 30px -10px rgba(0,0,0,.4)" }}>
+    <button className="guia-min" onClick={() => trocarMin(false)}
+      style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "11px 16px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", boxShadow: "0 12px 30px -10px rgba(0,0,0,.4)" }}>
       <Sparkles size={16} style={{ color: "var(--brand)" }} /> Guia de configuração
       <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", padding: "2px 8px", borderRadius: 99 }}>{feitos}/{total}</span>
     </button>
   ) : (
-    <div style={{ position: "fixed", right: 20, bottom: 20, zIndex: 80, width: 288, maxWidth: "calc(100vw - 40px)", borderRadius: 16, overflow: "hidden", background: "var(--card)", border: "2px solid var(--line-2)", boxShadow: "0 20px 50px -12px rgba(0,0,0,.5)" }}>
+    <div className="guia-card">
       <div style={{ padding: "12px 14px 10px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <b style={{ fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 7 }}><Sparkles size={15} style={{ color: "var(--brand)" }} /> Guia de configuração</b>

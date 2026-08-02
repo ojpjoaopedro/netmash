@@ -23,7 +23,6 @@ import { useBrand } from "@/lib/brand";
 import ResumoHome from "@/components/dash/ResumoHome";
 import PainelCobrancas from "@/components/PainelCobrancas";
 import CalendarioRecebimento from "@/components/CalendarioRecebimento";
-import PromoParaVoce from "@/components/PromoParaVoce";
 import CropLogo from "@/components/CropLogo";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
@@ -65,6 +64,16 @@ const METRICAS = [
 ] as const;
 // sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
+// Menu do app (mobile): abre pelo MENU do topo e lista as 7 telas de configuração.
+const MENU_APP: { aba: string; label: string; Icon: typeof LayoutDashboard }[] = [
+  { aba: "usuarios", label: "Meus Usuários", Icon: UserCog },
+  { aba: "dados", label: "Dados da Empresa", Icon: Building2 },
+  { aba: "personalizacao", label: "Personalização", Icon: Palette },
+  { aba: "equipe", label: "Equipe", Icon: Users },
+  { aba: "termos", label: "Termos de uso", Icon: FileText },
+  { aba: "beneficios", label: "Meus Benefícios", Icon: Gift },
+  { aba: "plano", label: "Plano", Icon: CreditCard },
+];
 // Sub-abas (pílulas) — Empresa e Equipe
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
@@ -288,18 +297,28 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
   return (
     <div className="app">
-      {/* Top bar (mobile) */}
-      <header className="mobiletop">
-        <div className="brand">
-          {marcaInterna}
+
+      {/* Topo do app (mobile) — fundo preto, só na tela inicial (Home) */}
+      {view === "dashboard" && (
+      <header className="apptop">
+        <div className="apptop-bar">
+          <button className="apptop-menu" onClick={() => setMenuAberto(true)} title="Menu"><Menu size={22} /></button>
+          <span className="apptop-logo">Minhas <span>Métricas</span></span>
+          <span style={{ width: 34, flexShrink: 0 }} />
         </div>
-        <div className="mt-actions">
-          {/* notificações desativadas por enquanto */}
-          <button className="iconbtn" onClick={toggleTheme} title="Tema">{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button>
-          <button className="iconbtn" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
-          <button className="iconbtn" onClick={() => setMenuAberto(true)} title="Menu"><Menu size={22} /></button>
-        </div>
+        <button className="apptop-id" onClick={irParaHome} title="Início">
+          <span className="apptop-av">
+            {fotoPerfil ? <img src={fotoPerfil} alt="" />
+              : brand.logo ? <img src={brand.logo} alt="" />
+              : <ImageIcon size={17} />}
+          </span>
+          <span className="apptop-idtxt">
+            <b>{nomeMarca}</b>
+            <small>Painel financeiro</small>
+          </span>
+        </button>
       </header>
+      )}
 
       {/* Drawer (mobile) */}
       {menuAberto && (
@@ -309,32 +328,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <span style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>{marcaInterna}</span>
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
-            <div className="navgroup"><div className="gl">Métricas</div><nav className="nav">
-              {metricasVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
-                <button key={key} className={at ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={16} color={corDe(key)} /> {label}</button>
-              ); })}
-              {metricasMaisVis.length > 0 && (maisAberto || maisTemAtivo) && metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
-                <button key={key} className={at ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={16} color={corDe(key)} /> {label}</button>
-              ); })}
-              {metricasMaisVis.length > 0 && !maisTemAtivo && (
-                <button onClick={() => setMaisAberto((v) => !v)} style={{ color: "var(--muted)", justifyContent: "flex-start" }}><ChevronDown size={16} style={{ transform: maisAberto ? "none" : "rotate(-90deg)", transition: ".15s" }} /> {maisAberto ? "Menos" : "Mais métricas"}</button>
-              )}
+            <div className="navgroup"><div className="gl">Configurações</div><nav className="nav">
+              {MENU_APP.map(({ aba, label, Icon }) => (
+                <button key={aba} onClick={() => { playTick(); navegar({ view: "config", aba }); setMenuAberto(false); }}><Icon size={16} color="var(--brand)" /> {label}</button>
+              ))}
             </nav></div>
-            <div className="navgroup"><div className="gl">Operações</div><nav className="nav">
-              {opsCore.map(({ key, label, Icon }) => { const at = view === key; return (
-                <button key={key} className={at ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={16} color={corDe(key)} /> {label}</button>
-              ); })}
-            </nav></div>
-            {opsSistema.length > 0 && (
-              <div className="navgroup">
-                <button className="gl" onClick={() => setSistemaAberto((v) => !v)} style={{ background: "none", border: 0, cursor: "pointer", width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}>Sistema <span>{(sistemaAberto || sistemaTemAtivo) ? "▾" : "▸"}</span></button>
-                {(sistemaAberto || sistemaTemAtivo) && <nav className="nav">
-                  {opsSistema.map(({ key, label, Icon }) => { const at = view === key; return (
-                    <button key={key} className={at ? "active" : ""} onClick={() => navClick(key as View)}><Icon size={16} color={corDe(key)} /> {label}</button>
-                  ); })}
-                </nav>}
-              </div>
-            )}
             <div className="navgroup"><nav className="nav">
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
             </nav></div>
@@ -495,9 +493,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
         {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} /></div>}
         {view === "dashboard" && (
-          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16, alignItems: "start" }}>
+          <div style={{ marginTop: 16 }}>
             <CalendarioRecebimento ano={Number(anoSel)} />
-            <PromoParaVoce />
           </div>
         )}
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
@@ -524,11 +521,12 @@ export default function Home({ secao }: { secao?: string } = {}) {
       <GuiaConfiguracao empresa={empresa} brand={brand} funcsCount={funcs.length} />
 
 
-      {/* Bottom nav (mobile) — estilo Hub: atalhos fixos + Menu */}
+      {/* Bottom nav (mobile) — seções principais; o MENU (config) fica no topo */}
       <nav className="bottomnav">
         <button className={view === "dashboard" ? "active" : ""} onClick={() => { playTick(); setView("dashboard"); }}><LayoutDashboard size={20} />Home</button>
-        <button className={view === "assistente" ? "active" : ""} onClick={() => { playTick(); setView("assistente"); }}><Sparkles size={20} />Assistente</button>
-        <button className={view === "equipe" ? "active" : ""} onClick={() => { playTick(); setView("equipe"); }}><Users size={20} />Equipe</button>
+        <button className={view === "financas" ? "active" : ""} onClick={() => { playTick(); setView("financas"); }}><DollarSign size={20} />Finanças</button>
+        <button className={view === "planejamento" ? "active" : ""} onClick={() => { playTick(); setView("planejamento"); }}><Compass size={20} />Planejam.</button>
+        <button className={view === "clientes" ? "active" : ""} onClick={() => { playTick(); setView("clientes"); }}><UserPlus size={20} />Clientes</button>
       </nav>
     </div>
   );
@@ -598,11 +596,20 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
   const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios" | "importar">("dashboard");
   // dentro do Calendário: escolha entre pagamentos e recebimentos (null = mostra as 2 opções)
   const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | null>(null);
+  // no celular, Finanças abre num menu de CARDS; ao tocar num card, "entra" na seção
+  const [estreito, setEstreito] = useState(false);
+  const [entrou, setEntrou] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const upd = () => setEstreito(mq.matches);
+    upd(); mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
+  }, []);
   // Guia de configuração pode abrir uma aba/sub específica de Finanças
   useEffect(() => {
     const aplicar = (a: { view: string; aba?: string; sub?: string }) => {
       if (a.view !== "financas") return;
-      if (a.aba) setAba(a.aba as typeof aba);
+      if (a.aba) { setAba(a.aba as typeof aba); setEntrou(true); }
       if (a.sub === "pagamentos" || a.sub === "recebimentos") setCalSub(a.sub);
     };
     const at = pegarAlvo(); if (at) aplicar(at);
@@ -658,7 +665,28 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
         </button>
       </div>
 
-      {/* barra de abas: tabs rolam na horizontal; "Ver tutorial" fica fixo à direita */}
+      {/* CELULAR: menu de cards (estilo app). Ao tocar, entra na seção. */}
+      {estreito && !entrou ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
+          {[...abas, { key: "tutorial" as const, label: "Ver tutorial", Icon: Sparkles }].map((a) => (
+            <button key={a.key}
+              onClick={() => { if (a.key === "tutorial") { setTourOn(true); return; } setAba(a.key as typeof aba); if (a.key === "calendario") setCalSub(null); setEntrou(true); }}
+              style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "space-between", gap: 16, minHeight: 118, padding: "16px 15px", borderRadius: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left", background: "var(--brand)", border: 0, color: "#fff", boxShadow: "0 12px 26px -14px color-mix(in srgb, var(--brand) 70%, transparent)" }}>
+              <a.Icon size={26} color="#fff" strokeWidth={2} />
+              <b style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.25, color: "#fff" }}>{a.label}</b>
+            </button>
+          ))}
+        </div>
+      ) : (
+      <>
+      {/* CELULAR (dentro de uma seção): botão voltar para os cards */}
+      {estreito ? (
+        <button onClick={() => { setEntrou(false); setCalSub(null); }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, color: "var(--brand)", background: "transparent", border: 0, padding: "4px 0", marginBottom: 12 }}>
+          <ArrowLeft size={17} /> Voltar
+        </button>
+      ) : (
+      /* DESKTOP: barra de abas; "Ver tutorial" à direita */
       <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0, overflowX: "auto" }}>
           {abas.map((a, i) => (
@@ -675,6 +703,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
           <Sparkles size={14} /> Ver tutorial
         </button>
       </div>
+      )}
 
       {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
       {!(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
@@ -687,6 +716,8 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} />
         : aba === "importar" ? <Importar reload={reload} empresa={empresa} brand={brand} />
         : <EmConstrucao titulo={rotulos[aba]} />}
+      </>
+      )}
 
       {tourOn && <TourFinancas setAba={(k) => { setAba(k); if (k === "calendario") setCalSub(null); }}
         onVerVideo={() => setVideoTut(true)}

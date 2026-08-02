@@ -325,6 +325,24 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 
 /* ===== Mobile: top bar + drawer + bottom nav ===== */
 .mobiletop{display:none}
+/* topo do app (mobile) — fundo preto, estilo app */
+.apptop{display:none}
+@media(max-width:900px){
+  .app{flex-direction:column}
+  .apptop{display:block;background:#0A0A0A;color:#fff;
+    padding:calc(16px + env(safe-area-inset-top)) 18px 22px;border-radius:0 0 22px 22px}
+  .apptop-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;height:42px}
+  .apptop-menu{background:transparent;border:0;color:#fff;cursor:pointer;display:grid;place-items:center;width:38px;height:38px;border-radius:10px;flex-shrink:0}
+  .apptop-logo{font-size:21px;font-weight:900;letter-spacing:-.02em;color:#fff}
+  .apptop-logo span{color:#1AADE2}
+  .apptop-id{display:flex;align-items:center;gap:13px;width:100%;background:transparent;border:0;padding:16px 2px 2px;cursor:pointer;font-family:inherit;text-align:left}
+  .apptop-av{width:48px;height:48px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;overflow:hidden;
+    background:linear-gradient(150deg,var(--brand),var(--brand-dark));color:#fff;border:1px solid rgba(255,255,255,.14)}
+  .apptop-av img{width:100%;height:100%;object-fit:cover}
+  .apptop-idtxt{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+  .apptop-idtxt b{font-size:17px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64vw}
+  .apptop-idtxt small{font-size:12px;color:#9aa0a6;font-weight:600}
+}
 .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:55}
 .drawer{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:86vw;background:var(--sidebar);
   border-right:1px solid var(--line);padding:16px 14px;overflow-y:auto;z-index:56;animation:drawin .22s ease}
@@ -332,7 +350,7 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .bottomnav{display:none}
 @media(max-width:900px){
   .side{display:none}
-  .main{padding:64px 14px 104px}
+  .main{padding:14px 14px 104px}
   .grid.kpis{grid-template-columns:1fr 1fr}
   .hero{padding:20px}
   .fab-row{display:none}
@@ -348,6 +366,14 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   .mobiletop .brand img{max-width:62vw}
   .mobiletop .brand .fallback{font-size:16px}
   .mobiletop .mt-actions{display:flex;align-items:center;gap:2px}
+  /* identidade da empresa no topo (avatar + nome), estilo app */
+  .mt-id{display:flex;align-items:center;gap:10px;min-width:0;flex:1;background:transparent;border:0;padding:0;cursor:pointer;font-family:inherit;text-align:left}
+  .mt-av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;overflow:hidden;
+    background:linear-gradient(150deg,var(--brand),var(--brand-dark));color:#fff;border:1px solid rgba(255,255,255,.14)}
+  .mt-av img{width:100%;height:100%;object-fit:cover}
+  .mt-id-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .mt-id-txt b{font-size:14px;font-weight:800;letter-spacing:-.01em;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52vw}
+  .mt-id-txt small{font-size:10px;color:var(--muted);font-weight:600}
   /* barra flutuante estilo vidro (glassmorphism) */
   .bottomnav{display:flex;position:fixed;bottom:calc(10px + env(safe-area-inset-bottom));left:12px;right:12px;z-index:40;
     justify-content:space-around;gap:4px;padding:7px 6px;
@@ -358,6 +384,16 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
     align-items:center;gap:3px;font-size:10px;font-weight:600;cursor:pointer;flex:1;padding:6px 2px;border-radius:15px;
     transition:color .2s,background .2s}
   .bottomnav button.active{color:#fff;background:linear-gradient(135deg,#1AADE2,#0c6e9e);box-shadow:0 8px 20px -6px rgba(26,173,226,.6),inset 0 1px 0 rgba(255,255,255,.25)}
+}
+
+/* ===== Guia de configuração (checklist flutuante) ===== */
+.guia-card{position:fixed;right:20px;bottom:20px;z-index:80;width:288px;max-width:calc(100vw - 40px);
+  border-radius:16px;overflow:hidden;background:var(--card);border:2px solid var(--line-2);box-shadow:0 20px 50px -12px rgba(0,0,0,.5)}
+.guia-min{position:fixed;right:20px;bottom:20px;z-index:80}
+/* no celular fica ACIMA da barra de baixo, para não atrapalhar os atalhos fixos */
+@media(max-width:900px){
+  .guia-card{right:12px;left:12px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom))}
+  .guia-min{right:12px;bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 
 /* ===== Auth ===== */
