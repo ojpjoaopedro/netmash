@@ -15,7 +15,7 @@ const zero = (): Metrica => ({ valor: 0, qtd: 0 });
 export default function PainelCobrancas({ ano }: { ano: number }) {
   const [montado, setMontado] = useState(false);
   const [versao, setVersao] = useState(0);
-  const [modo, setModo] = useState<"card" | "grafico">("card");
+  const [modo, setModo] = useState<"card" | "grafico">("grafico");
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [infoAberto, setInfoAberto] = useState<number | null>(null);
   type Preset = "hoje" | "mes" | "ano" | "custom";

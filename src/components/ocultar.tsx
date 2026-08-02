@@ -38,7 +38,7 @@ export function useOcultar() {
 export default function BotaoOcultar() {
   const { oculto, toggle } = useOcultar();
   return (
-    <button onClick={toggle} title={oculto ? "Mostrar valores" : "Ocultar valores"}
+    <button className="botao-ocultar" onClick={toggle} title={oculto ? "Mostrar valores" : "Ocultar valores"}
       style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12.5, padding: "7px 13px", borderRadius: 10, border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)" }}>
       {oculto ? <EyeOff size={15} /> : <Eye size={15} />} {oculto ? "Mostrar valores" : "Ocultar valores"}
     </button>

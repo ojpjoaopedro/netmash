@@ -176,7 +176,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
     const set = sup ? setCampoSuper : (p: Partial<Diretor>) => setCampoAdmin(d.id, p);
     const badge = sup ? { txt: "SUPERADMIN", cor: AMBAR, Icon: Crown } : { txt: "ADMIN", cor: AZUL, Icon: Shield };
     return (
-      <div className="card diretor-card" style={{ padding: 18, position: "relative" }}>
+      <div className="card diretor-card compacto" style={{ padding: 16, position: "relative" }}>
         {!sup && focoId === d.id && (
           <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir(d)}
             style={{ position: "absolute", top: 12, right: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO }}>

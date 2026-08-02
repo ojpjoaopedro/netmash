@@ -7,7 +7,7 @@ import {
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
   Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
-  PlayCircle, Play,
+  PlayCircle, Play, Bell, Eye, EyeOff, Instagram,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -20,7 +20,8 @@ import {
 } from "@/lib/db";
 import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
 import { useBrand } from "@/lib/brand";
-import ResumoHome from "@/components/dash/ResumoHome";
+import ResumoHome, { fraseDoDia } from "@/components/dash/ResumoHome";
+import { useOcultar } from "@/components/ocultar";
 import PainelCobrancas from "@/components/PainelCobrancas";
 import CalendarioRecebimento from "@/components/CalendarioRecebimento";
 import CropLogo from "@/components/CropLogo";
@@ -64,16 +65,15 @@ const METRICAS = [
 ] as const;
 // sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
-// Menu do app (mobile): abre pelo MENU do topo e lista as 7 telas de configuração.
+// Menu do app (mobile): abre pelo MENU do topo. Os itens de cadastro ficam nos cards
+// de "Configurações"; aqui ficam só os itens de sistema.
 const MENU_APP: { aba: string; label: string; Icon: typeof LayoutDashboard }[] = [
-  { aba: "usuarios", label: "Meus Usuários", Icon: UserCog },
-  { aba: "dados", label: "Dados da Empresa", Icon: Building2 },
-  { aba: "personalizacao", label: "Personalização", Icon: Palette },
-  { aba: "equipe", label: "Equipe", Icon: Users },
   { aba: "termos", label: "Termos de uso", Icon: FileText },
   { aba: "beneficios", label: "Meus Benefícios", Icon: Gift },
   { aba: "plano", label: "Plano", Icon: CreditCard },
 ];
+// Cards de Configurações (mobile): só os itens de cadastro.
+const CONFIG_CARDS = ["usuarios", "dados", "personalizacao", "equipe"];
 // Sub-abas (pílulas) — Empresa e Equipe
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
@@ -104,6 +104,24 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [metrs, setMetrs] = useState<Metrica[]>([]);
   const [view, setView] = useState<View>((secao && SEG_VIEW[secao]) || "dashboard");
+  // ===== App mobile (estilo Asaas): detecção de celular, frase do dia, ocultar =====
+  const [estreito, setEstreito] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const upd = () => setEstreito(mq.matches);
+    upd(); mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
+  }, []);
+  const [fraseHome, setFraseHome] = useState<{ t: string; a: string } | null>(null);
+  useEffect(() => setFraseHome(fraseDoDia()), []);
+  const { oculto: ocultoHome, toggle: toggleOcultarHome } = useOcultar();
+  // back inteligente das telas internas: cada tela registra como voltar 1 nível;
+  // se não houver nível interno, o botão azul do topo volta para a Home.
+  const voltarRef = useRef<(() => boolean) | null>(null);
+  const voltarTopo = () => { if (voltarRef.current && voltarRef.current()) return; setView("dashboard"); };
+  // rótulo do voltar = para onde o botão leva (Home, Finanças, Configurações…)
+  const [voltarLabel, setVoltarLabel] = useState("Home");
+  useEffect(() => { setVoltarLabel("Home"); }, [view]);   // telas com níveis internos sobrescrevem
   // reflete a seção atual na URL (/dashboard/<seção>), sem recarregar o painel
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -298,27 +316,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
   return (
     <div className="app">
 
-      {/* Topo do app (mobile) — fundo preto, só na tela inicial (Home) */}
-      {view === "dashboard" && (
-      <header className="apptop">
-        <div className="apptop-bar">
-          <button className="apptop-menu" onClick={() => setMenuAberto(true)} title="Menu"><Menu size={22} /></button>
-          <span className="apptop-logo">Minhas <span>Métricas</span></span>
-          <span style={{ width: 34, flexShrink: 0 }} />
-        </div>
-        <button className="apptop-id" onClick={irParaHome} title="Início">
-          <span className="apptop-av">
-            {fotoPerfil ? <img src={fotoPerfil} alt="" />
-              : brand.logo ? <img src={brand.logo} alt="" />
-              : <ImageIcon size={17} />}
-          </span>
-          <span className="apptop-idtxt">
-            <b>{nomeMarca}</b>
-            <small>Painel financeiro</small>
-          </span>
-        </button>
-      </header>
-      )}
 
       {/* Drawer (mobile) */}
       {menuAberto && (
@@ -462,6 +459,64 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
       {/* Main */}
       <main className="main">
+
+        {/* ===== APP MOBILE: Home estilo Asaas ===== */}
+        {estreito && view === "dashboard" && (
+          <div className="mhome">
+            <div className="mhome-top">
+              <button onClick={() => setMenuAberto(true)} title="Menu"><Menu size={24} color="var(--brand)" /></button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button onClick={toggleOcultarHome} title={ocultoHome ? "Mostrar valores" : "Ocultar valores"}>{ocultoHome ? <EyeOff size={22} color="var(--brand)" /> : <Eye size={22} color="var(--brand)" />}</button>
+                <button title="Notificações" style={{ position: "relative" }}><Bell size={22} color="var(--brand)" /><span className="mhome-dot" /></button>
+              </div>
+            </div>
+
+            <div className="mhome-quote">
+              <p>{fraseHome ? `“${fraseHome.t.replace(/\.\s*$/, "")}”` : "…"}</p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
+                <button onClick={async () => { if (!fraseHome) return; const txt = `“${fraseHome.t.replace(/\.\s*$/, "")}”\n\n📊 Pulso do dia · Minhas Métricas`; try { if (navigator.share) { await navigator.share({ text: txt }); } else { await navigator.clipboard.writeText(txt); } } catch { /* ignore */ } }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", color: "#fff", border: 0, borderRadius: 99, padding: "11px 20px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 10px 22px -8px rgba(220,39,67,.55)" }}>
+                  <Instagram size={16} /> Compartilhar
+                </button>
+                <button onClick={() => { try { if (fraseHome) navigator.clipboard.writeText(`“${fraseHome.t.replace(/\.\s*$/, "")}”\n\n📊 Pulso do dia · Minhas Métricas`); } catch { /* ignore */ } }}
+                  style={{ background: "var(--brand)", color: "var(--brand-ct, #fff)", border: 0, borderRadius: 99, padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 10px 22px -10px color-mix(in srgb, var(--brand) 70%, transparent)" }}>Pulse o dia</button>
+              </div>
+            </div>
+
+            <div className="mhome-blue">
+              {[{ aba: "estrutura", label: "Estrutura de custos e receita", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "relatorios", label: "Relatório", Icon: FileText }].map((a) => (
+                <button key={a.aba} className="mhome-bcard" onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}>
+                  <a.Icon size={22} color="#fff" />
+                  <span>{a.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mhome-gray">
+              <div className="mhome-wgrid">
+                {[{ v: "financas", label: "Finanças", Icon: DollarSign }, { v: "planejamento", label: "Planejamento", Icon: Compass }, { v: "clientes", label: "Cadastro de clientes", Icon: UserPlus }, { v: "assistente", label: "Assistente", Icon: Sparkles }, { v: "config", label: "Configurações", Icon: Settings }].map((c) => (
+                  <button key={c.v} className="mhome-wcard" onClick={() => { playTick(); setView(c.v as View); }}>
+                    <span className="mhome-wcard-ico"><c.Icon size={22} /></span>
+                    <b>{c.label}</b>
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 14 }}><PainelCobrancas ano={Number(anoSel)} /></div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== APP MOBILE: cabeçalho azul + voltar nas demais telas ===== */}
+        {estreito && view !== "dashboard" && (
+          <header className="msub-top">
+            <button className="msub-back" onClick={voltarTopo} title="Voltar"><ArrowLeft size={20} /></button>
+            <b>{voltarLabel}</b>
+          </header>
+        )}
+
+        {/* ===== DESKTOP: controles + conteúdo do dashboard ===== */}
+        {!estreito && (
+        <>
         <div className="topctrls">
           {/* o seletor de ano agora fica dentro de cada tela (Finanças/Calendário têm o seu) */}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
@@ -497,17 +552,23 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <CalendarioRecebimento ano={Number(anoSel)} />
           </div>
         )}
+        </>
+        )}
+
+        {/* Conteúdo das telas (desktop e mobile-sub); no mobile ganha padding próprio */}
+        <div className={estreito && view !== "dashboard" ? "msub-body" : undefined} style={estreito && view === "dashboard" ? { display: "none" } : undefined}>
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
-        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} reload={carregarDados} />}
+        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} reload={carregarDados} voltarRef={voltarRef} onNivel={setVoltarLabel} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <TelaUpgrade Icon={Compass} titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." preco="R$ 29,90" />}
         {view === "clientes" && <TelaUpgrade Icon={UserPlus} titulo="Cadastro de clientes" texto="Cadastre e organize seus clientes em um só lugar. Ative este módulo no seu plano para liberar esta tela." preco="R$ 39,90" />}
-        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} />}
+        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} voltarRef={voltarRef} onNivel={setVoltarLabel} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} brand={brandObj} ano={Number(anoSel)} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
         {view === "importar" && <Importar reload={carregarDados} empresa={empresa} brand={brand} />}
         {view === "empresa" && <Config empresa={empresa} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
+        </div>
       </main>
 
       {editor && (
@@ -521,13 +582,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
       <GuiaConfiguracao empresa={empresa} brand={brand} funcsCount={funcs.length} />
 
 
-      {/* Bottom nav (mobile) — seções principais; o MENU (config) fica no topo */}
-      <nav className="bottomnav">
-        <button className={view === "dashboard" ? "active" : ""} onClick={() => { playTick(); setView("dashboard"); }}><LayoutDashboard size={20} />Home</button>
-        <button className={view === "financas" ? "active" : ""} onClick={() => { playTick(); setView("financas"); }}><DollarSign size={20} />Finanças</button>
-        <button className={view === "planejamento" ? "active" : ""} onClick={() => { playTick(); setView("planejamento"); }}><Compass size={20} />Planejam.</button>
-        <button className={view === "clientes" ? "active" : ""} onClick={() => { playTick(); setView("clientes"); }}><UserPlus size={20} />Clientes</button>
-      </nav>
     </div>
   );
 }
@@ -553,10 +607,11 @@ function AvisoFinancas({ aba }: { aba: string }) {
 }
 
 /** Seletor: Calendário de Pagamentos ou de Recebimentos. */
-function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "recebimentos") => void }) {
+function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "recebimentos" | "financeiro") => void }) {
   const opcoes = [
     { key: "pagamentos" as const, titulo: "Despesas", desc: "Contas a pagar, com vencimentos e despesas recorrentes.", Icon: ArrowUpCircle, cor: "#EF4444" },
     { key: "recebimentos" as const, titulo: "Faturamento", desc: "Faturamento marcado por data.", Icon: ArrowDownCircle, cor: "#10B981" },
+    { key: "financeiro" as const, titulo: "Calendário financeiro", desc: "Faturamento e despesas juntos, dia a dia no mês.", Icon: CalendarDays, cor: "#7C3AED" },
   ];
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 14 }}>
@@ -579,7 +634,7 @@ function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "rec
 function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebimentos"; ano: number; onVoltar: () => void }) {
   return (
     <div>
-      <button onClick={onVoltar} title="Voltar" style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
+      <button className="botao-voltar-interno" onClick={onVoltar} title="Voltar" style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
         <ArrowLeft size={17} /> Voltar
       </button>
       <CalendarioPagamentos anoInicial={ano} tipo={tipo} />
@@ -592,10 +647,10 @@ function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebime
  * três abas (Dashboard, Estrutura de Receitas e Custos, Calendário de
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
-function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void; reload: () => Promise<void> }) {
+function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void; reload: () => Promise<void>; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void }) {
   const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios" | "importar">("dashboard");
   // dentro do Calendário: escolha entre pagamentos e recebimentos (null = mostra as 2 opções)
-  const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | null>(null);
+  const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | "financeiro" | null>(null);
   // no celular, Finanças abre num menu de CARDS; ao tocar num card, "entra" na seção
   const [estreito, setEstreito] = useState(false);
   const [entrou, setEntrou] = useState(false);
@@ -615,6 +670,18 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
     const at = pegarAlvo(); if (at) aplicar(at);
     return assinarNav(aplicar);
   }, []);
+  // registra como voltar 1 nível (calendário → dentro; seção → cards) para o botão do topo
+  useEffect(() => {
+    if (!voltarRef) return;
+    voltarRef.current = () => {
+      if (calSub) { setCalSub(null); return true; }
+      if (entrou) { setEntrou(false); return true; }
+      return false;
+    };
+    return () => { if (voltarRef) voltarRef.current = null; };
+  }, [calSub, entrou, voltarRef]);
+  // rótulo do voltar no topo: dentro de uma seção volta para "Finanças"; nos cards, "Home"
+  useEffect(() => { onNivel?.(entrou || calSub ? "Finanças" : "Home"); }, [entrou, calSub, onNivel]);
 
   // pop-up do vídeo-tutorial (ainda não gravado)
   const [videoTut, setVideoTut] = useState(false);
@@ -653,7 +720,8 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
   ];
   return (
     <div>
-      {/* título */}
+      {/* título — escondido no celular (o cabeçalho azul já mostra "Finanças") */}
+      {!estreito && (
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
           <DollarSign size={22} />
@@ -664,6 +732,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
           <PlayCircle size={18} /> Vídeo
         </button>
       </div>
+      )}
 
       {/* CELULAR: menu de cards (estilo app). Ao tocar, entra na seção. */}
       {estreito && !entrou ? (
@@ -679,14 +748,8 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
         </div>
       ) : (
       <>
-      {/* CELULAR (dentro de uma seção): botão voltar para os cards */}
-      {estreito ? (
-        <button onClick={() => { setEntrou(false); setCalSub(null); }}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, color: "var(--brand)", background: "transparent", border: 0, padding: "4px 0", marginBottom: 12 }}>
-          <ArrowLeft size={17} /> Voltar
-        </button>
-      ) : (
-      /* DESKTOP: barra de abas; "Ver tutorial" à direita */
+      {/* DESKTOP: barra de abas; "Ver tutorial" à direita (no celular volta pelo topo azul) */}
+      {!estreito && (
       <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0, overflowX: "auto" }}>
           {abas.map((a, i) => (
@@ -706,12 +769,17 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload }: { empresa: Empres
       )}
 
       {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
-      {!(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
+      {!estreito && !(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
 
       {aba === "estrutura" ? <EstruturaFinancas ano={ano} setAno={setAno} />
         : aba === "dashboard" ? <FinancasDashboard ano={ano} setAno={setAno} />
         : aba === "calendario" ? (calSub
-            ? <SubCalendario tipo={calSub} ano={ano} onVoltar={() => setCalSub(null)} />
+            ? (calSub === "financeiro"
+                ? <div>
+                    <button className="botao-voltar-interno" onClick={() => setCalSub(null)} title="Voltar" style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}><ArrowLeft size={17} /> Voltar</button>
+                    <CalendarioRecebimento ano={ano} />
+                  </div>
+                : <SubCalendario tipo={calSub} ano={ano} onVoltar={() => setCalSub(null)} />)
             : <EscolhaCalendario onEscolher={setCalSub} />)
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} />
         : aba === "importar" ? <Importar reload={reload} empresa={empresa} brand={brand} />
@@ -762,26 +830,38 @@ function TourFinancas({ setAba, onFim, onVerVideo }: { setAba: (k: "dashboard" |
   ];
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  // no celular a barra de abas fica escondida (não há elemento pra destacar): o balão vai centralizado
+  const [estreito, setEstreito] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const u = () => setEstreito(mq.matches);
+    u(); mq.addEventListener("change", u);
+    return () => mq.removeEventListener("change", u);
+  }, []);
   const cur = STEPS[step];
   useEffect(() => { if (cur.key) setAba(cur.key); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
   useEffect(() => {
+    if (estreito) return;   // no celular não procura elemento (mostra centralizado)
     const sel = cur.seletor || `[data-aba="${cur.key}"]`;
     const upd = () => { const el = document.querySelector(sel); if (el) { const r = el.getBoundingClientRect(); setRect({ left: r.left, top: r.top, width: r.width, height: r.height }); } };
     upd(); const t = window.setTimeout(upd, 90);
     window.addEventListener("resize", upd); window.addEventListener("scroll", upd, true);
     return () => { window.clearTimeout(t); window.removeEventListener("resize", upd); window.removeEventListener("scroll", upd, true); };
-  }, [step, cur.key, cur.seletor]);
-  if (!rect) return null;
+  }, [step, cur.key, cur.seletor, estreito]);
+  const centralizado = estreito || !rect;
   const popW = 340;
-  const left = Math.max(16, Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 1200) - popW - 16));
-  const top = rect.top + rect.height + 16;
+  const left = rect ? Math.max(16, Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 1200) - popW - 16)) : 0;
+  const top = rect ? rect.top + rect.height + 16 : 0;
   const ultimo = step === STEPS.length - 1;
+  const posBalao: React.CSSProperties = centralizado
+    ? { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: popW }
+    : { position: "fixed", left, top, width: popW };
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 150 }}>
-      {/* clareira em volta da aba (escurece o resto) */}
-      <div style={{ position: "fixed", left: rect.left - 7, top: rect.top - 7, width: rect.width + 14, height: rect.height + 14, borderRadius: 12, boxShadow: "0 0 0 9999px rgba(15,23,42,.62)", border: "2px solid var(--brand)", pointerEvents: "none", transition: "all .2s" }} />
+    <div style={{ position: "fixed", inset: 0, zIndex: 150, background: centralizado ? "rgba(15,23,42,.62)" : undefined }}>
+      {/* clareira em volta da aba (só no desktop; no celular escurece a tela toda) */}
+      {!centralizado && rect && <div style={{ position: "fixed", left: rect.left - 7, top: rect.top - 7, width: rect.width + 14, height: rect.height + 14, borderRadius: 12, boxShadow: "0 0 0 9999px rgba(15,23,42,.62)", border: "2px solid var(--brand)", pointerEvents: "none", transition: "all .2s" }} />}
       {/* balão */}
-      <div style={{ position: "fixed", left, top, width: popW, maxWidth: "calc(100vw - 32px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, boxShadow: "0 22px 54px -12px rgba(0,0,0,.55)", padding: 18 }}>
+      <div style={{ ...posBalao, maxWidth: "calc(100vw - 32px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, boxShadow: "0 22px 54px -12px rgba(0,0,0,.55)", padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
           <span style={{ fontSize: 18 }}>{cur.emoji}</span>
           <b style={{ fontSize: 15.5, flex: 1 }}>{cur.titulo}</b>
@@ -804,18 +884,34 @@ function TourFinancas({ setAba, onFim, onVerVideo }: { setAba: (k: "dashboard" |
 }
 
 /** Configurações no mesmo formato de Finanças: título + abas Dados da empresa / Equipe. */
-function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
+function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, voltarRef, onNivel }: {
   empresa: Empresa | null; funcs: Funcionario[]; reload: () => Promise<void>;
   brand: React.ComponentProps<typeof Config>["brand"]; saveBrand: React.ComponentProps<typeof Config>["saveBrand"];
-  loginEmail?: string;
+  loginEmail?: string; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void;
 }) {
   type AbaCfg = "usuarios" | "dados" | "personalizacao" | "equipe" | "termos" | "beneficios" | "plano";
   const [aba, setAba] = useState<AbaCfg>("usuarios");
-  // Guia de configuração pode abrir uma aba específica
+  // no celular Configurações abre num menu de CARDS (igual Finanças); ao tocar, "entra"
+  const [estreito, setEstreito] = useState(false);
+  const [entrou, setEntrou] = useState(false);
   useEffect(() => {
-    const a = pegarAlvo(); if (a?.view === "config" && a.aba) setAba(a.aba as AbaCfg);
-    return assinarNav((b) => { if (b.view === "config" && b.aba) setAba(b.aba as AbaCfg); });
+    const mq = window.matchMedia("(max-width: 900px)");
+    const upd = () => setEstreito(mq.matches);
+    upd(); mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
   }, []);
+  // Guia de configuração / MENU podem abrir uma aba específica (entra direto na seção)
+  useEffect(() => {
+    const a = pegarAlvo(); if (a?.view === "config" && a.aba) { setAba(a.aba as AbaCfg); setEntrou(true); }
+    return assinarNav((b) => { if (b.view === "config" && b.aba) { setAba(b.aba as AbaCfg); setEntrou(true); } });
+  }, []);
+  // back inteligente: dentro de uma seção volta para os cards; senão, para a Home
+  useEffect(() => {
+    if (!voltarRef) return;
+    voltarRef.current = () => { if (entrou) { setEntrou(false); return true; } return false; };
+    return () => { if (voltarRef) voltarRef.current = null; };
+  }, [entrou, voltarRef]);
+  useEffect(() => { onNivel?.(entrou ? "Configurações" : "Home"); }, [entrou, onNivel]);
   // destaca a aba Meus Benefícios por 5s APÓS o usuário fechar o recado de parabéns
   const [destaqueBenef, setDestaqueBenef] = useState(false);
   useEffect(() => {
@@ -848,15 +944,32 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
   const rotulo = abas.find((a) => a.key === aba)?.label || "";
   return (
     <div>
-      {/* título */}
+      {/* título — escondido no celular (o cabeçalho azul já mostra "Configurações") */}
+      {!estreito && (
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
           <Settings size={22} />
         </span>
         <h2 style={{ margin: 0, fontSize: "clamp(21px, 6vw, 27px)", fontWeight: 800, letterSpacing: "-.6px" }}>Configurações</h2>
       </div>
+      )}
 
-      {/* barra de abas: rola na horizontal no mobile */}
+      {/* barra de abas (só no desktop; no celular navega pelo MENU do topo) */}
+      {/* CELULAR: menu de cards (igual Finanças). Só os itens de cadastro; o resto vai no MENU do topo. */}
+      {estreito && !entrou ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
+          {abas.filter((a) => CONFIG_CARDS.includes(a.key)).map((a) => (
+            <button key={a.key} onClick={() => { playTick(); setAba(a.key); setEntrou(true); }}
+              className={a.key === "beneficios" && destaqueBenef ? "destaque-benef" : undefined}
+              style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "space-between", gap: 16, minHeight: 118, padding: "16px 15px", borderRadius: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left", background: "var(--brand)", border: 0, color: "#fff", boxShadow: "0 12px 26px -14px color-mix(in srgb, var(--brand) 70%, transparent)" }}>
+              <a.Icon size={26} color="#fff" strokeWidth={2} />
+              <b style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.25, color: "#fff" }}>{a.label}</b>
+            </button>
+          ))}
+        </div>
+      ) : (
+      <>
+      {!estreito && (
       <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: "auto", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         {abas.map((a, i) => (
           <Fragment key={a.key}>
@@ -868,6 +981,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
           </Fragment>
         ))}
       </div>
+      )}
 
       {aba === "dados" ? <Config secao="dados" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
         : aba === "personalizacao" ? <Config secao="identidade" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
@@ -877,6 +991,8 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail }: {
         : aba === "beneficios" ? <MeusBeneficios />
         : aba === "plano" ? <MeuPlano />
         : <EmConstrucao titulo={rotulo} />}
+      </>
+      )}
     </div>
   );
 }

@@ -41,7 +41,7 @@ const CABECALHO = { fontSize: 12, letterSpacing: ".08em", textTransform: "upperc
  * a mesma frase fica três dias no ar e só repete depois de passar por todas.
  * Cada uma é compartilhável — é a antiga "frase da semana", agora aqui dentro.
  */
-const FRASES_PULSO: { t: string; a: string }[] = [
+export const FRASES_PULSO: { t: string; a: string }[] = [
   { t: "Número que você não acompanha é decisão que alguém toma no seu lugar.", a: "" },
   { t: "Caixa não é lucro. Confira os dois antes de comemorar.", a: "" },
   { t: "O que cresce sem margem só adia o problema.", a: "" },
@@ -67,6 +67,12 @@ const FRASES_PULSO: { t: string; a: string }[] = [
   { t: "O cliente antigo é o mais barato de crescer e o mais fácil de esquecer.", a: "" },
   { t: "Meta boa cabe numa frase e assusta um pouquinho.", a: "" },
 ];
+
+/** Frase do dia (gira a cada 3 dias). Só no cliente (usa a data de hoje). */
+export function fraseDoDia(): { t: string; a: string } {
+  const dia = Math.floor(new Date().setHours(0, 0, 0, 0) / 86_400_000);
+  return FRASES_PULSO[Math.floor(dia / 3) % FRASES_PULSO.length];
+}
 
 /**
  * Pulso do dia — a frase compartilhável, girando a cada 3 dias. Junta o que

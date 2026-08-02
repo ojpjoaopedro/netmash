@@ -48,12 +48,8 @@ function Composicao({ titulo, Icon, cor, total, itens, badge }: {
 
 export default function AnaliseResultados({ onVoltar, ano = 2026 }: { onVoltar: () => void; ano?: number }) {
   const data = useMemo(() => carregarEstruturaComPagamentos(ano), [ano]);
-  const [sel, setSel] = useState<Set<number>>(() => {
-    const itens = data.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
-    const som = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) => s + (l.v[m] || 0), 0);
-    const com = Array.from({ length: 12 }, (_, m) => (som(data.receitas, m) + som(itens, m) > 0 ? m : -1)).filter((m) => m >= 0);
-    return new Set(com.length ? com : [0, 1, 2, 3, 4, 5]);
-  });
+  // padrão: TODOS os meses marcados
+  const [sel, setSel] = useState<Set<number>>(() => new Set(Array.from({ length: 12 }, (_, i) => i)));
   const toggle = (m: number) => setSel((s) => { const n = new Set(s); if (n.has(m)) n.delete(m); else n.add(m); return n.size ? n : s; });
 
   const calc = useMemo(() => {

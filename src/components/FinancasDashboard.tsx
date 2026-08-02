@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, TrendingUp, Maximize2, Minimize2 } from "lucide-react";
 import { MES, Dados, carregarEstruturaComPagamentos } from "@/app/minhasmetricas/financas-estrutura";
-import BotaoOcultar from "./ocultar";
 import SeletorAno from "./SeletorAno";
 
 const AZUL = "#38BDF8", VERMELHO = "#F43F5E";
@@ -115,9 +114,8 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
     const carregar = () => {
       const d = carregarEstruturaComPagamentos(ano);
       setData(d);
-      const itens = d.custos.flatMap((b) => b.grupos.flatMap((g) => g.itens));
-      const comDado = Array.from({ length: 12 }, (_, m) => somaMes(d.receitas, m) + somaMes(itens, m) > 0 ? m : -1).filter((m) => m >= 0);
-      setSel(new Set(comDado.length ? comDado : [0, 1, 2, 3, 4, 5]));
+      // padrão: TODOS os meses marcados
+      setSel(new Set(Array.from({ length: 12 }, (_, i) => i)));
     };
     carregar();
     window.addEventListener("me:pagamentos", carregar);
@@ -163,9 +161,8 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
             </button>
           );
         })}
-        <span style={{ marginLeft: "auto" }}><BotaoOcultar /></span>
         <button onClick={toggleFull} title={full ? "Sair da tela cheia" : "Expandir para tela cheia"}
-          style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}>
+          style={{ marginLeft: "auto", width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}>
           {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </button>
       </div>
@@ -193,7 +190,7 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
   );
 
   return (
-    <div ref={ref} style={{ background: "linear-gradient(165deg, #0d1526, #080d18)", border: full ? "none" : "1px solid rgba(148,163,184,.12)", borderRadius: full ? 0 : 22,
+    <div ref={ref} className={full ? undefined : "dash-escuro"} style={{ background: "linear-gradient(165deg, #0d1526, #080d18)", border: full ? "none" : "1px solid rgba(148,163,184,.12)", borderRadius: full ? 0 : 22,
       padding: full ? "clamp(16px, 3vh, 40px) clamp(16px, 3vw, 48px)" : 20,
       ...(full ? { display: "flex", flexDirection: "column", justifyContent: "center", overflow: "auto" } : {}) }}>
       {conteudo}

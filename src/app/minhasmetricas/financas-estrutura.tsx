@@ -560,11 +560,8 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
     undoStack.current = [];                      // histórico é por ano
     pularSalvar.current = true;                 // não regravar logo após carregar
     setD(carregarEstrutura(ano));
-    // padrão: Jan até o mês corrente (data lida só no cliente, evita hidratação)
-    // no celular abre só com o mês corrente, para não nascer com muito scroll horizontal
-    const atual = new Date().getMonth();
-    const estreitoAgora = typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches;
-    setSel(estreitoAgora ? new Set([atual]) : new Set(Array.from({ length: atual + 1 }, (_, i) => i)));
+    // padrão: TODOS os meses marcados
+    setSel(new Set(Array.from({ length: 12 }, (_, i) => i)));
     setCarregado(true);
     // busca no banco (fonte da verdade) e, se veio algo, recarrega do cache
     let vivo = true;
@@ -805,11 +802,11 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       </div>
 
       {/* COMPOSIÇÃO DAS RECEITAS */}
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="card tabela-full" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px" }}>
           <BadgeTotal badge="Receitas totais" valor={totalDe(recTotais)} fmt={fmtR} cor={VERDE} />
         </div>
-        <div ref={(el) => { scrolls.current[0] = el; }} onScroll={() => sincronizar(0)} style={{ overflowX: "auto" }}>
+        <div className="tab-scroll" ref={(el) => { scrolls.current[0] = el; }} onScroll={() => sincronizar(0)} style={{ overflowX: "auto" }}>
           <table style={{ width: larguraMin, borderCollapse: "collapse", tableLayout: "fixed", fontSize: 11 }}>
             <Colgroup c={cols} />
             <THead icone={<TrendingUp size={16} />} titulo="Composição das Receitas" cor={VERDE} meses={mesesVis} />
@@ -871,11 +868,11 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       </div>
 
       {/* DETALHAMENTO DOS CUSTOS */}
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="card tabela-full" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px" }}>
           <BadgeTotal badge="Custos totais" valor={totalDe(custosTotais)} fmt={fmtR} cor={VERMELHO} />
         </div>
-        <div ref={(el) => { scrolls.current[1] = el; }} onScroll={() => sincronizar(1)} style={{ overflowX: "auto" }}>
+        <div className="tab-scroll" ref={(el) => { scrolls.current[1] = el; }} onScroll={() => sincronizar(1)} style={{ overflowX: "auto" }}>
           <table style={{ width: larguraMin, borderCollapse: "collapse", tableLayout: "fixed", fontSize: 11 }}>
             <Colgroup c={cols} />
             <THead icone={<Layers size={16} />} titulo="Detalhamento dos Custos" cor={VERMELHO} meses={mesesVis} />
@@ -1000,11 +997,11 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       </div>
 
       {/* RESULTADO · EBITDA · MARGEM */}
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="card tabela-full" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px" }}>
           <BadgeTotal badge="Resultado do período" valor={totalDe(resultadoMes)} fmt={fmtR} prefix={totalDe(resultadoMes) >= 0 ? "+" : ""} cor={ROXO} />
         </div>
-        <div ref={(el) => { scrolls.current[2] = el; }} onScroll={() => sincronizar(2)} style={{ overflowX: "auto" }}>
+        <div className="tab-scroll" ref={(el) => { scrolls.current[2] = el; }} onScroll={() => sincronizar(2)} style={{ overflowX: "auto" }}>
           <table style={{ width: larguraMin, borderCollapse: "collapse", tableLayout: "fixed", fontSize: 11 }}>
             <Colgroup c={cols} />
             <THead icone={<Wallet size={16} />} titulo="Resultado · EBITDA · Margem" cor={ROXO} meses={mesesVis} />
@@ -1152,11 +1149,13 @@ function BadgeTotal({ badge, valor, fmt: fmtFn, prefix = "", cor }: { badge: str
 
 /** Cabeçalho da tabela: o ícone + título do bloco vivem na 1ª célula desta linha. */
 function THead({ icone, titulo, cor, meses }: { icone: React.ReactNode; titulo: string; cor: string; meses: number[] }) {
-  const th: React.CSSProperties = { padding: "9px 10px", textAlign: "right", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)", whiteSpace: "nowrap" };
+  // efeito de vidro: fundo translúcido + desfoque; os meses ficam fixos no topo ao rolar
+  const vidro = "color-mix(in srgb, var(--card-2) 78%, transparent)";
+  const th: React.CSSProperties = { padding: "9px 10px", textAlign: "right", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)", whiteSpace: "nowrap", position: "sticky", top: 0, zIndex: 2, background: vidro, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" };
   return (
     <thead>
-      <tr style={{ background: "var(--card-2)" }}>
-        <th style={{ ...th, textAlign: "left", position: "sticky", left: 0, background: "var(--card-2)", padding: "8px 12px", whiteSpace: "normal" }}>
+      <tr>
+        <th style={{ ...th, textAlign: "left", left: 0, zIndex: 3, padding: "8px 12px", whiteSpace: "normal" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: cor + "22", color: cor, flexShrink: 0 }}>{icone}</span>
             <span style={{ fontSize: 12, fontWeight: 800, textTransform: "none", letterSpacing: 0, color: "var(--txt)", lineHeight: 1.15 }}>{titulo}</span>

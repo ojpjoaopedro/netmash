@@ -120,7 +120,15 @@ type DiretorRel = { nome: string; cargo?: string; area?: string; email?: string;
 export default function Funcionarios({ funcs, reload, empresa = null, brand }: { funcs: Funcionario[]; reload: () => void; empresa?: Empresa | null; brand?: Brand }) {
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
   const [ordem, setOrdem] = useState<"cadastro" | "alfabetica">("alfabetica");
-  const [modo, setModo] = useState<"card" | "lista">("card");
+  const [modo, setModo] = useState<"card" | "lista">("lista");
+  // no celular o botão de apagar fica sempre visível (sem hover)
+  const [estreito, setEstreito] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const upd = () => setEstreito(mq.matches);
+    upd(); mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
+  }, []);
 
   // diretores (Meus Usuários) entram no relatório junto com a equipe
   const [diretores, setDiretores] = useState<DiretorRel[]>([]);
@@ -283,7 +291,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
               </button>
             );
             const trash = (
-              focoId === f.id && (
+              (focoId === f.id || estreito) && (
                 <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
                   style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO }}>
                   <Trash2 size={14} />
