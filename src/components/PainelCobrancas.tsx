@@ -18,15 +18,15 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
   const [modo, setModo] = useState<"card" | "grafico">("grafico");
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [infoAberto, setInfoAberto] = useState<number | null>(null);
-  type Preset = "hoje" | "mes" | "ano" | "custom";
-  const [preset, setPreset] = useState<Preset>("mes");   // padrão: este mês
+  type Preset = "hoje" | "mes" | "mespassado" | "ano" | "custom";
+  const [preset, setPreset] = useState<Preset>("ano");   // padrão: este ano
   const [de, setDe] = useState("");   // dd/mm/aaaa (personalizado)
   const [ate, setAte] = useState("");
   // seleção provisória enquanto o filtro está aberto (só aplica ao clicar em Aplicar)
-  const [presetTmp, setPresetTmp] = useState<Preset>("mes");
+  const [presetTmp, setPresetTmp] = useState<Preset>("ano");
   const [deTmp, setDeTmp] = useState("");
   const [ateTmp, setAteTmp] = useState("");
-  const ROTULO: Record<Preset, string> = { hoje: "Hoje", mes: "Este mês", ano: "Este ano", custom: "Personalizado" };
+  const ROTULO: Record<Preset, string> = { hoje: "Hoje", mes: "Este mês", mespassado: "Mês passado", ano: "Este ano", custom: "Personalizado" };
 
   useEffect(() => {
     setMontado(true);
@@ -48,6 +48,14 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
     const mm = String(new Date().getMonth() + 1).padStart(2, "0");
     if (preset === "hoje") { const dia = `${ano}-${mm}-${String(new Date().getDate()).padStart(2, "0")}`; return { deISO: dia, ateISO: dia }; }
     if (preset === "mes") { const ult = new Date(ano, new Date().getMonth() + 1, 0).getDate(); return { deISO: `${ano}-${mm}-01`, ateISO: `${ano}-${mm}-${String(ult).padStart(2, "0")}` }; }
+    if (preset === "mespassado") {
+      const m0 = new Date().getMonth();                       // mês atual (0-based)
+      const anoP = m0 === 0 ? ano - 1 : ano;                  // janeiro -> dezembro do ano anterior
+      const mp = m0 === 0 ? 11 : m0 - 1;                       // mês passado (0-based)
+      const mmp = String(mp + 1).padStart(2, "0");
+      const ult = new Date(anoP, mp + 1, 0).getDate();
+      return { deISO: `${anoP}-${mmp}-01`, ateISO: `${anoP}-${mmp}-${String(ult).padStart(2, "0")}` };
+    }
     if (preset === "custom") return { deISO: brParaISO(de) || `${ano}-01-01`, ateISO: brParaISO(ate) || `${ano}-12-31` };
     return { deISO: `${ano}-01-01`, ateISO: `${ano}-12-31` }; // ano
   }, [preset, de, ate, ano]);
@@ -131,9 +139,9 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
 
   const abrirFiltro = () => { setPresetTmp(preset); setDeTmp(de); setAteTmp(ate); setFiltroAberto(true); };
   const aplicarFiltro = () => { setPreset(presetTmp); setDe(deTmp); setAte(ateTmp); setFiltroAberto(false); };
-  const limparFiltro = () => { setPresetTmp("mes"); setDeTmp(""); setAteTmp(""); };
+  const limparFiltro = () => { setPresetTmp("ano"); setDeTmp(""); setAteTmp(""); };
   const OPCOES: { v: Preset; nome: string }[] = [
-    { v: "hoje", nome: "Hoje" }, { v: "mes", nome: "Este mês" }, { v: "ano", nome: "Este ano" }, { v: "custom", nome: "Personalizado" },
+    { v: "hoje", nome: "Hoje" }, { v: "mes", nome: "Este mês" }, { v: "mespassado", nome: "Mês passado" }, { v: "ano", nome: "Este ano" }, { v: "custom", nome: "Personalizado" },
   ];
 
   if (!montado) return null;

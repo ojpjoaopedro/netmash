@@ -473,20 +473,18 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
             <div className="mhome-quote">
               <p>{fraseHome ? `“${fraseHome.t.replace(/\.\s*$/, "")}”` : "…"}</p>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
                 <button onClick={async () => { if (!fraseHome) return; const txt = `“${fraseHome.t.replace(/\.\s*$/, "")}”\n\n📊 Pulso do dia · Minhas Métricas`; try { if (navigator.share) { await navigator.share({ text: txt }); } else { await navigator.clipboard.writeText(txt); } } catch { /* ignore */ } }}
                   style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", color: "#fff", border: 0, borderRadius: 99, padding: "11px 20px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 10px 22px -8px rgba(220,39,67,.55)" }}>
                   <Instagram size={16} /> Compartilhar
                 </button>
-                <button onClick={() => { try { if (fraseHome) navigator.clipboard.writeText(`“${fraseHome.t.replace(/\.\s*$/, "")}”\n\n📊 Pulso do dia · Minhas Métricas`); } catch { /* ignore */ } }}
-                  style={{ background: "var(--brand)", color: "var(--brand-ct, #fff)", border: 0, borderRadius: 99, padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 10px 22px -10px color-mix(in srgb, var(--brand) 70%, transparent)" }}>Pulse o dia</button>
               </div>
             </div>
 
             <div className="mhome-blue">
               {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "relatorios", label: "Relatório", Icon: FileText }].map((a) => (
                 <button key={a.aba} className="mhome-bcard" onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}>
-                  <a.Icon size={22} color="#fff" />
+                  <span className="mhome-bcard-ico"><a.Icon size={22} color="#fff" /></span>
                   <span>{a.label}</span>
                 </button>
               ))}
@@ -675,13 +673,19 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
     if (!voltarRef) return;
     voltarRef.current = () => {
       if (calSub) { setCalSub(null); return true; }
-      if (entrou) { setEntrou(false); return true; }
+      // Dashboard e Relatórios são abertos pelos atalhos da Home (não são cards do menu de Finanças):
+      // o voltar deles vai direto pra Home. Os cards do menu voltam pro menu de cards.
+      const abaCard = aba !== "dashboard" && aba !== "relatorios";
+      if (entrou && abaCard) { setEntrou(false); return true; }
       return false;
     };
     return () => { if (voltarRef) voltarRef.current = null; };
-  }, [calSub, entrou, voltarRef]);
-  // rótulo do voltar no topo: dentro de uma seção volta para "Finanças"; nos cards, "Home"
-  useEffect(() => { onNivel?.(entrou || calSub ? "Finanças" : "Home"); }, [entrou, calSub, onNivel]);
+  }, [calSub, entrou, aba, voltarRef]);
+  // rótulo do voltar no topo: nos cards internos volta para "Finanças"; nos atalhos da Home, "Home"
+  useEffect(() => {
+    const abaCard = aba !== "dashboard" && aba !== "relatorios";
+    onNivel?.(calSub || (entrou && abaCard) ? "Finanças" : "Home");
+  }, [entrou, calSub, aba, onNivel]);
 
   // pop-up do vídeo-tutorial (ainda não gravado)
   const [videoTut, setVideoTut] = useState(false);
@@ -738,11 +742,10 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
       {estreito && !entrou ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
           {[...abas.filter((a) => a.key !== "dashboard" && a.key !== "relatorios"), { key: "tutorial" as const, label: "Ver tutorial", Icon: Sparkles }].map((a) => (
-            <button key={a.key}
-              onClick={() => { if (a.key === "tutorial") { setTourOn(true); return; } setAba(a.key as typeof aba); if (a.key === "calendario") setCalSub(null); setEntrou(true); }}
-              style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "space-between", gap: 16, minHeight: 118, padding: "16px 15px", borderRadius: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left", background: "var(--brand)", border: 0, color: "#fff", boxShadow: "0 12px 26px -14px color-mix(in srgb, var(--brand) 70%, transparent)" }}>
-              <a.Icon size={26} color="#fff" strokeWidth={2} />
-              <b style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.25, color: "#fff" }}>{a.label}</b>
+            <button key={a.key} className="appcard"
+              onClick={() => { if (a.key === "tutorial") { setTourOn(true); return; } setAba(a.key as typeof aba); if (a.key === "calendario") setCalSub(null); setEntrou(true); }}>
+              <span className="appcard-ico"><a.Icon size={24} color="#fff" strokeWidth={2} /></span>
+              <b>{a.label}</b>
             </button>
           ))}
         </div>
@@ -905,13 +908,14 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, volt
     const a = pegarAlvo(); if (a?.view === "config" && a.aba) { setAba(a.aba as AbaCfg); setEntrou(true); }
     return assinarNav((b) => { if (b.view === "config" && b.aba) { setAba(b.aba as AbaCfg); setEntrou(true); } });
   }, []);
-  // back inteligente: dentro de uma seção volta para os cards; senão, para a Home
+  // back inteligente: só os cards de cadastro voltam pro menu de cards.
+  // Termos/Benefícios/Plano vêm do MENU do topo (não são cards), então voltam pra Home.
   useEffect(() => {
     if (!voltarRef) return;
-    voltarRef.current = () => { if (entrou) { setEntrou(false); return true; } return false; };
+    voltarRef.current = () => { if (entrou && CONFIG_CARDS.includes(aba)) { setEntrou(false); return true; } return false; };
     return () => { if (voltarRef) voltarRef.current = null; };
-  }, [entrou, voltarRef]);
-  useEffect(() => { onNivel?.(entrou ? "Configurações" : "Home"); }, [entrou, onNivel]);
+  }, [entrou, aba, voltarRef]);
+  useEffect(() => { onNivel?.(entrou && CONFIG_CARDS.includes(aba) ? "Configurações" : "Home"); }, [entrou, aba, onNivel]);
   // destaca a aba Meus Benefícios por 5s APÓS o usuário fechar o recado de parabéns
   const [destaqueBenef, setDestaqueBenef] = useState(false);
   useEffect(() => {
@@ -960,10 +964,9 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, volt
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
           {abas.filter((a) => CONFIG_CARDS.includes(a.key)).map((a) => (
             <button key={a.key} onClick={() => { playTick(); setAba(a.key); setEntrou(true); }}
-              className={a.key === "beneficios" && destaqueBenef ? "destaque-benef" : undefined}
-              style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "space-between", gap: 16, minHeight: 118, padding: "16px 15px", borderRadius: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left", background: "var(--brand)", border: 0, color: "#fff", boxShadow: "0 12px 26px -14px color-mix(in srgb, var(--brand) 70%, transparent)" }}>
-              <a.Icon size={26} color="#fff" strokeWidth={2} />
-              <b style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.25, color: "#fff" }}>{a.label}</b>
+              className={`appcard${a.key === "beneficios" && destaqueBenef ? " destaque-benef" : ""}`}>
+              <span className="appcard-ico"><a.Icon size={24} color="#fff" strokeWidth={2} /></span>
+              <b>{a.label}</b>
             </button>
           ))}
         </div>

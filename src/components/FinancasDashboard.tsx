@@ -65,7 +65,7 @@ function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: st
   const larguraRot = estreito ? 96 : (alto ? 260 : 220);
   const altura = alto ? 30 : 24;
   return (
-    <div style={{ display: "grid", gap: alto ? 14 : 16, alignContent: "center", height: "100%" }}>
+    <div style={{ display: "grid", gap: alto ? 14 : 16, alignContent: "center", height: "100%", width: "100%", minWidth: 0 }}>
       {itens.map((it) => (
         <div key={it.nome} style={{ display: "flex", alignItems: "center", gap: estreito ? 8 : 12 }}>
           <span style={{ width: larguraRot, flexShrink: 0, fontSize: alto ? 14 : (estreito ? 11.5 : 13), color: "#a3b0c4", textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontStyle: "italic" }}>{it.nome}</span>

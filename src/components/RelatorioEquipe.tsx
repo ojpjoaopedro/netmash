@@ -118,13 +118,15 @@ function Relatorio({ funcs, empresa, brand, diretores = [], onFechar }: { funcs:
 }
 
 /** Botão azul "Imprimir PDF" + a pré-visualização do relatório. */
-export default function BotaoRelatorioEquipe({ funcs, empresa, brand, diretores = [] }: { funcs: Funcionario[]; empresa: Empresa | null; brand: Brand; diretores?: DiretorRel[] }) {
+export default function BotaoRelatorioEquipe({ funcs, empresa, brand, diretores = [], trigger }: { funcs: Funcionario[]; empresa: Empresa | null; brand: Brand; diretores?: DiretorRel[]; trigger?: (abrir: () => void) => React.ReactNode }) {
   const [aberto, setAberto] = useState(false);
   return (
     <>
-      <button className="btn" onClick={() => setAberto(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-        <Printer size={15} /> Imprimir PDF
-      </button>
+      {trigger ? trigger(() => setAberto(true)) : (
+        <button className="btn" onClick={() => setAberto(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Printer size={15} /> Imprimir PDF
+        </button>
+      )}
       {aberto && <Relatorio funcs={funcs} empresa={empresa} brand={brand} diretores={diretores} onFechar={() => setAberto(false)} />}
     </>
   );

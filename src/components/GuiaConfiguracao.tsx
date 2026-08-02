@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Circle, ChevronRight, Minus, Sparkles, PartyPopper, X } from "lucide-react";
+import { CheckCircle2, Circle, ChevronRight, Sparkles, PartyPopper, X } from "lucide-react";
 import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { navegar, AlvoNav } from "@/lib/nav";
@@ -75,6 +75,9 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
   const [tick, setTick] = useState(0);                 // força reavaliação periódica
   const [min, setMin] = useState(false);
   const [montado, setMontado] = useState(false);
+  const [arrastoY, setArrastoY] = useState(0);         // deslocamento ao arrastar pra baixo
+  const arr = useRef({ y0: 0, on: false });
+  const [fechado, setFechado] = useState(false);       // fechado nesta sessão (volta ao reabrir a tela)
 
   useEffect(() => {
     setMin(localStorage.getItem(KEY_MIN) === "1");
@@ -153,11 +156,19 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
       <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", padding: "2px 8px", borderRadius: 99 }}>{feitos}/{total}</span>
     </button>
   ) : (
-    <div className="guia-card">
-      <div style={{ padding: "12px 14px 10px" }}>
+    <div className="guia-card" style={{ transform: arrastoY ? `translateY(${arrastoY}px)` : undefined, opacity: 1 - Math.min(0.55, arrastoY / 260), transition: arr.current.on ? "none" : "transform .22s ease, opacity .22s ease" }}>
+      {/* puxador: arraste pra baixo pra guardar o guia */}
+      <div title="Arraste para guardar"
+        onPointerDown={(e) => { arr.current = { y0: e.clientY, on: true }; e.currentTarget.setPointerCapture(e.pointerId); }}
+        onPointerMove={(e) => { if (arr.current.on) setArrastoY(Math.max(0, e.clientY - arr.current.y0)); }}
+        onPointerUp={(e) => { arr.current.on = false; try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ignore */ } if (arrastoY > 60) setFechado(true); setArrastoY(0); }}
+        style={{ touchAction: "none", cursor: "grab", padding: "8px 0 2px", display: "grid", placeItems: "center" }}>
+        <span style={{ width: 38, height: 4, borderRadius: 99, background: "var(--line-2)" }} />
+      </div>
+      <div style={{ padding: "4px 14px 10px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <b style={{ fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 7 }}><Sparkles size={15} style={{ color: "var(--brand)" }} /> Guia de configuração</b>
-          <button onClick={() => trocarMin(true)} title="Minimizar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", display: "grid", placeItems: "center", width: 24, height: 24, borderRadius: 8 }}><Minus size={15} /></button>
+          <button onClick={() => setFechado(true)} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", display: "grid", placeItems: "center", width: 26, height: 26, borderRadius: 8 }}><X size={16} /></button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 9 }}>
           <div style={{ flex: 1, height: 6, borderRadius: 99, background: "var(--bg-2)", overflow: "hidden" }}>
@@ -197,7 +208,7 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
           <button onClick={() => { setRecado(false); try { localStorage.setItem("me_destacar_benef", "1"); window.dispatchEvent(new Event("me:destacar-beneficios")); } catch { /* ignore */ } }} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 8, flexShrink: 0 }}><X size={17} /></button>
         </div>
       )}
-      {guia}
+      {!fechado && guia}
     </>
   );
 }
