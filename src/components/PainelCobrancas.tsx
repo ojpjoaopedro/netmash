@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { BarChart3, LayoutGrid, Calendar, Info, ChevronDown } from "lucide-react";
 import { lerRecebimentos, lerPagamentos, datasDaDespesa, ocConfirmada, valorDaOcorrencia, carregarEstruturaComPagamentos } from "@/app/minhasmetricas/financas-estrutura";
-import { mascararDataBR, brParaISO } from "@/lib/format";
+import { brParaISO, isoParaBR } from "@/lib/format";
 
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const AMBAR = "#F59E0B", VERMELHO = "#EF4444", VERDE = "#10B981";
@@ -156,7 +156,7 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
           {/* filtro por data */}
           <div style={{ position: "relative" }}>
             <button className="btn ghost sm" onClick={() => (filtroAberto ? setFiltroAberto(false) : abrirFiltro())} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Calendar size={14} /> {ROTULO[preset]} <ChevronDown size={14} />
+              <Calendar size={14} /> {preset === "custom" && (de || ate) ? `${de || "…"} a ${ate || "…"}` : ROTULO[preset]} <ChevronDown size={14} />
             </button>
             {filtroAberto && (
               <>
@@ -170,8 +170,11 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
                   ))}
                   {presetTmp === "custom" && (
                     <div style={{ padding: "6px 6px 2px", display: "grid", gap: 8 }}>
-                      <div><label className="f">De</label><input value={deTmp} onChange={(e) => setDeTmp(mascararDataBR(e.target.value))} placeholder="dd/mm/aaaa" inputMode="numeric" style={{ width: "100%" }} /></div>
-                      <div><label className="f">Até</label><input value={ateTmp} onChange={(e) => setAteTmp(mascararDataBR(e.target.value))} placeholder="dd/mm/aaaa" inputMode="numeric" style={{ width: "100%" }} /></div>
+                      <div><label className="f">De</label><input type="date" value={brParaISO(deTmp)} onChange={(e) => setDeTmp(isoParaBR(e.target.value))} style={{ width: "100%" }} /></div>
+                      <div><label className="f">Até</label><input type="date" value={brParaISO(ateTmp)} onChange={(e) => setAteTmp(isoParaBR(e.target.value))} style={{ width: "100%" }} /></div>
+                      {(deTmp || ateTmp) && (
+                        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>Período: <b style={{ color: "var(--txt)" }}>{deTmp || "…"}</b> até <b style={{ color: "var(--txt)" }}>{ateTmp || "…"}</b></div>
+                      )}
                     </div>
                   )}
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
