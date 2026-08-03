@@ -111,7 +111,9 @@ export function seedDemoIndicadores() {
 
 export async function getIndicadores(): Promise<Metrica[]> {
   if (supabaseReady && supabase) {
-    const { data } = await supabase.from("indicadores").select("*");
+    const emp = await getEmpresa();
+    if (!emp?.id) return [];
+    const { data } = await supabase.from("indicadores").select("*").eq("empresa_id", emp.id);
     return (data ?? []).map((r) => ({
       id: r.id as string, key: r.key as string, period: r.period as string,
       value: Number(r.value), target: Number(r.target),

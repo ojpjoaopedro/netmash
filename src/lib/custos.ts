@@ -44,7 +44,9 @@ type RowDF = { id: string; nome: string; categoria: string | null; valor: number
 
 export async function getDespesasFixas(): Promise<DespesaFixa[]> {
   if (supabaseReady && supabase) {
-    const { data } = await supabase.from("despesas_fixas").select("*").order("nome");
+    const emp = await getEmpresa();
+    if (!emp?.id) return [];
+    const { data } = await supabase.from("despesas_fixas").select("*").eq("empresa_id", emp.id).order("nome");
     return (data ?? []).map((r: RowDF) => ({
       id: r.id, nome: r.nome, categoria: r.categoria ?? "", valor: Number(r.valor), dia_venc: r.dia_venc, ativo: r.ativo,
     }));

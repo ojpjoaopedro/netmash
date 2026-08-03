@@ -259,8 +259,10 @@ export async function getLancamentos(): Promise<Lancamento[]> {
     seedDemo();
     return ls<Lancamento[]>(K.lanc, []);
   }
+  const eid = await empresaAtualId();
+  if (!eid) return [];
   const { data } = await supabase
-    .from("lancamentos").select("*").order("data_competencia", { ascending: false });
+    .from("lancamentos").select("*").eq("empresa_id", eid).order("data_competencia", { ascending: false });
   return (data ?? []) as Lancamento[];
 }
 
@@ -316,7 +318,9 @@ export async function getFuncionarios(): Promise<Funcionario[]> {
     seedDemo();
     return aplicarFuncExtras(ls<Funcionario[]>(K.func, []));
   }
-  const { data } = await supabase.from("funcionarios").select("*").order("nome");
+  const eid = await empresaAtualId();
+  if (!eid) return [];
+  const { data } = await supabase.from("funcionarios").select("*").eq("empresa_id", eid).order("nome");
   return aplicarFuncExtras((data ?? []) as Funcionario[]);
 }
 
@@ -360,7 +364,9 @@ export async function getClientes(): Promise<Cliente[]> {
     seedDemo();
     return ls<Cliente[]>(K.cli, []);
   }
-  const { data } = await supabase.from("clientes").select("*").order("nome");
+  const eid = await empresaAtualId();
+  if (!eid) return [];
+  const { data } = await supabase.from("clientes").select("*").eq("empresa_id", eid).order("nome");
   return (data ?? []) as Cliente[];
 }
 
