@@ -309,7 +309,7 @@ export default function Admin() {
       <Casca>
         <div style={{ minHeight: "70vh", display: "grid", placeItems: "center", padding: 20 }}>
           <form onSubmit={entrarAdmin} className="adm-login">
-            <div className="adm-brand" style={{ justifyContent: "center", marginBottom: 6 }}><img src="/logos/Minhas metricas.png" alt="Minhas Métricas" style={{ height: 46, borderRadius: 10 }} /></div>
+            <div className="adm-brand" style={{ justifyContent: "center", marginBottom: 6 }}><img src="/logos/fundo%20transparente.png" alt="Minhas Métricas" style={{ height: 50, width: "auto", maxWidth: "88%", objectFit: "contain" }} /></div>
             <h2 style={{ textAlign: "center", margin: "6px 0 2px" }}>Área do Super Admin</h2>
             <p className="adm-sub" style={{ textAlign: "center", marginBottom: 18 }}>Entre com a conta de administrador.</p>
             {estado === "negado" && <div className="adm-login-msg">Essa conta não é Super Admin. Entre com a conta de administrador.</div>}
@@ -360,7 +360,7 @@ export default function Admin() {
       </button>
       <div className="adm-shell">
         <aside className="adm-side">
-          <div className="adm-brand"><img src="/logos/Minhas metricas.png" alt="Minhas Métricas" style={{ height: 52, width: "auto", maxWidth: "100%", objectFit: "contain", borderRadius: 12 }} /></div>
+          <div className="adm-brand"><img src="/logos/fundo%20transparente.png" alt="Minhas Métricas" style={{ height: 40, width: "auto", maxWidth: "100%", objectFit: "contain" }} /></div>
           <nav className="adm-nav">
             {NAV.map(({ k, label, Icon }) => (
               <button key={k} className={aba === k ? "on" : ""} onClick={() => setAba(k)}><Icon size={18} /> {label}</button>

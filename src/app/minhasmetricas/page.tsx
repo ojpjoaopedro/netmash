@@ -473,10 +473,10 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
             <div className="mhome-quote">
               <p>{fraseHome ? `“${fraseHome.t.replace(/\.\s*$/, "")}”` : "…"}</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
                 <button onClick={async () => { if (!fraseHome) return; const txt = `“${fraseHome.t.replace(/\.\s*$/, "")}”\n\n📊 Pulso do dia · Minhas Métricas`; try { if (navigator.share) { await navigator.share({ text: txt }); } else { await navigator.clipboard.writeText(txt); } } catch { /* ignore */ } }}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", color: "#fff", border: 0, borderRadius: 99, padding: "11px 20px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 10px 22px -8px rgba(220,39,67,.55)" }}>
-                  <Instagram size={16} /> Compartilhar
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", color: "#fff", border: 0, borderRadius: 99, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 18px -8px rgba(220,39,67,.55)" }}>
+                  <Instagram size={15} /> Compartilhar
                 </button>
               </div>
             </div>
