@@ -191,11 +191,13 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
               || (emailL && (a.email || "").toLowerCase() === emailL)
               || (emailL && (a.acesso || "").toLowerCase() === emailL));
             if (existe) {
+              existe.id = c.id;   // garante o id real do banco (pra salvar permissões)
               if (!existe.nome && c.nome) existe.nome = c.nome;
               if (c.email) { existe.email = c.email; existe.acesso = c.email; }
+              existe.permissoes = Array.isArray(c.areas) ? c.areas : [];   // permissões vêm do banco
             } else {
               next.admins.push({ id: c.id, nome: c.nome || "", area: "", acesso: c.email || "", email: c.email || "",
-                telefone: "", cpf: "", pix: "", nascimento: "", permissoes: (Array.isArray(c.areas) && c.areas.length ? c.areas : "total") });
+                telefone: "", cpf: "", pix: "", nascimento: "", permissoes: (Array.isArray(c.areas) ? c.areas : []) });
             }
           }
           return next;
@@ -211,6 +213,25 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
   const setPerm = (id: string, permissoes: Perm) => setStore((s) => ({ ...s, admins: s.admins.map((a) => a.id === id ? { ...a, permissoes } : a) }));
 
   const abrirPerm = (id: string) => { setSelId(id); setPermAberto(true); };
+  // Salva as permissões no BANCO (perfis.areas) para cada admin, pra o menu do colaborador refletir de verdade.
+  const [salvandoPerm, setSalvandoPerm] = useState(false);
+  async function salvarPermissoes() {
+    setSalvandoPerm(true);
+    try {
+      if (supabaseReady && supabase) {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        if (token) {
+          for (const a of store.admins) {
+            const areas = a.permissoes === "total" ? TODAS.slice() : a.permissoes;
+            await fetch("/api/colaboradores", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ id: a.id, areas }) }).catch(() => {});
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    setSalvandoPerm(false);
+    setPermAberto(false);
+  }
 
   const Card = ({ d, sup }: { d: Diretor; sup: boolean }) => {
     const set = sup ? setCampoSuper : (p: Partial<Diretor>) => setCampoAdmin(d.id, p);
@@ -364,7 +385,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
               <button className="btn ghost" onClick={() => setPermAberto(false)}>Fechar</button>
-              <button className="btn" onClick={() => setPermAberto(false)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} /> Salvar</button>
+              <button className="btn" onClick={salvarPermissoes} disabled={salvandoPerm} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} /> {salvandoPerm ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>
         </div>

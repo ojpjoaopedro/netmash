@@ -179,12 +179,16 @@ export default function Home({ secao }: { secao?: string } = {}) {
     })();
   }, [router, carregarDados]);
 
+  // chave da foto POR USUÁRIO (cada login tem a sua; antes era por empresa e vazava)
+  const fotoKey = perfil?.id ? `me_foto_perfil:${perfil.id}` : "me_foto_perfil";
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
-      setFotoPerfil(localStorage.getItem("me_foto_perfil") || "");
-    }
+    if (typeof window !== "undefined") setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
   }, []);
+  // carrega a foto do usuário logado (chave por id)
+  useEffect(() => {
+    if (typeof window === "undefined" || !perfil?.id) return;
+    try { setFotoPerfil(localStorage.getItem(`me_foto_perfil:${perfil.id}`) || ""); } catch { /* ignore */ }
+  }, [perfil?.id]);
 
   // Sincroniza TODO o painel com o banco ao abrir: puxa o que está salvo no banco
   // para o navegador (e, na 1ª vez, sobe o que já existia localmente).
@@ -196,7 +200,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
     const chaves = [
       "me_calendario_pagamentos", "me_calendario_recebimentos",
       "me_diretores", "me_func_extra",
-      "fin_brand", "fin_theme", "me_foto_perfil",
+      "fin_brand", "fin_theme", ...(perfil?.id ? [`me_foto_perfil:${perfil.id}`] : []),
       "me_termos_aceite", "me_termos_aceite:privacidade", "me_termos_aceite:servicos", "me_termos_aceite:protecao",
       "me_guia_concluido", "me_guia_min", "me_tour_financas",
       "me_som", "me_ocultar_valores", "me_bemvindo_fechado",
@@ -205,8 +209,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
     void sincronizarEstado(chaves).then((vals) => {
       // reaplica no que a página lê só uma vez na montagem
       setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
-      // a foto pode ser grande e não caber no localStorage: pega direto do banco
-      setFotoPerfil(vals["me_foto_perfil"] || localStorage.getItem("me_foto_perfil") || "");
+      // a foto pode ser grande e não caber no localStorage: pega direto do banco (chave por usuário)
+      if (perfil?.id) setFotoPerfil(vals[`me_foto_perfil:${perfil.id}`] || localStorage.getItem(`me_foto_perfil:${perfil.id}`) || "");
     });
   }, [empresa]);
 
@@ -223,13 +227,13 @@ export default function Home({ secao }: { secao?: string } = {}) {
   }
   function salvarFotoPerfil(url: string) {
     setFotoPerfil(url);
-    salvarEstadoRemoto("me_foto_perfil", url);                                  // banco SEMPRE (independente do localStorage)
-    try { localStorage.setItem("me_foto_perfil", url); } catch { /* imagem grande: fica no banco + na sessão */ }
+    salvarEstadoRemoto(fotoKey, url);                                  // banco SEMPRE (independente do localStorage)
+    try { localStorage.setItem(fotoKey, url); } catch { /* imagem grande: fica no banco + na sessão */ }
   }
   function removerFotoPerfil() {
     setFotoPerfil("");
-    apagarEstadoRemoto("me_foto_perfil");
-    try { localStorage.removeItem("me_foto_perfil"); } catch { /* ignore */ }
+    apagarEstadoRemoto(fotoKey);
+    try { localStorage.removeItem(fotoKey); } catch { /* ignore */ }
   }
 
   // Interliga a identidade: aplica logo/cor da empresa logada (banco) na marca do painel.
@@ -303,8 +307,10 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const opsKeys: string[] = ehDono
     ? OPERACOES.map((o) => o.key)
     : (() => {
-        const ops = new Set<string>(["assistente", "relatorios", "apresentacao"]);
-        if (areasPerm.includes("financas")) ["contas", "ferramentas"].forEach((k) => ops.add(k));
+        const ops = new Set<string>();
+        if (areasPerm.includes("assistente")) ops.add("assistente");
+        if (areasPerm.includes("config")) ops.add("config");
+        if (areasPerm.includes("financas")) ["contas", "ferramentas", "relatorios", "apresentacao"].forEach((k) => ops.add(k));
         return [...ops];
       })();
   const opsVis = OPERACOES.filter((o) => opsKeys.includes(o.key));
@@ -411,7 +417,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <input type="file" accept="image/*" onChange={escolherFoto} style={{ display: "none" }} />
           </label>
           <div className="who">
-            <b>{superNome.trim().split(" ")[0] || perfil?.nome || saudacaoNome || nomeMarca}</b>
+            <b>{(perfil?.nome || "").trim().split(" ")[0] || superNome.trim().split(" ")[0] || saudacaoNome || nomeMarca}</b>
             {/* mostra o nome da empresa digitado; sem nome, cai no selo do painel modelo */}
             <small>{nomeMarca !== "Minha Empresa" ? nomeMarca : (marcaPainel ? "Painel demonstrativo" : nomeMarca)}</small>
           </div>

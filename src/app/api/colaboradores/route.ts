@@ -56,6 +56,20 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
+// Atualiza as permissões (áreas do menu) de um colaborador da empresa do dono.
+export async function PATCH(req: NextRequest) {
+  const s = svc();
+  if (!s) return NextResponse.json({ error: "Servidor sem chave configurada." }, { status: 500 });
+  const dono = await donoDoCaller(req, s);
+  if (!dono) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  const { id, areas } = (await req.json()) as { id?: string; areas?: string[] };
+  if (!id) return NextResponse.json({ error: "ID inválido." }, { status: 400 });
+  const { data: alvo } = await s.from("perfis").select("empresa_id").eq("id", id).single();
+  if (!alvo || alvo.empresa_id !== dono.empresaId) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  await s.from("perfis").update({ areas: Array.isArray(areas) ? areas : [] }).eq("id", id);
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(req: NextRequest) {
   const s = svc();
   if (!s) return NextResponse.json({ error: "Servidor sem chave configurada." }, { status: 500 });
