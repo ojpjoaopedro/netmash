@@ -196,7 +196,7 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 14 }}>
         {itens.map((it, i) => (
           <CaixaCard key={i} titulo={it.titulo} dica={it.dica} aberto={infoAberto === i} onInfo={() => setInfoAberto(infoAberto === i ? null : i)} onFechar={() => setInfoAberto(null)}>
             {modo === "card"
