@@ -269,7 +269,7 @@ export default function Diretores({ loginEmail = "", ehDono = true, irParaPlano 
           <CampoLabel label="Cargo" valor={d.area} onSalvar={(v, el) => { set({ area: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
           {sup
             ? <CampoLabel label="E-mail de acesso" valor={d.email || loginEmail || "minhasmetricas@gmail.com"} disabled lock />
-            : <CampoLabel label="E-mail de acesso" valor={d.acesso} placeholder="login@empresa.com" validar={emailValido} onInvalido={() => setAviso({ titulo: "E-mail inválido", texto: "O e-mail digitado não parece correto. Use o formato nome@empresa.com." })} onSalvar={(v, el) => { set({ acesso: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />}
+            : <CampoLabel label="E-mail de acesso" valor={d.acesso || d.email} disabled lock />}
         </div>
         <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <CampoLabel label="Telefone" valor={d.telefone} formatar={mascararTelefone} onSalvar={(v, el) => { set({ telefone: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />

@@ -457,60 +457,65 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={5} style={{ textAlign: "center" }}>Ações</th><th>Plano</th></tr></thead>
+                  <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Acesso</th><th style={{ textAlign: "center" }}>Ações</th><th>Plano</th></tr></thead>
                   <tbody>
-                    {data?.empresas.map((e) => (
+                    {data?.empresas.map((e) => {
+                      type P = { key: string; nome: string; email: string | null; dono: boolean; cortado: boolean; toggle: () => void; verP: () => void; reenviar: () => void; trash: (() => void) | null };
+                      const confExcluir = `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`;
+                      const donoP: P | null = e.dono ? {
+                        key: "d-" + e.id, nome: e.dono.nome || "—", email: e.dono.email, dono: true, cortado: e.acessoCortado,
+                        toggle: () => e.dono_id && acao(e.acessoCortado ? "restaurar" : "cortar", { userId: e.dono_id }),
+                        verP: () => verPainel(e), reenviar: () => reenviarAcesso(e),
+                        trash: ehPadrao(e) ? null : () => acao("excluir", { empresaId: e.id }, confExcluir),
+                      } : null;
+                      const colabs: P[] = (acessosMap[e.id] || []).filter((a) => a.papel !== "dono" && a.email !== e.dono?.email).map((a) => ({
+                        key: a.id, nome: a.nome || a.email || "usuário", email: a.email, dono: false, cortado: !!a.cortado,
+                        toggle: () => acaoAcesso(e.id, a.cortado ? "restaurar" : "cortar", a.id),
+                        verP: () => verPainelAcesso(a.id, a.nome || a.email || "usuário"),
+                        reenviar: () => acaoAcesso(e.id, "acesso-reenviar", a.id),
+                        trash: () => acaoAcesso(e.id, "acesso-remover", a.id, `Remover o acesso de ${a.nome || a.email}?`),
+                      }));
+                      const pessoas: P[] = donoP ? [donoP, ...colabs] : colabs;
+                      const linha: React.CSSProperties = { minHeight: 48, display: "flex", alignItems: "center", padding: "6px 0" };
+                      const spacer = <span style={{ width: 30, height: 30, display: "inline-block", flexShrink: 0 }} />;
+                      return (
                       <tr key={e.id}>
-                        <td className="adm-sub">{dataBR(e.criado_em)}</td>
-                        <td><b>{e.nome}</b></td>
-                        <td>
-                          {e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}
-                          {(acessosMap[e.id] || []).filter((a) => a.papel !== "dono" && a.email !== e.dono?.email).map((a) => (
-                            <div key={a.id} style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                              <span className="adm-sub" style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                                <UserPlus size={11} style={{ opacity: .6, flexShrink: 0 }} />
-                                <span style={{ textDecoration: a.cortado ? "line-through" : "none", opacity: a.cortado ? .55 : 1 }}>{a.nome || a.email}{a.email && a.nome ? ` · ${a.email}` : ""}</span>
-                              </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                <button className="adm-btn sm adm-ic" disabled={busy === a.id} title="Ver painel como este usuário" onClick={() => verPainelAcesso(a.id, a.nome || a.email || "usuário")}><Eye size={13} /></button>
-                                <button disabled={busy === a.id} onClick={() => acaoAcesso(e.id, a.cortado ? "restaurar" : "cortar", a.id)} title={a.cortado ? "Ativar acesso" : "Desativar acesso"}
-                                  style={{ fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
-                                    border: `1px solid ${a.cortado ? "rgba(245,158,11,.4)" : "rgba(16,185,129,.4)"}`, background: a.cortado ? "rgba(245,158,11,.12)" : "rgba(16,185,129,.12)", color: a.cortado ? "#d97706" : "#059669" }}>{a.cortado ? "Inativo" : "Ativo"}</button>
-                                <button className="adm-btn sm ghost adm-ic" disabled={busy === a.id} title="Reenviar acesso por e-mail" onClick={() => acaoAcesso(e.id, "acesso-reenviar", a.id)}><Send size={13} /></button>
-                                <button className="adm-btn sm danger adm-ic" disabled={busy === a.id} title="Remover este acesso" onClick={() => acaoAcesso(e.id, "acesso-remover", a.id, `Remover o acesso de ${a.nome || a.email}?`)}><Trash2 size={13} /></button>
-                              </span>
+                        <td className="adm-sub" style={{ verticalAlign: "top", paddingTop: 16 }}>{dataBR(e.criado_em)}</td>
+                        <td style={{ verticalAlign: "top", paddingTop: 16 }}><b>{e.nome}</b></td>
+                        <td style={{ verticalAlign: "top" }}>
+                          {pessoas.length ? pessoas.map((p, i) => (
+                            <div key={p.key} style={{ ...linha, flexDirection: "column", alignItems: "flex-start", justifyContent: "center", borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
+                              <div style={{ textDecoration: p.cortado ? "line-through" : "none", opacity: p.cortado ? .55 : 1 }}>{p.nome}</div>
+                              <div className="adm-sub">{p.email}</div>
+                            </div>
+                          )) : <span className="adm-sub">—</span>}
+                        </td>
+                        <td style={{ textAlign: "center", verticalAlign: "top" }}>
+                          {pessoas.map((p, i) => (
+                            <div key={p.key} style={{ ...linha, justifyContent: "center", borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
+                              <button type="button" className={"adm-switch" + (p.cortado ? "" : " on")} disabled={!!busy || (p.dono && !e.dono_id)} title={p.cortado ? "Ativar acesso" : "Desativar acesso"} onClick={p.toggle}><span className="adm-switch-knob" /></button>
                             </div>
                           ))}
                         </td>
-                        <td style={{ textAlign: "center" }}>
-                          <button
-                            type="button"
-                            className={"adm-switch" + (e.acessoCortado ? "" : " on")}
-                            disabled={!e.dono_id || !!busy}
-                            title={e.acessoCortado ? "Ativar acesso" : "Desativar acesso"}
-                            onClick={() => e.dono_id && acao(e.acessoCortado ? "restaurar" : "cortar", { userId: e.dono_id })}
-                          >
-                            <span className="adm-switch-knob" />
-                          </button>
+                        <td style={{ verticalAlign: "top" }}>
+                          {pessoas.map((p, i) => (
+                            <div key={p.key} style={{ ...linha, justifyContent: "center", gap: 6, borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
+                              <button className="adm-btn sm adm-ic" disabled={!!busy} title="Ver painel" onClick={p.verP}><Eye size={16} /></button>
+                              <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Reenviar acesso por e-mail" onClick={p.reenviar}><Send size={16} /></button>
+                              {p.dono ? (
+                                <>
+                                  <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar cadastro da empresa" onClick={() => abrirEdicao(e)}><Pencil size={16} /></button>
+                                  <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Adicionar acesso (novo usuário)" onClick={() => selecionarEmpresa(e.id)}><UserPlus size={16} /></button>
+                                </>
+                              ) : (<>{spacer}{spacer}</>)}
+                              {p.trash ? <button className="adm-btn sm danger adm-ic" disabled={!!busy} title={p.dono ? "Excluir empresa" : "Remover acesso"} onClick={p.trash}><Trash2 size={16} /></button> : spacer}
+                            </div>
+                          ))}
                         </td>
-                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
-                          <button className="adm-btn sm adm-ic" disabled={!!busy} title="Ver painel: entrar nesta empresa sem login" onClick={() => verPainel(e)}><Eye size={16} /></button>
-                        </td>
-                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
-                          <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Reenviar acesso por e-mail" onClick={() => reenviarAcesso(e)}><Send size={16} /></button>
-                        </td>
-                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
-                          <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar cadastro da empresa" onClick={() => abrirEdicao(e)}><Pencil size={16} /></button>
-                        </td>
-                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
-                          <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Adicionar acesso (novo usuário para esta empresa)" onClick={() => selecionarEmpresa(e.id)}><UserPlus size={16} /></button>
-                        </td>
-                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
-                          {!ehPadrao(e) && <button className="adm-btn sm danger adm-ic" disabled={!!busy} title="Excluir empresa (apaga tudo e libera o e-mail)" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={16} /></button>}
-                        </td>
-                        <td><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
+                        <td style={{ verticalAlign: "top", paddingTop: 16 }}><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
                       </tr>
-                    ))}
+                      );
+                    })}
                     {!data?.empresas.length && <tr><td colSpan={8} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
