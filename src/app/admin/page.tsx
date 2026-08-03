@@ -146,9 +146,6 @@ export default function Admin() {
     await carregar();
   }
   function abrirCadastro() { setErroNovo(""); setNovo({ nomeEmpresa: "", cnpj: "", responsavel: "", emailResp: "", funcionarios: [] }); }
-  function addFunc() { setNovo((n) => (n ? { ...n, funcionarios: [...n.funcionarios, { nome: "", email: "" }] } : n)); }
-  function setFunc(i: number, campo: "nome" | "email", v: string) { setNovo((n) => { if (!n) return n; const fs = n.funcionarios.slice(); fs[i] = { ...fs[i], [campo]: v }; return { ...n, funcionarios: fs }; }); }
-  function rmFunc(i: number) { setNovo((n) => (n ? { ...n, funcionarios: n.funcionarios.filter((_, k) => k !== i) } : n)); }
   async function criarNovo(e: React.FormEvent) {
     e.preventDefault();
     if (!novo || !supabase) return;
@@ -565,20 +562,13 @@ export default function Admin() {
             <div className="adm-grid2">
               <L label="Nome da empresa"><input value={form.nomeEmpresa} onChange={(ev) => setForm({ ...form, nomeEmpresa: ev.target.value })} required /></L>
               <L label="CNPJ (opcional)"><input value={form.cnpj} onChange={(ev) => setForm({ ...form, cnpj: mascaraCnpj(ev.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" /></L>
-              <L label="Segmento (opcional)"><input value={form.segmento} onChange={(ev) => setForm({ ...form, segmento: ev.target.value })} placeholder="Ex: Comércio" /></L>
-              <L label="Saldo inicial em caixa (R$)"><input type="number" step="0.01" value={form.saldoInicial} onChange={(ev) => setForm({ ...form, saldoInicial: ev.target.value })} /></L>
               <L label="Responsável"><input value={form.responsavel} onChange={(ev) => setForm({ ...form, responsavel: ev.target.value })} /></L>
               <L label="E-mail do responsável"><input type="email" value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} required /></L>
               <L label={form.editId ? "Nova senha (em branco = manter)" : "Senha de acesso"}><input type="text" value={form.senha} onChange={(ev) => setForm({ ...form, senha: ev.target.value })} required={!form.editId} minLength={6} placeholder={form.editId ? "deixe em branco p/ manter" : "mín. 6 caracteres"} /></L>
-              <L label="Nº de Super Admins (administradores)"><input type="number" min="1" value={form.qtdSuperadmins} onChange={(ev) => setForm({ ...form, qtdSuperadmins: ev.target.value })} /></L>
-              <L label="Nº de Acessos (funcionários)"><input type="number" min="0" value={form.qtdAcessos} onChange={(ev) => setForm({ ...form, qtdAcessos: ev.target.value })} /></L>
               <L label="Endereço da página (slug)"><input value={form.slug} onChange={(ev) => setForm({ ...form, slug: ev.target.value })} placeholder="auto pelo nome" /></L>
             </div>
-            <div className="adm-valor">Plano: <b>{brl((Number(form.qtdSuperadmins) || 0) * precos.superadmin + (Number(form.qtdAcessos) || 0) * precos.acesso)}/mês</b> <span>(Super Admin R$ {precos.superadmin.toFixed(2).replace(".", ",")} · Acesso R$ {precos.acesso.toFixed(2).replace(".", ",")} cada)</span></div>
-            <L label={form.editId ? "Logo (envie só p/ trocar)" : "Logo da empresa"}><input type="file" accept="image/*" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) onLogo(f); }} /></L>
-            {form.logo && <img src={form.logo} alt="" style={{ maxHeight: 48, marginTop: 8, objectFit: "contain" }} />}
             <button className="adm-btn" type="submit" disabled={salvando} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvando ? "Salvando…" : form.editId ? "Salvar alterações" : "Cadastrar cliente"}</button>
-            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>{form.editId ? <>Página em <b>minhasmetricas.com/{form.slug || "(nome)"}</b>. As permissões dos funcionários são editadas dentro da empresa, em “Acessos”.</> : <>O responsável é o 1º <b>Super Admin</b>. Os <b>Acessos</b> são adicionados depois em “Acessos”. Cria também a página <b>minhasmetricas.com/{form.slug || "(nome)"}</b>.</>}</p>
+            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>Página em <b>minhasmetricas.com/{form.slug || "(nome)"}</b>.</p>
           </form>
         </div>
       )}
@@ -594,18 +584,9 @@ export default function Admin() {
               <L label="Responsável (Super Admin)"><input value={novo.responsavel} onChange={(ev) => setNovo({ ...novo, responsavel: ev.target.value })} /></L>
               <L label="E-mail do responsável"><input type="email" value={novo.emailResp} onChange={(ev) => setNovo({ ...novo, emailResp: ev.target.value })} required /></L>
             </div>
-            <div className="adm-funhead"><span>Funcionários (acessos)</span><button type="button" className="adm-btn sm ghost" onClick={addFunc}><Plus size={13} /> Adicionar</button></div>
-            {novo.funcionarios.length === 0 && <p className="adm-sub" style={{ marginTop: 6 }}>Nenhum funcionário ainda. Clique em “Adicionar” para incluir acessos.</p>}
-            {novo.funcionarios.map((f, i) => (
-              <div key={i} className="adm-funrow">
-                <input placeholder={`Nome do funcionário ${i + 1}`} value={f.nome} onChange={(ev) => setFunc(i, "nome", ev.target.value)} />
-                <input placeholder="e-mail de acesso" type="email" value={f.email} onChange={(ev) => setFunc(i, "email", ev.target.value)} />
-                <button type="button" className="adm-funx" onClick={() => rmFunc(i)}><X size={15} /></button>
-              </div>
-            ))}
-            <div className="adm-valor" style={{ marginTop: 14 }}>Plano: <b>{brl(precos.superadmin + novo.funcionarios.filter((f) => f.email.includes("@")).length * precos.acesso)}/mês</b> <span>(1 Super Admin + {novo.funcionarios.filter((f) => f.email.includes("@")).length} acesso(s))</span></div>
+            <div className="adm-valor" style={{ marginTop: 14 }}>Plano: <b>{brl(precos.superadmin)}/mês</b> <span>(1 Super Admin)</span></div>
             <button className="adm-btn" type="submit" disabled={salvNovo} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvNovo ? "Cadastrando…" : "Cadastrar cliente"}</button>
-            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>O responsável e cada funcionário recebem um e-mail para <b>criar a senha</b> e acessar. Cria a página <b>minhasmetricas.com/{novo.nomeEmpresa ? novo.nomeEmpresa.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") : "(nome)"}</b>.</p>
+            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>O responsável recebe um e-mail para <b>criar a senha</b> e acessar.</p>
           </form>
         </div>
       )}
