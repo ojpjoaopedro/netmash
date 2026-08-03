@@ -14,6 +14,7 @@ import GuiaConfiguracao from "@/components/GuiaConfiguracao";
 import { assinarNav, pegarAlvo, navegar } from "@/lib/nav";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { salvarEstadoRemoto, apagarEstadoRemoto, sincronizarEstado, limparDadosLocaisDaConta } from "@/lib/estado-remoto";
+import { reduzirImagem } from "@/lib/imagem";
 import {
   getPerfil, getEmpresa, getLancamentos, getFuncionarios, getClientes, logout,
   Perfil, Empresa, Lancamento, Funcionario, Cliente,
@@ -211,6 +212,10 @@ export default function Home({ secao }: { secao?: string } = {}) {
       setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
       // a foto pode ser grande e não caber no localStorage: pega direto do banco (chave por usuário)
       if (perfil?.id) setFotoPerfil(vals[`me_foto_perfil:${perfil.id}`] || localStorage.getItem(`me_foto_perfil:${perfil.id}`) || "");
+      // logo/cores vêm do banco (logo grande pode não caber no localStorage): aplica direto
+      if (vals["fin_brand"] || vals["fin_theme"]) {
+        window.dispatchEvent(new CustomEvent("me:brand-remoto", { detail: { brand: vals["fin_brand"], theme: vals["fin_theme"] } }));
+      }
     });
   }, [empresa]);
 
@@ -225,10 +230,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
     r.onload = () => setRecorteFoto(String(r.result));
     r.readAsDataURL(arq);
   }
-  function salvarFotoPerfil(url: string) {
-    setFotoPerfil(url);
-    salvarEstadoRemoto(fotoKey, url);                                  // banco SEMPRE (independente do localStorage)
-    try { localStorage.setItem(fotoKey, url); } catch { /* imagem grande: fica no banco + na sessão */ }
+  async function salvarFotoPerfil(url: string) {
+    const reduzida = await reduzirImagem(url, 256, 0.82);              // reduz/comprime antes de guardar
+    setFotoPerfil(reduzida);
+    salvarEstadoRemoto(fotoKey, reduzida);                            // banco SEMPRE (independente do localStorage)
+    try { localStorage.setItem(fotoKey, reduzida); } catch { /* imagem grande: fica no banco + na sessão */ }
   }
   function removerFotoPerfil() {
     setFotoPerfil("");

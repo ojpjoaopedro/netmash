@@ -5,6 +5,7 @@ import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone, emailValido } from "@/lib/format";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
+import { reduzirImagem } from "@/lib/imagem";
 
 
 /* Principais segmentos de mercado (setores da economia brasileira). O último
@@ -113,7 +114,11 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => saveBrand({ logo: String(reader.result) });
+    reader.onload = async () => {
+      // reduz/comprime automaticamente (o logo entra bem pequeno, sem estourar armazenamento)
+      const reduzido = await reduzirImagem(String(reader.result), 256, 0.82);
+      saveBrand({ logo: reduzido });
+    };
     reader.readAsDataURL(file);
   }
 

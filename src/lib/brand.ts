@@ -82,7 +82,15 @@ export function useBrand() {
     carregar();
     // quando a marca/tema vier do banco (sync ao abrir o painel), recarrega
     window.addEventListener("me:brand", carregar);
-    return () => window.removeEventListener("me:brand", carregar);
+    // aplica a marca DIRETO do banco (o logo é grande e pode não caber no localStorage;
+    // por isso não dá para depender só do cache local ao dar F5).
+    const aplicarRemoto = (e: Event) => {
+      const d = (e as CustomEvent).detail as { brand?: string; theme?: string } | undefined;
+      if (d?.brand) { try { const b: Brand = { ...DEFAULT, ...JSON.parse(d.brand) }; setBrand(b); aplicarCor(b.cor); } catch { /* ignore */ } }
+      if (d?.theme === "light" || d?.theme === "dark") { setThemeState(d.theme); document.body.classList.toggle("theme-light", d.theme === "light"); }
+    };
+    window.addEventListener("me:brand-remoto", aplicarRemoto);
+    return () => { window.removeEventListener("me:brand", carregar); window.removeEventListener("me:brand-remoto", aplicarRemoto); };
   }, []);
 
   const save = useCallback((patch: Partial<Brand>) => {
