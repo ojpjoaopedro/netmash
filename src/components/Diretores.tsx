@@ -236,6 +236,9 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
   const Card = ({ d, sup }: { d: Diretor; sup: boolean }) => {
     const set = sup ? setCampoSuper : (p: Partial<Diretor>) => setCampoAdmin(d.id, p);
     const badge = sup ? { txt: "SUPERADMIN", cor: AMBAR, Icon: Crown } : { txt: "ADMIN", cor: AZUL, Icon: Shield };
+    // este card é do usuário LOGADO? (só ele pode trocar a própria senha)
+    const emailCard = ((sup ? d.email : d.acesso) || "").toLowerCase();
+    const ehMeuCard = loginEmail ? (emailCard === loginEmail.toLowerCase()) : sup;
     return (
       <div className="card diretor-card compacto" style={{ padding: 16, position: "relative" }}>
         {!sup && focoId === d.id && (
@@ -244,7 +247,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
             <Trash2 size={14} />
           </button>
         )}
-        {sup && (
+        {ehMeuCard && (
           <button onClick={abrirSenha}
             style={{ position: "absolute", top: 14, right: 14, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12.5, border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)" }}>
             <Lock size={14} /> Alterar senha
@@ -265,7 +268,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
           <CampoLabel label="Nome" valor={d.nome} placeholder={sup ? "Seu nome aqui" : "Nome do diretor"} onSalvar={(v, el) => { set({ nome: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
           <CampoLabel label="Cargo" valor={d.area} onSalvar={(v, el) => { set({ area: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
           {sup
-            ? <CampoLabel label="E-mail de acesso" valor={loginEmail || "minhasmetricas@gmail.com"} disabled lock />
+            ? <CampoLabel label="E-mail de acesso" valor={d.email || loginEmail || "minhasmetricas@gmail.com"} disabled lock />
             : <CampoLabel label="E-mail de acesso" valor={d.acesso} placeholder="login@empresa.com" validar={emailValido} onInvalido={() => setAviso({ titulo: "E-mail inválido", texto: "O e-mail digitado não parece correto. Use o formato nome@empresa.com." })} onSalvar={(v, el) => { set({ acesso: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />}
         </div>
         <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
