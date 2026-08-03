@@ -117,7 +117,7 @@ function fimDoTexto(el: HTMLElement, r: DOMRect): number {
   return Math.min(r.left + padEsq + largura, r.right);
 }
 
-export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail?: string; irParaPlano?: () => void }) {
+export default function Diretores({ loginEmail = "", ehDono = true, irParaPlano }: { loginEmail?: string; ehDono?: boolean; irParaPlano?: () => void }) {
   const [store, setStore] = useState<Store>({ sup: { ...SUPER_PADRAO }, admins: [] });
   const [carregado, setCarregado] = useState(false);
   const [permAberto, setPermAberto] = useState(false);
@@ -241,7 +241,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
     const ehMeuCard = loginEmail ? (emailCard === loginEmail.toLowerCase()) : sup;
     return (
       <div className="card diretor-card compacto" style={{ padding: 16, position: "relative" }}>
-        {!sup && focoId === d.id && (
+        {ehDono && !sup && focoId === d.id && (
           <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir(d)}
             style={{ position: "absolute", top: 12, right: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO }}>
             <Trash2 size={14} />
@@ -277,7 +277,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
           <CampoLabel label="Data de nascimento" valor={d.nascimento} tipo="date" erroData={errosData[`${d.id}:nasc`]} onErroData={(m) => setErroData(`${d.id}:nasc`, m)} onSalvar={(v, el) => { set({ nascimento: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
         </div>
 
-        {!sup && (
+        {ehDono && !sup && (
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 7 }}>Acesso ao menu</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -312,6 +312,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
       <div style={{ display: "grid", gap: 14 }}>
         <Card d={store.sup} sup />
         {store.admins.map((a) => <Card key={a.id} d={a} sup={false} />)}
+        {ehDono && (
         <button onClick={() => setUpgrade(true)}
           style={{ minHeight: 96, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit", borderRadius: 16, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; }}
@@ -319,6 +320,7 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
           <span style={{ width: 40, height: 40, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><Plus size={20} /></span>
           <b style={{ fontSize: 13 }}>Cadastrar admin</b>
         </button>
+        )}
       </div>
 
       {/* modal central: Permissões de acesso */}

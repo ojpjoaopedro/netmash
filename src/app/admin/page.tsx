@@ -457,10 +457,11 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={5} style={{ textAlign: "center" }}>Ações</th></tr></thead>
+                  <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={5} style={{ textAlign: "center" }}>Ações</th><th>Plano</th></tr></thead>
                   <tbody>
                     {data?.empresas.map((e) => (
                       <tr key={e.id}>
+                        <td className="adm-sub">{dataBR(e.criado_em)}</td>
                         <td><b>{e.nome}</b></td>
                         <td>
                           {e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}
@@ -481,8 +482,6 @@ export default function Admin() {
                             </div>
                           ))}
                         </td>
-                        <td><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
-                        <td className="adm-sub">{dataBR(e.criado_em)}</td>
                         <td style={{ textAlign: "center" }}>
                           <button
                             type="button"
@@ -509,6 +508,7 @@ export default function Admin() {
                         <td style={{ textAlign: "center", padding: "13px 6px" }}>
                           {!ehPadrao(e) && <button className="adm-btn sm danger adm-ic" disabled={!!busy} title="Excluir empresa (apaga tudo e libera o e-mail)" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={16} /></button>}
                         </td>
+                        <td><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
                       </tr>
                     ))}
                     {!data?.empresas.length && <tr><td colSpan={8} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}

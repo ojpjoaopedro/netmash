@@ -568,7 +568,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <TelaUpgrade Icon={Compass} titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." preco="R$ 29,90" />}
         {view === "clientes" && <TelaUpgrade Icon={UserPlus} titulo="Cadastro de clientes" texto="Cadastre e organize seus clientes em um só lugar. Ative este módulo no seu plano para liberar esta tela." preco="R$ 39,90" />}
-        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} voltarRef={voltarRef} onNivel={setVoltarLabel} />}
+        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} ehDono={ehDono} voltarRef={voltarRef} onNivel={setVoltarLabel} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} brand={brandObj} ano={Number(anoSel)} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
@@ -895,10 +895,10 @@ function TourFinancas({ setAba, onFim, onVerVideo }: { setAba: (k: "dashboard" |
 }
 
 /** Configurações no mesmo formato de Finanças: título + abas Dados da empresa / Equipe. */
-function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, voltarRef, onNivel }: {
+function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDono = true, voltarRef, onNivel }: {
   empresa: Empresa | null; funcs: Funcionario[]; reload: () => Promise<void>;
   brand: React.ComponentProps<typeof Config>["brand"]; saveBrand: React.ComponentProps<typeof Config>["saveBrand"];
-  loginEmail?: string; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void;
+  loginEmail?: string; ehDono?: boolean; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void;
 }) {
   type AbaCfg = "usuarios" | "dados" | "personalizacao" | "equipe" | "termos" | "beneficios" | "plano";
   const [aba, setAba] = useState<AbaCfg>("usuarios");
@@ -997,7 +997,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, volt
       {aba === "dados" ? <Config secao="dados" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
         : aba === "personalizacao" ? <Config secao="identidade" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
         : aba === "equipe" ? <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} />
-        : aba === "usuarios" ? <Diretores loginEmail={loginEmail} irParaPlano={() => setAba("plano")} />
+        : aba === "usuarios" ? <Diretores loginEmail={loginEmail} ehDono={ehDono} irParaPlano={() => setAba("plano")} />
         : aba === "termos" ? <TermosDeUso />
         : aba === "beneficios" ? <MeusBeneficios />
         : aba === "plano" ? <MeuPlano />
