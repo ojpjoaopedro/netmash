@@ -161,6 +161,27 @@ export default function Admin() {
     } catch { /* ignore */ }
     setBusy(null);
   }
+  // Editar nome/e-mail de um acesso (modal enxuto, estilo "Editar empresa").
+  const [editAcesso, setEditAcesso] = useState<{ id: string; empresaId: string; nome: string; email: string } | null>(null);
+  async function salvarEditAcesso() {
+    if (!editAcesso) return;
+    if (demo) {
+      setAcessosMap((m) => ({ ...m, [editAcesso.empresaId]: (m[editAcesso.empresaId] || []).map((a) => a.id === editAcesso.id ? { ...a, nome: editAcesso.nome, email: editAcesso.email } : a) }));
+      setEditAcesso(null); return;
+    }
+    if (!supabase) return;
+    setBusy(editAcesso.id);
+    try {
+      const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-editar", userId: editAcesso.id, nome: editAcesso.nome, email: editAcesso.email }) });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const r = await fetch(`/api/admin?empresaId=${editAcesso.empresaId}`, { headers: await tokenH() });
+        if (r.ok) { const jj = await r.json(); setAcessosMap((m) => ({ ...m, [editAcesso.empresaId]: (jj.acessos as Acesso[]) || [] })); }
+        setEditAcesso(null);
+      } else { window.alert(j.error || "Não consegui salvar."); }
+    } catch { /* ignore */ }
+    setBusy(null);
+  }
   // Ver painel entrando como UM usuário específico (abre o modal com o link mágico).
   async function verPainelAcesso(userId: string, nome: string) {
     if (demo) { setVerLink({ nome, link: `${window.location.origin}/dashboard/home` }); return; }
@@ -460,12 +481,12 @@ export default function Admin() {
                   <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Acesso</th><th style={{ textAlign: "center" }}>Ações</th><th>Plano</th></tr></thead>
                   <tbody>
                     {data?.empresas.map((e) => {
-                      type P = { key: string; nome: string; email: string | null; dono: boolean; cortado: boolean; toggle: () => void; verP: () => void; reenviar: () => void; trash: (() => void) | null };
+                      type P = { key: string; nome: string; email: string | null; dono: boolean; cortado: boolean; toggle: () => void; verP: () => void; reenviar: () => void; editar: () => void; trash: (() => void) | null };
                       const confExcluir = `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`;
                       const donoP: P | null = e.dono ? {
                         key: "d-" + e.id, nome: e.dono.nome || "—", email: e.dono.email, dono: true, cortado: e.acessoCortado,
                         toggle: () => e.dono_id && acao(e.acessoCortado ? "restaurar" : "cortar", { userId: e.dono_id }),
-                        verP: () => verPainel(e), reenviar: () => reenviarAcesso(e),
+                        verP: () => verPainel(e), reenviar: () => reenviarAcesso(e), editar: () => abrirEdicao(e),
                         trash: ehPadrao(e) ? null : () => acao("excluir", { empresaId: e.id }, confExcluir),
                       } : null;
                       const colabs: P[] = (acessosMap[e.id] || []).filter((a) => a.papel !== "dono" && a.email !== e.dono?.email).map((a) => ({
@@ -473,6 +494,7 @@ export default function Admin() {
                         toggle: () => acaoAcesso(e.id, a.cortado ? "restaurar" : "cortar", a.id),
                         verP: () => verPainelAcesso(a.id, a.nome || a.email || "usuário"),
                         reenviar: () => acaoAcesso(e.id, "acesso-reenviar", a.id),
+                        editar: () => setEditAcesso({ id: a.id, empresaId: e.id, nome: a.nome || "", email: a.email || "" }),
                         trash: () => acaoAcesso(e.id, "acesso-remover", a.id, `Remover o acesso de ${a.nome || a.email}?`),
                       }));
                       const pessoas: P[] = donoP ? [donoP, ...colabs] : colabs;
@@ -502,17 +524,10 @@ export default function Admin() {
                             <div key={p.key} style={{ ...linha, justifyContent: "center", gap: 6, borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
                               <button className="adm-btn sm adm-ic" disabled={!!busy} title="Ver painel" onClick={p.verP}><Eye size={16} /></button>
                               <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Reenviar acesso por e-mail" onClick={p.reenviar}><Send size={16} /></button>
-                              {p.dono ? (
-                                <>
-                                  <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar cadastro da empresa" onClick={() => abrirEdicao(e)}><Pencil size={16} /></button>
-                                  <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Adicionar acesso (novo usuário)" onClick={() => selecionarEmpresa(e.id)}><UserPlus size={16} /></button>
-                                </>
-                              ) : (
-                                <>
-                                  <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar / gerenciar este acesso" onClick={() => selecionarEmpresa(e.id)}><Pencil size={16} /></button>
-                                  {spacer}
-                                </>
-                              )}
+                              <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title={p.dono ? "Editar cadastro da empresa" : "Editar acesso (nome e e-mail)"} onClick={p.editar}><Pencil size={16} /></button>
+                              {p.dono
+                                ? <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Adicionar acesso (novo usuário)" onClick={() => selecionarEmpresa(e.id)}><UserPlus size={16} /></button>
+                                : spacer}
                               {p.trash ? <button className="adm-btn sm danger adm-ic" disabled={!!busy} title={p.dono ? "Excluir empresa" : "Remover acesso"} onClick={p.trash}><Trash2 size={16} /></button> : spacer}
                             </div>
                           ))}
@@ -703,6 +718,20 @@ export default function Admin() {
           </div>
         );
       })()}
+
+      {editAcesso && (
+        <div className="adm-modalbg" onClick={() => setEditAcesso(null)}>
+          <div className="adm-modal" onClick={(ev) => ev.stopPropagation()}>
+            <div className="adm-mhead"><h3>Editar acesso</h3><button type="button" onClick={() => setEditAcesso(null)}><X size={18} /></button></div>
+            <div className="adm-grid2">
+              <L label="Nome"><input value={editAcesso.nome} onChange={(ev) => setEditAcesso({ ...editAcesso, nome: ev.target.value })} placeholder="Nome do usuário" /></L>
+              <L label="E-mail de acesso"><input type="email" value={editAcesso.email} onChange={(ev) => setEditAcesso({ ...editAcesso, email: ev.target.value })} placeholder="email@empresa.com" /></L>
+            </div>
+            <button className="adm-btn" onClick={salvarEditAcesso} disabled={busy === editAcesso.id} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{busy === editAcesso.id ? "Salvando…" : "Salvar alterações"}</button>
+            <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>Alterar o e-mail muda o login deste usuário.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

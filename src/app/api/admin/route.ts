@@ -297,6 +297,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, link: url2 });
   }
 
+  // Editar nome e/ou e-mail de UM acesso (colaborador/admin).
+  if (action === "acesso-editar" && userId) {
+    const patch: Record<string, unknown> = {};
+    if (typeof body.nome === "string") patch.nome = body.nome.trim() || null;
+    if (typeof body.email === "string" && body.email.trim()) {
+      const { error: eAuth } = await s.auth.admin.updateUserById(userId, { email: body.email.trim() });
+      if (eAuth) return NextResponse.json({ error: /already|exists|registered/i.test(eAuth.message) ? "Este e-mail já está em uso." : eAuth.message }, { status: 400 });
+      patch.email = body.email.trim();
+    }
+    if (Object.keys(patch).length) await s.from("perfis").update(patch).eq("id", userId);
+    return NextResponse.json({ ok: true });
+  }
+
   // Editar inline os dados cadastrais (sem mexer no plano/slug).
   if (action === "empresa-dados" && empresaId) {
     const patch: Record<string, unknown> = {};
