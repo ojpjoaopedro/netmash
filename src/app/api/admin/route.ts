@@ -285,6 +285,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // Ver painel como UM usuário específico (link mágico para o e-mail dele).
+  if (action === "acesso-acessar" && userId) {
+    const { data: au } = await s.auth.admin.getUserById(userId);
+    const email = au?.user?.email;
+    if (!email) return NextResponse.json({ error: "Usuário sem e-mail." }, { status: 400 });
+    const origin = new URL(req.url).origin;
+    const { data: link, error } = await s.auth.admin.generateLink({ type: "magiclink", email, options: { redirectTo: `${origin}/dashboard/home` } });
+    const url2 = (link as { properties?: { action_link?: string } } | null)?.properties?.action_link;
+    if (error || !url2) return NextResponse.json({ error: "Não consegui gerar o acesso agora." }, { status: 400 });
+    return NextResponse.json({ ok: true, link: url2 });
+  }
+
   // Editar inline os dados cadastrais (sem mexer no plano/slug).
   if (action === "empresa-dados" && empresaId) {
     const patch: Record<string, unknown> = {};

@@ -161,6 +161,18 @@ export default function Admin() {
     } catch { /* ignore */ }
     setBusy(null);
   }
+  // Ver painel entrando como UM usuário específico (abre o modal com o link mágico).
+  async function verPainelAcesso(userId: string, nome: string) {
+    if (demo) { setVerLink({ nome, link: `${window.location.origin}/dashboard/home` }); return; }
+    if (!supabase) return;
+    setBusy(userId);
+    try {
+      const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-acessar", userId }) });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j.link) setVerLink({ nome, link: j.link as string });
+    } catch { /* ignore */ }
+    setBusy(null);
+  }
 
   async function acao(action: string, body: Record<string, string>, confirmar?: string) {
     if (confirmar && !window.confirm(confirmar)) return;
@@ -459,6 +471,7 @@ export default function Admin() {
                                 <span style={{ textDecoration: a.cortado ? "line-through" : "none", opacity: a.cortado ? .55 : 1 }}>{a.nome || a.email}{a.email && a.nome ? ` · ${a.email}` : ""}</span>
                               </span>
                               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <button className="adm-btn sm adm-ic" disabled={busy === a.id} title="Ver painel como este usuário" onClick={() => verPainelAcesso(a.id, a.nome || a.email || "usuário")}><Eye size={13} /></button>
                                 <button disabled={busy === a.id} onClick={() => acaoAcesso(e.id, a.cortado ? "restaurar" : "cortar", a.id)} title={a.cortado ? "Ativar acesso" : "Desativar acesso"}
                                   style={{ fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
                                     border: `1px solid ${a.cortado ? "rgba(245,158,11,.4)" : "rgba(16,185,129,.4)"}`, background: a.cortado ? "rgba(245,158,11,.12)" : "rgba(16,185,129,.12)", color: a.cortado ? "#d97706" : "#059669" }}>{a.cortado ? "Inativo" : "Ativo"}</button>

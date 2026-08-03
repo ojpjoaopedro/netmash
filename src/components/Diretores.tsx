@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Shield, Crown, Plus, Trash2, X, Check,
-  Eye, EyeOff, Lock, SlidersHorizontal, LayoutDashboard, DollarSign, Megaphone, Sparkles, Compass, Presentation, Settings,
+  Eye, EyeOff, Lock, SlidersHorizontal, LayoutDashboard, DollarSign, UserPlus, Sparkles, Compass, Settings,
 } from "lucide-react";
 import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
@@ -13,14 +13,13 @@ const AZUL = "#1AADE2", VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF444
 /** Itens do menu que um Admin pode liberar, agrupados como no Hub. */
 const GRUPOS = [
   { titulo: "Métricas", itens: [
-    { k: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
+    { k: "dashboard", label: "Home", Icon: LayoutDashboard },
     { k: "financas", label: "Finanças", Icon: DollarSign },
-    { k: "marketing", label: "Marketing", Icon: Megaphone },
-  ] },
-  { titulo: "Ações", itens: [
-    { k: "assistente", label: "Assistente", Icon: Sparkles },
     { k: "planejamento", label: "Planejamento", Icon: Compass },
-    { k: "apresentacao", label: "Gerar apresentação", Icon: Presentation },
+    { k: "clientes", label: "Cadastro de clientes", Icon: UserPlus },
+  ] },
+  { titulo: "Operações", itens: [
+    { k: "assistente", label: "Assistente", Icon: Sparkles },
     { k: "config", label: "Configurações", Icon: Settings },
   ] },
 ];
