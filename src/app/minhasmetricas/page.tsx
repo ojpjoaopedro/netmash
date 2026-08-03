@@ -24,6 +24,7 @@ import ResumoHome, { fraseDoDia } from "@/components/dash/ResumoHome";
 import { useOcultar } from "@/components/ocultar";
 import PainelCobrancas from "@/components/PainelCobrancas";
 import CalendarioRecebimento from "@/components/CalendarioRecebimento";
+import PromoParaVoce from "@/components/PromoParaVoce";
 import CropLogo from "@/components/CropLogo";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
 import GerarApresentacao from "@/components/dash/GerarApresentacao";
@@ -546,8 +547,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
         {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} /></div>}
         {view === "dashboard" && (
-          <div style={{ marginTop: 16 }}>
+          <div className="cal-promo" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
             <CalendarioRecebimento ano={Number(anoSel)} />
+            <PromoParaVoce />
           </div>
         )}
         </>

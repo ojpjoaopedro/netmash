@@ -567,6 +567,7 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 @media(max-width:540px){.equipe-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.dash-grid{grid-template-columns:1fr !important}}
 @media(max-width:860px){.analise-grid{grid-template-columns:1fr !important}}
+@media(max-width:1080px){.cal-promo{grid-template-columns:1fr !important}}
 /* Ocultar valores financeiros: borra os elementos marcados com .oc-num */
 .valores-ocultos .oc-num{filter:blur(7px);-webkit-user-select:none;user-select:none;transition:filter .15s;pointer-events:none}
 @keyframes girar-ampulheta{0%,40%{transform:rotate(0)}60%,100%{transform:rotate(180deg)}}
