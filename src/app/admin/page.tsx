@@ -410,7 +410,7 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={3} style={{ textAlign: "center" }}>Ações</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={4} style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
                     {data?.empresas.map((e) => (
                       <tr key={e.id}>
@@ -437,6 +437,9 @@ export default function Admin() {
                         </td>
                         <td style={{ textAlign: "center", padding: "13px 6px" }}>
                           {!ehPadrao(e) && <button className="adm-btn sm danger adm-ic" disabled={!!busy} title="Excluir empresa (apaga tudo e libera o e-mail)" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={16} /></button>}
+                        </td>
+                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
+                          <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar cadastro da empresa" onClick={() => abrirEdicao(e)}><Pencil size={16} /></button>
                         </td>
                       </tr>
                     ))}
