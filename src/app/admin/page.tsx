@@ -48,7 +48,7 @@ const AREAS = [
   { k: "marketing", l: "Marketing", Icon: Megaphone },
   { k: "estoque", l: "Estoque", Icon: Package },
 ];
-type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null };
+type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
 type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[] };
 
 // Dados de demonstração — usados quando o Supabase não está configurado (localhost),
@@ -126,6 +126,41 @@ export default function Admin() {
   useEffect(() => { if (detalheId) selecionarEmpresa(detalheId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [detalheId]);
   // sempre que os acessos de uma empresa carregam, guarda no mapa p/ exibir na coluna Responsável
   useEffect(() => { if (permEmpresa && acessos) setAcessosMap((m) => ({ ...m, [permEmpresa]: acessos })); }, [permEmpresa, acessos]);
+  // ao carregar as empresas, busca os acessos de cada uma (p/ mostrar controles por acesso)
+  useEffect(() => {
+    if (demo || !supabase || !data?.empresas?.length) return;
+    let vivo = true;
+    (async () => {
+      const h = await tokenH();
+      for (const e of (data?.empresas ?? [])) {
+        try { const res = await fetch(`/api/admin?empresaId=${e.id}`, { headers: h }); if (res.ok && vivo) { const j = await res.json(); setAcessosMap((m) => ({ ...m, [e.id]: (j.acessos as Acesso[]) || [] })); } } catch { /* ignore */ }
+      }
+    })();
+    return () => { vivo = false; };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [data?.empresas?.length]);
+  // ação em UM acesso (ativar/desativar, reenviar, remover) + recarrega os acessos da empresa
+  async function acaoAcesso(empresaId: string, action: string, userId: string, confirmMsg?: string) {
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    if (demo) {
+      setAcessosMap((m) => {
+        let arr = (m[empresaId] || []).map((a) => a.id === userId ? { ...a, cortado: action === "cortar" ? true : action === "restaurar" ? false : a.cortado } : a);
+        if (action === "acesso-remover") arr = arr.filter((a) => a.id !== userId);
+        return { ...m, [empresaId]: arr };
+      });
+      return;
+    }
+    if (!supabase) return;
+    setBusy(userId);
+    try {
+      const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action, userId }) });
+      if (res.ok) {
+        const r = await fetch(`/api/admin?empresaId=${empresaId}`, { headers: await tokenH() });
+        if (r.ok) { const j = await r.json(); setAcessosMap((m) => ({ ...m, [empresaId]: (j.acessos as Acesso[]) || [] })); }
+      }
+    } catch { /* ignore */ }
+    setBusy(null);
+  }
 
   async function acao(action: string, body: Record<string, string>, confirmar?: string) {
     if (confirmar && !window.confirm(confirmar)) return;
@@ -418,8 +453,18 @@ export default function Admin() {
                         <td>
                           {e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}
                           {(acessosMap[e.id] || []).filter((a) => a.papel !== "dono" && a.email !== e.dono?.email).map((a) => (
-                            <div key={a.id} className="adm-sub" style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                              <UserPlus size={11} style={{ opacity: .6, flexShrink: 0 }} /> <span>{a.nome || a.email}{a.email && a.nome ? ` · ${a.email}` : ""}</span>
+                            <div key={a.id} style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span className="adm-sub" style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                                <UserPlus size={11} style={{ opacity: .6, flexShrink: 0 }} />
+                                <span style={{ textDecoration: a.cortado ? "line-through" : "none", opacity: a.cortado ? .55 : 1 }}>{a.nome || a.email}{a.email && a.nome ? ` · ${a.email}` : ""}</span>
+                              </span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <button disabled={busy === a.id} onClick={() => acaoAcesso(e.id, a.cortado ? "restaurar" : "cortar", a.id)} title={a.cortado ? "Ativar acesso" : "Desativar acesso"}
+                                  style={{ fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                                    border: `1px solid ${a.cortado ? "rgba(245,158,11,.4)" : "rgba(16,185,129,.4)"}`, background: a.cortado ? "rgba(245,158,11,.12)" : "rgba(16,185,129,.12)", color: a.cortado ? "#d97706" : "#059669" }}>{a.cortado ? "Inativo" : "Ativo"}</button>
+                                <button className="adm-btn sm ghost adm-ic" disabled={busy === a.id} title="Reenviar acesso por e-mail" onClick={() => acaoAcesso(e.id, "acesso-reenviar", a.id)}><Send size={13} /></button>
+                                <button className="adm-btn sm danger adm-ic" disabled={busy === a.id} title="Remover este acesso" onClick={() => acaoAcesso(e.id, "acesso-remover", a.id, `Remover o acesso de ${a.nome || a.email}?`)}><Trash2 size={13} /></button>
+                              </span>
                             </div>
                           ))}
                         </td>

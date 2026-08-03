@@ -60,7 +60,13 @@ export async function GET(req: NextRequest) {
   const empresaIdQ = new URL(req.url).searchParams.get("empresaId");
   if (empresaIdQ) {
     const { data } = await s.from("perfis").select("id,nome,email,papel,areas").eq("empresa_id", empresaIdQ).order("papel");
-    return NextResponse.json({ acessos: data ?? [] });
+    const banido = new Map<string, boolean>();
+    try {
+      const { data: us } = await s.auth.admin.listUsers({ perPage: 1000 });
+      (us?.users ?? []).forEach((u) => { const until = (u as unknown as { banned_until?: string }).banned_until; banido.set(u.id, !!until && new Date(until).getTime() > Date.now()); });
+    } catch { /* segue sem status */ }
+    const acessos = (data ?? []).map((a) => ({ ...a, cortado: banido.get((a as { id: string }).id) ?? false }));
+    return NextResponse.json({ acessos });
   }
 
   const [emp, per, lan, cli, fun] = await Promise.all([
@@ -241,6 +247,22 @@ export async function POST(req: NextRequest) {
   }
   if (action === "acesso-remover" && userId) {
     await s.auth.admin.deleteUser(userId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Reenviar acesso a UM usuário específico (colaborador/admin): e-mail para criar/redefinir a senha.
+  if (action === "acesso-reenviar" && userId) {
+    const { data: prof } = await s.from("perfis").select("email,empresa_id").eq("id", userId).single();
+    const email = (prof as { email?: string } | null)?.email;
+    if (!email) return NextResponse.json({ error: "Usuário sem e-mail." }, { status: 400 });
+    if (!anonKey || !url) return NextResponse.json({ error: "E-mail não configurado no servidor." }, { status: 500 });
+    const origin = new URL(req.url).origin;
+    let redirect = `${origin}/login?nova=1`;
+    const empId = (prof as { empresa_id?: string } | null)?.empresa_id;
+    if (empId) { const { data: e } = await s.from("empresas").select("slug").eq("id", empId).maybeSingle(); const slug = (e as { slug?: string } | null)?.slug; if (slug) redirect = `${origin}/${slug}`; }
+    const pub = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error } = await pub.auth.resetPasswordForEmail(email, { redirectTo: redirect });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true });
   }
 

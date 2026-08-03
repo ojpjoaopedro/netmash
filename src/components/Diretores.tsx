@@ -165,6 +165,47 @@ export default function Diretores({ loginEmail = "", irParaPlano }: { loginEmail
   useEffect(() => { setStore(ler()); setCarregado(true); }, []);
   useEffect(() => { if (carregado) salvar(store); }, [store, carregado]);
 
+  // Puxa os usuários REAIS da empresa (dono + colaboradores cadastrados no admin)
+  // e preenche o SuperAdmin (nome/e-mail) e os Admins já com nome e e-mail.
+  useEffect(() => {
+    if (!carregado || !supabaseReady || !supabase) return;
+    let vivo = true;
+    (async () => {
+      try {
+        const { data: sess } = await supabase!.auth.getSession();
+        const token = sess.session?.access_token;
+        if (!token) return;
+        const res = await fetch("/api/colaboradores", { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;   // só o dono consegue ler; se não for, mantém o que tem
+        const { colaboradores } = (await res.json()) as { colaboradores: { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null }[] };
+        if (!vivo || !Array.isArray(colaboradores)) return;
+        setStore((prev) => {
+          const next: Store = { sup: { ...prev.sup }, admins: prev.admins.map((a) => ({ ...a })) };
+          const dono = colaboradores.find((c) => c.papel === "dono");
+          if (dono) {
+            if (!next.sup.nome && dono.nome) next.sup.nome = dono.nome;
+            if (dono.email) { next.sup.email = dono.email; next.sup.acesso = dono.email; }
+          }
+          for (const c of colaboradores.filter((c) => c.papel !== "dono")) {
+            const emailL = (c.email || "").toLowerCase();
+            const existe = next.admins.find((a) => a.id === c.id
+              || (emailL && (a.email || "").toLowerCase() === emailL)
+              || (emailL && (a.acesso || "").toLowerCase() === emailL));
+            if (existe) {
+              if (!existe.nome && c.nome) existe.nome = c.nome;
+              if (c.email) { existe.email = c.email; existe.acesso = c.email; }
+            } else {
+              next.admins.push({ id: c.id, nome: c.nome || "", area: "", acesso: c.email || "", email: c.email || "",
+                telefone: "", cpf: "", pix: "", nascimento: "", permissoes: (Array.isArray(c.areas) && c.areas.length ? c.areas : "total") });
+            }
+          }
+          return next;
+        });
+      } catch { /* ignore */ }
+    })();
+    return () => { vivo = false; };
+  }, [carregado]);
+
   const setCampoSuper = (patch: Partial<Diretor>) => setStore((s) => ({ ...s, sup: { ...s.sup, ...patch } }));
   const setCampoAdmin = (id: string, patch: Partial<Diretor>) => setStore((s) => ({ ...s, admins: s.admins.map((a) => a.id === id ? { ...a, ...patch } : a) }));
   const removerAdmin = (id: string) => setStore((s) => ({ ...s, admins: s.admins.filter((a) => a.id !== id) }));
