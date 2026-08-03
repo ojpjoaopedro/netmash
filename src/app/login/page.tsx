@@ -74,6 +74,8 @@ export default function LoginPage() {
   // Veio do link de e-mail (definir senha de 1º acesso / recuperação)?
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // pré-preenche o e-mail do último acesso
+    try { const ultimo = localStorage.getItem("me_ultimo_email"); if (ultimo) setEmail(ultimo); } catch { /* ignore */ }
     const hash = window.location.hash || "";
     const q = new URLSearchParams(window.location.search);
     if (hash.includes("type=recovery") || q.get("nova") === "1") { setModo("novasenha"); return; }
@@ -91,6 +93,7 @@ export default function LoginPage() {
     try {
       if (modo === "login") {
         await login(email.trim(), senha);
+        try { localStorage.setItem("me_ultimo_email", email.trim()); } catch { /* ignore */ }
         setEntrando("/dashboard/home");
       } else if (modo === "cadastro") {
         await cadastrarComCodigo(nome.trim(), empresa.trim(), email.trim(), senha, codigo.trim());
@@ -149,13 +152,13 @@ export default function LoginPage() {
           )}
 
           {(modo === "login" || modo === "cadastro" || modo === "reset") && (
-            <div className="field"><label className="f">E-mail</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
+            <div className="field"><label className="f">E-mail</label><input type="email" name="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
           )}
 
           {(modo === "login" || modo === "cadastro") && (
             <div className="field"><label className="f">Senha</label>
               <div style={{ position: "relative" }}>
-                <input type={verSenha ? "text" : "password"} value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6} style={{ paddingRight: 44, width: "100%" }} />
+                <input type={verSenha ? "text" : "password"} name="password" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6} style={{ paddingRight: 44, width: "100%" }} />
                 <button type="button" onClick={() => setVerSenha((v) => !v)}
                   aria-label={verSenha ? "Ocultar senha" : "Mostrar senha"} title={verSenha ? "Ocultar senha" : "Mostrar senha"}
                   style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: 0, padding: 6, cursor: "pointer", color: "#64748b", display: "grid", placeItems: "center" }}>
