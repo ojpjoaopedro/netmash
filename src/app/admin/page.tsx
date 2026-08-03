@@ -507,7 +507,12 @@ export default function Admin() {
                                   <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar cadastro da empresa" onClick={() => abrirEdicao(e)}><Pencil size={16} /></button>
                                   <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Adicionar acesso (novo usuário)" onClick={() => selecionarEmpresa(e.id)}><UserPlus size={16} /></button>
                                 </>
-                              ) : (<>{spacer}{spacer}</>)}
+                              ) : (
+                                <>
+                                  <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar / gerenciar este acesso" onClick={() => selecionarEmpresa(e.id)}><Pencil size={16} /></button>
+                                  {spacer}
+                                </>
+                              )}
                               {p.trash ? <button className="adm-btn sm danger adm-ic" disabled={!!busy} title={p.dono ? "Excluir empresa" : "Remover acesso"} onClick={p.trash}><Trash2 size={16} /></button> : spacer}
                             </div>
                           ))}
