@@ -385,17 +385,17 @@ export const PADRAO: Dados = {
 export const MODELO_LIMPO: Dados = {
   receitas: [
     { nome: "Time de vendas", cor: ROXO, v: v12([]) },
-    { nome: "Preencha aqui", cor: LARANJA, v: v12([]) },
-    { nome: "Preencha aqui", cor: "#94a3b8", v: v12([]) },
+    { nome: "", cor: LARANJA, v: v12([]) },
+    { nome: "", cor: "#94a3b8", v: v12([]) },
   ],
   custos: [
     {
       nome: "Custos Fixos",
       grupos: [
         { nome: "Salários", cor: AZUL, itens: [
-          { nome: "Preencha os colaboradores", v: v12([]) },
-          { nome: "Preencha os colaboradores", v: v12([]) },
-          { nome: "Preencha os colaboradores", v: v12([]) },
+          { nome: "", v: v12([]) },
+          { nome: "", v: v12([]) },
+          { nome: "", v: v12([]) },
         ] },
         { nome: "Comissão", cor: LARANJA, itens: [
           { nome: "Time comercial", v: v12([]) },

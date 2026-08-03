@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Pencil, Eye, EyeOff, Send,
+  LayoutDashboard, KeyRound, Pencil, Eye, EyeOff, Send, UserPlus,
   ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText, Search, Info,
   HeartPulse, ShoppingCart, Megaphone, Package,
 } from "lucide-react";
@@ -86,6 +86,7 @@ export default function Admin() {
   const [salvAcesso, setSalvAcesso] = useState(false);
   const [erroAcesso, setErroAcesso] = useState("");
   const [okAcesso, setOkAcesso] = useState("");
+  const [acessosMap, setAcessosMap] = useState<Record<string, Acesso[]>>({});   // acessos por empresa, p/ mostrar no Responsável
   const [precoForm, setPrecoForm] = useState<{ sa: string; ac: string } | null>(null);
   const [salvPreco, setSalvPreco] = useState(false);
   const [novo, setNovo] = useState<NovoCliente | null>(null);
@@ -123,6 +124,8 @@ export default function Admin() {
   useEffect(() => { if (data?.precos) setPrecoForm({ sa: String(data.precos.superadmin), ac: String(data.precos.acesso) }); }, [data]);
   // Ao abrir o detalhe de uma empresa, já carrega a equipe dela.
   useEffect(() => { if (detalheId) selecionarEmpresa(detalheId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [detalheId]);
+  // sempre que os acessos de uma empresa carregam, guarda no mapa p/ exibir na coluna Responsável
+  useEffect(() => { if (permEmpresa && acessos) setAcessosMap((m) => ({ ...m, [permEmpresa]: acessos })); }, [permEmpresa, acessos]);
 
   async function acao(action: string, body: Record<string, string>, confirmar?: string) {
     if (confirmar && !window.confirm(confirmar)) return;
@@ -407,12 +410,19 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={4} style={{ textAlign: "center" }}>Ações</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>Responsável</th><th>Plano</th><th>Criada</th><th style={{ textAlign: "center" }}>Acesso</th><th colSpan={5} style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
                     {data?.empresas.map((e) => (
                       <tr key={e.id}>
                         <td><b>{e.nome}</b></td>
-                        <td>{e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}</td>
+                        <td>
+                          {e.dono ? <><div>{e.dono.nome || "—"}</div><div className="adm-sub">{e.dono.email}</div></> : <span className="adm-sub">—</span>}
+                          {(acessosMap[e.id] || []).filter((a) => a.papel !== "dono" && a.email !== e.dono?.email).map((a) => (
+                            <div key={a.id} className="adm-sub" style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                              <UserPlus size={11} style={{ opacity: .6, flexShrink: 0 }} /> <span>{a.nome || a.email}{a.email && a.nome ? ` · ${a.email}` : ""}</span>
+                            </div>
+                          ))}
+                        </td>
                         <td><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
                         <td className="adm-sub">{dataBR(e.criado_em)}</td>
                         <td style={{ textAlign: "center" }}>
@@ -433,10 +443,13 @@ export default function Admin() {
                           <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Reenviar acesso por e-mail" onClick={() => reenviarAcesso(e)}><Send size={16} /></button>
                         </td>
                         <td style={{ textAlign: "center", padding: "13px 6px" }}>
-                          {!ehPadrao(e) && <button className="adm-btn sm danger adm-ic" disabled={!!busy} title="Excluir empresa (apaga tudo e libera o e-mail)" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={16} /></button>}
+                          <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar cadastro da empresa" onClick={() => abrirEdicao(e)}><Pencil size={16} /></button>
                         </td>
                         <td style={{ textAlign: "center", padding: "13px 6px" }}>
-                          <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Editar cadastro da empresa" onClick={() => abrirEdicao(e)}><Pencil size={16} /></button>
+                          <button className="adm-btn sm ghost adm-ic" disabled={!!busy} title="Adicionar acesso (novo usuário para esta empresa)" onClick={() => selecionarEmpresa(e.id)}><UserPlus size={16} /></button>
+                        </td>
+                        <td style={{ textAlign: "center", padding: "13px 6px" }}>
+                          {!ehPadrao(e) && <button className="adm-btn sm danger adm-ic" disabled={!!busy} title="Excluir empresa (apaga tudo e libera o e-mail)" onClick={() => acao("excluir", { empresaId: e.id }, `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`)}><Trash2 size={16} /></button>}
                         </td>
                       </tr>
                     ))}
@@ -590,6 +603,38 @@ export default function Admin() {
           </form>
         </div>
       )}
+
+      {permEmpresa && (() => {
+        const emp = data?.empresas.find((x) => x.id === permEmpresa);
+        return (
+          <div className="adm-modalbg" onClick={() => setPermEmpresa("")}>
+            <div className="adm-modal" onClick={(ev) => ev.stopPropagation()}>
+              <div className="adm-mhead"><h3>Acessos · {emp?.nome || "empresa"}</h3><button type="button" onClick={() => setPermEmpresa("")}><X size={18} /></button></div>
+              <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+                {acessos === null ? <p className="adm-sub">Carregando…</p>
+                  : acessos.length === 0 ? <p className="adm-sub">Nenhum acesso ainda.</p>
+                  : acessos.map((a) => (
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line-2, #2a2a2a)", background: "var(--card-2, #0d0d0d)" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13.5 }}>{a.nome || a.email} {a.papel === "dono" && <span className="adm-sub" style={{ fontWeight: 700 }}>(Super Admin)</span>}</div>
+                        <div className="adm-sub" style={{ fontSize: 12 }}>{a.email}</div>
+                      </div>
+                      {a.papel !== "dono" && <button className="adm-btn sm danger adm-ic" title="Remover acesso" onClick={() => removerAcesso(a.id)}><Trash2 size={14} /></button>}
+                    </div>
+                  ))}
+              </div>
+              {erroAcesso && <div className="adm-erro">{erroAcesso}</div>}
+              {okAcesso && <div className="adm-sub" style={{ color: "#16a34a", fontWeight: 700, marginBottom: 10 }}>{okAcesso}</div>}
+              <div className="adm-grid2">
+                <L label="Nome (opcional)"><input value={novoAcesso.nome} onChange={(ev) => setNovoAcesso({ ...novoAcesso, nome: ev.target.value })} placeholder="Nome do usuário" /></L>
+                <L label="E-mail de acesso"><input type="email" value={novoAcesso.email} onChange={(ev) => setNovoAcesso({ ...novoAcesso, email: ev.target.value })} placeholder="email@empresa.com" /></L>
+              </div>
+              <button className="adm-btn" onClick={criarAcesso} disabled={salvAcesso} style={{ width: "100%", justifyContent: "center", marginTop: 14 }}><UserPlus size={15} /> {salvAcesso ? "Criando…" : "Adicionar acesso"}</button>
+              <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>O novo usuário recebe um e-mail para <b>criar a senha</b> e acessar.</p>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
