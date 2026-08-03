@@ -124,5 +124,11 @@ export function useBrand() {
   // aplica cor custom no load
   useEffect(() => { aplicarCor(brand.cor); }, [brand.cor]);
 
-  return { brand, save, theme, toggleTheme, setTheme };
+  // aplica a marca/tema vindos DIRETO do banco (chamada direta, sem depender de evento nem do localStorage)
+  const aplicarRemoto = useCallback((brandJson?: string | null, t?: string | null) => {
+    if (brandJson) { try { const b: Brand = { ...DEFAULT, ...JSON.parse(brandJson) }; setBrand(b); aplicarCor(b.cor); } catch { /* ignore */ } }
+    if (t === "light" || t === "dark") { setThemeState(t); document.body.classList.toggle("theme-light", t === "light"); }
+  }, []);
+
+  return { brand, save, theme, toggleTheme, setTheme, aplicarRemoto };
 }

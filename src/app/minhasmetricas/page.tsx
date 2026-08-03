@@ -97,7 +97,7 @@ const OPERACOES = [
 
 export default function Home({ secao }: { secao?: string } = {}) {
   const router = useRouter();
-  const { brand, save: saveBrand, theme, toggleTheme } = useBrand();
+  const { brand, save: saveBrand, theme, toggleTheme, aplicarRemoto: aplicarBrandRemoto } = useBrand();
   const [carregando, setCarregando] = useState(true);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
@@ -212,11 +212,21 @@ export default function Home({ secao }: { secao?: string } = {}) {
       setBemVindoFechado(localStorage.getItem("me_bemvindo_fechado") === "1");
       // a foto pode ser grande e não caber no localStorage: pega direto do banco (chave por usuário)
       if (perfil?.id) setFotoPerfil(vals[`me_foto_perfil:${perfil.id}`] || localStorage.getItem(`me_foto_perfil:${perfil.id}`) || "");
-      // logo/cores vêm do banco (logo grande pode não caber no localStorage): aplica direto
-      if (vals["fin_brand"] || vals["fin_theme"]) {
-        window.dispatchEvent(new CustomEvent("me:brand-remoto", { detail: { brand: vals["fin_brand"], theme: vals["fin_theme"] } }));
-      }
+      // logo/cores vêm do banco (logo grande pode não caber no localStorage): aplica DIRETO
+      if (vals["fin_brand"] || vals["fin_theme"]) aplicarBrandRemoto(vals["fin_brand"], vals["fin_theme"]);
     });
+  }, [empresa]);
+
+  // Carrega logo/cores do banco SEMPRE que a empresa estiver pronta (F5 inclusive),
+  // independente do sync geral acima. É o que garante a marca não sumir ao recarregar.
+  useEffect(() => {
+    if (!supabaseReady || !empresa) return;
+    let vivo = true;
+    void sincronizarEstado(["fin_brand", "fin_theme"]).then((v) => {
+      if (vivo && (v["fin_brand"] || v["fin_theme"])) aplicarBrandRemoto(v["fin_brand"] || null, v["fin_theme"] || null);
+    });
+    return () => { vivo = false; };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [empresa]);
 
   /** Troca a foto do avatar: abre a tela de recorte (quadrado) e guarda o recorte no navegador. */
