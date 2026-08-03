@@ -395,10 +395,11 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .guia-card{position:fixed;right:20px;bottom:20px;z-index:80;width:288px;max-width:calc(100vw - 40px);
   border-radius:16px;overflow:hidden;background:var(--card);border:2px solid var(--line-2);box-shadow:0 20px 50px -12px rgba(0,0,0,.5)}
 .guia-min{position:fixed;right:20px;bottom:20px;z-index:80}
-/* no celular fica ACIMA da barra de baixo, para não atrapalhar os atalhos fixos */
+/* no celular vira uma folha ancorada na base da tela (sem sair do quadro) */
 @media(max-width:900px){
-  .guia-card{right:12px;left:12px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom))}
-  .guia-min{right:12px;bottom:calc(84px + env(safe-area-inset-bottom))}
+  .guia-card{right:10px;left:10px;width:auto;bottom:calc(10px + env(safe-area-inset-bottom));
+    max-height:calc(100dvh - 120px);overflow-y:auto;display:flex;flex-direction:column}
+  .guia-min{right:12px;bottom:calc(12px + env(safe-area-inset-bottom))}
 }
 
 /* ===== App mobile (estilo Asaas): Home + telas internas ===== */
@@ -544,8 +545,12 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   .relatorio-modal{position:static !important;inset:auto !important;height:auto !important;overflow:visible !important;background:#fff !important;backdrop-filter:none !important;display:block !important}
   .relatorio-scroll{position:static !important;overflow:visible !important;height:auto !important;padding:0 !important;display:block !important}
   .relatorio-print{position:static !important;width:100% !important;max-width:none !important;min-height:0 !important;box-shadow:none !important;border-radius:0 !important;padding:0 !important}
-  .relatorio-print table{page-break-inside:auto}
+  /* toda tabela do relatório cabe na folha (sem barra de rolagem / corte) */
+  .relatorio-print [style*="overflow"]{overflow:visible !important}
+  .relatorio-print table{page-break-inside:auto;width:100% !important;min-width:0 !important}
   .relatorio-print tr{page-break-inside:avoid}
+  /* DRE tem 12 meses: fonte menor pra as colunas não estourarem o retrato */
+  .relatorio-print .tabela-dre th,.relatorio-print .tabela-dre td{font-size:7px !important;padding:3px 3px !important}
   .no-print{display:none !important}
   /* rodapé fixo em cada página do PDF, com a numeração */
   .relatorio-rodape{position:fixed;bottom:4mm;left:10mm;right:10mm;margin:0;border-top:0;padding:0;font-size:8px;font-style:italic}
@@ -592,7 +597,16 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .splash-entrada{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:28px;text-align:center;
   background:radial-gradient(120% 120% at 50% 0%,color-mix(in srgb,var(--brand) 14%,#fff),#fff 55%)}
 @media(prefers-color-scheme:dark){.splash-entrada{background:radial-gradient(120% 120% at 50% 0%,color-mix(in srgb,var(--brand) 22%,#0b1220),#0b1220 55%)}}
-.splash-frase{margin:0;max-width:15ch;font-size:clamp(24px,6.4vw,44px);font-weight:800;letter-spacing:-.02em;line-height:1.22;
+/* gráfico de evolução no fundo (bem sutil, transparente, passando devagar) */
+.splash-graf{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.5;
+  animation:grafPassa 14s ease-in-out infinite alternate}
+.splash-graf-linha{stroke-dasharray:900;stroke-dashoffset:900;animation:grafDesenha 3.6s cubic-bezier(.3,.7,.2,1) forwards}
+.splash-graf-area{opacity:0;animation:grafSurge 3.6s ease forwards}
+@keyframes grafDesenha{to{stroke-dashoffset:0}}
+@keyframes grafSurge{to{opacity:1}}
+@keyframes grafPassa{from{transform:translateX(0) scale(1.02)}to{transform:translateX(-4%) scale(1.06)}}
+@media(prefers-reduced-motion:reduce){.splash-graf{animation:none}.splash-graf-linha{animation:none;stroke-dashoffset:0}.splash-graf-area{animation:none;opacity:1}}
+.splash-frase{position:relative;z-index:1;margin:0;max-width:15ch;font-size:clamp(24px,6.4vw,44px);font-weight:800;letter-spacing:-.02em;line-height:1.22;
   color:#0f172a;transition:opacity .55s ease,transform .55s ease}
 @media(prefers-color-scheme:dark){.splash-frase{color:#f1f5f9}}
 .splash-frase.saindo{opacity:0;transform:translateY(-18px)}

@@ -93,7 +93,7 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
 
           {/* tabela */}
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
+            <table className="tabela-dre" style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
               <thead>
                 <tr>
                   <th style={{ ...th, textAlign: "left" }}>Descrição da conta</th>

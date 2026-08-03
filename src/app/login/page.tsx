@@ -27,6 +27,19 @@ function SplashEntrada({ onFim }: { onFim: () => void }) {
   let idx = 0;
   return (
     <div className="splash-entrada">
+      {/* gráfico de evolução no fundo: linha que sobe, sutil e transparente, passando devagar */}
+      <svg className="splash-graf" viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="splashGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="var(--brand)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path className="splash-graf-area" fill="url(#splashGrad)"
+          d="M-20,180 L40,168 L90,172 L150,140 L210,150 L270,104 L330,116 L390,64 L440,72 L440,240 L-20,240 Z" />
+        <path className="splash-graf-linha" fill="none" stroke="var(--brand)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+          d="M-20,180 L40,168 L90,172 L150,140 L210,150 L270,104 L330,116 L390,64 L440,72" />
+      </svg>
       <p key={i} className={`splash-frase${saindo ? " saindo" : ""}`}>
         {palavras.map((palavra, wi) => (
           <span key={wi}>
