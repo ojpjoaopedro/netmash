@@ -629,17 +629,21 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                   );
                 })}
                 {linhas.length === 0 && <tr><td colSpan={COLS.length + 3} style={{ textAlign: "center", padding: 26, color: "var(--muted)" }}>{bq ? "Nenhum resultado para a busca." : "Ninguém cadastrado ainda."}</td></tr>}
+                {filtro === "ativos" && (
+                  <tr className="eq-row">
+                    <td colSpan={COLS.length + 3} style={{ padding: "8px 10px" }}>
+                      <button onClick={novoInline} disabled={criando}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--brand)", background: "transparent", border: 0, padding: "4px 8px", borderRadius: 8 }}
+                        onMouseEnter={(e) => { if (!criando) e.currentTarget.style.background = "color-mix(in srgb, var(--brand) 10%, transparent)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                        <Plus size={15} /> Cadastrar equipe
+                      </button>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-          {filtro === "ativos" && (
-            <button onClick={novoInline} disabled={criando}
-              style={{ marginTop: 12, width: "100%", minHeight: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", borderRadius: 12, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)" }}
-              onMouseEnter={(e) => { if (!criando) { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; } }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.color = "var(--muted)"; }}>
-              <Plus size={16} /> <b style={{ fontSize: 13 }}>Cadastrar equipe</b>
-            </button>
-          )}
         </div>
       ) : (
       <div className="grid equipe-grid" style={{ gap: 14 }}>
