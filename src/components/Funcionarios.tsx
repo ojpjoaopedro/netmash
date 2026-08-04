@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Users, User, Phone, Mail, CreditCard, KeyRound, Cake, Briefcase, Trash2, Plus, Power } from "lucide-react";
+import { Users, User, Phone, Mail, CreditCard, KeyRound, Cake, Briefcase, Trash2, Plus, Power, Search, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
@@ -147,6 +147,11 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
     return () => window.removeEventListener("me:diretores", ler);
   }, []);
 
+  // busca por título + ordenação por coluna (modo Lista)
+  const [busca, setBusca] = useState("");
+  const [sortCol, setSortCol] = useState<string>("");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const ordenarPor = (col: string) => { if (sortCol === col) setSortDir((d) => d === "asc" ? "desc" : "asc"); else { setSortCol(col); setSortDir("asc"); } };
   // qual card está em edição (algum campo com foco) — libera a lixeira só nele
   const [focoId, setFocoId] = useState<string | null>(null);
   const focoT = useRef<number | undefined>(undefined);
@@ -245,6 +250,36 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
       });
 
+  // ---- modo Lista: busca no topo + ordenação por coluna ----
+  const COLS: { k: string; label: string }[] = [
+    { k: "nome", label: "Nome" }, { k: "contato", label: "Telefone" }, { k: "email", label: "E-mail" },
+    { k: "cpf", label: "CPF" }, { k: "pix", label: "Pix" }, { k: "nascimento", label: "Nascimento" }, { k: "cargo", label: "Cargo" },
+  ];
+  const valDe = (f: Funcionario, col: string): string => {
+    switch (col) {
+      case "nome": return f.nome || "";
+      case "contato": return f.contato || "";
+      case "email": return f.email || "";
+      case "cpf": return f.cpf || "";
+      case "pix": return f.pix || "";
+      case "nascimento": return f.nascimento || "";
+      case "cargo": return f.cargo || "";
+      case "ativo": return f.ativo ? "1" : "0";
+      default: return "";
+    }
+  };
+  const bq = busca.trim().toLowerCase();
+  const listaBusca = bq
+    ? lista.filter((f) => [f.nome, f.contato, f.email, f.cpf, f.pix, f.cargo].some((x) => (x || "").toLowerCase().includes(bq)))
+    : lista;
+  const listaTab = sortCol
+    ? listaBusca.slice().sort((a, b) => { const r = valDe(a, sortCol).localeCompare(valDe(b, sortCol), "pt-BR", { sensitivity: "base", numeric: true }); return sortDir === "asc" ? r : -r; })
+    : listaBusca;
+  const seta = (k: string) => sortCol !== k
+    ? <ChevronsUpDown size={13} style={{ opacity: .4 }} />
+    : (sortDir === "asc" ? <ChevronUp size={13} style={{ color: "var(--brand)" }} /> : <ChevronDown size={13} style={{ color: "var(--brand)" }} />);
+  const iniciaisDe = (n: string) => n.trim().split(/\s+/).map((p) => p[0]).join("").toUpperCase().slice(0, 2);
+
   // chave liga/desliga: ativos em verde, desativados em vermelho (tom suave)
   const opc = (k: "ativos" | "desativados", txt: string) => {
     const cor = k === "ativos" ? VERDE : VERMELHO;
@@ -281,7 +316,73 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
       </div>
 
-      <div className={modo === "lista" ? "grid" : "grid equipe-grid"} style={{ gap: 14, ...(modo === "lista" ? { gridTemplateColumns: "1fr" } : {}) }}>
+      {modo === "lista" ? (
+        <div>
+          {/* busca no topo */}
+          <div style={{ position: "relative", maxWidth: 400, marginBottom: 14 }}>
+            <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, e-mail, CPF, Pix ou cargo…" style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10 }} />
+          </div>
+          {/* tabela ordenável (clique nos títulos das colunas) */}
+          <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
+            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 980 }}>
+              <thead>
+                <tr>
+                  {COLS.map((c) => (
+                    <th key={c.k} className="eq-th" onClick={() => ordenarPor(c.k)} title="Ordenar por esta coluna">
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{c.label} {seta(c.k)}</span>
+                    </th>
+                  ))}
+                  <th className="eq-th" onClick={() => ordenarPor("ativo")} title="Ordenar por status" style={{ textAlign: "center" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Status {seta("ativo")}</span>
+                  </th>
+                  <th className="eq-th" style={{ width: 46 }} />
+                </tr>
+              </thead>
+              <tbody>
+                {listaTab.map((f) => (
+                  <tr key={f.id} className="eq-row" style={{ opacity: f.ativo ? 1 : .6 }}>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", fontWeight: 800, fontSize: 12 }}>{iniciaisDe(f.nome) || <User size={16} />}</span>
+                        <div style={{ minWidth: 140 }}><Campo valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 13.5, fontWeight: 700 }} /></div>
+                      </div>
+                    </td>
+                    <td><Campo valor={f.contato} placeholder="—" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} /></td>
+                    <td><Campo valor={f.email} placeholder="—" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} /></td>
+                    <td><Campo valor={f.cpf} placeholder="—" formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} /></td>
+                    <td><Campo valor={f.pix} placeholder="—" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} /></td>
+                    <td><Campo valor={f.nascimento} placeholder="dd/mm/aaaa" tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nascimento: v || null }, el)} /></td>
+                    <td><Campo valor={f.cargo} placeholder="—" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cargo: v.trim() || null }, el)} /></td>
+                    <td style={{ textAlign: "center" }}>
+                      <button title={f.ativo ? "Clique para desativar" : "Clique para ativar"} onClick={() => f.ativo ? setADesativar({ f, data: hojeISO() }) : setAAtivar(f)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: 0, fontFamily: "inherit", background: f.ativo ? "rgba(16,185,129,.12)" : "rgba(239,68,68,.12)", color: f.ativo ? VERDE : VERMELHO, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "5px 11px", borderRadius: 99 }}>
+                        <Power size={11} /> {f.ativo ? "Ativo" : "Inativo"}
+                      </button>
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
+                        style={{ width: 28, height: 28, borderRadius: 8, display: "inline-grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {listaTab.length === 0 && <tr><td colSpan={COLS.length + 2} style={{ textAlign: "center", padding: 26, color: "var(--muted)" }}>{bq ? "Nenhum resultado para a busca." : "Ninguém cadastrado ainda."}</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          {filtro === "ativos" && (
+            <button onClick={novoInline} disabled={criando}
+              style={{ marginTop: 12, width: "100%", minHeight: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", borderRadius: 12, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)" }}
+              onMouseEnter={(e) => { if (!criando) { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; } }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.color = "var(--muted)"; }}>
+              <Plus size={16} /> <b style={{ fontSize: 13 }}>Cadastrar equipe</b>
+            </button>
+          )}
+        </div>
+      ) : (
+      <div className="grid equipe-grid" style={{ gap: 14 }}>
           {lista.map((f) => {
             const pill = (mt: number) => (
               <button title={f.ativo ? "Clique para desativar" : "Clique para ativar"}
@@ -303,26 +404,6 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
                 {iniciais(f.nome) || <Users size={tam * 0.38} />}
               </div>
             );
-
-            // MODO LISTA: uma linha única com nome, telefone, CPF e cargo
-            if (modo === "lista") {
-              return (
-                <div key={f.id} className="card equipe-card" style={{ padding: "8px 14px", position: "relative", opacity: f.ativo ? 1 : 0.72, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  {trash}
-                  {avatar(34)}
-                  <div style={{ width: 230, minWidth: 170, flexShrink: 0 }}>
-                    <Campo valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 14, fontWeight: 700 }} />
-                  </div>
-                  <div style={{ width: 150, minWidth: 120 }}><LinhaEdit icone={<Phone size={13} />} valor={f.contato} placeholder="Telefone" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} /></div>
-                  <div style={{ width: 190, minWidth: 140 }}><LinhaEdit icone={<Mail size={13} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} /></div>
-                  <div style={{ width: 185, minWidth: 140 }}><LinhaEdit icone={<CreditCard size={13} />} prefixo="CPF" valor={f.cpf} formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} /></div>
-                  <div style={{ width: 170, minWidth: 130 }}><LinhaEdit icone={<KeyRound size={13} />} prefixo="Pix" valor={f.pix} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} /></div>
-                  <div style={{ width: 150, minWidth: 120 }}><LinhaEdit icone={<Cake size={13} />} prefixo="Nasc." valor={f.nascimento} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nascimento: v || null }, el)} /></div>
-                  <div style={{ flex: "1 1 130px", minWidth: 110 }}><LinhaEdit icone={<Briefcase size={13} />} valor={f.cargo} placeholder="Cargo" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cargo: v.trim() || null }, el)} /></div>
-                  <div style={{ marginLeft: "auto", paddingRight: focoId === f.id ? 30 : 0 }}>{pill(0)}</div>
-                </div>
-              );
-            }
 
             // MODO CARD: cartão moderno — faixa em gradiente, avatar em destaque, dados centralizados
             return (
@@ -380,22 +461,15 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
           {/* card final para cadastrar — cria um card em branco na hora (só nos ativos) */}
           {filtro === "ativos" && (
             <button onClick={novoInline} disabled={criando}
-              style={modo === "lista"
-                ? { minHeight: 50, display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", borderRadius: 12, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }
-                : { minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", borderRadius: 18, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
+              style={{ minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", borderRadius: 18, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
               onMouseEnter={(e) => { if (!criando) { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; } }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.color = "var(--muted)"; }}>
-              {modo === "lista" ? (
-                <><Plus size={16} /> <b style={{ fontSize: 13 }}>Cadastrar equipe</b></>
-              ) : (
-                <>
-                  <span style={{ width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Plus size={22} /></span>
-                  <b style={{ fontSize: 13.5 }}>Cadastrar equipe</b>
-                </>
-              )}
+              <span style={{ width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Plus size={22} /></span>
+              <b style={{ fontSize: 13.5 }}>Cadastrar equipe</b>
             </button>
           )}
         </div>
+      )}
 
       {/* aviso: CPF ou e-mail inválido */}
       {aviso && (
