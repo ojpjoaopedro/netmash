@@ -243,10 +243,12 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   );
   const [infoFgts, setInfoFgts] = useState(false);
   const [infoRescisao, setInfoRescisao] = useState(false);
+  const [infoProvisao, setInfoProvisao] = useState(false);
   const BtnInfoInss = () => <BtnInfo onClick={() => setInfoInss(true)} titulo="Como o INSS é calculado" />;
   const BtnInfoIrrf = () => <BtnInfo onClick={() => setInfoIrrf(true)} titulo="Como o IRRF é calculado" />;
   const BtnInfoFgts = () => <BtnInfo onClick={() => setInfoFgts(true)} titulo="O que é o FGTS" />;
   const BtnInfoRescisao = () => <BtnInfo onClick={() => setInfoRescisao(true)} titulo="O que é a provisão para rescisão" />;
+  const BtnInfoProvisao = () => <BtnInfo onClick={() => setInfoProvisao(true)} titulo="O que é a provisão de 13º e férias" />;
 
   const carregar = () => getFuncionarios().then((f) => { setFuncs(f); setCarregado(true); }).catch(() => setCarregado(true));
   useEffect(() => { carregar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
@@ -525,7 +527,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   <th className="eq-th" onClick={() => ordenarPor("irrf")} style={{ textAlign: "right" }}>IRRF {seta("irrf")}<BtnInfoIrrf /></th>
                   <th className="eq-th" onClick={() => ordenarPor("totalDesc")} style={{ textAlign: "right" }}>Total descontos {seta("totalDesc")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("liquido")} style={{ textAlign: "right" }}>Salário líquido {seta("liquido")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("provisao")} style={{ textAlign: "right" }}>13º + Férias {seta("provisao")}</th>
+                  <th className="eq-th" onClick={() => ordenarPor("provisao")} style={{ textAlign: "right" }}>13º + Férias {seta("provisao")}<BtnInfoProvisao /></th>
                   <th className="eq-th" onClick={() => ordenarPor("fgts")} style={{ textAlign: "right" }}>FGTS {seta("fgts")}<BtnInfoFgts /></th>
                   <th className="eq-th" onClick={() => ordenarPor("rescisao")} style={{ textAlign: "right" }}>Provisão p/ rescisão {seta("rescisao")}<BtnInfoRescisao /></th>
                 </tr>
@@ -831,6 +833,33 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
       )}
 
       {tut && <TutorialFolha onFim={fecharTut} setModo={setModo} />}
+
+      {/* pop-up: provisão de 13º + férias */}
+      {infoProvisao && (
+        <div onClick={() => setInfoProvisao(false)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 500, padding: 22 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Info size={18} /></span>
+                <b style={{ fontSize: 16 }}>Provisão de 13º + Férias (1/3)</b>
+              </div>
+              <button onClick={() => setInfoProvisao(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+            </div>
+            <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
+              {[
+                <>É um valor <b>guardado todo mês</b> para pagar o <b>13º salário</b> e as <b>férias</b> quando chegarem, sem apertar o caixa.</>,
+                <><b>13º:</b> <b>1/12 do salário</b> por mês (em 12 meses, forma um salário).</>,
+                <><b>Férias:</b> <b>1/12 do salário + o 1/3 constitucional</b>, também dividido por 12.</>,
+                <>É uma <b>reserva contábil</b> (provisão), não um valor pago agora. Entra no <b>custo total da folha</b> como encargo previsto.</>,
+              ].map((t, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}><span style={{ color: "var(--brand)", fontWeight: 800 }}>•</span><span>{t}</span></div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoProvisao(false)}>Entendi</button></div>
+          </div>
+        </div>
+      )}
 
       {/* confirmação de exclusão de coluna (padrão do app) */}
       {confirmCol && (

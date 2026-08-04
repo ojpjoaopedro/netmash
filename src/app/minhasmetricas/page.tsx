@@ -487,7 +487,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
       )}
 
       {/* Main */}
-      <main className="main">
+      <main className={`main${view === "financas" ? " main--wide" : ""}`}>
 
         {/* ===== APP MOBILE: Home estilo Asaas ===== */}
         {estreito && view === "dashboard" && (
@@ -720,19 +720,6 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
 
   // pop-up do vídeo-tutorial (ainda não gravado)
   const [videoTut, setVideoTut] = useState(false);
-  // tour guiado das 5 abas: aparece 1x na 1ª vez que o cliente entra em Finanças
-  // e/ou ao concluir o Guia de configuração (o que vier primeiro).
-  const [tourOn, setTourOn] = useState(false);
-  useEffect(() => {
-    const ver = () => {
-      try {
-        if (localStorage.getItem("me_tour_financas") !== "1") setTourOn(true);
-      } catch { /* ignore */ }
-    };
-    ver();
-    window.addEventListener("me:guia-concluido", ver);
-    return () => window.removeEventListener("me:guia-concluido", ver);
-  }, []);
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos", folha: "Folha de pagamento",
     calendario: "Calendário", relatorios: "Relatórios", importar: "Importar planilha",
@@ -782,9 +769,9 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
       {/* CELULAR: menu de cards (estilo app). Ao tocar, entra na seção. */}
       {estreito && !entrou ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
-          {[...abas.filter((a) => a.key !== "dashboard" && a.key !== "relatorios"), { key: "tutorial" as const, label: "Ver tutorial", Icon: Sparkles }].map((a) => (
+          {abas.filter((a) => a.key !== "dashboard" && a.key !== "relatorios").map((a) => (
             <button key={a.key} className="appcard"
-              onClick={() => { if (a.key === "tutorial") { setTourOn(true); return; } setAba(a.key as typeof aba); if (a.key === "calendario") setCalSub(null); setEntrou(true); }}>
+              onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); setEntrou(true); }}>
               <span className="appcard-ico"><a.Icon size={24} color="#fff" strokeWidth={2} /></span>
               <b>{a.label}</b>
             </button>
@@ -792,7 +779,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
         </div>
       ) : (
       <>
-      {/* DESKTOP: barra de abas; "Ver tutorial" à direita (no celular volta pelo topo azul) */}
+      {/* DESKTOP: barra de abas */}
       {!estreito && !ehAtalhoHome && (
       <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0, overflowX: "auto" }}>
@@ -805,10 +792,6 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
             </Fragment>
           ))}
         </div>
-        <button onClick={() => setTourOn(true)} title="Rever o tutorial das abas"
-          style={{ flexShrink: 0, alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "7px 14px", borderRadius: 99 }}>
-          <Sparkles size={14} /> Ver tutorial
-        </button>
       </div>
       )}
 
@@ -832,9 +815,6 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
       </>
       )}
 
-      {tourOn && <TourFinancas setAba={(k) => { setAba(k); if (k === "calendario") setCalSub(null); }}
-        onVerVideo={() => setVideoTut(true)}
-        onFim={() => { setTourOn(false); try { localStorage.setItem("me_tour_financas", "1"); salvarEstadoRemoto("me_tour_financas", "1"); } catch { /* ignore */ } }} />}
 
       {videoTut && (
         <div onClick={() => setVideoTut(false)} style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", background: "rgba(15,23,42,.6)", backdropFilter: "blur(3px)", padding: 20 }}>
@@ -859,70 +839,6 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/** Tour guiado das abas de Finanças + vídeo (aparece na 1ª entrada e/ou ao concluir o Guia). */
-function TourFinancas({ setAba, onFim, onVerVideo }: { setAba: (k: "dashboard" | "estrutura" | "folha" | "calendario" | "relatorios" | "importar") => void; onFim: () => void; onVerVideo: () => void }) {
-  const STEPS: { key?: "dashboard" | "relatorios" | "estrutura" | "folha" | "calendario" | "importar"; seletor?: string; emoji: string; titulo: string; texto: React.ReactNode; nota?: React.ReactNode }[] = [
-    { key: "estrutura", emoji: "🧱", titulo: "Estrutura", texto: <>A <b>mais importante</b>: é aqui que os dados são <b>de fato colocados</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou pela <b>Importação de planilha</b>.</> },
-    { key: "folha", emoji: "💵", titulo: "Folha de pagamento", texto: <>Monte a <b>folha da equipe</b>: salários e descontos (INSS/IRRF/FGTS) e a <b>folha mensal</b> com comissão, hora extra e mais.</> },
-    { key: "calendario", emoji: "🗓️", titulo: "Calendário", texto: <>Preencha <b>despesas</b> e <b>faturamento</b> pelas <b>datas</b>. Dá para já deixar <b>provisionado</b> o que está previsto para entrar e sair.</> },
-    { key: "importar", emoji: "📥", titulo: "Importar planilha", texto: <>Primeiro preencha a <b>Estrutura</b> com os primeiros números. Depois <b>baixe o Excel</b>, complete os dados nele e <b>suba de volta aqui</b>. Os dados vão <b>automaticamente</b> para a Estrutura.</> },
-    { seletor: '[data-tour="video"]', emoji: "🎬", titulo: "Vídeo-tutorial", texto: <>Assista ao <b>vídeo-tutorial</b> de Finanças.</> },
-  ];
-  const [step, setStep] = useState(0);
-  const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
-  // no celular a barra de abas fica escondida (não há elemento pra destacar): o balão vai centralizado
-  const [estreito, setEstreito] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 900px)");
-    const u = () => setEstreito(mq.matches);
-    u(); mq.addEventListener("change", u);
-    return () => mq.removeEventListener("change", u);
-  }, []);
-  const cur = STEPS[step];
-  useEffect(() => { if (cur.key) setAba(cur.key); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
-  useEffect(() => {
-    if (estreito) return;   // no celular não procura elemento (mostra centralizado)
-    const sel = cur.seletor || `[data-aba="${cur.key}"]`;
-    const upd = () => { const el = document.querySelector(sel); if (el) { const r = el.getBoundingClientRect(); setRect({ left: r.left, top: r.top, width: r.width, height: r.height }); } };
-    upd(); const t = window.setTimeout(upd, 90);
-    window.addEventListener("resize", upd); window.addEventListener("scroll", upd, true);
-    return () => { window.clearTimeout(t); window.removeEventListener("resize", upd); window.removeEventListener("scroll", upd, true); };
-  }, [step, cur.key, cur.seletor, estreito]);
-  const centralizado = estreito || !rect;
-  const popW = 340;
-  const left = rect ? Math.max(16, Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 1200) - popW - 16)) : 0;
-  const top = rect ? rect.top + rect.height + 16 : 0;
-  const ultimo = step === STEPS.length - 1;
-  const posBalao: React.CSSProperties = centralizado
-    ? { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: popW }
-    : { position: "fixed", left, top, width: popW };
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 150, background: centralizado ? "rgba(15,23,42,.62)" : undefined }}>
-      {/* clareira em volta da aba (só no desktop; no celular escurece a tela toda) */}
-      {!centralizado && rect && <div style={{ position: "fixed", left: rect.left - 7, top: rect.top - 7, width: rect.width + 14, height: rect.height + 14, borderRadius: 12, boxShadow: "0 0 0 9999px rgba(15,23,42,.62)", border: "2px solid var(--brand)", pointerEvents: "none", transition: "all .2s" }} />}
-      {/* balão */}
-      <div style={{ ...posBalao, maxWidth: "calc(100vw - 32px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, boxShadow: "0 22px 54px -12px rgba(0,0,0,.55)", padding: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <span style={{ fontSize: 18 }}>{cur.emoji}</span>
-          <b style={{ fontSize: 15.5, flex: 1 }}>{cur.titulo}</b>
-          <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 9px", borderRadius: 99 }}>{step + 1} de {STEPS.length}</span>
-        </div>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--txt)" }}>{cur.texto}</p>
-        {cur.nota && <p className="sub" style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.5 }}>{cur.nota}</p>}
-        {/* trilha de progresso */}
-        <div style={{ display: "flex", gap: 5, margin: "14px 0" }}>
-          {STEPS.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 99, background: i <= step ? "var(--brand)" : "var(--line)" }} />)}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {step > 0 && <button className="btn ghost sm" onClick={() => setStep((s) => s - 1)}>Anterior</button>}
-          <div style={{ flex: 1 }} />
-          <button className="btn sm" onClick={() => { if (ultimo) { onFim(); onVerVideo(); } else setStep((s) => s + 1); }}>{ultimo ? "Assistir ✓" : "Próximo →"}</button>
-        </div>
-      </div>
     </div>
   );
 }
