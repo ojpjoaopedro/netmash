@@ -543,7 +543,19 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
           </div>
           {/* tabela ordenável (clique nos títulos das colunas) */}
           <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1120 }}>
+            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1248, tableLayout: "fixed" }}>
+              <colgroup>
+                <col style={{ width: 165 }} />{/* Nome */}
+                <col style={{ width: 115 }} />{/* Telefone */}
+                <col style={{ width: 215 }} />{/* E-mail (mais larga) */}
+                <col style={{ width: 115 }} />{/* CPF */}
+                <col style={{ width: 105 }} />{/* Pix */}
+                <col style={{ width: 115 }} />{/* Nascimento */}
+                <col style={{ width: 105 }} />{/* Cargo */}
+                <col style={{ width: 150 }} />{/* Nível de acesso */}
+                <col style={{ width: 85 }} />{/* Status */}
+                <col style={{ width: 78 }} />{/* Ações */}
+              </colgroup>
               <thead>
                 <tr>
                   {COLS.map((c) => (
@@ -565,9 +577,9 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                   return (
                     <tr key={l.chave} className="eq-row" style={{ opacity: l.ativo ? 1 : .6 }}>
                       <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: l.ehSuper ? `${AMBAR}22` : (l.nivel === "admin" ? `${AZUL}22` : "color-mix(in srgb, var(--brand) 16%, transparent)"), color: l.ehSuper ? AMBAR : (l.nivel === "admin" ? AZUL : "var(--brand)"), fontWeight: 800, fontSize: 12 }}>{iniciaisDe(l.nome) || <User size={16} />}</span>
-                          <div style={{ minWidth: 140 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: l.ehSuper ? `${AMBAR}22` : (l.nivel === "admin" ? `${AZUL}22` : "color-mix(in srgb, var(--brand) 16%, transparent)"), color: l.ehSuper ? AMBAR : (l.nivel === "admin" ? AZUL : "var(--brand)"), fontWeight: 800, fontSize: 11 }}>{iniciaisDe(l.nome) || <User size={15} />}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <Campo valor={l.nome} placeholder="Nome" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
                               onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nome: v.trim() || l.nome }, el) : salvarCampoLogin(l, { nome: v.trim() }, el)}
                               style={{ fontSize: 12, fontWeight: 700 }} />
