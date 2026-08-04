@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Cake, Award, Instagram, Copy, Check, Quote, Sparkles } from "lucide-react";
+import { Cake, Award, Instagram, Quote } from "lucide-react";
 import { Funcionario } from "@/lib/db";
 
 /** Caminho arredondado (retângulo com cantos) para o canvas do story. */
@@ -26,12 +26,6 @@ function quebrarLinhas(ctx: CanvasRenderingContext2D, texto: string, maxLargura:
   }
   if (atual) linhas.push(atual);
   return linhas;
-}
-
-function saudacao() { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; }
-function dataHoje() {
-  try { return new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }); }
-  catch { return ""; }
 }
 
 const CABECALHO = { fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--accent)" } as const;
@@ -81,7 +75,6 @@ export function fraseDoDia(): { t: string; a: string } {
  */
 function PulsoDoDia() {
   const [frase, setFrase] = useState<{ t: string; a: string } | null>(null);
-  const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
     const dia = Math.floor(new Date().setHours(0, 0, 0, 0) / 86_400_000);
@@ -90,9 +83,6 @@ function PulsoDoDia() {
 
   const texto = frase ? `"${frase.t.replace(/\.\s*$/, "")}"${frase.a ? ` — ${frase.a}` : ""}\n\n📊 Pulso do dia · Minhas Métricas` : "";
 
-  async function copiar() {
-    try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2000); } catch { /* ignore */ }
-  }
   /** Gera a imagem no tamanho de story (1080x1920) e compartilha (ou baixa). */
   async function instagram() {
     if (!frase) return;
@@ -164,11 +154,6 @@ function PulsoDoDia() {
       <span style={{ position: "absolute", left: 0, top: 12, bottom: 12, width: 3, borderRadius: 3, background: "var(--brand)" }} />
 
       <div style={{ position: "relative" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-          <span style={{ width: 24, height: 24, borderRadius: 8, display: "grid", placeItems: "center", background: "var(--brand)", color: "#fff", flexShrink: 0, boxShadow: "0 4px 12px -4px color-mix(in srgb, var(--brand) 60%, transparent)" }}><Sparkles size={13} /></span>
-          <b style={{ ...CABECALHO, color: "var(--brand)", fontSize: 11 }}>Pulso do dia</b>
-        </div>
-
         {/* null no 1º render evita divergência de hidratação: a data é lida só no cliente */}
         <p style={{ lineHeight: 1.45, fontSize: 14, fontWeight: 700, letterSpacing: "-.01em", fontStyle: "italic" }}>
           {frase ? (
@@ -190,7 +175,6 @@ function PulsoDoDia() {
         {frase && (
           <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap" }}>
             <button className="btn sm" onClick={instagram}><Instagram size={14} /> Compartilhar no Instagram</button>
-            <button className="btn ghost sm" onClick={copiar}>{copiado ? <><Check size={14} /> Copiado!</> : <><Copy size={14} /> Copiar</>}</button>
           </div>
         )}
       </div>
@@ -273,17 +257,11 @@ function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
   );
 }
 
-export default function ResumoHome({ funcs = [], nome }: { funcs?: Funcionario[]; nome: string }) {
+export default function ResumoHome({ funcs = [] }: { funcs?: Funcionario[]; nome?: string }) {
   return (
     <div className="resumo-card card" style={{ position: "relative", overflow: "hidden", border: "1px solid color-mix(in srgb, var(--brand) 18%, transparent)", background: "linear-gradient(160deg, rgba(26,173,226,.10), rgba(139,92,246,.05) 55%, transparent)" }}>
       {/* brilho decorativo no canto — dá profundidade sem pesar */}
       <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(26,173,226,.18), transparent 70%)", pointerEvents: "none" }} />
-
-      {/* Saudação */}
-      <div style={{ marginBottom: 12, position: "relative" }}>
-        <div style={{ color: "var(--brand)", opacity: .9, fontSize: 12, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase" }}>{saudacao()}{nome ? `, ${nome}` : ""}</div>
-        <div className="sub" style={{ textTransform: "capitalize", fontStyle: "italic", marginTop: 3 }}>{dataHoje()}</div>
-      </div>
 
       {/* pulso e aniversários lado a lado; empilham no celular */}
       <div className="resumo-blocos">
