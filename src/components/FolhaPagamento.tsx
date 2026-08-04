@@ -274,16 +274,18 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
       <b style={{ fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color .12s" }}>{f.nome || "—"}</b>
     </div>
   );
-  // link fino de "+ cadastrar" logo abaixo da última linha (vai direto para a Equipe)
-  const botaoCadastrar = (
-    <div className="no-print" style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
-      <button onClick={irParaEquipe}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--brand)", background: "transparent", border: 0, padding: "6px 10px", borderRadius: 8 }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--brand) 10%, transparent)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-        <Plus size={15} /> Cadastrar na equipe
-      </button>
-    </div>
+  // link fino de "+ cadastrar" como uma linha da tabela, logo acima do Total (vai direto para a Equipe)
+  const linhaCadastrar = (colSpan: number) => (
+    <tr className="no-print eq-row">
+      <td colSpan={colSpan} style={{ padding: "8px 10px" }}>
+        <button onClick={irParaEquipe}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--brand)", background: "transparent", border: 0, padding: "4px 8px", borderRadius: 8 }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--brand) 10%, transparent)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+          <Plus size={15} /> Cadastrar na equipe
+        </button>
+      </td>
+    </tr>
   );
 
   // VT/VA por pessoa: em % do salário ou valor fixo; ausente = zerado.
@@ -464,6 +466,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   </tr>
                 ))}
                 {geralView.length === 0 && <tr><td colSpan={11} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
+                {linhaCadastrar(11)}
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 800 }}>
@@ -482,7 +485,6 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               </tfoot>
             </table>
           </div>
-          {botaoCadastrar}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
             {[
               { t: "Salários (bruto)", v: totG.bruto, cor: "var(--txt)" },
@@ -553,6 +555,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   </tr>
                 ))}
                 {mesView.length === 0 && <tr><td colSpan={15 + cols.prov.length + cols.desc.length + 2} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
+                {linhaCadastrar(15 + cols.prov.length + cols.desc.length + 2)}
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 800 }}>
@@ -571,7 +574,6 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               </tfoot>
             </table>
           </div>
-          {botaoCadastrar}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
             {[
               { t: `Proventos ${MESES[mesAtualIdx]}`, v: totM.proventos, cor: "var(--txt)" },
