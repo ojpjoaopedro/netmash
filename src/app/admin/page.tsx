@@ -37,7 +37,7 @@ function mascaraCnpj(v: string): string {
   return d;
 }
 type Aba = "visao" | "empresas" | "produtos" | "cupons" | "vendas" | "permissoes" | "config" | "documentos";
-type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null };
+type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null; localizacao?: string | null };
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
@@ -617,6 +617,7 @@ export default function Admin() {
                 ["E-mail", lgpdDet.email || "—"],
                 ["Empresa", lgpdDet.empresaNome || "—"],
                 ["Aceito em", dataHoraBR(lgpdDet.aceito_em)],
+                ["Localização (aprox.)", lgpdDet.localizacao || "—"],
                 ["Versão do termo", lgpdDet.versao || "1.0"],
                 ["Dispositivo / navegador", lgpdDet.user_agent || "—"],
                 ["ID do usuário", lgpdDet.user_id || "—"],
