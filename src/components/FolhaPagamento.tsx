@@ -513,7 +513,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou departamento…" style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10 }} />
           </div>
           <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1440 }}>
+            <table className="eq-tab" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 1440 }}>
               <thead>
                 <tr>
                   <th className="eq-th eq-fix" onClick={() => ordenarPor("nome")}>Nome {seta("nome")}</th>
@@ -589,7 +589,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou departamento…" style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10 }} />
           </div>
           <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1720 }}>
+            <table className="eq-tab" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 1720 }}>
               <thead>
                 <tr>
                   <th className="eq-th eq-fix" onClick={() => ordenarPor("nome")}>Nome {seta("nome")}</th>

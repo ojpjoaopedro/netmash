@@ -864,9 +864,10 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
 }
 
 /** Tour guiado das abas de Finanças + vídeo (aparece na 1ª entrada e/ou ao concluir o Guia). */
-function TourFinancas({ setAba, onFim, onVerVideo }: { setAba: (k: "dashboard" | "estrutura" | "calendario" | "relatorios" | "importar") => void; onFim: () => void; onVerVideo: () => void }) {
-  const STEPS: { key?: "dashboard" | "relatorios" | "estrutura" | "calendario" | "importar"; seletor?: string; emoji: string; titulo: string; texto: React.ReactNode; nota?: React.ReactNode }[] = [
+function TourFinancas({ setAba, onFim, onVerVideo }: { setAba: (k: "dashboard" | "estrutura" | "folha" | "calendario" | "relatorios" | "importar") => void; onFim: () => void; onVerVideo: () => void }) {
+  const STEPS: { key?: "dashboard" | "relatorios" | "estrutura" | "folha" | "calendario" | "importar"; seletor?: string; emoji: string; titulo: string; texto: React.ReactNode; nota?: React.ReactNode }[] = [
     { key: "estrutura", emoji: "🧱", titulo: "Estrutura", texto: <>A <b>mais importante</b>: é aqui que os dados são <b>de fato colocados</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou pela <b>Importação de planilha</b>.</> },
+    { key: "folha", emoji: "💵", titulo: "Folha de pagamento", texto: <>Monte a <b>folha da equipe</b>: salários e descontos (INSS/IRRF/FGTS) e a <b>folha mensal</b> com comissão, hora extra e mais.</> },
     { key: "calendario", emoji: "🗓️", titulo: "Calendário", texto: <>Preencha <b>despesas</b> e <b>faturamento</b> pelas <b>datas</b>. Dá para já deixar <b>provisionado</b> o que está previsto para entrar e sair.</> },
     { key: "importar", emoji: "📥", titulo: "Importar planilha", texto: <>Primeiro preencha a <b>Estrutura</b> com os primeiros números. Depois <b>baixe o Excel</b>, complete os dados nele e <b>suba de volta aqui</b>. Os dados vão <b>automaticamente</b> para a Estrutura.</> },
     { seletor: '[data-tour="video"]', emoji: "🎬", titulo: "Vídeo-tutorial", texto: <>Assista ao <b>vídeo-tutorial</b> de Finanças.</> },
