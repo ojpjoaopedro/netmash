@@ -263,6 +263,26 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     <td key={c.id}><CampoMoeda valor={extra[c.id] || 0} onSalvar={(n) => setExtra(fid, c.id, n)} /></td>
   ));
   const tdsVazias = (grupo: "prov" | "desc") => [...cols[grupo].map((c) => <td key={c.id} />), <td key={`mais-${grupo}`} />];
+  const irParaEquipe = () => navegar({ view: "config", aba: "equipe" });
+  // célula do nome: clicar (ou passar o mouse) leva ao cadastro na Equipe
+  const celNome = (f: Funcionario) => (
+    <div onClick={irParaEquipe} title="Abrir o cadastro desta pessoa na Equipe"
+      onMouseEnter={(e) => { (e.currentTarget.querySelector("b") as HTMLElement | null)?.style.setProperty("color", "var(--brand)"); }}
+      onMouseLeave={(e) => { (e.currentTarget.querySelector("b") as HTMLElement | null)?.style.removeProperty("color"); }}
+      style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, cursor: "pointer" }}>
+      <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", fontWeight: 800, fontSize: 11 }}>{iniciaisDe(f.nome) || <User size={15} />}</span>
+      <b style={{ fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color .12s" }}>{f.nome || "—"}</b>
+    </div>
+  );
+  // botão de "+ cadastrar" no fim da tabela (vai direto para a Equipe)
+  const botaoCadastrar = (
+    <button onClick={irParaEquipe} className="no-print"
+      style={{ marginTop: 12, width: "100%", minHeight: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit", borderRadius: 12, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.color = "var(--muted)"; }}>
+      <Plus size={16} /> <b style={{ fontSize: 13 }}>Cadastrar na equipe</b>
+    </button>
+  );
 
   // VT/VA por pessoa: em % do salário ou valor fixo; ausente = zerado.
   const benefItem = (f: Funcionario, campo: keyof Benef) => itemDe(benef[f.id]?.[campo] as BenefItem | number | undefined);
@@ -428,12 +448,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               <tbody>
                 {geralView.map(({ f, bruto, inss, irrf, totalDesc, liquido, provisao, fgts }) => (
                   <tr key={f.id} className="eq-row">
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                        <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", fontWeight: 800, fontSize: 11 }}>{iniciaisDe(f.nome) || <User size={15} />}</span>
-                        <b style={{ fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome || "—"}</b>
-                      </div>
-                    </td>
+                    <td>{celNome(f)}</td>
                     <td><CampoTexto valor={f.departamento || f.cargo || ""} onSalvar={(v) => salvarDepto(f.id, v)} /></td>
                     <td style={{ fontWeight: 700 }}><CampoMoeda valor={bruto} onSalvar={(n) => salvarSalario(f.id, n)} /></td>
                     <td><CampoBeneficio item={benefItem(f, "vt")} salario={bruto} onChange={(it) => setBeneficio(f.id, "vt", it)} /></td>
@@ -465,6 +480,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               </tfoot>
             </table>
           </div>
+          {botaoCadastrar}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
             {[
               { t: "Salários (bruto)", v: totG.bruto, cor: "var(--txt)" },
@@ -513,12 +529,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               <tbody>
                 {mesView.map(({ f, v, extra, base, proventos, inss, irrf, vt, totalDesc, liquido }) => (
                   <tr key={f.id} className="eq-row">
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                        <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", fontWeight: 800, fontSize: 11 }}>{iniciaisDe(f.nome) || <User size={15} />}</span>
-                        <b style={{ fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome || "—"}</b>
-                      </div>
-                    </td>
+                    <td>{celNome(f)}</td>
                     <td style={{ textAlign: "right", color: "var(--muted)" }}>{brl(base)}</td>
                     <td><CampoMoeda valor={v.comissao} onSalvar={(n) => setVar(f.id, "comissao", n)} /></td>
                     <td><CampoMoeda valor={v.horaExtra} onSalvar={(n) => setVar(f.id, "horaExtra", n)} /></td>
@@ -558,6 +569,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               </tfoot>
             </table>
           </div>
+          {botaoCadastrar}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
             {[
               { t: `Proventos ${MESES[mesAtualIdx]}`, v: totM.proventos, cor: "var(--txt)" },
