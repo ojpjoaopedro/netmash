@@ -958,11 +958,16 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
     upd(); mq.addEventListener("change", upd);
     return () => mq.removeEventListener("change", upd);
   }, []);
+  // alvo de "voltar" quando se chega aqui vindo de outra tela (ex.: Folha de pagamento)
+  const [voltarAlvo, setVoltarAlvo] = useState<import("@/lib/nav").AlvoNav | null>(null);
   // Guia de configuração / MENU podem abrir uma aba específica (entra direto na seção)
   useEffect(() => {
-    const a = pegarAlvo(); if (a?.view === "config" && a.aba) { setAba(a.aba as AbaCfg); setEntrou(true); }
-    return assinarNav((b) => { if (b.view === "config" && b.aba) { setAba(b.aba as AbaCfg); setEntrou(true); } });
+    const abrir = (a: import("@/lib/nav").AlvoNav) => { if (a.view === "config" && a.aba) { setAba(a.aba as AbaCfg); setEntrou(true); setVoltarAlvo(a.voltar ?? null); } };
+    const a = pegarAlvo(); if (a) abrir(a);
+    return assinarNav(abrir);
   }, []);
+  // ao trocar de aba manualmente, some o "voltar"
+  useEffect(() => { if (aba !== "equipe") setVoltarAlvo(null); }, [aba]);
   // back inteligente: só os cards de cadastro voltam pro menu de cards.
   // Termos/Benefícios/Plano vêm do MENU do topo (não são cards), então voltam pra Home.
   useEffect(() => {
@@ -1036,6 +1041,13 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
           </Fragment>
         ))}
       </div>
+      )}
+
+      {aba === "equipe" && voltarAlvo && (
+        <button onClick={() => { const v = voltarAlvo; setVoltarAlvo(null); navegar(v); }} title="Voltar para a Folha de pagamento"
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
+          <ArrowLeft size={17} /> Voltar para a Folha de pagamento
+        </button>
       )}
 
       {aba === "dados" ? <Config secao="tudo" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />

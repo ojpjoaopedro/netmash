@@ -263,7 +263,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     <td key={c.id}><CampoMoeda valor={extra[c.id] || 0} onSalvar={(n) => setExtra(fid, c.id, n)} /></td>
   ));
   const tdsVazias = (grupo: "prov" | "desc") => [...cols[grupo].map((c) => <td key={c.id} />), <td key={`mais-${grupo}`} />];
-  const irParaEquipe = () => navegar({ view: "config", aba: "equipe" });
+  const irParaEquipe = () => navegar({ view: "config", aba: "equipe", voltar: { view: "financas", aba: "folha" } });
   // célula do nome: clicar (ou passar o mouse) leva ao cadastro na Equipe
   const celNome = (f: Funcionario) => (
     <div onClick={irParaEquipe} title="Abrir o cadastro desta pessoa na Equipe"
@@ -276,12 +276,12 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   );
   // botão de "+ cadastrar" no fim da tabela (vai direto para a Equipe)
   const botaoCadastrar = (
-    <button onClick={irParaEquipe} className="no-print"
-      style={{ marginTop: 12, width: "100%", minHeight: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit", borderRadius: 12, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.color = "var(--brand)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.color = "var(--muted)"; }}>
-      <Plus size={16} /> <b style={{ fontSize: 13 }}>Cadastrar na equipe</b>
-    </button>
+    <div className="no-print" style={{ marginTop: 14, display: "flex", justifyContent: "center" }}>
+      <button onClick={irParaEquipe} className="btn"
+        style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 22px", fontSize: 14 }}>
+        <Plus size={17} /> Cadastrar na equipe
+      </button>
+    </div>
   );
 
   // VT/VA por pessoa: em % do salário ou valor fixo; ausente = zerado.
