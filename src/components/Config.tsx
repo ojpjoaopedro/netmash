@@ -105,7 +105,9 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
   const corPendente = cor.trim().toLowerCase() !== (brand.cor || "").trim().toLowerCase();
   function aplicarCor() {
     setAplicando(true);
-    window.setTimeout(() => { saveBrand({ cor }); setAplicando(false); }, 5000);
+    saveBrand({ cor });                 // aplica na hora (React + painel_estado)
+    void updateEmpresa({ cor });        // guarda na própria empresa (fonte confiável p/ todos os usuários)
+    setAplicando(false);
   }
   // aplica sozinho assim que a cor é escolhida (seletor fecha) ou ao sair do campo hex
   const aplicarCorAuto = () => { if (corPendente && !aplicando && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(cor.trim())) aplicarCor(); };
@@ -118,6 +120,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
       // reduz/comprime automaticamente (o logo entra bem pequeno, sem estourar armazenamento)
       const reduzido = await reduzirImagem(String(reader.result), 256, 0.82);
       saveBrand({ logo: reduzido });
+      void updateEmpresa({ logo_url: reduzido });   // guarda na própria empresa (carrega sempre, p/ todos)
     };
     reader.readAsDataURL(file);
   }
@@ -223,7 +226,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
               <>
                 {/* botão de remover dentro do próprio quadro do logo */}
                 <button className="btn ghost sm" title="Remover logo"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveBrand({ logo: null }); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveBrand({ logo: null }); void updateEmpresa({ logo_url: null }); }}
                   style={{ position: "absolute", top: 8, right: 8, display: "inline-flex", alignItems: "center", gap: 5 }}>
                   <Trash2 size={13} /> Remover logo
                 </button>

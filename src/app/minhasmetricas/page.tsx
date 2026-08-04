@@ -97,7 +97,7 @@ const OPERACOES = [
 
 export default function Home({ secao }: { secao?: string } = {}) {
   const router = useRouter();
-  const { brand, save: saveBrand, theme, toggleTheme, aplicarRemoto: aplicarBrandRemoto } = useBrand();
+  const { brand, save: saveBrand, theme, toggleTheme, aplicarRemoto: aplicarBrandRemoto, aplicarLogoCor } = useBrand();
   const [carregando, setCarregando] = useState(true);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
@@ -226,6 +226,13 @@ export default function Home({ secao }: { secao?: string } = {}) {
       if (vivo && (v["fin_brand"] || v["fin_theme"])) aplicarBrandRemoto(v["fin_brand"] || null, v["fin_theme"] || null);
     });
     return () => { vivo = false; };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [empresa]);
+
+  // FONTE CONFIÁVEL: logo/cor guardados na própria tabela empresas (carrega sempre, por qualquer usuário)
+  useEffect(() => {
+    const e = empresa as (Empresa & { logo_url?: string | null; cor?: string | null }) | null;
+    if (e && (e.logo_url || e.cor)) aplicarLogoCor(e.logo_url ?? undefined, e.cor ?? undefined);
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [empresa]);
 

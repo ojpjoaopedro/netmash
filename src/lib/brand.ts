@@ -130,5 +130,11 @@ export function useBrand() {
     if (t === "light" || t === "dark") { setThemeState(t); document.body.classList.toggle("theme-light", t === "light"); }
   }, []);
 
-  return { brand, save, theme, toggleTheme, setTheme, aplicarRemoto };
+  // aplica SÓ o logo/cor (vindos da tabela empresas — fonte confiável), preservando nome/saudação/tamanho
+  const aplicarLogoCor = useCallback((logo?: string | null, cor?: string | null) => {
+    setBrand((cur) => ({ ...cur, ...(logo !== undefined ? { logo } : {}), ...(cor ? { cor } : {}) }));
+    if (cor) aplicarCor(cor);
+  }, []);
+
+  return { brand, save, theme, toggleTheme, setTheme, aplicarRemoto, aplicarLogoCor };
 }

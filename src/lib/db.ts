@@ -90,6 +90,8 @@ export type Empresa = {
   cnpj: string | null;
   segmento: string | null;
   saldo_inicial: number;
+  logo_url?: string | null;   // marca (logo) guardada na própria empresa: carrega sempre e por qualquer usuário
+  cor?: string | null;        // cor de destaque da marca
 };
 
 export type Perfil = {
