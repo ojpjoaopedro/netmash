@@ -195,6 +195,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [cols, setCols] = useState<ColsFolha>({ prov: [], desc: [] });
   const [infoInss, setInfoInss] = useState(false);
   const [infoIrrf, setInfoIrrf] = useState(false);
+  const [confirmCol, setConfirmCol] = useState<{ grupo: "prov" | "desc"; id: string; nome: string } | null>(null);
+  const [avisoCol, setAvisoCol] = useState<{ titulo: string; texto: string } | null>(null);
   const BtnInfo = ({ onClick, titulo }: { onClick: () => void; titulo: string }) => (
     <button onClick={(e) => { e.stopPropagation(); onClick(); }} title={titulo} className="no-print"
       style={{ marginLeft: 5, verticalAlign: "middle", width: 16, height: 16, borderRadius: "50%", display: "inline-grid", placeItems: "center", cursor: "pointer", border: 0, background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", padding: 0 }}>
@@ -216,6 +218,27 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const addCol = (grupo: "prov" | "desc") => upCols({ ...cols, [grupo]: [...cols[grupo], { id: novoIdCol(), nome: grupo === "prov" ? "Novo provento" : "Novo desconto" }] });
   const renomearCol = (grupo: "prov" | "desc", id: string, nome: string) => upCols({ ...cols, [grupo]: cols[grupo].map((c) => c.id === id ? { ...c, nome } : c) });
   const removerCol = (grupo: "prov" | "desc", id: string) => upCols({ ...cols, [grupo]: cols[grupo].filter((c) => c.id !== id) });
+  // uma coluna tem dados se qualquer pessoa, em qualquer mês, tiver valor lançado nela
+  const colTemDados = (id: string): boolean => {
+    if (typeof window === "undefined") return false;
+    const prefixo = chaveMes(empresa?.id, "");
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(prefixo)) continue;
+      try {
+        const obj = JSON.parse(localStorage.getItem(k) || "{}") as Record<string, VarsMes>;
+        for (const fid in obj) { const ex = obj[fid]?.extra; if (ex && Number(ex[id]) > 0) return true; }
+      } catch { /* ignore */ }
+    }
+    return false;
+  };
+  const pedirRemoverCol = (grupo: "prov" | "desc", id: string, nome: string) => {
+    if (colTemDados(id)) {
+      setAvisoCol({ titulo: "Coluna com valores lançados", texto: `A coluna “${nome || "sem nome"}” já tem valores em pelo menos um mês. Zere esses valores antes de excluir a coluna, para não perder lançamentos.` });
+      return;
+    }
+    setConfirmCol({ grupo, id, nome });
+  };
   const setExtra = (id: string, colId: string, valor: number) => {
     setDadosMes((prev) => { const cur = prev[id] || {}; const extra = { ...(cur.extra || {}), [colId]: valor }; const next = { ...prev, [id]: { ...VARS_ZERO, ...cur, extra } }; salvarMes(empresa?.id, ym, next); return next; });
   };
@@ -225,7 +248,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
       <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
         <input defaultValue={c.nome} title="Renomear coluna" onBlur={(e) => renomearCol(grupo, c.id, e.target.value.trim() || c.nome)}
           style={{ border: 0, outline: "none", background: "transparent", font: "inherit", color: "inherit", textAlign: "right", width: 96, padding: "2px 4px", borderRadius: 6 }} />
-        <button title="Remover coluna" onClick={() => removerCol(grupo, c.id)} className="no-print"
+        <button title="Excluir coluna" onClick={() => pedirRemoverCol(grupo, c.id, c.nome)} className="no-print"
           style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: "#EF4444" }}><X size={11} /></button>
       </div>
     </th>
@@ -651,6 +674,45 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
               <button className="btn" onClick={() => setInfoIrrf(false)}>Entendi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* confirmação de exclusão de coluna (padrão do app) */}
+      {confirmCol && (
+        <div onClick={() => setConfirmCol(null)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 125, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.14)", color: "#EF4444", flexShrink: 0 }}><X size={19} /></span>
+              <div>
+                <b style={{ fontSize: 15 }}>Excluir a coluna &ldquo;{confirmCol.nome || "sem nome"}&rdquo;?</b>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>A coluna sai da folha de todos os meses. Como ela está sem valores, nada é perdido. Esta ação não pode ser desfeita.</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setConfirmCol(null)}>Cancelar</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center", background: "#EF4444" }} onClick={() => { removerCol(confirmCol.grupo, confirmCol.id); setConfirmCol(null); }}>Excluir coluna</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* aviso: coluna tem dados, não pode excluir */}
+      {avisoCol && (
+        <div onClick={() => setAvisoCol(null)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 125, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 420, padding: 24, border: "1px solid #F59E0B", background: "linear-gradient(160deg, rgba(245,158,11,.10), var(--card) 60%)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(245,158,11,.16)", color: "#F59E0B", flexShrink: 0, fontSize: 20 }}>⚠️</span>
+              <div>
+                <b style={{ fontSize: 15 }}>{avisoCol.titulo}</b>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>{avisoCol.texto}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", marginTop: 18 }}>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setAvisoCol(null)}>Entendi</button>
             </div>
           </div>
         </div>
