@@ -308,17 +308,7 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
     reload();
   }
 
-  function baixarExcel() {
-    const cab = cabecalhoEmpresa(empresa, brand);
-    const wb = XLSX.utils.book_new();
-    ANOS_MODELO.forEach((ano, i) => {
-      const { aoa, papeis } = montarMatriz(ano, i === 0, cab);
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-      estilizar(ws, papeis, brand?.cor);
-      XLSX.utils.book_append_sheet(wb, ws, String(ano));
-    });
-    XLSX.writeFile(wb, "minhas-metricas-estrutura.xlsx");
-  }
+  function baixarExcel() { baixarPlanilhaCompleta(empresa, brand); }
 
   const COR: Record<Status, string> = { novo: "#10B981", alterado: "#F59E0B", removido: "#EF4444" };
   const ROTULO: Record<Status, string> = { novo: "Novo", alterado: "Alterado", removido: "Removido" };
@@ -419,4 +409,17 @@ export default function Importar({ reload, empresa = null, brand }: { reload: ()
       )}
     </>
   );
+}
+
+/** Baixa a planilha completa (Estrutura de Receitas e Custos). Reutilizável fora do Importar. */
+export function baixarPlanilhaCompleta(empresa: Empresa | null, brand?: Brand) {
+  const cab = cabecalhoEmpresa(empresa, brand);
+  const wb = XLSX.utils.book_new();
+  ANOS_MODELO.forEach((ano, i) => {
+    const { aoa, papeis } = montarMatriz(ano, i === 0, cab);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    estilizar(ws, papeis, brand?.cor);
+    XLSX.utils.book_append_sheet(wb, ws, String(ano));
+  });
+  XLSX.writeFile(wb, "minhas-metricas-estrutura.xlsx");
 }

@@ -7,7 +7,7 @@ import {
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
   Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
-  PlayCircle, Play, Bell, Eye, EyeOff, Instagram,
+  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -36,6 +36,7 @@ import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
 import EstruturaFinancas from "./financas-estrutura";
 import RelatoriosFinancas from "@/components/RelatoriosFinancas";
+import FolhaPagamento from "@/components/FolhaPagamento";
 import FinancasDashboard from "@/components/FinancasDashboard";
 import CalendarioPagamentos from "@/components/CalendarioPagamentos";
 import TermosDeUso from "@/components/TermosDeUso";
@@ -572,6 +573,22 @@ export default function Home({ secao }: { secao?: string } = {}) {
           </div>
         )}
         {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
+        {view === "dashboard" && (
+          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "relatorios", label: "Relatório", Icon: FileText }].map((a) => (
+              <button key={a.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}
+                style={{ display: "flex", alignItems: "center", gap: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                  padding: "22px 24px", borderRadius: 18, border: 0, color: "#fff",
+                  background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))",
+                  boxShadow: "0 16px 34px -18px color-mix(in srgb, var(--brand) 70%, transparent)", transition: "transform .15s, box-shadow .15s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 22px 42px -18px color-mix(in srgb, var(--brand) 80%, transparent)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 16px 34px -18px color-mix(in srgb, var(--brand) 70%, transparent)"; }}>
+                <span style={{ width: 48, height: 48, borderRadius: 14, display: "grid", placeItems: "center", background: "rgba(255,255,255,.18)", flexShrink: 0 }}><a.Icon size={24} color="#fff" /></span>
+                <b style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-.01em" }}>{a.label}</b>
+              </button>
+            ))}
+          </div>
+        )}
         {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} /></div>}
         {view === "dashboard" && (
           <div className="cal-promo" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
@@ -675,7 +692,7 @@ function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebime
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
 function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void; reload: () => Promise<void>; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void }) {
-  const [aba, setAba] = useState<"dashboard" | "estrutura" | "calendario" | "relatorios" | "importar">("dashboard");
+  const [aba, setAba] = useState<"dashboard" | "estrutura" | "folha" | "calendario" | "relatorios" | "importar">("estrutura");
   // dentro do Calendário: escolha entre pagamentos e recebimentos (null = mostra as 2 opções)
   const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | "financeiro" | null>(null);
   // no celular, Finanças abre num menu de CARDS; ao tocar num card, "entra" na seção
@@ -732,7 +749,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
     return () => window.removeEventListener("me:guia-concluido", ver);
   }, []);
   const rotulos: Record<typeof aba, string> = {
-    dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos",
+    dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos", folha: "Folha de pagamento",
     calendario: "Calendário", relatorios: "Relatórios", importar: "Importar planilha",
   };
   // aba em barra (estilo print2): ícone + rótulo, ativo em azul com sublinhado
@@ -744,17 +761,27 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
     borderBottom: `2px solid ${ativo ? "var(--brand)" : "transparent"}`,
     color: ativo ? "var(--brand)" : "var(--muted)",
   });
+  // Dashboard e Relatórios saíram das abas: agora são abertos pelos 2 cards da Home.
   const abas: { key: typeof aba; label: string; Icon: typeof LayoutDashboard }[] = [
-    { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
-    { key: "relatorios", label: "Relatórios", Icon: FileText },
     { key: "estrutura", label: "Estrutura de Receitas e Custos", Icon: Layers },
+    { key: "folha", label: "Folha de pagamento", Icon: Wallet },
     { key: "calendario", label: "Calendário", Icon: CalendarDays },
     { key: "importar", label: "Importar planilha", Icon: Upload },
   ];
+  // Dashboard/Relatório são abertos pelos atalhos da Home: sem cabeçalho/abas, só um "Voltar".
+  const ehAtalhoHome = aba === "dashboard" || aba === "relatorios";
   return (
     <div>
+      {/* Voltar (só nos atalhos da Home: Dashboard/Relatório) */}
+      {!estreito && ehAtalhoHome && (
+        <button onClick={() => { playTick(); navegar({ view: "dashboard" }); }} title="Voltar para a Home"
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", marginBottom: 16, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
+          <ArrowLeft size={17} /> Voltar
+        </button>
+      )}
+
       {/* título — escondido no celular (o cabeçalho azul já mostra "Finanças") */}
-      {!estreito && (
+      {!estreito && !ehAtalhoHome && (
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
           <DollarSign size={22} />
@@ -781,7 +808,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
       ) : (
       <>
       {/* DESKTOP: barra de abas; "Ver tutorial" à direita (no celular volta pelo topo azul) */}
-      {!estreito && (
+      {!estreito && !ehAtalhoHome && (
       <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0, overflowX: "auto" }}>
           {abas.map((a, i) => (
@@ -801,9 +828,10 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
       )}
 
       {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
-      {!estreito && !(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
+      {!estreito && !ehAtalhoHome && !(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
 
       {aba === "estrutura" ? <EstruturaFinancas ano={ano} setAno={setAno} />
+        : aba === "folha" ? <FolhaPagamento empresa={empresa} />
         : aba === "dashboard" ? <FinancasDashboard ano={ano} setAno={setAno} />
         : aba === "calendario" ? (calSub
             ? (calSub === "financeiro"
@@ -813,7 +841,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
                   </div>
                 : <SubCalendario tipo={calSub} ano={ano} onVoltar={() => setCalSub(null)} />)
             : <EscolhaCalendario onEscolher={setCalSub} />)
-        : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} />
+        : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} setAno={setAno} />
         : aba === "importar" ? <Importar reload={reload} empresa={empresa} brand={brand} />
         : <EmConstrucao titulo={rotulos[aba]} />}
       </>
@@ -853,8 +881,6 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
 /** Tour guiado das abas de Finanças + vídeo (aparece na 1ª entrada e/ou ao concluir o Guia). */
 function TourFinancas({ setAba, onFim, onVerVideo }: { setAba: (k: "dashboard" | "estrutura" | "calendario" | "relatorios" | "importar") => void; onFim: () => void; onVerVideo: () => void }) {
   const STEPS: { key?: "dashboard" | "relatorios" | "estrutura" | "calendario" | "importar"; seletor?: string; emoji: string; titulo: string; texto: React.ReactNode; nota?: React.ReactNode }[] = [
-    { key: "dashboard", emoji: "📊", titulo: "Dashboard", texto: <>É o <b>resultado de tudo</b> que você preenche na <b>Estrutura de Receitas e Custos</b>.</> },
-    { key: "relatorios", emoji: "📄", titulo: "Relatórios", texto: <>Aqui você <b>gera arquivos</b> (como o DRE), faz <b>comparativos</b> e visualiza os <b>gráficos</b> gerados a partir da Estrutura de Receitas e Custos.</> },
     { key: "estrutura", emoji: "🧱", titulo: "Estrutura", texto: <>A <b>mais importante</b>: é aqui que os dados são <b>de fato colocados</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou pela <b>Importação de planilha</b>.</> },
     { key: "calendario", emoji: "🗓️", titulo: "Calendário", texto: <>Preencha <b>despesas</b> e <b>faturamento</b> pelas <b>datas</b>. Dá para já deixar <b>provisionado</b> o que está previsto para entrar e sair.</> },
     { key: "importar", emoji: "📥", titulo: "Importar planilha", texto: <>Primeiro preencha a <b>Estrutura</b> com os primeiros números. Depois <b>baixe o Excel</b>, complete os dados nele e <b>suba de volta aqui</b>. Os dados vão <b>automaticamente</b> para a Estrutura.</> },

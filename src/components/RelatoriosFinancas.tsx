@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { FileText, BarChart3, LineChart, Users } from "lucide-react";
+import { FileText, BarChart3, LineChart, Users, FileSpreadsheet } from "lucide-react";
 import { Empresa, Funcionario, getFuncionarios } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import BotaoGerarDRE from "./GerarDRE";
 import BotaoRelatorioEquipe from "./RelatorioEquipe";
 import AnaliseResultados from "./AnaliseResultados";
 import GraficosFinancas from "./GraficosFinancas";
+import SeletorAno from "./SeletorAno";
+import { baixarPlanilhaCompleta } from "./Importar";
 
 type DiretorRel = { nome: string; cargo?: string; area?: string; email?: string; telefone?: string; cpf?: string; pix?: string; nascimento?: string };
 
@@ -23,7 +25,7 @@ function Item({ Icon, titulo, descricao, onClick }: { Icon: typeof FileText; tit
   );
 }
 
-export default function RelatoriosFinancas({ empresa, brand, ano }: { empresa: Empresa | null; brand: Brand; ano: number }) {
+export default function RelatoriosFinancas({ empresa, brand, ano, setAno }: { empresa: Empresa | null; brand: Brand; ano: number; setAno?: (a: number) => void }) {
   const [view, setView] = useState<"lista" | "analise" | "graficos">("lista");
   const [funcs, setFuncs] = useState<Funcionario[]>([]);
   const [diretores, setDiretores] = useState<DiretorRel[]>([]);
@@ -49,8 +51,13 @@ export default function RelatoriosFinancas({ empresa, brand, ano }: { empresa: E
 
   return (
     <div className="card" style={{ padding: 22 }}>
-      <b style={{ fontSize: 17 }}>Análise financeira</b>
-      <p className="sub" style={{ margin: "8px 0 6px", lineHeight: 1.6 }}>Acompanhe várias informações financeiras em um só lugar para decidir com mais clareza.</p>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <b style={{ fontSize: 17 }}>Análise financeira</b>
+          <p className="sub" style={{ margin: "8px 0 6px", lineHeight: 1.6 }}>Acompanhe várias informações financeiras em um só lugar para decidir com mais clareza.</p>
+        </div>
+        {setAno && <SeletorAno ano={ano} setAno={setAno} />}
+      </div>
 
       {/* Gerar DRE — abre a pré-visualização do DRE */}
       <BotaoGerarDRE ano={ano} empresa={empresa} brand={brand}
@@ -63,6 +70,9 @@ export default function RelatoriosFinancas({ empresa, brand, ano }: { empresa: E
       {/* Relatório da equipe — lista de diretores + integrantes, pronta para PDF */}
       <BotaoRelatorioEquipe funcs={funcs} empresa={empresa} brand={brand} diretores={diretores}
         trigger={(abrir) => <Item Icon={Users} titulo="Relatório da equipe" descricao="Lista completa da equipe (diretores e integrantes) com dados de contato, pronta para imprimir ou salvar em PDF." onClick={abrir} />} />
+
+      {/* Exportar a planilha completa (mesma do Importar), pronta para editar no Excel */}
+      <Item Icon={FileSpreadsheet} titulo="Exportar planilha completa" descricao="Baixa a Estrutura de Receitas e Custos em Excel (.xlsx), já preenchida, pronta para editar e subir de volta." onClick={() => baixarPlanilhaCompleta(empresa, brand)} />
     </div>
   );
 }
