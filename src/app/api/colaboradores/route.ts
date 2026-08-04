@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 function svc(): SupabaseClient | null {
   if (!url || !serviceKey) return null;
@@ -38,11 +40,15 @@ export async function POST(req: NextRequest) {
   if (!dono) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
 
   const { nome, email, senha, areas } = (await req.json()) as { nome?: string; email?: string; senha?: string; areas?: string[] };
-  if (!email || !senha || senha.length < 6) return NextResponse.json({ error: "Informe e-mail e senha (mín. 6 caracteres)." }, { status: 400 });
+  const emailL = (email || "").trim();
+  if (!emailL.includes("@")) return NextResponse.json({ error: "Informe um e-mail válido." }, { status: 400 });
+  // Senha opcional: se não vier, gera uma temporária e envia convite por e-mail para a pessoa criar a própria senha.
+  const comConvite = !(senha && senha.length >= 6);
+  const senhaFinal = comConvite ? crypto.randomBytes(9).toString("base64url") : senha!;
 
   const { data: created, error } = await s.auth.admin.createUser({
-    email: email.trim(), password: senha, email_confirm: true,
-    user_metadata: { nome: nome || email, empresa: nome || "" },
+    email: emailL, password: senhaFinal, email_confirm: true,
+    user_metadata: { nome: nome || emailL, empresa: nome || "" },
   });
   if (error || !created?.user) {
     const msg = /already.*registered|exists/i.test(error?.message || "") ? "Este e-mail já tem conta." : (error?.message || "Não consegui criar o acesso.");
@@ -50,10 +56,18 @@ export async function POST(req: NextRequest) {
   }
   const novoId = created.user.id;
   // Reatribui o perfil para a empresa do dono e define o nível de acesso.
-  await s.from("perfis").update({ empresa_id: dono.empresaId, papel: "colaborador", areas: areas ?? [], nome: nome || email }).eq("id", novoId);
+  await s.from("perfis").update({ empresa_id: dono.empresaId, papel: "colaborador", areas: areas ?? [], nome: nome || emailL }).eq("id", novoId);
   // Remove a empresa órfã criada pelo gatilho (o perfil já aponta para a empresa do dono).
   await s.from("empresas").delete().eq("dono_id", novoId);
-  return NextResponse.json({ ok: true });
+  // Convite por e-mail: link para a pessoa definir a própria senha (best-effort).
+  if (comConvite && anonKey && url) {
+    try {
+      const origin = new URL(req.url).origin;
+      const pub = createClient(url, anonKey, { auth: { persistSession: false } });
+      await pub.auth.resetPasswordForEmail(emailL, { redirectTo: `${origin}/senha` });
+    } catch { /* segue mesmo se o e-mail falhar */ }
+  }
+  return NextResponse.json({ ok: true, convite: comConvite });
 }
 
 // Atualiza as permissões (áreas do menu) de um colaborador da empresa do dono.

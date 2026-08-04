@@ -6,7 +6,7 @@ import {
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
-  Palette, UserCog, Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
+  Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
   PlayCircle, Play, Bell, Eye, EyeOff, Instagram,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
@@ -38,7 +38,6 @@ import EstruturaFinancas from "./financas-estrutura";
 import RelatoriosFinancas from "@/components/RelatoriosFinancas";
 import FinancasDashboard from "@/components/FinancasDashboard";
 import CalendarioPagamentos from "@/components/CalendarioPagamentos";
-import Diretores from "@/components/Diretores";
 import TermosDeUso from "@/components/TermosDeUso";
 import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
@@ -70,12 +69,11 @@ const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard 
 // Menu do app (mobile): abre pelo MENU do topo. Os itens de cadastro ficam nos cards
 // de "Configurações"; aqui ficam só os itens de sistema.
 const MENU_APP: { aba: string; label: string; Icon: typeof LayoutDashboard }[] = [
-  { aba: "termos", label: "Termos de uso", Icon: FileText },
   { aba: "beneficios", label: "Meus Benefícios", Icon: Gift },
   { aba: "plano", label: "Plano", Icon: CreditCard },
 ];
 // Cards de Configurações (mobile): só os itens de cadastro.
-const CONFIG_CARDS = ["usuarios", "dados", "personalizacao", "equipe"];
+const CONFIG_CARDS = ["dados", "equipe"];
 // Sub-abas (pílulas) — Empresa e Equipe
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
@@ -594,7 +592,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} ehDono={ehDono} voltarRef={voltarRef} onNivel={setVoltarLabel} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} brand={brandObj} ano={Number(anoSel)} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
-        {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} />}
+        {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} empresa={empresa} brand={brand} loginEmail={perfil?.email || ""} ehDono={ehDono} />}
         {view === "importar" && <Importar reload={carregarDados} empresa={empresa} brand={brand} />}
         {view === "empresa" && <Config empresa={empresa} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
         </div>
@@ -923,8 +921,8 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
   brand: React.ComponentProps<typeof Config>["brand"]; saveBrand: React.ComponentProps<typeof Config>["saveBrand"];
   loginEmail?: string; ehDono?: boolean; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void;
 }) {
-  type AbaCfg = "usuarios" | "dados" | "personalizacao" | "equipe" | "termos" | "beneficios" | "plano";
-  const [aba, setAba] = useState<AbaCfg>("usuarios");
+  type AbaCfg = "dados" | "equipe" | "beneficios" | "plano";
+  const [aba, setAba] = useState<AbaCfg>("equipe");
   // no celular Configurações abre num menu de CARDS (igual Finanças); ao tocar, "entra"
   const [estreito, setEstreito] = useState(false);
   const [entrou, setEntrou] = useState(false);
@@ -960,11 +958,8 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
     return () => window.removeEventListener("me:destacar-beneficios", destacar);
   }, []);
   const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
-    { key: "usuarios", label: "Meus Usuários", Icon: UserCog },
     { key: "dados", label: "Dados da Empresa", Icon: Building2 },
-    { key: "personalizacao", label: "Personalização", Icon: Palette },
     { key: "equipe", label: "Equipe", Icon: Users },
-    { key: "termos", label: "Termos de uso", Icon: FileText },
     { key: "beneficios", label: "Meus Benefícios", Icon: Gift },
     { key: "plano", label: "Plano", Icon: CreditCard },
   ];
@@ -1017,13 +1012,15 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
       </div>
       )}
 
-      {aba === "dados" ? <Config secao="dados" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
-        : aba === "personalizacao" ? <Config secao="identidade" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
-        : aba === "equipe" ? <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} />
-        : aba === "usuarios" ? <Diretores loginEmail={loginEmail} ehDono={ehDono} irParaPlano={() => setAba("plano")} />
-        : aba === "termos" ? <TermosDeUso />
+      {aba === "dados" ? <Config secao="tudo" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
+        : aba === "equipe" ? <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} loginEmail={loginEmail} ehDono={ehDono} irParaPlano={() => setAba("plano")} />
         : aba === "beneficios" ? <MeusBeneficios />
-        : aba === "plano" ? <MeuPlano />
+        : aba === "plano" ? (
+          <div style={{ display: "grid", gap: 22 }}>
+            <MeuPlano />
+            <TermosDeUso />
+          </div>
+        )
         : <EmConstrucao titulo={rotulo} />}
       </>
       )}

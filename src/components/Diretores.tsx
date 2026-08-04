@@ -58,9 +58,9 @@ function resumoPerm(p: Perm): string {
 
 /** Campo editável (parece texto, salva ao sair do foco). */
 /** Campo com rótulo no padrão do formulário "Dados da empresa" (salva ao sair, com flash). */
-function CampoLabel({ label, valor, onSalvar, placeholder, tipo, disabled, lock, onFocar, onDesfocar, formatar, validar, onInvalido, erroData: erroExterno, onErroData }: {
+function CampoLabel({ label, valor, onSalvar, placeholder, tipo, disabled, lock, tituloRO, onFocar, onDesfocar, formatar, validar, onInvalido, erroData: erroExterno, onErroData }: {
   label: string; valor: string; onSalvar?: (v: string, el: HTMLElement) => void; placeholder?: string; tipo?: string;
-  disabled?: boolean; lock?: boolean; onFocar?: () => void; onDesfocar?: () => void;
+  disabled?: boolean; lock?: boolean; tituloRO?: string; onFocar?: () => void; onDesfocar?: () => void;
   formatar?: (v: string) => string; validar?: (v: string) => boolean; onInvalido?: () => void;
   erroData?: string; onErroData?: (m: string) => void;
 }) {
@@ -73,7 +73,7 @@ function CampoLabel({ label, valor, onSalvar, placeholder, tipo, disabled, lock,
     <div className="field">
       <label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{label}{lock && <Lock size={11} style={{ opacity: .6 }} />}</label>
       {disabled
-        ? <input value={valor} readOnly title="Definido pelo login, não editável" style={{ opacity: .8, cursor: "default" }} />
+        ? <input value={ehData ? isoParaBR(valor) : valor} readOnly title={tituloRO || "Definido pelo login, não editável"} style={{ opacity: .8, cursor: "default" }} />
         : ehData
           ? <>
               <input defaultValue={isoParaBR(valor)} placeholder="dd/mm/aaaa" inputMode="numeric" maxLength={10}
@@ -239,6 +239,9 @@ export default function Diretores({ loginEmail = "", ehDono = true, irParaPlano 
     // este card é do usuário LOGADO? (só ele pode trocar a própria senha)
     const emailCard = ((sup ? d.email : d.acesso) || "").toLowerCase();
     const ehMeuCard = loginEmail ? (emailCard === loginEmail.toLowerCase()) : sup;
+    // só edita o próprio card (ou o dono, que administra todos). Admin não mexe nos dados do superadmin/outros.
+    const podeEditar = ehMeuCard || ehDono;
+    const roDica = "Só o próprio usuário pode editar estes dados.";
     return (
       <div className="card diretor-card compacto" style={{ padding: 16, position: "relative" }}>
         {ehDono && !sup && focoId === d.id && (
@@ -265,16 +268,16 @@ export default function Diretores({ loginEmail = "", ehDono = true, irParaPlano 
 
         {/* formulário no mesmo padrão de "Dados da empresa" */}
         <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 14 }}>
-          <CampoLabel label="Nome" valor={d.nome} placeholder={sup ? "Seu nome aqui" : "Nome do diretor"} onSalvar={(v, el) => { set({ nome: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="Cargo" valor={d.area} onSalvar={(v, el) => { set({ area: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Nome" valor={d.nome} placeholder={sup ? "Seu nome aqui" : "Nome do diretor"} disabled={!podeEditar} tituloRO={roDica} onSalvar={(v, el) => { set({ nome: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Cargo" valor={d.area} disabled={!podeEditar} tituloRO={roDica} onSalvar={(v, el) => { set({ area: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
           {sup
             ? <CampoLabel label="E-mail de acesso" valor={d.email || loginEmail || "minhasmetricas@gmail.com"} disabled lock />
             : <CampoLabel label="E-mail de acesso" valor={d.acesso || d.email} disabled lock />}
         </div>
         <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-          <CampoLabel label="Telefone" valor={d.telefone} formatar={mascararTelefone} onSalvar={(v, el) => { set({ telefone: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="CPF" valor={d.cpf} formatar={mascararCPF} validar={cpfValido} onInvalido={() => setAviso({ titulo: "CPF inválido", texto: "O CPF digitado não é válido. Confira os números e digite novamente." })} onSalvar={(v, el) => { set({ cpf: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
-          <CampoLabel label="Data de nascimento" valor={d.nascimento} tipo="date" erroData={errosData[`${d.id}:nasc`]} onErroData={(m) => setErroData(`${d.id}:nasc`, m)} onSalvar={(v, el) => { set({ nascimento: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Telefone" valor={d.telefone} disabled={!podeEditar} tituloRO={roDica} formatar={mascararTelefone} onSalvar={(v, el) => { set({ telefone: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="CPF" valor={d.cpf} disabled={!podeEditar} tituloRO={roDica} formatar={mascararCPF} validar={cpfValido} onInvalido={() => setAviso({ titulo: "CPF inválido", texto: "O CPF digitado não é válido. Confira os números e digite novamente." })} onSalvar={(v, el) => { set({ cpf: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
+          <CampoLabel label="Data de nascimento" valor={d.nascimento} tipo="date" disabled={!podeEditar} tituloRO={roDica} erroData={errosData[`${d.id}:nasc`]} onErroData={(m) => setErroData(`${d.id}:nasc`, m)} onSalvar={(v, el) => { set({ nascimento: v }); salvo(el); }} onFocar={() => aoFocar(d.id)} onDesfocar={aoDesfocar} />
         </div>
 
         {ehDono && !sup && (

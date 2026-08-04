@@ -1,12 +1,18 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { Users, User, Phone, Mail, CreditCard, KeyRound, Cake, Briefcase, Trash2, Plus, Power, Search, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Users, User, Phone, Mail, CreditCard, KeyRound, Cake, Trash2, Plus, Power, Search,
+  ChevronUp, ChevronDown, ChevronsUpDown, Crown, Shield, Lock, SlidersHorizontal, Eye, EyeOff, Check, X,
+  LayoutDashboard, DollarSign, Compass, UserPlus, Sparkles, Settings,
+} from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
+import { salvarEstadoRemoto } from "@/lib/estado-remoto";
+import { supabase, supabaseReady } from "@/lib/supabase";
 import BotaoRelatorioEquipe from "./RelatorioEquipe";
 
-const VERMELHO = "#EF4444", VERDE = "#10B981", AMARELO = "#F59E0B";
+const VERMELHO = "#EF4444", VERDE = "#10B981", AMARELO = "#F59E0B", AZUL = "#1AADE2", AMBAR = "#F59E0B";
 const hojeISO = () => new Date().toISOString().slice(0, 10);
 const brData = (iso?: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 
@@ -14,16 +20,42 @@ function iniciais(nome: string): string {
   return nome.trim().split(/\s+/).map((p) => p[0]).join("").toUpperCase().slice(0, 2);
 }
 
+/** Itens do menu que um Admin pode liberar (mesmo agrupamento do Hub). */
+const GRUPOS = [
+  { titulo: "Métricas", itens: [
+    { k: "dashboard", label: "Home", Icon: LayoutDashboard },
+    { k: "financas", label: "Finanças", Icon: DollarSign },
+    { k: "planejamento", label: "Planejamento", Icon: Compass },
+    { k: "clientes", label: "Cadastro de clientes", Icon: UserPlus },
+  ] },
+  { titulo: "Operações", itens: [
+    { k: "assistente", label: "Assistente", Icon: Sparkles },
+    { k: "config", label: "Configurações", Icon: Settings },
+  ] },
+];
+const TODAS = GRUPOS.flatMap((g) => g.itens.map((i) => i.k));
+type Perm = "total" | string[];
+const chaves = (p: Perm): string[] => (p === "total" ? TODAS.slice() : p);
+function resumoPerm(p: Perm): string {
+  const n = chaves(p).length;
+  if (n === 0) return "Sem áreas";
+  if (n >= TODAS.length) return "Acesso total";
+  return `${n} ${n === 1 ? "área" : "áreas"}`;
+}
 
 /** Campo editável direto na tela: parece texto, salva ao sair do foco. */
-function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar, formatar }: {
+function Campo({ valor, onSalvar, placeholder, tipo, style, disabled, titulo, onFocar, onDesfocar, formatar }: {
   valor: string | null | undefined; onSalvar: (v: string, el: HTMLElement) => void;
-  placeholder?: string; tipo?: string; style?: React.CSSProperties;
+  placeholder?: string; tipo?: string; style?: React.CSSProperties; disabled?: boolean; titulo?: string;
   onFocar?: () => void; onDesfocar?: () => void; formatar?: (v: string) => string;
 }) {
   const ehData = tipo === "date";
   const base = ehData ? isoParaBR(valor ?? "") : (valor ?? "");
   const [erroData, setErroData] = useState("");
+  if (disabled) {
+    return <input value={base} readOnly disabled title={titulo || "Somente leitura"} placeholder={placeholder}
+      style={{ border: 0, outline: "none", background: "transparent", padding: "2px 5px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", opacity: .6, cursor: "default", ...style }} />;
+  }
   const input = (
     <input
       defaultValue={base}
@@ -62,12 +94,13 @@ function Campo({ valor, onSalvar, placeholder, tipo, style, onFocar, onDesfocar,
 }
 
 /** Campo do nome no card: quebra em até 2 linhas sem crescer o card. */
-function CampoNome({ valor, onSalvar, placeholder, style, onFocar, onDesfocar }: {
+function CampoNome({ valor, onSalvar, placeholder, style, disabled, onFocar, onDesfocar }: {
   valor: string | null | undefined; onSalvar: (v: string, el: HTMLElement) => void;
-  placeholder?: string; style?: React.CSSProperties; onFocar?: () => void; onDesfocar?: () => void;
+  placeholder?: string; style?: React.CSSProperties; disabled?: boolean; onFocar?: () => void; onDesfocar?: () => void;
 }) {
   const base = valor ?? "";
   const ajustar = (el: HTMLTextAreaElement) => { el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 40)}px`; };
+  if (disabled) return <div style={{ padding: "2px 5px", width: "100%", opacity: .75, ...style }}>{base || placeholder}</div>;
   return (
     <textarea
       defaultValue={base}
@@ -83,16 +116,16 @@ function CampoNome({ valor, onSalvar, placeholder, style, onFocar, onDesfocar }:
 }
 
 /** Linha com ícone + prefixo fixo + campo editável (telefone, CPF, Pix, datas…). */
-function LinhaEdit({ icone, prefixo, prefixoClaro, valor, placeholder, tipo, onSalvar, onFocar, onDesfocar, formatar }: {
+function LinhaEdit({ icone, prefixo, prefixoClaro, valor, placeholder, tipo, disabled, onSalvar, onFocar, onDesfocar, formatar }: {
   icone: React.ReactNode; prefixo?: string; prefixoClaro?: boolean; valor: string | null | undefined;
-  placeholder?: string; tipo?: string; onSalvar: (v: string, el: HTMLElement) => void;
+  placeholder?: string; tipo?: string; disabled?: boolean; onSalvar: (v: string, el: HTMLElement) => void;
   onFocar?: () => void; onDesfocar?: () => void; formatar?: (v: string) => string;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--muted)", minWidth: 0 }}>
       <span style={{ flexShrink: 0, display: "grid", placeItems: "center", color: "var(--brand)" }}>{icone}</span>
       {prefixo && <span style={{ flexShrink: 0, color: prefixoClaro ? "var(--muted-2)" : undefined }}>{prefixo}</span>}
-      <Campo valor={valor} placeholder={placeholder} tipo={tipo} formatar={formatar} onSalvar={onSalvar} onFocar={onFocar} onDesfocar={onDesfocar} style={{ fontSize: 12.5 }} />
+      <Campo valor={valor} placeholder={placeholder} tipo={tipo} disabled={disabled} formatar={formatar} onSalvar={onSalvar} onFocar={onFocar} onDesfocar={onDesfocar} style={{ fontSize: 12.5 }} />
     </div>
   );
 }
@@ -117,10 +150,34 @@ function Chave({ ops, valor, onChange }: { ops: { k: string; txt: string }[]; va
 
 type DiretorRel = { nome: string; cargo?: string; area?: string; email?: string; telefone?: string; cpf?: string; pix?: string; nascimento?: string };
 
-export default function Funcionarios({ funcs, reload, empresa = null, brand }: { funcs: Funcionario[]; reload: () => void; empresa?: Empresa | null; brand?: Brand }) {
+// ---- Usuários com login (superadmin + admins), guardados em me_diretores (sincroniza no banco) ----
+type DPessoa = { id: string; nome: string; area: string; acesso: string; email: string; telefone: string; cpf: string; pix: string; nascimento: string; permissoes: Perm };
+type DStore = { sup: DPessoa; admins: DPessoa[] };
+const SUPER_PADRAO: DPessoa = { id: "super", nome: "", area: "Geral", acesso: "", email: "", telefone: "", cpf: "", pix: "", nascimento: "", permissoes: "total" };
+const KEY_DIR = "me_diretores";
+function lerDir(): DStore {
+  if (typeof window === "undefined") return { sup: { ...SUPER_PADRAO }, admins: [] };
+  try { const s = JSON.parse(localStorage.getItem(KEY_DIR) || "null"); if (s && s.sup) { if (s.sup.nome === "Super Admin") s.sup.nome = ""; return s; } } catch { /* ignore */ }
+  return { sup: { ...SUPER_PADRAO }, admins: [] };
+}
+function salvarDir(s: DStore) { if (typeof window !== "undefined") { const cru = JSON.stringify(s); localStorage.setItem(KEY_DIR, cru); salvarEstadoRemoto(KEY_DIR, cru); window.dispatchEvent(new Event("me:diretores")); } }
+
+// nível de acesso de cada linha da tabela
+type Nivel = "superadmin" | "admin" | "sem";
+type Linha = {
+  chave: string; origem: "func" | "login"; ehSuper: boolean; nivel: Nivel; perfilId?: string;
+  func?: Funcionario; nome: string; cargo: string; email: string; telefone: string; cpf: string; pix: string; nascimento: string;
+  ativo: boolean; areas: Perm;
+};
+
+export default function Funcionarios({ funcs, reload, empresa = null, brand, loginEmail = "", ehDono = true, irParaPlano }: {
+  funcs: Funcionario[]; reload: () => void; empresa?: Empresa | null; brand?: Brand;
+  loginEmail?: string; ehDono?: boolean; irParaPlano?: () => void;
+}) {
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
   const [ordem, setOrdem] = useState<"cadastro" | "alfabetica">("alfabetica");
   const [modo, setModo] = useState<"card" | "lista">("lista");
+  const emailLog = (loginEmail || "").trim().toLowerCase();
   // no celular o botão de apagar fica sempre visível (sem hover)
   const [estreito, setEstreito] = useState(false);
   useEffect(() => {
@@ -130,29 +187,47 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
     return () => mq.removeEventListener("change", upd);
   }, []);
 
-  // diretores (Meus Usuários) entram no relatório junto com a equipe
-  const [diretores, setDiretores] = useState<DiretorRel[]>([]);
-  useEffect(() => {
-    const ler = () => {
-      try {
-        const s = JSON.parse(localStorage.getItem("me_diretores") || "null");
-        const lista = s?.sup ? [s.sup, ...(s.admins || [])] : [];
-        setDiretores(lista.filter((d: { nome?: string }) => (d.nome || "").trim()).map((d: DiretorRel) => ({
-          nome: d.nome, cargo: "Diretor", area: d.area, email: d.email, telefone: d.telefone, cpf: d.cpf, pix: d.pix, nascimento: d.nascimento,
-        })));
-      } catch { /* ignore */ }
-    };
-    ler();
-    window.addEventListener("me:diretores", ler);
-    return () => window.removeEventListener("me:diretores", ler);
+  // usuários com login (superadmin + admins) — em me_diretores, enriquecido pelo banco
+  const [dir, setDir] = useState<DStore>({ sup: { ...SUPER_PADRAO }, admins: [] });
+  const [dirCarregado, setDirCarregado] = useState(false);
+  useEffect(() => { setDir(lerDir()); setDirCarregado(true); }, []);
+  useEffect(() => { if (dirCarregado) salvarDir(dir); }, [dir, dirCarregado]);
+
+  // Puxa os usuários REAIS da empresa (dono + admins). É a fonte da verdade dos níveis.
+  const recarregarColab = useCallback(async () => {
+    if (!supabaseReady || !supabase) return;
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) return;
+    const res = await fetch("/api/colaboradores", { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;   // só o dono consegue ler; admin mantém o que já tem
+    const { colaboradores } = (await res.json()) as { colaboradores: { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null }[] };
+    if (!Array.isArray(colaboradores)) return;
+    setDir((prev) => {
+      const sup = { ...prev.sup };
+      const dono = colaboradores.find((c) => c.papel === "dono");
+      if (dono) { if (!sup.nome && dono.nome) sup.nome = dono.nome; if (dono.email) { sup.email = dono.email; sup.acesso = dono.email; } }
+      const admins: DPessoa[] = colaboradores.filter((c) => c.papel !== "dono").map((c) => {
+        const emailL = (c.email || "").toLowerCase();
+        const old = prev.admins.find((a) => a.id === c.id || (emailL && (a.email || "").toLowerCase() === emailL));
+        return {
+          id: c.id, nome: old?.nome || c.nome || "", area: old?.area || "",
+          acesso: c.email || old?.acesso || "", email: c.email || old?.email || "",
+          telefone: old?.telefone || "", cpf: old?.cpf || "", pix: old?.pix || "", nascimento: old?.nascimento || "",
+          permissoes: Array.isArray(c.areas) ? c.areas : [],
+        };
+      });
+      return { sup, admins };
+    });
   }, []);
+  useEffect(() => { if (dirCarregado) void recarregarColab(); }, [dirCarregado, recarregarColab]);
 
   // busca por título + ordenação por coluna (modo Lista)
   const [busca, setBusca] = useState("");
   const [sortCol, setSortCol] = useState<string>("");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const ordenarPor = (col: string) => { if (sortCol === col) setSortDir((d) => d === "asc" ? "desc" : "asc"); else { setSortCol(col); setSortDir("asc"); } };
-  // qual card está em edição (algum campo com foco) — libera a lixeira só nele
+  // qual linha está em edição (algum campo com foco) — libera a lixeira só nela
   const [focoId, setFocoId] = useState<string | null>(null);
   const focoT = useRef<number | undefined>(undefined);
   const aoFocar = (id: string) => { window.clearTimeout(focoT.current); setFocoId(id); };
@@ -161,7 +236,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
   // cria um card em branco na hora, pronto para preencher direto na tela
   const [criando, setCriando] = useState(false);
   async function novoInline() {
-    if (criando) return;                 // evita abrir vários com cliques repetidos
+    if (criando) return;
     setCriando(true);
     setFiltro("ativos");
     try {
@@ -173,29 +248,27 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
     } finally { setCriando(false); }
   }
 
-  // confirmação (amarela) de desativação, com a data escolhida
   const [aDesativar, setADesativar] = useState<{ f: Funcionario; data: string } | null>(null);
-  // confirmação (verde) de reativação
   const [aAtivar, setAAtivar] = useState<Funcionario | null>(null);
-
-  // confirmação de exclusão + barra "desfazer" — mesmo padrão de Finanças
   const [aExcluir, setAExcluir] = useState<{ nome: string; onOk: () => void } | null>(null);
   const [aviso, setAviso] = useState<{ titulo: string; texto: string } | null>(null);
-  // Salva CPF/e-mail. Se estiver inválido: avisa em pop-up, NÃO salva e limpa o campo na tela.
+
+  // Salva CPF/e-mail. Se estiver inválido: avisa, NÃO salva e limpa o campo.
   const salvarCpf = (id: string, v: string, el: HTMLElement) => {
     if (v.trim() && !cpfValido(v)) {
       setAviso({ titulo: "CPF inválido", texto: `O CPF "${v.trim()}" não é válido. Confira os números e digite novamente.` });
-      (el as HTMLInputElement).value = ""; salvarCampo(id, { cpf: null }, el); return;
+      (el as HTMLInputElement).value = ""; salvarCampoFunc(id, { cpf: null }, el); return;
     }
-    salvarCampo(id, { cpf: v.trim() || null }, el);
+    salvarCampoFunc(id, { cpf: v.trim() || null }, el);
   };
   const salvarEmail = (id: string, v: string, el: HTMLElement) => {
     if (v.trim() && !emailValido(v)) {
       setAviso({ titulo: "E-mail inválido", texto: `O e-mail "${v.trim()}" não parece correto. Use o formato nome@empresa.com.` });
-      (el as HTMLInputElement).value = ""; salvarCampo(id, { email: null }, el); return;
+      (el as HTMLInputElement).value = ""; salvarCampoFunc(id, { email: null }, el); return;
     }
-    salvarCampo(id, { email: v.trim() || null }, el);
+    salvarCampoFunc(id, { email: v.trim() || null }, el);
   };
+
   const [desfazer, setDesfazer] = useState<{ texto: string; onDesfazer: () => void } | null>(null);
   const [segRestante, setSegRestante] = useState(0);
   const desfazerI = useRef<number | undefined>(undefined);
@@ -217,11 +290,10 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
     mostrarDesfazer(`"${f.nome}" excluído`, async () => { await addFuncionario(copia); reload(); });
   }
 
-  // avisinho "Salvo" — aparece logo em frente ao texto que foi digitado
+  // avisinho "Salvo" — aparece logo em frente ao texto digitado
   const [flash, setFlash] = useState<{ top: number; left: number } | null>(null);
   const flashT = useRef<number | undefined>(undefined);
   function fimDoTexto(el: HTMLElement, r: DOMRect): number {
-    // mede a largura do texto para o selinho colar logo depois do que foi escrito
     if (!(el instanceof HTMLInputElement) || el.type === "date") return r.right;
     const cs = getComputedStyle(el);
     const cv = document.createElement("canvas");
@@ -232,55 +304,165 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
     const padEsq = parseFloat(cs.paddingLeft) || 0;
     return Math.min(r.left + padEsq + largura, r.right);
   }
-  async function salvarCampo(id: string, patch: Partial<Funcionario>, el: HTMLElement) {
-    await updateFuncionario(id, patch);
-    reload();
+  const flashEm = (el: HTMLElement) => {
     const r = el.getBoundingClientRect();
     setFlash({ top: r.top + r.height / 2, left: fimDoTexto(el, r) });
     window.clearTimeout(flashT.current);
     flashT.current = window.setTimeout(() => setFlash(null), 1500);
+  };
+  async function salvarCampoFunc(id: string, patch: Partial<Funcionario>, el: HTMLElement) {
+    await updateFuncionario(id, patch);
+    reload();
+    flashEm(el);
+  }
+  // salva um campo de um usuário com login (em me_diretores)
+  function salvarCampoLogin(l: Linha, patch: Partial<DPessoa>, el: HTMLElement) {
+    if (l.ehSuper) setDir((s) => ({ ...s, sup: { ...s.sup, ...patch } }));
+    else setDir((s) => ({ ...s, admins: s.admins.map((a) => a.id === l.perfilId ? { ...a, ...patch } : a) }));
+    flashEm(el);
   }
 
-  const filtrada = funcs.filter((f) => filtro === "ativos" ? f.ativo : !f.ativo);
-  // ordem de cadastro = ordem original; alfabética = por nome (cadastros em branco sempre no fim)
-  const lista = ordem === "cadastro"
-    ? filtrada.slice().sort((a, b) => (!a.nome.trim() !== !b.nome.trim()) ? (a.nome.trim() ? -1 : 1) : 0)
-    : filtrada.slice().sort((a, b) => {
-        if (!a.nome.trim() !== !b.nome.trim()) return a.nome.trim() ? -1 : 1;
-        return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
-      });
+  // ---- monta as linhas: usuários com login (topo) + equipe comum ----
+  const mostrarLogins = supabaseReady;
+  const loginList = mostrarLogins && dirCarregado
+    ? [{ p: dir.sup, nivel: "superadmin" as Nivel, ehSuper: true }, ...dir.admins.map((a) => ({ p: a, nivel: "admin" as Nivel, ehSuper: false }))]
+    : [];
+  const loginByEmail = new Map<string, { nivel: Nivel; perfilId: string; areas: Perm; ehSuper: boolean }>();
+  loginList.forEach((x) => { const e = (x.p.email || "").toLowerCase(); if (e) loginByEmail.set(e, { nivel: x.nivel, perfilId: x.p.id, areas: x.p.permissoes, ehSuper: x.ehSuper }); });
+  const emailsFunc = new Set(funcs.map((f) => (f.email || "").toLowerCase()).filter(Boolean));
 
-  // ---- modo Lista: busca no topo + ordenação por coluna ----
+  const funcLinhas: Linha[] = funcs.map((f) => {
+    const e = (f.email || "").toLowerCase();
+    const lg = e ? loginByEmail.get(e) : undefined;
+    return {
+      chave: `f:${f.id}`, origem: "func", func: f, ehSuper: !!lg?.ehSuper, nivel: lg?.nivel || "sem", perfilId: lg?.perfilId,
+      nome: f.nome || "", cargo: f.cargo || "", email: f.email || "", telefone: f.contato || "", cpf: f.cpf || "", pix: f.pix || "", nascimento: f.nascimento || "",
+      ativo: f.ativo, areas: lg?.areas ?? [],
+    };
+  });
+  const loginLinhas: Linha[] = loginList
+    .filter((x) => { const e = (x.p.email || "").toLowerCase(); if (e && emailsFunc.has(e)) return false; return x.ehSuper || !!e; })
+    .map((x) => ({
+      chave: x.ehSuper ? "login:super" : `login:${x.p.id}`, origem: "login", ehSuper: x.ehSuper, nivel: x.nivel, perfilId: x.p.id,
+      nome: x.p.nome || "", cargo: x.p.area || "", email: x.p.email || "", telefone: x.p.telefone || "", cpf: x.p.cpf || "", pix: x.p.pix || "", nascimento: x.p.nascimento || "",
+      ativo: true, areas: x.p.permissoes,
+    }));
+
+  const podeEditar = (l: Linha) => ehDono || (!!emailLog && !!l.email && l.email.toLowerCase() === emailLog);
+  const ehMinha = (l: Linha) => !!emailLog && !!l.email && l.email.toLowerCase() === emailLog;
+
+  // ---- modo Lista: busca + ordenação por coluna ----
   const COLS: { k: string; label: string }[] = [
     { k: "nome", label: "Nome" }, { k: "contato", label: "Telefone" }, { k: "email", label: "E-mail" },
     { k: "cpf", label: "CPF" }, { k: "pix", label: "Pix" }, { k: "nascimento", label: "Nascimento" }, { k: "cargo", label: "Cargo" },
   ];
-  const valDe = (f: Funcionario, col: string): string => {
+  const valDe = (l: Linha, col: string): string => {
     switch (col) {
-      case "nome": return f.nome || "";
-      case "contato": return f.contato || "";
-      case "email": return f.email || "";
-      case "cpf": return f.cpf || "";
-      case "pix": return f.pix || "";
-      case "nascimento": return f.nascimento || "";
-      case "cargo": return f.cargo || "";
-      case "ativo": return f.ativo ? "1" : "0";
-      default: return "";
+      case "nome": return l.nome; case "contato": return l.telefone; case "email": return l.email;
+      case "cpf": return l.cpf; case "pix": return l.pix; case "nascimento": return l.nascimento;
+      case "cargo": return l.cargo; case "ativo": return l.ativo ? "1" : "0"; default: return "";
     }
   };
   const bq = busca.trim().toLowerCase();
-  const listaBusca = bq
-    ? lista.filter((f) => [f.nome, f.contato, f.email, f.cpf, f.pix, f.cargo].some((x) => (x || "").toLowerCase().includes(bq)))
-    : lista;
-  const listaTab = sortCol
-    ? listaBusca.slice().sort((a, b) => { const r = valDe(a, sortCol).localeCompare(valDe(b, sortCol), "pt-BR", { sensitivity: "base", numeric: true }); return sortDir === "asc" ? r : -r; })
-    : listaBusca;
+  const passaBusca = (l: Linha) => !bq || [l.nome, l.telefone, l.email, l.cpf, l.pix, l.cargo].some((x) => (x || "").toLowerCase().includes(bq));
+  const loginVis = (filtro === "ativos" ? loginLinhas : []).filter(passaBusca);
+  const funcVis0 = funcLinhas.filter((l) => filtro === "ativos" ? l.ativo : !l.ativo).filter(passaBusca);
+  const funcVis = ordem === "alfabetica"
+    ? funcVis0.slice().sort((a, b) => (!a.nome.trim() !== !b.nome.trim()) ? (a.nome.trim() ? -1 : 1) : a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }))
+    : funcVis0;
+  const funcTab = sortCol
+    ? funcVis.slice().sort((a, b) => { const r = valDe(a, sortCol).localeCompare(valDe(b, sortCol), "pt-BR", { sensitivity: "base", numeric: true }); return sortDir === "asc" ? r : -r; })
+    : funcVis;
+  const linhas: Linha[] = [...loginVis, ...funcTab];
+
   const seta = (k: string) => sortCol !== k
     ? <ChevronsUpDown size={13} style={{ opacity: .4 }} />
     : (sortDir === "asc" ? <ChevronUp size={13} style={{ color: "var(--brand)" }} /> : <ChevronDown size={13} style={{ color: "var(--brand)" }} />);
   const iniciaisDe = (n: string) => n.trim().split(/\s+/).map((p) => p[0]).join("").toUpperCase().slice(0, 2);
 
-  // chave liga/desliga: ativos em verde, desativados em vermelho (tom suave)
+  // ---- trocar nível de acesso (cria/remove login de verdade) ----
+  const [processando, setProcessando] = useState(false);
+  const [aRemover, setARemover] = useState<Linha | null>(null);
+  async function tokenAtual(): Promise<string | null> {
+    if (!supabaseReady || !supabase) return null;
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  }
+  async function promover(l: Linha) {
+    const email = (l.email || "").trim();
+    if (!emailValido(email)) { setAviso({ titulo: "Falta o e-mail", texto: "Preencha um e-mail válido nesta pessoa antes de dar acesso de Admin. É para lá que vai o convite." }); return; }
+    const token = await tokenAtual();
+    if (!token) { setAviso({ titulo: "Sessão expirada", texto: "Entre novamente e tente de novo." }); return; }
+    setProcessando(true);
+    try {
+      const r = await fetch("/api/colaboradores", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ nome: l.nome || email, email, areas: [] }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setAviso({ titulo: "Não consegui dar o acesso", texto: (j as { error?: string }).error || "Tente novamente." }); return; }
+      await recarregarColab();
+      setAviso({ titulo: "Acesso de Admin criado", texto: `Enviamos um e-mail para ${email} criar a senha. Depois de criar a senha, ele entra como Admin. Ajuste as permissões pelo botão “Permissões”.` });
+    } finally { setProcessando(false); }
+  }
+  async function remover(l: Linha) {
+    if (!l.perfilId || l.perfilId === "super") return;
+    const token = await tokenAtual();
+    if (!token) { setAviso({ titulo: "Sessão expirada", texto: "Entre novamente e tente de novo." }); return; }
+    setProcessando(true);
+    try {
+      const r = await fetch(`/api/colaboradores?id=${l.perfilId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setAviso({ titulo: "Não consegui remover o acesso", texto: (j as { error?: string }).error || "Tente novamente." }); return; }
+      await recarregarColab();
+    } finally { setProcessando(false); }
+  }
+  function trocarNivel(l: Linha, novo: Nivel) {
+    if (novo === l.nivel) return;
+    if (novo === "admin") void promover(l);
+    else if (novo === "sem") setARemover(l);
+  }
+
+  // ---- permissões (áreas do menu) de um admin ----
+  const [permAlvo, setPermAlvo] = useState<Linha | null>(null);
+  const [permSel, setPermSel] = useState<string[]>([]);
+  const [salvandoPerm, setSalvandoPerm] = useState(false);
+  const abrirPerm = (l: Linha) => { setPermAlvo(l); setPermSel(chaves(l.areas)); };
+  const alternarPerm = (k: string) => setPermSel((s) => s.includes(k) ? s.filter((x) => x !== k) : [...s, k]);
+  async function salvarPermissoes() {
+    if (!permAlvo?.perfilId) { setPermAlvo(null); return; }
+    setSalvandoPerm(true);
+    try {
+      const token = await tokenAtual();
+      if (token) await fetch("/api/colaboradores", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ id: permAlvo.perfilId, areas: permSel }) }).catch(() => {});
+      // reflete localmente
+      const pid = permAlvo.perfilId;
+      setDir((s) => ({ ...s, admins: s.admins.map((a) => a.id === pid ? { ...a, permissoes: permSel } : a) }));
+    } finally { setSalvandoPerm(false); setPermAlvo(null); }
+  }
+
+  // ---- trocar a própria senha ----
+  const [senhaAberta, setSenhaAberta] = useState(false);
+  const [s1, setS1] = useState(""); const [s2, setS2] = useState("");
+  const [verSenha, setVerSenha] = useState(false);
+  const [senhaErro, setSenhaErro] = useState(""); const [senhaOk, setSenhaOk] = useState(false);
+  const [senhaSalvando, setSenhaSalvando] = useState(false);
+  const abrirSenha = () => { setS1(""); setS2(""); setSenhaErro(""); setSenhaOk(false); setVerSenha(false); setSenhaAberta(true); };
+  const salvarSenha = async () => {
+    if (s1.length < 6) { setSenhaErro("A senha precisa ter pelo menos 6 caracteres."); return; }
+    if (s1 !== s2) { setSenhaErro("As senhas não conferem. Digite a mesma senha nos dois campos."); return; }
+    setSenhaErro(""); setSenhaSalvando(true);
+    if (supabaseReady && supabase) {
+      const { error } = await supabase.auth.updateUser({ password: s1 });
+      if (error) { setSenhaSalvando(false); setSenhaErro("Não consegui alterar a senha agora. Faça login de novo e tente outra vez."); return; }
+    }
+    setSenhaSalvando(false); setSenhaOk(true);
+    window.setTimeout(() => setSenhaAberta(false), 1300);
+  };
+
+  // relatório: superadmin + admins entram junto da equipe
+  const diretoresRel: DiretorRel[] = dirCarregado
+    ? [dir.sup, ...dir.admins].filter((d) => (d.nome || "").trim()).map((d) => ({ nome: d.nome, cargo: "Diretor", area: d.area, email: d.email, telefone: d.telefone, cpf: d.cpf, pix: d.pix, nascimento: d.nascimento }))
+    : [];
+
+  // chave liga/desliga: ativos em verde, desativados em vermelho
   const opc = (k: "ativos" | "desativados", txt: string) => {
     const cor = k === "ativos" ? VERDE : VERMELHO;
     const on = filtro === k;
@@ -290,6 +472,42 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
           background: on ? `${cor}22` : "transparent", color: on ? cor : "var(--muted)", transition: ".15s" }}>
         {txt}
       </button>
+    );
+  };
+
+  // etiqueta/seletor de nível de acesso na coluna
+  const NivelCel = ({ l }: { l: Linha }) => {
+    if (l.ehSuper) {
+      return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `${AMBAR}1f`, color: AMBAR, fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".03em", padding: "4px 10px", borderRadius: 99 }}><Crown size={12} /> Superadmin</span>;
+    }
+    const chip = l.nivel === "admin"
+      ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `${AZUL}1f`, color: AZUL, fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".03em", padding: "4px 10px", borderRadius: 99 }}><Shield size={12} /> Admin</span>
+      : <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(148,163,184,.16)", color: "var(--muted)", fontSize: 10.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>Sem acesso</span>;
+    if (!ehDono) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-start" }}>
+          {chip}
+          {l.nivel === "admin" && <span style={{ fontSize: 10.5, color: VERDE, fontWeight: 700 }}>{resumoPerm(l.areas)}</span>}
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+        <select value={l.nivel === "admin" ? "admin" : "sem"} disabled={processando}
+          onChange={(e) => trocarNivel(l, e.target.value as Nivel)}
+          title="Nível de acesso ao painel"
+          style={{ fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "5px 8px", borderRadius: 9, border: "1px solid var(--line-2)", background: "var(--bg-2)", color: l.nivel === "admin" ? AZUL : "var(--muted)", cursor: processando ? "wait" : "pointer" }}>
+          <option value="super" disabled>Superadmin</option>
+          <option value="admin">Admin</option>
+          <option value="sem">Sem acesso</option>
+        </select>
+        {l.nivel === "admin" && (
+          <button onClick={() => abrirPerm(l)} title="Escolher o que este admin vê no menu"
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)", fontFamily: "inherit", fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>
+            <SlidersHorizontal size={11} /> {resumoPerm(l.areas)}
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -303,10 +521,10 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
         <BotaoRelatorioEquipe funcs={funcs} empresa={empresa}
           brand={brand ?? { nome: "Minha Empresa", logo: null, cor: "#1AADE2", saudacao: "", logoTamanho: 40 }}
-          diretores={diretores} />
+          diretores={diretoresRel} />
       </div>
 
-      {/* filtros alinhados à esquerda: ordenação · visualização · situação */}
+      {/* filtros */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <Chave ops={[{ k: "cadastro", txt: "Cadastro" }, { k: "alfabetica", txt: "A–Z" }]} valor={ordem} onChange={(v) => setOrdem(v as "cadastro" | "alfabetica")} />
         <Chave ops={[{ k: "card", txt: "Card" }, { k: "lista", txt: "Lista" }]} valor={modo} onChange={(v) => setModo(v as "card" | "lista")} />
@@ -325,7 +543,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
           </div>
           {/* tabela ordenável (clique nos títulos das colunas) */}
           <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 980 }}>
+            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1120 }}>
               <thead>
                 <tr>
                   {COLS.map((c) => (
@@ -333,42 +551,72 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{c.label} {seta(c.k)}</span>
                     </th>
                   ))}
+                  <th className="eq-th" title="Nível de acesso ao painel">Nível de acesso</th>
                   <th className="eq-th" onClick={() => ordenarPor("ativo")} title="Ordenar por status" style={{ textAlign: "center" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Status {seta("ativo")}</span>
                   </th>
-                  <th className="eq-th" style={{ width: 46 }} />
+                  <th className="eq-th" style={{ width: 84 }} />
                 </tr>
               </thead>
               <tbody>
-                {listaTab.map((f) => (
-                  <tr key={f.id} className="eq-row" style={{ opacity: f.ativo ? 1 : .6 }}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", fontWeight: 800, fontSize: 12 }}>{iniciaisDe(f.nome) || <User size={16} />}</span>
-                        <div style={{ minWidth: 140 }}><Campo valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 13.5, fontWeight: 700 }} /></div>
-                      </div>
-                    </td>
-                    <td><Campo valor={f.contato} placeholder="—" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} /></td>
-                    <td><Campo valor={f.email} placeholder="—" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} /></td>
-                    <td><Campo valor={f.cpf} placeholder="—" formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} /></td>
-                    <td><Campo valor={f.pix} placeholder="—" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} /></td>
-                    <td><Campo valor={f.nascimento} placeholder="dd/mm/aaaa" tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nascimento: v || null }, el)} /></td>
-                    <td><Campo valor={f.cargo} placeholder="—" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cargo: v.trim() || null }, el)} /></td>
-                    <td style={{ textAlign: "center" }}>
-                      <button title={f.ativo ? "Clique para desativar" : "Clique para ativar"} onClick={() => f.ativo ? setADesativar({ f, data: hojeISO() }) : setAAtivar(f)}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: 0, fontFamily: "inherit", background: f.ativo ? "rgba(16,185,129,.12)" : "rgba(239,68,68,.12)", color: f.ativo ? VERDE : VERMELHO, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "5px 11px", borderRadius: 99 }}>
-                        <Power size={11} /> {f.ativo ? "Ativo" : "Inativo"}
-                      </button>
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
-                        style={{ width: 28, height: 28, borderRadius: 8, display: "inline-grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO }}>
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {listaTab.length === 0 && <tr><td colSpan={COLS.length + 2} style={{ textAlign: "center", padding: 26, color: "var(--muted)" }}>{bq ? "Nenhum resultado para a busca." : "Ninguém cadastrado ainda."}</td></tr>}
+                {linhas.map((l) => {
+                  const edit = podeEditar(l);
+                  const roDica = l.ehSuper ? "Só o superadmin pode editar os próprios dados." : "Só o próprio usuário pode editar estes dados.";
+                  return (
+                    <tr key={l.chave} className="eq-row" style={{ opacity: l.ativo ? 1 : .6 }}>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: l.ehSuper ? `${AMBAR}22` : (l.nivel === "admin" ? `${AZUL}22` : "color-mix(in srgb, var(--brand) 16%, transparent)"), color: l.ehSuper ? AMBAR : (l.nivel === "admin" ? AZUL : "var(--brand)"), fontWeight: 800, fontSize: 12 }}>{iniciaisDe(l.nome) || <User size={16} />}</span>
+                          <div style={{ minWidth: 140 }}>
+                            <Campo valor={l.nome} placeholder="Nome" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
+                              onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nome: v.trim() || l.nome }, el) : salvarCampoLogin(l, { nome: v.trim() }, el)}
+                              style={{ fontSize: 13.5, fontWeight: 700 }} />
+                          </div>
+                        </div>
+                      </td>
+                      <td><Campo valor={l.telefone} placeholder="—" disabled={!edit} titulo={roDica} formatar={mascararTelefone} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
+                        onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { contato: v.trim() || null }, el) : salvarCampoLogin(l, { telefone: v.trim() }, el)} /></td>
+                      <td><Campo valor={l.email} placeholder="—" disabled={l.origem === "login" || !edit} titulo={l.origem === "login" ? "E-mail de login, não editável aqui." : roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
+                        onSalvar={(v, el) => l.origem === "func" ? salvarEmail(l.func!.id, v, el) : undefined} /></td>
+                      <td><Campo valor={l.cpf} placeholder="—" disabled={!edit} titulo={roDica} formatar={mascararCPF} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
+                        onSalvar={(v, el) => l.origem === "func" ? salvarCpf(l.func!.id, v, el) : salvarCampoLogin(l, { cpf: v.trim() }, el)} /></td>
+                      <td><Campo valor={l.pix} placeholder="—" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
+                        onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { pix: v.trim() || null }, el) : salvarCampoLogin(l, { pix: v.trim() }, el)} /></td>
+                      <td><Campo valor={l.nascimento} placeholder="dd/mm/aaaa" tipo="date" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
+                        onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nascimento: v || null }, el) : salvarCampoLogin(l, { nascimento: v }, el)} /></td>
+                      <td><Campo valor={l.cargo} placeholder="—" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
+                        onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { cargo: v.trim() || null }, el) : salvarCampoLogin(l, { area: v.trim() }, el)} /></td>
+                      <td><NivelCel l={l} /></td>
+                      <td style={{ textAlign: "center" }}>
+                        {l.origem === "func" && l.func ? (
+                          <button title={l.func.ativo ? "Clique para desativar" : "Clique para ativar"} onClick={() => l.func!.ativo ? setADesativar({ f: l.func!, data: hojeISO() }) : setAAtivar(l.func!)}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: 0, fontFamily: "inherit", background: l.func.ativo ? "rgba(16,185,129,.12)" : "rgba(239,68,68,.12)", color: l.func.ativo ? VERDE : VERMELHO, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "5px 11px", borderRadius: 99 }}>
+                            <Power size={11} /> {l.func.ativo ? "Ativo" : "Inativo"}
+                          </button>
+                        ) : (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(16,185,129,.12)", color: VERDE, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "5px 11px", borderRadius: 99 }}>
+                            <Power size={11} /> Ativo
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                        {ehMinha(l) && (
+                          <button title="Trocar a minha senha" onClick={abrirSenha}
+                            style={{ width: 28, height: 28, borderRadius: 8, display: "inline-grid", placeItems: "center", cursor: "pointer", border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)", marginRight: 6, verticalAlign: "middle" }}>
+                            <Lock size={14} />
+                          </button>
+                        )}
+                        {l.origem === "func" && l.func && edit && (
+                          <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: l.func!.nome, onOk: () => excluir(l.func!) })}
+                            style={{ width: 28, height: 28, borderRadius: 8, display: "inline-grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO, verticalAlign: "middle" }}>
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {linhas.length === 0 && <tr><td colSpan={COLS.length + 3} style={{ textAlign: "center", padding: 26, color: "var(--muted)" }}>{bq ? "Nenhum resultado para a busca." : "Ninguém cadastrado ainda."}</td></tr>}
               </tbody>
             </table>
           </div>
@@ -383,72 +631,92 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
       ) : (
       <div className="grid equipe-grid" style={{ gap: 14 }}>
-          {lista.map((f) => {
-            const pill = (mt: number) => (
-              <button title={f.ativo ? "Clique para desativar" : "Clique para ativar"}
-                onClick={() => f.ativo ? setADesativar({ f, data: hojeISO() }) : setAAtivar(f)}
-                style={{ marginTop: mt, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", border: 0, fontFamily: "inherit", background: f.ativo ? "rgba(16,185,129,.12)" : "rgba(239,68,68,.12)", color: f.ativo ? VERDE : VERMELHO, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", padding: "4px 10px", borderRadius: 99 }}>
-                <Power size={11} /> {f.ativo ? "Ativo" : "Inativo"}
-              </button>
-            );
-            const trash = (
-              (focoId === f.id || estreito) && (
-                <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
-                  style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO }}>
-                  <Trash2 size={14} />
-                </button>
-              )
-            );
-            const avatar = (tam: number) => (
-              <div style={{ width: tam, height: tam, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "rgba(148,163,184,.16)", color: "var(--muted)", fontWeight: 800, fontSize: tam * 0.34 }}>
-                {iniciais(f.nome) || <Users size={tam * 0.38} />}
+          {loginVis.map((l) => {
+            const edit = podeEditar(l);
+            return (
+              <div key={l.chave} className="card equipe-card" style={{ padding: 0, overflow: "hidden", borderRadius: 18, position: "relative" }}>
+                <div style={{ height: 64, background: l.ehSuper ? "linear-gradient(135deg, #f59e0b, #b45309)" : "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))" }} />
+                <div style={{ position: "absolute", top: 12, right: 12, display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,.92)", color: l.ehSuper ? AMBAR : AZUL, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "4px 10px", borderRadius: 99, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
+                  {l.ehSuper ? <><Crown size={11} /> Superadmin</> : <><Shield size={11} /> Admin</>}
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", marginTop: -34 }}>
+                  <div style={{ width: 68, height: 68, borderRadius: "50%", display: "grid", placeItems: "center", background: l.ehSuper ? "linear-gradient(135deg, #f59e0b, #b45309)" : "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))", color: "#fff", fontWeight: 800, fontSize: 22, border: "3px solid var(--card)", boxShadow: "0 6px 16px -6px rgba(0,0,0,.45)" }}>
+                    {iniciaisDe(l.nome) || (l.ehSuper ? <Crown size={26} /> : <Shield size={26} />)}
+                  </div>
+                </div>
+                <div style={{ padding: "8px 16px 0" }}>
+                  <CampoNome valor={l.nome} placeholder="Nome" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { nome: v.trim() }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center" }} />
+                  <div style={{ marginTop: 2 }}>
+                    <Campo valor={l.cargo} placeholder="Cargo" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { area: v.trim() }, el)} style={{ fontSize: 12.5, fontWeight: 600, textAlign: "center", color: "var(--muted)" }} />
+                  </div>
+                </div>
+                <div style={{ padding: "12px 16px 16px", marginTop: 10, display: "grid", gap: 10, borderTop: "1px solid var(--line)" }}>
+                  <LinhaEdit icone={<Mail size={14} />} valor={l.email} placeholder="E-mail" disabled onSalvar={() => {}} />
+                  <LinhaEdit icone={<Phone size={14} />} valor={l.telefone} placeholder="Telefone" disabled={!edit} formatar={mascararTelefone} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { telefone: v.trim() }, el)} />
+                  <LinhaEdit icone={<CreditCard size={14} />} prefixo="CPF" prefixoClaro valor={l.cpf} disabled={!edit} formatar={mascararCPF} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { cpf: v.trim() }, el)} />
+                  <LinhaEdit icone={<KeyRound size={14} />} prefixo="Pix" prefixoClaro valor={l.pix} disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { pix: v.trim() }, el)} />
+                  <LinhaEdit icone={<Cake size={14} />} prefixo="Nasc." valor={l.nascimento} tipo="date" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { nascimento: v }, el)} />
+                  {!l.ehSuper && ehDono && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", paddingTop: 4 }}>
+                      <button onClick={() => abrirPerm(l)} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}><SlidersHorizontal size={12} /> {resumoPerm(l.areas)}</button>
+                      <button onClick={() => setARemover(l)} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: "1px solid var(--line-2)", background: "transparent", color: VERMELHO, fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}><X size={12} /> Remover acesso</button>
+                    </div>
+                  )}
+                  {ehMinha(l) && (
+                    <button onClick={abrirSenha} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "7px 12px", borderRadius: 10 }}><Lock size={14} /> Trocar senha</button>
+                  )}
+                </div>
               </div>
             );
-
-            // MODO CARD: cartão moderno — faixa em gradiente, avatar em destaque, dados centralizados
+          })}
+          {funcTab.map((l) => {
+            const f = l.func!;
+            const edit = podeEditar(l);
             return (
-              <div key={f.id} className="card equipe-card" style={{ padding: 0, overflow: "hidden", borderRadius: 18, opacity: f.ativo ? 1 : 0.72, position: "relative", transition: "transform .18s, box-shadow .18s" }}
+              <div key={l.chave} className="card equipe-card" style={{ padding: 0, overflow: "hidden", borderRadius: 18, opacity: f.ativo ? 1 : 0.72, position: "relative", transition: "transform .18s, box-shadow .18s" }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 20px 42px -24px rgba(0,0,0,.5)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = ""; }}>
-                {/* faixa superior em gradiente da cor de destaque */}
                 <div style={{ height: 64, background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))" }} />
-
-                {/* lixeira: aparece ao passar o mouse no card ou ao focar um campo */}
-                <button className="card-trash" title="Remover" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
-                  style={{ position: "absolute", top: 12, left: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(255,255,255,.92)", color: VERMELHO, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
-                  <Trash2 size={14} />
-                </button>
-
-                {/* status flutuante sobre a faixa */}
+                {edit && (focoId === l.chave || estreito) && (
+                  <button className="card-trash" title="Remover" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
+                    style={{ position: "absolute", top: 12, left: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(255,255,255,.92)", color: VERMELHO, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
+                    <Trash2 size={14} />
+                  </button>
+                )}
                 <button onClick={() => f.ativo ? setADesativar({ f, data: hojeISO() }) : setAAtivar(f)} title={f.ativo ? "Clique para desativar" : "Clique para ativar"}
                   style={{ position: "absolute", top: 12, right: 12, display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", border: 0, fontFamily: "inherit", background: "rgba(255,255,255,.92)", color: f.ativo ? VERDE : VERMELHO, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", padding: "4px 10px", borderRadius: 99, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.ativo ? VERDE : VERMELHO }} /> {f.ativo ? "Ativo" : "Inativo"}
                 </button>
-
-                {/* avatar sobreposto */}
                 <div style={{ display: "flex", justifyContent: "center", marginTop: -34 }}>
                   <div style={{ width: 68, height: 68, borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))", color: "var(--brand-ct,#fff)", fontWeight: 800, fontSize: 23, border: "3px solid var(--card)", boxShadow: "0 6px 16px -6px rgba(0,0,0,.45)" }}>
-                    <User size={30} />
+                    {iniciais(f.nome) || <User size={30} />}
                   </div>
                 </div>
-
-                {/* nome + cargo centralizados */}
                 <div style={{ padding: "8px 16px 0" }}>
-                  <CampoNome valor={f.nome} placeholder="Nome" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center" }} />
+                  <CampoNome valor={f.nome} placeholder="Nome" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center" }} />
                   <div style={{ marginTop: 2 }}>
-                    <Campo valor={f.cargo} placeholder="Cargo" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { cargo: v.trim() || null }, el)} style={{ fontSize: 12.5, fontWeight: 600, textAlign: "center", color: "var(--muted)" }} />
+                    <Campo valor={f.cargo} placeholder="Cargo" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { cargo: v.trim() || null }, el)} style={{ fontSize: 12.5, fontWeight: 600, textAlign: "center", color: "var(--muted)" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+                    {ehDono ? (
+                      <select value="sem" disabled={processando} onChange={(e) => trocarNivel(l, e.target.value as Nivel)} title="Nível de acesso ao painel"
+                        style={{ fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, padding: "4px 8px", borderRadius: 9, border: "1px solid var(--line-2)", background: "var(--bg-2)", color: "var(--muted)", cursor: processando ? "wait" : "pointer" }}>
+                        <option value="super" disabled>Superadmin</option>
+                        <option value="admin">Admin</option>
+                        <option value="sem">Sem acesso</option>
+                      </select>
+                    ) : (
+                      <span style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, background: "rgba(148,163,184,.16)", padding: "3px 9px", borderRadius: 99 }}>Sem acesso</span>
+                    )}
                   </div>
                 </div>
-
-                {/* dados */}
                 <div style={{ padding: "12px 16px 16px", marginTop: 10, display: "grid", gap: 10, borderTop: "1px solid var(--line)" }}>
-                  <LinhaEdit icone={<Phone size={14} />} valor={f.contato} placeholder="Telefone" formatar={mascararTelefone} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { contato: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<Mail size={14} />} valor={f.email} placeholder="E-mail" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} />
-                  <LinhaEdit icone={<CreditCard size={14} />} prefixo="CPF" prefixoClaro valor={f.cpf} formatar={mascararCPF} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} />
-                  <LinhaEdit icone={<KeyRound size={14} />} prefixo="Pix" prefixoClaro valor={f.pix} onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { pix: v.trim() || null }, el)} />
-                  <LinhaEdit icone={<Cake size={14} />} prefixo="Nasc." valor={f.nascimento} tipo="date" onFocar={() => aoFocar(f.id)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampo(f.id, { nascimento: v || null }, el)} />
+                  <LinhaEdit icone={<Phone size={14} />} valor={f.contato} placeholder="Telefone" disabled={!edit} formatar={mascararTelefone} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { contato: v.trim() || null }, el)} />
+                  <LinhaEdit icone={<Mail size={14} />} valor={f.email} placeholder="E-mail" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarEmail(f.id, v, el)} />
+                  <LinhaEdit icone={<CreditCard size={14} />} prefixo="CPF" prefixoClaro valor={f.cpf} disabled={!edit} formatar={mascararCPF} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCpf(f.id, v, el)} />
+                  <LinhaEdit icone={<KeyRound size={14} />} prefixo="Pix" prefixoClaro valor={f.pix} disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { pix: v.trim() || null }, el)} />
+                  <LinhaEdit icone={<Cake size={14} />} prefixo="Nasc." valor={f.nascimento} tipo="date" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { nascimento: v || null }, el)} />
                 </div>
-
                 {!f.ativo && f.desativado_em && (
                   <div style={{ margin: "0 16px 14px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, color: AMARELO, background: "rgba(245,158,11,.12)", padding: "4px 10px", borderRadius: 8 }}>
                     Desativado em {brData(f.desativado_em)}
@@ -458,7 +726,6 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
             );
           })}
 
-          {/* card final para cadastrar — cria um card em branco na hora (só nos ativos) */}
           {filtro === "ativos" && (
             <button onClick={novoInline} disabled={criando}
               style={{ minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: criando ? "wait" : "pointer", opacity: criando ? .6 : 1, fontFamily: "inherit", borderRadius: 18, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".15s" }}
@@ -471,11 +738,109 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
       )}
 
-      {/* aviso: CPF ou e-mail inválido */}
+      {/* modal: permissões de um admin */}
+      {permAlvo && (
+        <div onClick={() => setPermAlvo(null)} style={{ position: "fixed", inset: 0, zIndex: 90, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 620, padding: 20, maxHeight: "88vh", overflow: "auto" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><SlidersHorizontal size={18} /></span>
+                <div style={{ lineHeight: 1.25 }}>
+                  <b style={{ fontSize: 15 }}>Permissões de {permAlvo.nome || "admin"}</b>
+                  <div className="sub" style={{ fontSize: 11.5, fontStyle: "italic" }}>Marque o que este admin vê no menu.</div>
+                </div>
+              </div>
+              <button onClick={() => setPermAlvo(null)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, margin: "14px 0" }}>
+              <span className="sub" style={{ fontSize: 12 }}>{permSel.length} de {TODAS.length} itens liberados</span>
+              <div style={{ display: "flex", gap: 14 }}>
+                <button onClick={() => setPermSel(TODAS.slice())} style={{ background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12, color: "var(--brand)" }}>Marcar tudo</button>
+                <button onClick={() => setPermSel([])} style={{ background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12, color: "var(--muted)" }}>Limpar</button>
+              </div>
+            </div>
+            {GRUPOS.map((g) => (
+              <div key={g.titulo} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 8 }}>{g.titulo}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
+                  {g.itens.map((it) => {
+                    const on = permSel.includes(it.k);
+                    return (
+                      <button key={it.k} onClick={() => alternarPerm(it.k)}
+                        style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontFamily: "inherit", textAlign: "left", padding: "9px 12px", borderRadius: 10, border: `1px solid ${on ? "var(--brand)" : "var(--line-2)"}`, background: on ? "color-mix(in srgb, var(--brand) 9%, transparent)" : "transparent", color: on ? "var(--txt)" : "var(--muted)" }}>
+                        <it.Icon size={15} style={{ color: on ? "var(--brand)" : "var(--muted)", flexShrink: 0 }} />
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{it.label}</span>
+                        {on ? <Eye size={15} style={{ color: "var(--brand)" }} /> : <EyeOff size={15} style={{ color: "var(--muted)" }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+              <button className="btn ghost" onClick={() => setPermAlvo(null)}>Fechar</button>
+              <button className="btn" onClick={salvarPermissoes} disabled={salvandoPerm} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={15} /> {salvandoPerm ? "Salvando…" : "Salvar"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* confirmação: remover acesso (demote) */}
+      {aRemover && (
+        <div onClick={() => setARemover(null)} style={{ position: "fixed", inset: 0, zIndex: 92, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 420, padding: 24, border: `1px solid ${VERMELHO}`, background: "linear-gradient(160deg, rgba(239,68,68,.10), var(--card) 60%)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.16)", color: VERMELHO, flexShrink: 0 }}><X size={19} /></span>
+              <div>
+                <b style={{ fontSize: 15 }}>Remover o acesso de &ldquo;{aRemover.nome || aRemover.email}&rdquo;?</b>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>Ele deixa de ser Admin e perde o login no painel. O cadastro na equipe (se houver) continua.</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setARemover(null)}>Cancelar</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERMELHO }} disabled={processando} onClick={async () => { const alvo = aRemover; setARemover(null); if (alvo) await remover(alvo); }}>{processando ? "Removendo…" : "Remover acesso"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* pop-up: trocar a própria senha */}
+      {senhaAberta && (
+        <div onClick={() => setSenhaAberta(false)} style={{ position: "fixed", inset: 0, zIndex: 95, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Lock size={19} /></span>
+              <div>
+                <b style={{ fontSize: 16 }}>Alterar senha</b>
+                <p className="sub" style={{ margin: "2px 0 0", fontSize: 12 }}>Acesso: {loginEmail || "sua conta"}</p>
+              </div>
+            </div>
+            <div className="field" style={{ marginTop: 16 }}>
+              <label className="f">Nova senha</label>
+              <input type={verSenha ? "text" : "password"} value={s1} placeholder="Mínimo 6 caracteres" autoFocus onChange={(e) => { setS1(e.target.value); setSenhaErro(""); }} />
+            </div>
+            <div className="field" style={{ marginTop: 10 }}>
+              <label className="f">Confirmar nova senha</label>
+              <input type={verSenha ? "text" : "password"} value={s2} placeholder="Digite a senha novamente" onChange={(e) => { setS2(e.target.value); setSenhaErro(""); }} onKeyDown={(e) => { if (e.key === "Enter") salvarSenha(); }} />
+            </div>
+            <button onClick={() => setVerSenha((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "none", border: 0, cursor: "pointer", fontFamily: "inherit", color: "var(--muted)", fontSize: 12.5, fontWeight: 600 }}>
+              {verSenha ? <EyeOff size={14} /> : <Eye size={14} />} {verSenha ? "Ocultar senhas" : "Mostrar senhas"}
+            </button>
+            {senhaErro && <div className="err" style={{ marginTop: 12 }}>{senhaErro}</div>}
+            {senhaOk && <div className="ok" style={{ marginTop: 12 }}>✅ Senha alterada com sucesso!</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setSenhaAberta(false)}>Cancelar</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={salvarSenha} disabled={senhaOk || senhaSalvando}>{senhaSalvando ? "Salvando…" : "Salvar"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* aviso genérico (CPF/e-mail/acesso) */}
       {aviso && (
         <div onClick={() => setAviso(null)}
-          style={{ position: "fixed", inset: 0, zIndex: 85, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 24, border: `1px solid ${VERMELHO}`, background: "linear-gradient(160deg, rgba(239,68,68,.10), var(--card) 60%)" }}>
+          style={{ position: "fixed", inset: 0, zIndex: 96, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 420, padding: 24, border: `1px solid ${VERMELHO}`, background: "linear-gradient(160deg, rgba(239,68,68,.10), var(--card) 60%)" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.16)", color: VERMELHO, flexShrink: 0, fontSize: 20 }}>⚠️</span>
               <div>
@@ -490,7 +855,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
       )}
 
-      {/* confirmação de desativação — recado em amarelo, com a data escolhida */}
+      {/* confirmação de desativação */}
       {aDesativar && (
         <div onClick={() => setADesativar(null)}
           style={{ position: "fixed", inset: 0, zIndex: 80, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
@@ -517,7 +882,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
       )}
 
-      {/* confirmação de reativação — em verde */}
+      {/* confirmação de reativação */}
       {aAtivar && (
         <div onClick={() => setAAtivar(null)}
           style={{ position: "fixed", inset: 0, zIndex: 80, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
@@ -540,7 +905,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
       )}
 
-      {/* selinho "Salvo" ao lado do campo editado */}
+      {/* selinho "Salvo" */}
       {flash && (
         <div style={{ position: "fixed", top: flash.top, left: flash.left, transform: "translate(8px, -50%)", zIndex: 90, pointerEvents: "none",
           display: "inline-flex", alignItems: "center", gap: 3, background: "#64748b", color: "#fff", fontSize: 9, fontWeight: 700,
@@ -549,7 +914,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
       )}
 
-      {/* barra "desfazer exclusão" com contagem regressiva — igual ao de Finanças */}
+      {/* barra "desfazer exclusão" */}
       {desfazer && (
         <div style={{ position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 85,
           display: "flex", alignItems: "center", gap: 14, background: "#1e293b", color: "#fff",
@@ -563,7 +928,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand }: {
         </div>
       )}
 
-      {/* confirmação de exclusão — mesma mensagem de Finanças */}
+      {/* confirmação de exclusão */}
       {aExcluir && (
         <div onClick={() => setAExcluir(null)}
           style={{ position: "fixed", inset: 0, zIndex: 80, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
