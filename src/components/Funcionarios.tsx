@@ -570,7 +570,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                           <div style={{ minWidth: 140 }}>
                             <Campo valor={l.nome} placeholder="Nome" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
                               onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nome: v.trim() || l.nome }, el) : salvarCampoLogin(l, { nome: v.trim() }, el)}
-                              style={{ fontSize: 13.5, fontWeight: 700 }} />
+                              style={{ fontSize: 12, fontWeight: 700 }} />
                           </div>
                         </div>
                       </td>
@@ -677,7 +677,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                 onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 20px 42px -24px rgba(0,0,0,.5)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = ""; }}>
                 <div style={{ height: 64, background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))" }} />
-                {edit && (focoId === l.chave || estreito) && (
+                {edit && (focoId === l.chave || estreito || !f.ativo) && (
                   <button className="card-trash" title="Remover" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: f.nome, onOk: () => excluir(f) })}
                     style={{ position: "absolute", top: 12, left: 12, width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(255,255,255,.92)", color: VERMELHO, boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
                     <Trash2 size={14} />
