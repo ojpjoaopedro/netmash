@@ -585,6 +585,11 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .eq-tab tbody tr:last-child td{border-bottom:0}
 .eq-tab .eq-row:nth-child(even){background:color-mix(in srgb,var(--brand) 3%,transparent)}
 .eq-tab .eq-row:hover{background:color-mix(in srgb,var(--brand) 9%,transparent)}
+/* coluna fixa (1ª): nome sempre visível ao rolar na horizontal */
+.eq-tab .eq-fix{position:sticky;left:0;z-index:2;background:var(--card);box-shadow:1px 0 0 var(--line)}
+.eq-tab thead .eq-fix{z-index:3;background:color-mix(in srgb,var(--brand) 8%,var(--card))}
+.eq-tab .eq-row:nth-child(even) .eq-fix{background:color-mix(in srgb,var(--brand) 3%,var(--card))}
+.eq-tab tfoot .eq-fix{background:var(--card)}
 
 /* ===== Impressão / PDF ===== */
 @media print{

@@ -630,24 +630,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
   );
 }
 
-/** Avisos/informativos por aba de Finanças. */
-function AvisoFinancas({ aba }: { aba: string }) {
-  const textos: Record<string, React.ReactNode> = {
-    dashboard: <>A <b>Dashboard</b> é preenchida automaticamente com os <b>dados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
-    relatorios: <>Os <b>Relatórios</b> são preenchidos automaticamente com os <b>dados</b> da <b>Estrutura de Receitas e Custos</b>.</>,
-    estrutura: <>Essa é a <b>principal tela de Finanças</b>. Você pode preencher <b>diretamente por aqui</b>, pelo <b>Calendário</b> ou <b>importando uma planilha</b> de Excel. Todas se complementam e centralizam os dados aqui. <b>28% das empresas</b> preenchem somente por aqui, sem usar o calendário nem a planilha.</>,
-    calendario: <>Cerca de <b>60% das empresas</b> preferem preencher por aqui.</>,
-    importar: <>Cerca de <b>12% dos empresários</b> preferem subir os dados por <b>planilha</b>.</>,
-  };
-  const txt = textos[aba];
-  if (!txt) return null;
-  return (
-    <div style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", gap: 11, borderRadius: 14, padding: "13px 16px",
-      background: "color-mix(in srgb, var(--brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 22%, transparent)" }}>
-      <span style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "var(--brand)", color: "#fff", fontSize: 13, fontWeight: 800 }}>i</span>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--txt)" }}>{txt}</p>
-    </div>
-  );
+/** Espaçador no lugar do antigo aviso das abas de Finanças (mantém o respiro sem o texto). */
+function AvisoFinancas() {
+  return <div aria-hidden style={{ marginBottom: 18, height: 48 }} />;
 }
 
 /** Seletor: Calendário de Pagamentos ou de Recebimentos. */
@@ -828,7 +813,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
       )}
 
       {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
-      {!estreito && !ehAtalhoHome && !(aba === "calendario" && calSub) && <AvisoFinancas aba={aba} />}
+      {!estreito && !ehAtalhoHome && !(aba === "calendario" && calSub) && <AvisoFinancas />}
 
       {aba === "estrutura" ? <EstruturaFinancas ano={ano} setAno={setAno} />
         : aba === "folha" ? <FolhaPagamento empresa={empresa} />

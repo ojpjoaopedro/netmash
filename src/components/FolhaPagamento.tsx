@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { Wallet, Info, Printer, User, Users, ArrowUpRight, X, Search, ChevronsUpDown, ChevronUp, ChevronDown, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Wallet, Info, Printer, User, Users, ArrowUpRight, X, Search, ChevronsUpDown, ChevronUp, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Empresa, Funcionario, getFuncionarios, updateFuncionario } from "@/lib/db";
 import { brl } from "@/lib/format";
+import * as XLSX from "xlsx-js-style";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { navegar } from "@/lib/nav";
 import { MES } from "@/app/minhasmetricas/financas-estrutura";
@@ -90,6 +91,20 @@ function salvarCols(id: string | null | undefined, c: ColsFolha) {
   const cru = JSON.stringify(c); localStorage.setItem(chaveCols(id), cru); salvarEstadoRemoto(chaveCols(id), cru);
 }
 function novoIdCol(): string { return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+/** Cálculo da folha mensal de uma pessoa (proventos, descontos, líquido) a partir das variáveis do mês. */
+function calcLinhaMes(salarioBase: number, v: VarsMes, cols: ColsFolha, vt: number) {
+  const extra = v.extra || {};
+  const provExtra = cols.prov.reduce((s, c) => s + (extra[c.id] || 0), 0);
+  const descExtra = cols.desc.reduce((s, c) => s + (extra[c.id] || 0), 0);
+  const proventos = round2(salarioBase + v.comissao + v.horaExtra + v.gratificacao + provExtra);
+  const inss = calcINSS(proventos);
+  const irrf = calcIRRF(proventos, inss);
+  const descManual = round2(v.sindicato + v.planoSaude + v.mensalidade + v.adiantamento + descExtra);
+  const totalDesc = round2(inss + irrf + vt + descManual);
+  const liquido = round2(proventos - totalDesc);
+  return { proventos, inss, irrf, descManual, totalDesc, liquido };
+}
 const chaveMes = (id: string | null | undefined, ym: string) => `me_folha_mensal:${id || "default"}:${ym}`;
 function lerMes(id: string | null | undefined, ym: string): Record<string, VarsMes> {
   if (typeof window === "undefined") return {};
@@ -127,13 +142,28 @@ function salvarBenef(id: string | null | undefined, dados: Record<string, Benef>
   const cru = JSON.stringify(dados); localStorage.setItem(chaveBenef(id), cru); salvarEstadoRemoto(chaveBenef(id), cru);
 }
 
+/** Selinho "✓ Salvo" que aparece por 1,4s ao lado do campo após digitar. */
+function useSalvo(): [boolean, () => void] {
+  const [salvo, setSalvo] = useState(false);
+  const t = useRef<number | undefined>(undefined);
+  const marcar = () => { setSalvo(true); window.clearTimeout(t.current); t.current = window.setTimeout(() => setSalvo(false), 1400); };
+  return [salvo, marcar];
+}
+function BadgeSalvo() {
+  return <span style={{ flexShrink: 0, background: "#64748b", color: "#fff", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 99, whiteSpace: "nowrap" }}>✓ Salvo</span>;
+}
+
 /** Campo de dinheiro editável no nosso padrão: clica, digita e salva ao sair. */
 function CampoMoeda({ valor, onSalvar }: { valor: number; onSalvar: (n: number) => void }) {
+  const [salvo, marcar] = useSalvo();
   return (
-    <input defaultValue={valor ? num2(valor) : ""} placeholder="0,00" inputMode="decimal"
-      onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; e.currentTarget.select(); }}
-      onBlur={(e) => { e.currentTarget.style.background = "transparent"; const n = round2(parseNum(e.target.value)); e.target.value = n ? num2(n) : ""; if (n !== valor) onSalvar(n); }}
-      style={{ border: 0, outline: "none", background: "transparent", padding: "3px 6px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", textAlign: "right", transition: "background .12s" }} />
+    <span style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, width: "100%" }}>
+      {salvo && <BadgeSalvo />}
+      <input defaultValue={valor ? num2(valor) : ""} placeholder="0,00" inputMode="decimal"
+        onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; e.currentTarget.select(); }}
+        onBlur={(e) => { e.currentTarget.style.background = "transparent"; const n = round2(parseNum(e.target.value)); e.target.value = n ? num2(n) : ""; if (n !== valor) { onSalvar(n); marcar(); } }}
+        style={{ border: 0, outline: "none", background: "transparent", padding: "3px 6px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", textAlign: "right", transition: "background .12s" }} />
+    </span>
   );
 }
 /** Benefício (VT/VA) por pessoa: escolha % ou R$ fixo + valor. Vazio/0 = zerado. */
@@ -163,11 +193,15 @@ function CampoBeneficio({ item, salario, onChange }: { item?: BenefItem; salario
 
 /** Campo de texto editável (departamento). */
 function CampoTexto({ valor, onSalvar }: { valor: string; onSalvar: (v: string) => void }) {
+  const [salvo, marcar] = useSalvo();
   return (
-    <input defaultValue={valor} placeholder="—"
-      onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; }}
-      onBlur={(e) => { e.currentTarget.style.background = "transparent"; const v = e.target.value.trim(); if (v !== valor) onSalvar(v); }}
-      style={{ border: 0, outline: "none", background: "transparent", padding: "3px 6px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", transition: "background .12s" }} />
+    <span style={{ display: "flex", alignItems: "center", gap: 4, width: "100%" }}>
+      <input defaultValue={valor} placeholder="—"
+        onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; }}
+        onBlur={(e) => { e.currentTarget.style.background = "transparent"; const v = e.target.value.trim(); if (v !== valor) { onSalvar(v); marcar(); } }}
+        style={{ border: 0, outline: "none", background: "transparent", padding: "3px 6px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", transition: "background .12s" }} />
+      {salvo && <BadgeSalvo />}
+    </span>
   );
 }
 
@@ -197,14 +231,22 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [infoIrrf, setInfoIrrf] = useState(false);
   const [confirmCol, setConfirmCol] = useState<{ grupo: "prov" | "desc"; id: string; nome: string } | null>(null);
   const [avisoCol, setAvisoCol] = useState<{ titulo: string; texto: string } | null>(null);
+  const [colFoco, setColFoco] = useState<string | null>(null);
+  const [tut, setTut] = useState(false);
+  useEffect(() => { try { if (localStorage.getItem("me_tut_folha") !== "1") setTut(true); } catch { /* ignore */ } }, []);
+  const fecharTut = () => { setTut(false); try { localStorage.setItem("me_tut_folha", "1"); salvarEstadoRemoto("me_tut_folha", "1"); } catch { /* ignore */ } };
   const BtnInfo = ({ onClick, titulo }: { onClick: () => void; titulo: string }) => (
     <button onClick={(e) => { e.stopPropagation(); onClick(); }} title={titulo} className="no-print"
       style={{ marginLeft: 5, verticalAlign: "middle", width: 16, height: 16, borderRadius: "50%", display: "inline-grid", placeItems: "center", cursor: "pointer", border: 0, background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", padding: 0 }}>
       <Info size={11} />
     </button>
   );
+  const [infoFgts, setInfoFgts] = useState(false);
+  const [infoRescisao, setInfoRescisao] = useState(false);
   const BtnInfoInss = () => <BtnInfo onClick={() => setInfoInss(true)} titulo="Como o INSS é calculado" />;
   const BtnInfoIrrf = () => <BtnInfo onClick={() => setInfoIrrf(true)} titulo="Como o IRRF é calculado" />;
+  const BtnInfoFgts = () => <BtnInfo onClick={() => setInfoFgts(true)} titulo="O que é o FGTS" />;
+  const BtnInfoRescisao = () => <BtnInfo onClick={() => setInfoRescisao(true)} titulo="O que é a provisão para rescisão" />;
 
   const carregar = () => getFuncionarios().then((f) => { setFuncs(f); setCarregado(true); }).catch(() => setCarregado(true));
   useEffect(() => { carregar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
@@ -242,19 +284,23 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const setExtra = (id: string, colId: string, valor: number) => {
     setDadosMes((prev) => { const cur = prev[id] || {}; const extra = { ...(cur.extra || {}), [colId]: valor }; const next = { ...prev, [id]: { ...VARS_ZERO, ...cur, extra } }; salvarMes(empresa?.id, ym, next); return next; });
   };
-  // cabeçalhos das colunas extras (nome editável + remover) e o botão "+"
+  // cabeçalhos das colunas extras (nome editável + lixeira que só aparece ao editar) e o botão "+"
   const thsCol = (grupo: "prov" | "desc") => cols[grupo].map((c) => (
-    <th key={c.id} className="eq-th" style={{ textAlign: "right", minWidth: 130 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-        <input defaultValue={c.nome} title="Renomear coluna" onBlur={(e) => renomearCol(grupo, c.id, e.target.value.trim() || c.nome)}
-          style={{ border: 0, outline: "none", background: "transparent", font: "inherit", color: "inherit", textAlign: "right", width: 96, padding: "2px 4px", borderRadius: 6 }} />
-        <button title="Excluir coluna" onClick={() => pedirRemoverCol(grupo, c.id, c.nome)} className="no-print"
-          style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: "#EF4444" }}><X size={11} /></button>
-      </div>
+    <th key={c.id} className="eq-th" style={{ textAlign: "right", minWidth: 120 }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end", whiteSpace: "nowrap", width: "100%" }}>
+        <input defaultValue={c.nome} title="Clique para renomear ou excluir a coluna"
+          onFocus={() => setColFoco(c.id)}
+          onBlur={(e) => { renomearCol(grupo, c.id, e.target.value.trim() || c.nome); setColFoco(null); }}
+          style={{ border: 0, outline: "none", background: "transparent", font: "inherit", color: "inherit", textAlign: "right", width: 84, minWidth: 0, padding: "2px 4px", borderRadius: 6 }} />
+        {colFoco === c.id && (
+          <button title="Excluir coluna" onMouseDown={(e) => e.preventDefault()} onClick={() => pedirRemoverCol(grupo, c.id, c.nome)} className="no-print"
+            style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: "#EF4444" }}><Trash2 size={11} /></button>
+        )}
+      </span>
     </th>
   ));
   const thMais = (grupo: "prov" | "desc") => (
-    <th className="eq-th no-print" style={{ textAlign: "center", width: 44 }}>
+    <th data-tut={grupo === "desc" ? "mais-desc" : "mais-prov"} className="eq-th no-print" style={{ textAlign: "center", width: 44 }}>
       <button title={grupo === "prov" ? "Adicionar provento" : "Adicionar desconto"} onClick={() => addCol(grupo)}
         style={{ width: 24, height: 24, borderRadius: 7, display: "inline-grid", placeItems: "center", cursor: "pointer", border: 0, background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)" }}><Plus size={14} /></button>
     </th>
@@ -278,7 +324,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const linhaCadastrar = (colSpan: number) => (
     <tr className="no-print eq-row">
       <td colSpan={colSpan} style={{ padding: "8px 10px" }}>
-        <button onClick={irParaEquipe}
+        <button data-tut="cadastrar" onClick={irParaEquipe}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--brand)", background: "transparent", border: 0, padding: "4px 8px", borderRadius: 8 }}
           onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--brand) 10%, transparent)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
@@ -339,16 +385,17 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     const liquido = round2(bruto - totalDesc);
     const provisao = round2(bruto / 12 + (bruto + bruto / 3) / 12);
     const fgts = round2(bruto * (cfg.fgtsPct / 100));
-    return { f, bruto, vt, va, inss, irrf, totalDesc, liquido, provisao, fgts };
+    const rescisao = round2(fgts * 0.40); // provisão da multa de 40% do FGTS (acerto final)
+    return { f, bruto, vt, va, inss, irrf, totalDesc, liquido, provisao, fgts, rescisao };
   }), [ativos, cfg, benef]);
-  const totG = linhasGeral.reduce((a, l) => ({ bruto: a.bruto + l.bruto, vt: a.vt + l.vt, va: a.va + l.va, inss: a.inss + l.inss, irrf: a.irrf + l.irrf, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido, provisao: a.provisao + l.provisao, fgts: a.fgts + l.fgts }), { bruto: 0, vt: 0, va: 0, inss: 0, irrf: 0, totalDesc: 0, liquido: 0, provisao: 0, fgts: 0 });
-  const custoTotal = round2(totG.bruto + totG.provisao + totG.fgts + totG.va);
+  const totG = linhasGeral.reduce((a, l) => ({ bruto: a.bruto + l.bruto, vt: a.vt + l.vt, va: a.va + l.va, inss: a.inss + l.inss, irrf: a.irrf + l.irrf, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido, provisao: a.provisao + l.provisao, fgts: a.fgts + l.fgts, rescisao: a.rescisao + l.rescisao }), { bruto: 0, vt: 0, va: 0, inss: 0, irrf: 0, totalDesc: 0, liquido: 0, provisao: 0, fgts: 0, rescisao: 0 });
+  const custoTotal = round2(totG.bruto + totG.provisao + totG.fgts + totG.va + totG.rescisao);
   const geralView = ordenar(linhasGeral.filter((l) => combina(l.f)), (l) => {
     switch (sortCol) {
       case "nome": return l.f.nome || ""; case "departamento": return l.f.departamento || l.f.cargo || "";
       case "bruto": return l.bruto; case "vt": return l.vt; case "va": return l.va; case "inss": return l.inss;
       case "irrf": return l.irrf; case "totalDesc": return l.totalDesc; case "liquido": return l.liquido;
-      case "provisao": return l.provisao; case "fgts": return l.fgts; default: return "";
+      case "provisao": return l.provisao; case "fgts": return l.fgts; case "rescisao": return l.rescisao; default: return "";
     }
   });
 
@@ -356,17 +403,9 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const linhasMes = useMemo(() => ativos.map((f) => {
     const base = f.salario || 0;
     const v = { ...VARS_ZERO, ...(dadosMes[f.id] || {}) };
-    const extra = v.extra || {};
-    const provExtra = cols.prov.reduce((s, c) => s + (extra[c.id] || 0), 0);
-    const descExtra = cols.desc.reduce((s, c) => s + (extra[c.id] || 0), 0);
-    const proventos = round2(base + v.comissao + v.horaExtra + v.gratificacao + provExtra);
-    const inss = calcINSS(proventos);
-    const irrf = calcIRRF(proventos, inss);
     const vt = vtDe(f);
-    const descManual = round2(v.sindicato + v.planoSaude + v.mensalidade + v.adiantamento + descExtra);
-    const totalDesc = round2(inss + irrf + vt + descManual);
-    const liquido = round2(proventos - totalDesc);
-    return { f, v, extra, base, proventos, inss, irrf, vt, totalDesc, liquido };
+    const r = calcLinhaMes(base, v, cols, vt);
+    return { f, v, extra: v.extra || {}, base, vt, ...r };
   }), [ativos, dadosMes, cfg, benef, cols]);
   const totM = linhasMes.reduce((a, l) => ({ proventos: a.proventos + l.proventos, inss: a.inss + l.inss, irrf: a.irrf + l.irrf, vt: a.vt + l.vt, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido }), { proventos: 0, inss: 0, irrf: 0, vt: 0, totalDesc: 0, liquido: 0 });
   const mesView = ordenar(linhasMes.filter((l) => combina(l.f)), (l) => {
@@ -380,6 +419,44 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   });
 
   const imprimir = () => window.print();
+  // Baixa a folha do ano em Excel: uma coluna por mês (líquido de cada pessoa) + total.
+  function baixarFolhaExcel() {
+    const ano = anoAtual || String(new Date().getFullYear());
+    const header = ["Nome", "Departamento", ...MES, "Total ano"];
+    const aoa: (string | number)[][] = [header];
+    const totalMes = new Array(12).fill(0);
+    ativos.forEach((f) => {
+      const vt = vtDe(f);
+      const linha: (string | number)[] = [f.nome || "—", f.departamento || f.cargo || ""];
+      let totalPessoa = 0;
+      for (let m = 0; m < 12; m++) {
+        const dados = lerMes(empresa?.id, `${ano}-${String(m + 1).padStart(2, "0")}`);
+        const v = { ...VARS_ZERO, ...(dados[f.id] || {}) };
+        const { liquido } = calcLinhaMes(f.salario || 0, v, cols, vt);
+        linha.push(liquido); totalPessoa += liquido; totalMes[m] += liquido;
+      }
+      linha.push(round2(totalPessoa));
+      aoa.push(linha);
+    });
+    aoa.push(["Total", "", ...totalMes.map((n) => round2(n)), round2(totalMes.reduce((a, b) => a + b, 0))]);
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+        if (!cell) continue;
+        const ehCabecalho = R === 0, ehTotal = R === range.e.r;
+        cell.s = { ...(cell.s || {}), font: { bold: ehCabecalho || ehTotal }, alignment: { horizontal: C >= 2 ? "right" : "left" } };
+        if (ehCabecalho) cell.s.fill = { fgColor: { rgb: "E5EDFF" } };
+        if (C >= 2 && typeof cell.v === "number") cell.z = 'R$ #,##0.00';
+      }
+    }
+    ws["!cols"] = [{ wch: 26 }, { wch: 16 }, ...Array(12).fill({ wch: 12 }), { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Folha ${ano}`);
+    XLSX.writeFile(wb, `folha-pagamento-${ano}.xlsx`);
+  }
   const mesAtualIdx = ym ? Number(ym.slice(5, 7)) - 1 : 0;
   const anoAtual = ym ? ym.slice(0, 4) : "";
 
@@ -393,19 +470,22 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     <div>
       {/* barra de topo: alternância Geral/Mensal + ações */}
       <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
+        <div data-tut="modos" style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
           {seg("geral", "Preenchimento geral")}
           {seg("mensal", "Folha mensal")}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <LinkEquipe />
+          <button className="btn ghost sm" onClick={() => setTut(true)} title="Ver o tutorial da Folha" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>✨ Ver tutorial</button>
+          {modo === "mensal" && !semEquipe && (
+            <button data-tut="excel" className="btn ghost sm" onClick={baixarFolhaExcel} title="Baixar a folha do ano em Excel (uma coluna por mês)" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>📊 Baixar em Excel</button>
+          )}
           <button className="btn ghost sm" onClick={imprimir} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Printer size={15} /> Imprimir / PDF</button>
         </div>
       </div>
 
       {/* barra de ano + meses (estilo Dashboard): seleciona 1 mês */}
       {modo === "mensal" && !semEquipe && ym && (
-        <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <div data-tut="meses" className="no-print" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
           <SeletorAno ano={Number(anoAtual)} setAno={(a) => setYm(`${a}-${String(mesAtualIdx + 1).padStart(2, "0")}`)} />
           {MES.map((nome, m) => {
             const on = m === mesAtualIdx;
@@ -433,26 +513,27 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou departamento…" style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10 }} />
           </div>
           <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1300 }}>
+            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1440 }}>
               <thead>
                 <tr>
-                  <th className="eq-th" onClick={() => ordenarPor("nome")}>Nome {seta("nome")}</th>
+                  <th className="eq-th eq-fix" onClick={() => ordenarPor("nome")}>Nome {seta("nome")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("departamento")}>Departamento {seta("departamento")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("bruto")} style={{ textAlign: "right" }}>Salário bruto {seta("bruto")}</th>
+                  <th data-tut="salario" className="eq-th" onClick={() => ordenarPor("bruto")} style={{ textAlign: "right" }}>Salário bruto {seta("bruto")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("vt")} style={{ textAlign: "right" }}>Vale transporte {seta("vt")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("va")} style={{ textAlign: "right" }}>Vale alimentação {seta("va")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("inss")} style={{ textAlign: "right" }}>INSS {seta("inss")}<BtnInfoInss /></th>
+                  <th data-tut="inss" className="eq-th" onClick={() => ordenarPor("inss")} style={{ textAlign: "right" }}>INSS {seta("inss")}<BtnInfoInss /></th>
                   <th className="eq-th" onClick={() => ordenarPor("irrf")} style={{ textAlign: "right" }}>IRRF {seta("irrf")}<BtnInfoIrrf /></th>
                   <th className="eq-th" onClick={() => ordenarPor("totalDesc")} style={{ textAlign: "right" }}>Total descontos {seta("totalDesc")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("liquido")} style={{ textAlign: "right" }}>Salário líquido {seta("liquido")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("provisao")} style={{ textAlign: "right" }}>13º + Férias {seta("provisao")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("fgts")} style={{ textAlign: "right" }}>FGTS {seta("fgts")}</th>
+                  <th className="eq-th" onClick={() => ordenarPor("fgts")} style={{ textAlign: "right" }}>FGTS {seta("fgts")}<BtnInfoFgts /></th>
+                  <th className="eq-th" onClick={() => ordenarPor("rescisao")} style={{ textAlign: "right" }}>Provisão p/ rescisão {seta("rescisao")}<BtnInfoRescisao /></th>
                 </tr>
               </thead>
               <tbody>
-                {geralView.map(({ f, bruto, inss, irrf, totalDesc, liquido, provisao, fgts }) => (
+                {geralView.map(({ f, bruto, inss, irrf, totalDesc, liquido, provisao, fgts, rescisao }) => (
                   <tr key={f.id} className="eq-row">
-                    <td>{celNome(f)}</td>
+                    <td className="eq-fix">{celNome(f)}</td>
                     <td><CampoTexto valor={f.departamento || f.cargo || ""} onSalvar={(v) => salvarDepto(f.id, v)} /></td>
                     <td style={{ fontWeight: 700 }}><CampoMoeda valor={bruto} onSalvar={(n) => salvarSalario(f.id, n)} /></td>
                     <td><CampoBeneficio item={benefItem(f, "vt")} salario={bruto} onChange={(it) => setBeneficio(f.id, "vt", it)} /></td>
@@ -463,14 +544,15 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                     <td style={{ textAlign: "right", color: "#10B981", fontWeight: 800 }}>{brl(liquido)}</td>
                     <td style={{ textAlign: "right", color: "var(--muted)" }}>{brl(provisao)}</td>
                     <td style={{ textAlign: "right", color: "var(--muted)" }}>{brl(fgts)}</td>
+                    <td style={{ textAlign: "right", color: "var(--muted)" }}>{brl(rescisao)}</td>
                   </tr>
                 ))}
-                {geralView.length === 0 && <tr><td colSpan={11} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
-                {linhaCadastrar(11)}
+                {geralView.length === 0 && <tr><td colSpan={12} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
+                {linhaCadastrar(12)}
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 800 }}>
-                  <td style={{ padding: "12px 10px" }}>Total ({linhasGeral.length})</td>
+                  <td className="eq-fix" style={{ padding: "12px 10px" }}>Total ({linhasGeral.length})</td>
                   <td />
                   <td style={{ textAlign: "right", padding: "12px 10px" }}>{brl(totG.bruto)}</td>
                   <td style={{ textAlign: "right" }}>{brl(totG.vt)}</td>
@@ -481,6 +563,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   <td style={{ textAlign: "right", color: "#10B981" }}>{brl(totG.liquido)}</td>
                   <td style={{ textAlign: "right" }}>{brl(totG.provisao)}</td>
                   <td style={{ textAlign: "right" }}>{brl(totG.fgts)}</td>
+                  <td style={{ textAlign: "right" }}>{brl(totG.rescisao)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -509,7 +592,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1720 }}>
               <thead>
                 <tr>
-                  <th className="eq-th" onClick={() => ordenarPor("nome")}>Nome {seta("nome")}</th>
+                  <th className="eq-th eq-fix" onClick={() => ordenarPor("nome")}>Nome {seta("nome")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("base")} style={{ textAlign: "right" }}>Salário base {seta("base")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("comissao")} style={{ textAlign: "right" }}>Comissão {seta("comissao")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("horaExtra")} style={{ textAlign: "right" }}>Hora extra {seta("horaExtra")}</th>
@@ -533,7 +616,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               <tbody>
                 {mesView.map(({ f, v, extra, base, proventos, inss, irrf, vt, totalDesc, liquido }) => (
                   <tr key={f.id} className="eq-row">
-                    <td>{celNome(f)}</td>
+                    <td className="eq-fix">{celNome(f)}</td>
                     <td style={{ textAlign: "right", color: "var(--muted)" }}>{brl(base)}</td>
                     <td><CampoMoeda valor={v.comissao} onSalvar={(n) => setVar(f.id, "comissao", n)} /></td>
                     <td><CampoMoeda valor={v.horaExtra} onSalvar={(n) => setVar(f.id, "horaExtra", n)} /></td>
@@ -559,7 +642,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 800 }}>
-                  <td style={{ padding: "12px 10px" }}>Total ({linhasMes.length})</td>
+                  <td className="eq-fix" style={{ padding: "12px 10px" }}>Total ({linhasMes.length})</td>
                   <td /><td /><td /><td />
                   {tdsVazias("prov")}
                   <td style={{ textAlign: "right" }}>{brl(totM.proventos)}</td>
@@ -695,6 +778,60 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
         </div>
       )}
 
+      {/* pop-up: o que é o FGTS */}
+      {infoFgts && (
+        <div onClick={() => setInfoFgts(false)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 480, padding: 22 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Info size={18} /></span>
+                <b style={{ fontSize: 16 }}>O que é o FGTS</b>
+              </div>
+              <button onClick={() => setInfoFgts(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+            </div>
+            <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
+              {[
+                <>É um depósito mensal que a empresa faz na conta do trabalhador: <b>{cfg.fgtsPct}% do salário bruto</b>.</>,
+                <><b>Não é descontado</b> do funcionário — é um <b>custo da empresa</b>, por isso não entra no salário líquido.</>,
+                <>O saldo fica disponível ao trabalhador em situações como <b>demissão sem justa causa</b>, aposentadoria e compra da casa própria.</>,
+              ].map((t, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}><span style={{ color: "var(--brand)", fontWeight: 800 }}>•</span><span>{t}</span></div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoFgts(false)}>Entendi</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* pop-up: provisão para rescisão (acerto final) */}
+      {infoRescisao && (
+        <div onClick={() => setInfoRescisao(false)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 500, padding: 22 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Info size={18} /></span>
+                <b style={{ fontSize: 16 }}>Provisão para rescisão (acerto final)</b>
+              </div>
+              <button onClick={() => setInfoRescisao(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+            </div>
+            <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
+              {[
+                <>É um valor guardado <b>todo mês</b> para cobrir a <b>multa de 40% do FGTS</b> paga na <b>demissão sem justa causa</b>.</>,
+                <>Aqui provisionamos <b>40% do depósito mensal de FGTS</b> ({cfg.fgtsPct}% × 40% do salário), para o custo de um eventual desligamento <b>não pegar a empresa de surpresa</b>.</>,
+                <>É uma <b>reserva contábil</b> (provisão), não um valor pago agora. Some ao <b>custo total da folha</b> como encargo previsto.</>,
+              ].map((t, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}><span style={{ color: "var(--brand)", fontWeight: 800 }}>•</span><span>{t}</span></div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoRescisao(false)}>Entendi</button></div>
+          </div>
+        </div>
+      )}
+
+      {tut && <TutorialFolha onFim={fecharTut} setModo={setModo} />}
+
       {/* confirmação de exclusão de coluna (padrão do app) */}
       {confirmCol && (
         <div onClick={() => setConfirmCol(null)} className="no-print"
@@ -733,6 +870,71 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---- Tutorial guiado da Folha (balão + destaque, estilo do tour de Finanças) ----
+const PASSOS_FOLHA: { modo?: "geral" | "mensal"; sel: string; emoji: string; titulo: string; texto: React.ReactNode }[] = [
+  { sel: '[data-tut="modos"]', emoji: "🧭", titulo: "Duas visões", texto: <>A Folha tem <b>Preenchimento geral</b> (a base fixa de cada pessoa) e <b>Folha mensal</b> (o que muda mês a mês).</> },
+  { modo: "geral", sel: '[data-tut="salario"]', emoji: "💰", titulo: "Salário e benefícios", texto: <>No <b>Preenchimento geral</b>, digite o <b>salário bruto</b>. <b>Vale transporte</b> e <b>vale alimentação</b> são por pessoa, em <b>%</b> ou <b>valor fixo</b> (e dá para remover).</> },
+  { modo: "geral", sel: '[data-tut="inss"]', emoji: "🧮", titulo: "Descontos automáticos", texto: <><b>INSS</b>, <b>IRRF</b> e <b>FGTS</b> são calculados sozinhos pelas tabelas de <b>2026</b>. Clique no <b>i</b> de cada um para entender o cálculo.</> },
+  { modo: "mensal", sel: '[data-tut="meses"]', emoji: "🗓️", titulo: "Folha mensal", texto: <>Escolha o <b>mês</b> e lance <b>comissão</b>, <b>hora extra</b>, <b>gratificação</b> e os <b>descontos</b> daquele mês. Cada mês guarda os seus lançamentos.</> },
+  { modo: "mensal", sel: '[data-tut="mais-desc"]', emoji: "➕", titulo: "Colunas próprias", texto: <>Precisa de outro item? Use o <b>+</b> para criar uma coluna própria de <b>provento</b> ou <b>desconto</b> (ex.: bônus, coparticipação).</> },
+  { modo: "mensal", sel: '[data-tut="excel"]', emoji: "📊", titulo: "Baixar em Excel", texto: <>Baixe a folha do ano em <b>Excel</b>, com <b>uma coluna por mês</b> e o total de cada pessoa.</> },
+  { sel: '[data-tut="cadastrar"]', emoji: "👥", titulo: "Quem entra na folha", texto: <>As pessoas vêm da <b>Equipe</b>. Use este link para <b>cadastrar</b> ou <b>gerenciar</b> os funcionários.</> },
+];
+
+function TutorialFolha({ onFim, setModo }: { onFim: () => void; setModo: (m: "geral" | "mensal") => void }) {
+  const [step, setStep] = useState(0);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const [estreito, setEstreito] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const u = () => setEstreito(mq.matches);
+    u(); mq.addEventListener("change", u);
+    return () => mq.removeEventListener("change", u);
+  }, []);
+  const cur = PASSOS_FOLHA[step];
+  useEffect(() => { if (cur.modo) setModo(cur.modo); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
+  useEffect(() => {
+    if (estreito) { setRect(null); return; }
+    const upd = () => { const el = document.querySelector(cur.sel); if (el) { const r = el.getBoundingClientRect(); setRect({ left: r.left, top: r.top, width: r.width, height: r.height }); } else setRect(null); };
+    upd(); const t = window.setTimeout(upd, 140);
+    window.addEventListener("resize", upd); window.addEventListener("scroll", upd, true);
+    return () => { window.clearTimeout(t); window.removeEventListener("resize", upd); window.removeEventListener("scroll", upd, true); };
+  }, [step, cur.sel, estreito]);
+  const centralizado = estreito || !rect;
+  const popW = 340;
+  const largura = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const altura = typeof window !== "undefined" ? window.innerHeight : 800;
+  const left = rect ? Math.max(16, Math.min(rect.left, largura - popW - 16)) : 0;
+  const abaixo = rect ? rect.top + rect.height + 16 : 0;
+  const top = rect && abaixo + 210 > altura ? Math.max(16, rect.top - 210) : abaixo;
+  const ultimo = step === PASSOS_FOLHA.length - 1;
+  const posBalao: React.CSSProperties = centralizado
+    ? { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: popW }
+    : { position: "fixed", left, top, width: popW };
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 150, background: centralizado ? "rgba(15,23,42,.62)" : undefined }}>
+      {!centralizado && rect && <div style={{ position: "fixed", left: rect.left - 7, top: rect.top - 7, width: rect.width + 14, height: rect.height + 14, borderRadius: 12, boxShadow: "0 0 0 9999px rgba(15,23,42,.62)", border: "2px solid var(--brand)", pointerEvents: "none", transition: "all .2s" }} />}
+      <div style={{ ...posBalao, maxWidth: "calc(100vw - 32px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, boxShadow: "0 22px 54px -12px rgba(0,0,0,.55)", padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 18 }}>{cur.emoji}</span>
+          <b style={{ fontSize: 15.5, flex: 1 }}>{cur.titulo}</b>
+          <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 9px", borderRadius: 99 }}>{step + 1} de {PASSOS_FOLHA.length}</span>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--txt)" }}>{cur.texto}</p>
+        <div style={{ display: "flex", gap: 5, margin: "14px 0" }}>
+          {PASSOS_FOLHA.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 99, background: i <= step ? "var(--brand)" : "var(--line)" }} />)}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button className="btn ghost sm" onClick={onFim}>Pular</button>
+          <div style={{ flex: 1 }} />
+          {step > 0 && <button className="btn ghost sm" onClick={() => setStep((s) => s - 1)}>Anterior</button>}
+          <button className="btn sm" onClick={() => { if (ultimo) onFim(); else setStep((s) => s + 1); }}>{ultimo ? "Concluir ✓" : "Próximo →"}</button>
+        </div>
+      </div>
     </div>
   );
 }
