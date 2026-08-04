@@ -4,6 +4,7 @@ import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pe
 import BotaoOcultar from "@/components/ocultar";
 import SeletorAno from "@/components/SeletorAno";
 import { AnimNum } from "@/components/AnimNum";
+import { SeletorCusto } from "@/components/CalendarioPagamentos";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
@@ -396,16 +397,14 @@ export const MODELO_LIMPO: Dados = {
           { nome: "", v: v12([]) },
           { nome: "", v: v12([]) },
           { nome: "", v: v12([]) },
-        ] },
-        { nome: "Comissão", cor: LARANJA, itens: [
-          { nome: "Time comercial", v: v12([]) },
-        ] },
-        { nome: "Impostos / Férias / 13ª / Resc.", cor: ROXO, itens: [
           { nome: "FGTS", v: v12([]) },
           { nome: "DARF", v: v12([]) },
           { nome: "13º", v: v12([]) },
           { nome: "Férias", v: v12([]) },
           { nome: "Rescisão / Admissão", v: v12([]) },
+        ] },
+        { nome: "Comissão", cor: LARANJA, itens: [
+          { nome: "Time comercial", v: v12([]) },
         ] },
         { nome: "Operacional", cor: VERDE, itens: [
           { nome: "Aluguel", v: v12([]) },
@@ -702,20 +701,24 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   }
   // Ao digitar um custo direto na Estrutura: oferece confirmar também no Calendário (data + recorrência).
   // Confirmando, o valor sai do manual e vira lançamento do calendário (volta somando 1x, sem dupla contagem).
-  const [confCal, setConfCal] = useState<{ bi: number; gi: number; ii: number; mOrig: number; grupo: string; item: string; valor: number; data: string; freq: Freq } | null>(null);
+  // passo 1 = confirmar a DATA; passo 2 = tela igual à do Calendário (descrição/valor/recorrência)
+  const [confCal, setConfCal] = useState<{ bi: number; gi: number; ii: number; mOrig: number; valorOrig: number; passo: "data" | "form"; data: string; grupo: string; item: string; valorStr: string; freq: Freq } | null>(null);
   const diasNoMes = (a: number, mes: number) => new Date(a, mes + 1, 0).getDate();
   function aoDigitarCusto(bi: number, gi: number, ii: number, m: number, valor: number, grupo: string, item: string) {
     const nome = (item || "").trim();
-    // sem nome do item, valor zerado, ou grupo financeiro (Impostos/Férias/13º): comporta como antes (só manual)
+    // sem nome do item, valor zerado, ou sem grupo: comporta como antes (só manual)
     if (!nome || valor <= 0 || !grupo) { editarCusto(bi, gi, ii, m, valor); return; }
     const hoje = new Date();
     const dia = hoje.getFullYear() === ano && hoje.getMonth() === m ? Math.min(hoje.getDate(), diasNoMes(ano, m)) : 1;
     const data = `${ano}-${String(m + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
-    setConfCal({ bi, gi, ii, mOrig: m, grupo, item: nome, valor, data, freq: "unica" });
+    setConfCal({ bi, gi, ii, mOrig: m, valorOrig: valor, passo: "data", data, grupo, item: nome, valorStr: valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), freq: "unica" });
   }
   function confirmarCal() {
     if (!confCal) return;
-    const { bi, gi, ii, mOrig, grupo, item, valor, data, freq } = confCal;
+    const { bi, gi, ii, mOrig, data, grupo, item, valorStr, freq } = confCal;
+    const nome = (item || "").trim();
+    if (!grupo || !nome) return;
+    const valor = Number(valorStr.replace(/\./g, "").replace(",", ".")) || 0;
     const [ay, am, ad] = data.split("-").map(Number);
     const mesCal = (am || 1) - 1, diaCal = ad || 1, anoCal = ay || ano;
     snapshot();
@@ -725,16 +728,16 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
     const recorrente = freq !== "unica";
     const novo: Pagamento = {
       id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-      descricao: item, valor, dia: diaCal, mes: mesCal, ano: anoCal, recorrente, freq,
-      grupo, item, confirmados: [ymIdx(anoCal, mesCal)], confirmadosDia: [],
+      descricao: nome, valor, dia: diaCal, mes: mesCal, ano: anoCal, recorrente, freq,
+      grupo, item: nome, confirmados: [ymIdx(anoCal, mesCal)], confirmadosDia: [],
     };
     salvarPagamentos([...lerPagamentos(), novo]);
     setConfCal(null);
   }
   function cancelarCal() {
     if (!confCal) return;
-    // mantém só na Estrutura (comportamento antigo)
-    editarCusto(confCal.bi, confCal.gi, confCal.ii, confCal.mOrig, confCal.valor);
+    // mantém só na Estrutura (comportamento antigo), com o valor original digitado
+    editarCusto(confCal.bi, confCal.gi, confCal.ii, confCal.mOrig, confCal.valorOrig);
     setConfCal(null);
   }
   function nomeReceita(ri: number, nome: string) {
@@ -1155,47 +1158,61 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
         </div>
       )}
 
-      {/* Confirmar o custo digitado também no Calendário (data + recorrência) */}
+      {/* Confirmar o custo digitado também no Calendário — passo 1: DATA; passo 2: igual ao Calendário */}
       {confCal && (() => {
         const MES_LONGO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const [ay, am, ad] = confCal.data.split("-").map(Number);
+        const tituloData = `${ad} de ${MES_LONGO[(am || 1) - 1]} · ${ay}`;
         return (
           <div onClick={cancelarCal} style={{ position: "fixed", inset: 0, zIndex: 96, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
-            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 420, padding: 24 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
-                <b style={{ fontSize: 17 }}>{ad} de {MES_LONGO[(am || 1) - 1]} · {ay}</b>
-                <button onClick={cancelarCal} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
-              </div>
-              <p className="sub" style={{ marginTop: -2, marginBottom: 14, fontSize: 12.5, lineHeight: 1.5 }}>Quer registrar esse custo também no <b>Calendário</b>? Assim ele fica organizado nos dois lugares (sem contar duas vezes).</p>
+            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 22 }}>
+              {confCal.passo === "data" ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                    <b style={{ fontSize: 17 }}>Em que data entra esse custo?</b>
+                    <button onClick={cancelarCal} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+                  </div>
+                  <p className="sub" style={{ marginTop: -2, marginBottom: 14, fontSize: 12.5, lineHeight: 1.5 }}>Vamos registrar <b>{confCal.grupo} › {confCal.item}</b> também no <b>Calendário</b> (sem contar duas vezes). Confirme a data:</p>
+                  <div className="field">
+                    <label className="f">Data</label>
+                    <input type="date" value={confCal.data} autoFocus onChange={(e) => setConfCal({ ...confCal, data: e.target.value })} />
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+                    <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={cancelarCal}>Manter só na estrutura</button>
+                    <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setConfCal({ ...confCal, passo: "form" })}>Continuar →</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <button onClick={() => setConfCal({ ...confCal, passo: "data" })} title="Voltar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: 0, display: "inline-flex" }}><ChevronRight size={18} style={{ transform: "rotate(180deg)" }} /></button>
+                      <b style={{ fontSize: 17 }}>{tituloData}</b>
+                    </div>
+                    <button onClick={cancelarCal} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+                  </div>
 
-              <div className="field">
-                <label className="f">Descrição</label>
-                <input value={`${confCal.grupo} › ${confCal.item}`} disabled style={{ opacity: .8 }} />
-              </div>
-              <div className="field" style={{ marginTop: 10 }}>
-                <label className="f">Valor (R$)</label>
-                <input value={confCal.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} disabled style={{ opacity: .8 }} />
-              </div>
-              <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 10 }}>
-                <div className="field">
-                  <label className="f">Data</label>
-                  <input type="date" value={confCal.data} onChange={(e) => setConfCal({ ...confCal, data: e.target.value })} />
-                </div>
-                <div className="field">
-                  <label className="f">Recorrência</label>
-                  <select value={confCal.freq} onChange={(e) => setConfCal({ ...confCal, freq: e.target.value as Freq })}>
-                    <option value="unica">Única</option>
-                    <option value="mensal">Mensal</option>
-                    <option value="semanal">Semanal</option>
-                    <option value="diaria_uteis">Diária (dias úteis)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-                <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={cancelarCal}>Manter só na estrutura</button>
-                <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={confirmarCal}>+ Cadastrar no calendário</button>
-              </div>
+                  <div className="field">
+                    <label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      Descrição
+                      <span title="Este pagamento entra direto na Estrutura de Custos, no DRE e nos Gráficos, no item escolhido." style={{ display: "inline-grid", placeItems: "center", width: 15, height: 15, borderRadius: "50%", background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--muted)", fontSize: 10, fontWeight: 800, cursor: "help" }}>?</span>
+                    </label>
+                    <SeletorCusto blocos={d.custos} grupo={confCal.grupo} item={confCal.item} onSelecionar={(g, i) => setConfCal({ ...confCal, grupo: g, item: i })} />
+                  </div>
+                  <div className="field"><label className="f">Valor (R$)</label><input value={confCal.valorStr} onChange={(e) => setConfCal({ ...confCal, valorStr: mascaraMoedaBR(e.target.value) })} placeholder="0,00" inputMode="decimal" /></div>
+                  <div className="field">
+                    <label className="f">Recorrência</label>
+                    <select value={confCal.freq} onChange={(e) => setConfCal({ ...confCal, freq: e.target.value as Freq })}>
+                      <option value="unica">Não recorrente (só neste dia)</option>
+                      <option value="diaria_uteis">Diária — apenas em dias úteis</option>
+                      <option value="diaria_todos">Diária — todos os dias da semana</option>
+                      <option value="semanal">Semanal</option>
+                      <option value="mensal">Mensal</option>
+                    </select>
+                  </div>
+                  <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={confirmarCal} disabled={!confCal.grupo || !confCal.item.trim()}>+ Cadastrar</button>
+                </>
+              )}
             </div>
           </div>
         );
