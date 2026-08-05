@@ -5,7 +5,7 @@ import {
   LayoutDashboard, DollarSign, Compass, Settings,
   Users, Upload, Building2, LogOut, Sun, Moon, X,
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
-  ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText,
+  ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
   PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet,
 } from "lucide-react";
@@ -62,7 +62,7 @@ const SEG_VIEW: Record<string, View> = {
 const METRICAS = [
   { key: "dashboard", label: "Home", Icon: LayoutDashboard },
   { key: "financas", label: "Finanças", Icon: DollarSign },
-  { key: "painel", label: "Dashboard", Icon: LayoutDashboard },
+  { key: "painel", label: "Dashboard", Icon: BarChart3 },
 ] as const;
 // sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
@@ -677,7 +677,7 @@ function TelaPainel({ empresa, brand, ano, setAno }: { empresa: Empresa | null; 
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
-          <LayoutDashboard size={22} />
+          <BarChart3 size={22} />
         </span>
         <h2 style={{ margin: 0, fontSize: "clamp(21px, 6vw, 27px)", fontWeight: 800, letterSpacing: "-.6px" }}>Dashboard</h2>
       </div>
