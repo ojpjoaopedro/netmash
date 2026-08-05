@@ -166,6 +166,23 @@ function salvarBenef(id: string | null | undefined, dados: Record<string, Benef>
   if (typeof window === "undefined") return;
   const cru = JSON.stringify(dados); localStorage.setItem(chaveBenef(id), cru); salvarEstadoRemoto(chaveBenef(id), cru);
 }
+// Usuários com login (superadmin + admins), guardados em me_diretores, entram na folha como pessoas.
+// O "tipo" (Funcionário/Sócio) fica no campo area, igual ao cargo do funcionário.
+function lerLoginComoFuncs(empresaId: string | null | undefined): Funcionario[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const s = JSON.parse(localStorage.getItem("me_diretores") || "null");
+    if (!s || !s.sup) return [];
+    const lista = [s.sup, ...(Array.isArray(s.admins) ? s.admins : [])];
+    return lista
+      .filter((d: { nome?: string }) => (d?.nome || "").trim())
+      .map((d: { id?: string; nome: string; area?: string; telefone?: string; email?: string; cpf?: string; pix?: string; nascimento?: string }) => ({
+        id: d.id || "super", empresa_id: empresaId || "default", nome: d.nome, cargo: d.area || "Funcionário",
+        departamento: null, salario: 0, beneficios: 0, admissao: null, ativo: true,
+        contato: d.telefone || null, email: d.email || null, cpf: d.cpf || null, pix: d.pix || null, nascimento: d.nascimento || null,
+      }));
+  } catch { return []; }
+}
 
 /** Selinho "✓ Salvo" que aparece por 1,4s ao lado do campo após digitar. */
 function useSalvo(): [boolean, () => void] {
@@ -179,18 +196,18 @@ function BadgeSalvo() {
 }
 
 /** Campo de dinheiro editável no nosso padrão: clica, digita e salva ao sair. 0 = vazio. */
-function CampoMoeda({ valor, onSalvar }: { valor: number; onSalvar: (n: number) => void }) {
+function CampoMoeda({ valor, onSalvar, esquerda }: { valor: number; onSalvar: (n: number) => void; esquerda?: boolean }) {
   const [salvo, marcar] = useSalvo();
   const [txt, setTxt] = useState(valor ? num2(valor) : "");
   useEffect(() => { setTxt(valor ? num2(valor) : ""); }, [valor]);   // sincroniza ao trocar de mês / puxar
   return (
-    <span style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, width: "100%" }}>
+    <span style={{ display: "flex", alignItems: "center", justifyContent: esquerda ? "flex-start" : "flex-end", gap: 4, width: "100%" }}>
       {salvo && <BadgeSalvo />}
       <input value={txt} placeholder="" inputMode="decimal"
         onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; e.currentTarget.select(); }}
         onChange={(e) => setTxt(e.target.value)}
         onBlur={(e) => { e.currentTarget.style.background = "transparent"; const n = round2(parseNum(txt)); setTxt(n ? num2(n) : ""); if (n !== valor) { onSalvar(n); marcar(); } }}
-        style={{ border: 0, outline: "none", background: "transparent", padding: "3px 6px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", textAlign: "right", transition: "background .12s" }} />
+        style={{ border: 0, outline: "none", background: "transparent", padding: "3px 6px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", textAlign: esquerda ? "left" : "right", transition: "background .12s" }} />
     </span>
   );
 }
@@ -255,6 +272,7 @@ function Rot({ t }: { t: string }) {
 
 export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa | null }) {
   const [funcs, setFuncs] = useState<Funcionario[]>([]);
+  const [loginFuncs, setLoginFuncs] = useState<Funcionario[]>([]);
   const [cfg, setCfg] = useState<Config>(() => lerCfg(empresa?.id));
   const [carregado, setCarregado] = useState(false);
   const [modo, setModo] = useState<"geral" | "mensal">("mensal");
@@ -281,6 +299,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [infoProvisao, setInfoProvisao] = useState(false);
   const [infoCusto, setInfoCusto] = useState(false);
   const [infoProlabore, setInfoProlabore] = useState(false);
+  const [infoCustoMes, setInfoCustoMes] = useState(false);
   const BtnInfoInss = () => <BtnInfo onClick={() => setInfoInss(true)} titulo="Como o INSS é calculado" />;
   const BtnInfoIrrf = () => <BtnInfo onClick={() => setInfoIrrf(true)} titulo="Como o IRRF é calculado" />;
   const BtnInfoFgts = () => <BtnInfo onClick={() => setInfoFgts(true)} titulo="O que é o FGTS" />;
@@ -289,6 +308,19 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
   const carregar = () => getFuncionarios().then((f) => { setFuncs(f); setCarregado(true); }).catch(() => setCarregado(true));
   useEffect(() => { carregar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // usuários com login (superadmin + admins) também entram na folha
+  useEffect(() => {
+    const ler = () => setLoginFuncs(lerLoginComoFuncs(empresa?.id));
+    ler();
+    window.addEventListener("me:diretores", ler);
+    window.addEventListener("storage", ler);
+    return () => { window.removeEventListener("me:diretores", ler); window.removeEventListener("storage", ler); };
+  }, [empresa?.id]);
+  // funcionários do banco + pessoas com login (sem duplicar por id)
+  const funcsTodos = useMemo(() => {
+    const ids = new Set(funcs.map((f) => f.id));
+    return [...funcs, ...loginFuncs.filter((l) => !ids.has(l.id))];
+  }, [funcs, loginFuncs]);
   useEffect(() => { setCfg(lerCfg(empresa?.id)); }, [empresa?.id]);
   useEffect(() => { const d = new Date(); setYm(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`); }, []);
   useEffect(() => { if (ym) setDadosMes(lerMes(empresa?.id, ym)); }, [empresa?.id, ym]);
@@ -487,7 +519,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   }
 
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
-  const ativos = useMemo(() => funcs.filter((f) => filtro === "ativos" ? f.ativo : !f.ativo), [funcs, filtro]);
+  const ativos = useMemo(() => funcsTodos.filter((f) => filtro === "ativos" ? f.ativo : !f.ativo), [funcsTodos, filtro]);
   // sócios recebem pró-labore (tabela própria); os demais entram na folha CLT
   const ehSocio = (f: Funcionario) => (f.cargo || "") === "Sócio";
   const funcsFolha = useMemo(() => ativos.filter((f) => !ehSocio(f)), [ativos]);
@@ -530,19 +562,25 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   }), [funcsFolha, dadosMes, cols, cfg]);
   // ---- pró-labore dos sócios (regra própria: só salário base e INSS 11%; sem 13º/férias/FGTS) ----
   const linhasSocio = useMemo(() => socios.map((f) => {
-    const base = (dadosMes[f.id]?.base) || 0;
-    const inss = calcINSSprolabore(base);
-    const liquido = round2(base - inss);
-    return { f, base, inss, liquido };
-  }), [socios, dadosMes]);
+    const v = { ...VARS_ZERO, ...(dadosMes[f.id] || {}) };
+    const extra = v.extra || {};
+    const base = v.base || 0;
+    const provExtra = round2(cols.prov.reduce((s, c) => s + (extra[c.id] || 0), 0));
+    const descExtra = round2(cols.desc.reduce((s, c) => s + (extra[c.id] || 0), 0));
+    const proventos = round2(base + provExtra);
+    const inss = calcINSSprolabore(base);            // INSS incide sobre o pró-labore (base)
+    const totalDesc = round2(inss + descExtra);
+    const liquido = round2(proventos - totalDesc);
+    return { f, extra, base, provExtra, descExtra, proventos, inss, totalDesc, liquido };
+  }), [socios, dadosMes, cols]);
   const socioView = linhasSocio.filter((l) => combina(l.f));
-  const totSocio = linhasSocio.reduce((a, l) => ({ base: a.base + l.base, inss: a.inss + l.inss, liquido: a.liquido + l.liquido }), { base: 0, inss: 0, liquido: 0 });
+  const totSocio = linhasSocio.reduce((a, l) => ({ base: a.base + l.base, inss: a.inss + l.inss, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido }), { base: 0, inss: 0, totalDesc: 0, liquido: 0 });
   const ymAnterior = () => { if (!ym) return ""; const [a, m] = ym.split("-").map(Number); let py = a, pm = m - 1; if (pm < 1) { pm = 12; py = a - 1; } return `${py}-${String(pm).padStart(2, "0")}`; };
   const temMesAnterior = () => { const p = ymAnterior(); return !!p && Object.keys(lerMes(empresa?.id, p)).length > 0; };
   function puxarDoMesAnterior() {
     const prev = lerMes(empresa?.id, ymAnterior());
     // só traz quem está ativo: desativado não tem mais salário
-    const ativoId = new Set(funcs.filter((f) => f.ativo).map((f) => f.id));
+    const ativoId = new Set(funcsTodos.filter((f) => f.ativo).map((f) => f.id));
     const next: Record<string, VarsMes> = {};
     for (const id in prev) if (ativoId.has(id)) next[id] = prev[id];
     setDadosMes(next); salvarMes(empresa?.id, ym, next);
@@ -604,15 +642,30 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   }
   const mesAtualIdx = ym ? Number(ym.slice(5, 7)) - 1 : 0;
   const anoAtual = ym ? ym.slice(0, 4) : "";
+  // o botão "Puxar do mês anterior" fica alinhado embaixo do mês selecionado e se move ao trocar de mês
+  const barraMesRef = useRef<HTMLDivElement | null>(null);
+  const mesRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [puxarLeft, setPuxarLeft] = useState(0);
+  useEffect(() => {
+    const calc = () => {
+      const barra = barraMesRef.current, b = mesRefs.current[mesAtualIdx];
+      if (barra && b) setPuxarLeft(Math.max(0, b.getBoundingClientRect().left - barra.getBoundingClientRect().left));
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, [mesAtualIdx, ym, modo]);
 
 
-  const semEquipe = carregado && funcs.length === 0;
+  const semEquipe = carregado && funcsTodos.length === 0;
   const zbrl = (n: number) => (Math.abs(n) < 0.005 ? "" : brl(n)); // 0 fica em branco
   // larguras fixas por coluna (table-layout: fixed) — evita colunas com input esticarem
   const wGeral = [150, 116, 100, 104, 104, ...benefCols.map(() => 92), 42, 90, 84, 104, 106, 94, 84, 104];
   const somaGeral = wGeral.reduce((a, b) => a + b, 0);
   const wMensal = [150, 100, 96, 90, 92, ...cols.prov.map(() => 92), 42, 104, 90, 84, 90, 92, 94, ...cols.desc.map(() => 92), 42, 104, 100, 94, 84, 104];
   const somaMensal = wMensal.reduce((a, b) => a + b, 0);
+  const wPl = [160, 120, ...cols.prov.map(() => 96), 42, 110, ...cols.desc.map(() => 96), 42, 110];
+  const somaPl = wPl.reduce((a, b) => a + b, 0);
 
   return (
     <div>
@@ -640,12 +693,12 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
       {/* barra de ano + meses (estilo Dashboard): seleciona 1 mês */}
       {modo === "mensal" && !semEquipe && ym && (
-        <div data-tut="meses" className="no-print" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <div ref={barraMesRef} data-tut="meses" className="no-print" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
           <SeletorAno ano={Number(anoAtual)} setAno={(a) => setYm(`${a}-${String(mesAtualIdx + 1).padStart(2, "0")}`)} />
           {MES.map((nome, m) => {
             const on = m === mesAtualIdx;
             return (
-              <button key={m} onClick={() => setYm(`${anoAtual}-${String(m + 1).padStart(2, "0")}`)}
+              <button key={m} ref={(el) => { mesRefs.current[m] = el; }} onClick={() => setYm(`${anoAtual}-${String(m + 1).padStart(2, "0")}`)}
                 style={{ padding: "7px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "var(--brand)" : "var(--line-2)"}`, background: on ? "var(--brand)" : "transparent", color: on ? "var(--brand-ct,#fff)" : "var(--muted)" }}>
                 {nome}
               </button>
@@ -654,17 +707,19 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
         </div>
       )}
 
-      {/* puxar dados: 2 botões iguais (sempre disponíveis) logo abaixo dos meses */}
+      {/* puxar dados do mês anterior: botão de destaque, alinhado embaixo do mês selecionado */}
       {modo === "mensal" && !semEquipe && (
-        <div className="no-print" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
-          {[
-            { txt: "↧ Puxar do mês anterior", on: puxarDoMesAnterior, off: !temMesAnterior() },
-          ].map((b) => (
-            <button key={b.txt} onClick={b.on} disabled={b.off} title={b.off ? "O mês anterior também está vazio" : ""}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: b.off ? "default" : "pointer", opacity: b.off ? .5 : 1, fontFamily: "inherit", fontSize: 13, fontWeight: 700, padding: "9px 18px", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--brand) 40%, transparent)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", color: "var(--brand)" }}>
-              {b.txt}
-            </button>
-          ))}
+        <div className="no-print" style={{ display: "flex", flexWrap: "wrap", marginBottom: 16 }}>
+          {(() => {
+            const off = !temMesAnterior();
+            return (
+              <button onClick={puxarDoMesAnterior} disabled={off} title={off ? "O mês anterior também está vazio" : "Copia os lançamentos do mês anterior para este mês"}
+                style={{ marginLeft: puxarLeft, transition: "margin-left .2s ease", display: "inline-flex", alignItems: "center", gap: 10, cursor: off ? "default" : "pointer", opacity: off ? .5 : 1, fontFamily: "inherit", fontSize: 14, fontWeight: 800, padding: "13px 24px", borderRadius: 14, border: 0, color: "#fff", background: "linear-gradient(120deg, var(--brand-dark), var(--brand))", boxShadow: off ? "none" : "0 14px 30px -14px color-mix(in srgb, var(--brand) 75%, transparent)" }}>
+                <span style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(255,255,255,.20)", flexShrink: 0 }}><ArrowUpRight size={17} style={{ transform: "rotate(90deg)" }} /></span>
+                Puxar do mês anterior
+              </button>
+            );
+          })()}
         </div>
       )}
 
@@ -854,50 +909,65 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             {[
               { t: "Salários (bruto)", v: totM.proventos, cor: "var(--txt)", info: false },
               { t: "Líquido a pagar", v: totM.liquido, cor: "#10B981", info: false },
-              { t: "Encargos (FGTS + provisões)", v: round2(totMfgts + totMprov), cor: "var(--brand)" },
-              { t: "Custo total da folha", v: custoTotalMes, cor: "var(--brand)" },
+              { t: "Encargos (FGTS + provisões)", v: round2(totMfgts + totMprov), cor: "var(--brand)", info: false },
+              { t: "Custo total da folha", v: custoTotalMes, cor: "var(--brand)", info: true },
             ].map((c) => (
               <div key={c.t} className="card" style={{ flex: "1 1 200px", padding: 16 }}>
-                <div className="sub" style={{ fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>{c.t}</div>
+                <div className="sub" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                  {c.t}
+                  {c.info && <BtnInfo onClick={() => setInfoCustoMes(true)} titulo="Como o custo total é calculado" />}
+                </div>
                 <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4, color: c.cor }}>{brl(c.v)}</div>
               </div>
             ))}
           </div>
 
           {/* ---- Pró-labore dos sócios (regra própria, sem 13º/férias/FGTS) ---- */}
-          {socios.length > 0 && (
+          {(
             <div style={{ marginTop: 28 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <b style={{ fontSize: 15 }}>Pró-labore dos sócios</b>
                 <BtnInfo onClick={() => setInfoProlabore(true)} titulo="Como funciona o pró-labore" />
               </div>
               <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-                <table className="eq-tab eq-vsep" style={{ borderCollapse: "separate", borderSpacing: 0, width: "100%", minWidth: 520 }}>
+                <table className="eq-tab eq-vsep" style={{ borderCollapse: "separate", borderSpacing: 0, tableLayout: "fixed", width: somaPl, minWidth: somaPl }}>
+                  <colgroup>{wPl.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
                   <thead>
                     <tr>
                       <th className="eq-th eq-fix">Nome</th>
-                      <th className="eq-th" style={{ textAlign: "right" }}>Pró-labore</th>
-                      <th className="eq-th" style={{ textAlign: "right" }}>INSS (11%)<BtnInfo onClick={() => setInfoProlabore(true)} titulo="Como funciona o pró-labore" /></th>
-                      <th className="eq-th" style={{ textAlign: "right" }}>Líquido</th>
+                      <th className="eq-th" style={{ textAlign: "left" }}>Pró-labore</th>
+                      {thsCol("prov")}
+                      {thMais("prov")}
+                      <th className="eq-th" style={{ textAlign: "left" }}>INSS (11%)<BtnInfo onClick={() => setInfoProlabore(true)} titulo="Como funciona o pró-labore" /></th>
+                      {thsCol("desc")}
+                      {thMais("desc")}
+                      <th className="eq-th" style={{ textAlign: "left" }}>Líquido</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {socioView.map(({ f, base, inss, liquido }) => (
+                    {socioView.map(({ f, extra, base, inss, liquido }) => (
                       <tr key={`pl-${ym}-${f.id}`} className="eq-row">
                         <td className="eq-fix">{celNome(f)}</td>
-                        <td style={{ fontWeight: 700 }}><CampoMoeda valor={base} onSalvar={(n) => setVar(f.id, "base", n)} /></td>
-                        <td style={{ textAlign: "right", color: "var(--muted)" }}>{zbrl(inss)}</td>
-                        <td style={{ textAlign: "right", color: "#10B981", fontWeight: 800 }}>{zbrl(liquido)}</td>
+                        <td style={{ fontWeight: 700 }}><CampoMoeda valor={base} esquerda onSalvar={(n) => setVar(f.id, "base", n)} /></td>
+                        {tdsCol("prov", f.id, extra)}
+                        <td />
+                        <td style={{ textAlign: "left", color: "var(--muted)" }}>{zbrl(inss)}</td>
+                        {tdsCol("desc", f.id, extra)}
+                        <td />
+                        <td style={{ textAlign: "left", color: "#10B981", fontWeight: 800 }}>{zbrl(liquido)}</td>
                       </tr>
                     ))}
-                    {socioView.length === 0 && <tr><td colSpan={4} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
+                    {socioView.length === 0 && busca.trim() && <tr><td colSpan={6 + cols.prov.length + cols.desc.length} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
+                    {linhaCadastrar(6 + cols.prov.length + cols.desc.length)}
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 800 }}>
                       <td className="eq-fix" style={{ padding: "12px 10px" }}>Total ({linhasSocio.length})</td>
-                      <td style={{ textAlign: "right" }}>{brl(totSocio.base)}</td>
-                      <td style={{ textAlign: "right" }}>{brl(totSocio.inss)}</td>
-                      <td style={{ textAlign: "right", color: "#10B981" }}>{brl(totSocio.liquido)}</td>
+                      <td style={{ textAlign: "left" }}>{brl(totSocio.base)}</td>
+                      {tdsVazias("prov")}
+                      <td style={{ textAlign: "left" }}>{brl(totSocio.inss)}</td>
+                      {tdsVazias("desc")}
+                      <td style={{ textAlign: "left", color: "#10B981" }}>{brl(totSocio.liquido)}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -1156,6 +1226,39 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               ))}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoProlabore(false)}>Entendi</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* pop-up: como o custo total da folha (mensal) é calculado */}
+      {infoCustoMes && (
+        <div onClick={() => setInfoCustoMes(false)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 520, padding: 22 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Wallet size={18} /></span>
+                <b style={{ fontSize: 16 }}>Custo total da folha</b>
+              </div>
+              <button onClick={() => setInfoCustoMes(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+            </div>
+            <p className="sub" style={{ margin: "4px 0 12px", lineHeight: 1.55, fontSize: 12.5 }}>
+              É <b>quanto a empresa gasta de verdade</b> com a equipe neste mês. A empresa <b>não paga o salário bruto</b> direto: paga o <b>líquido</b> a cada pessoa e <b>repassa/provisiona</b> o resto. Soma:
+            </p>
+            <div style={{ display: "grid", gap: 8 }}>
+              {[
+                <><b>Líquido a pagar</b> aos funcionários ({brl(totM.liquido)})</>,
+                <><b>INSS e IRRF retidos</b>, repassados ao governo ({brl(round2(totM.inss + totM.irrf))})</>,
+                <><b>FGTS</b> ({brl(totMfgts)}) e <b>provisão de rescisão</b> ({brl(totMresc)})</>,
+                <><b>Provisão de 13º + férias</b> ({brl(totMprov)})</>,
+              ].map((t, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}><span style={{ color: "var(--brand)", fontWeight: 800 }}>•</span><span>{t}</span></div>
+              ))}
+            </div>
+            <p className="sub" style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.5 }}>
+              Total do mês: <b style={{ color: "var(--brand)" }}>{brl(custoTotalMes)}</b>. O pró-labore dos sócios é apurado à parte, na tabela abaixo.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoCustoMes(false)}>Entendi</button></div>
           </div>
         </div>
       )}

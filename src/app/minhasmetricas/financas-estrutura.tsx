@@ -24,6 +24,7 @@ const mascaraMoedaBR = (v: string) => { const n = (v || "").replace(/\D/g, ""); 
  */
 
 export const MES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+export const MES_CHEIO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const CHAVE = "me_financas_estrutura";
 
 // completa o array de valores até 12 meses (o que não veio nos dados é 0)
@@ -49,14 +50,28 @@ function zerarValores(d: Dados): Dados {
  * Lê a estrutura do ano pedido. 2026 migra do formato antigo; anos sem dados
  * voltam com a mesma estrutura de 2026, só que zerada (para o usuário preencher).
  */
+// Remove grupos legados VAZIOS que foram absorvidos pelo grupo "Salários"
+// (modelo antigo tinha "Comissão" e "Impostos / Férias / 13ª / Resc." separados).
+function limparGruposLegado(d: Dados): Dados {
+  if (!d || !Array.isArray(d.custos)) return d;
+  const ehLegado = (nome: string) => { const n = (nome || "").trim(); return n === "Comissão" || n.startsWith("Impostos / Férias"); };
+  const grupoVazio = (g: { itens?: { v?: number[] }[] }) => (g.itens || []).every((it) => (it.v || []).every((x) => !x));
+  let mudou = false;
+  const custos = d.custos.map((bloco) => {
+    const grupos = (bloco.grupos || []).filter((g) => { if (ehLegado(g.nome) && grupoVazio(g)) { mudou = true; return false; } return true; });
+    return mudou ? { ...bloco, grupos } : bloco;
+  });
+  return mudou ? { ...d, custos } : d;
+}
+
 export function carregarEstrutura(ano: number = 2026): Dados {
   if (typeof window === "undefined") return PADRAO;
   try {
     const cru = localStorage.getItem(chaveAno(ano));
-    if (cru) return JSON.parse(cru);
+    if (cru) return limparGruposLegado(JSON.parse(cru));
     if (ano === 2026) {
       const legado = localStorage.getItem(CHAVE);
-      if (legado) return JSON.parse(legado);
+      if (legado) return limparGruposLegado(JSON.parse(legado));
       // conta real (banco): empresa nova começa com o MODELO LIMPO (genérico).
       // No modo demonstração, mostra o exemplo com dados da Dynamis (PADRAO).
       return supabaseReady ? MODELO_LIMPO : PADRAO;
@@ -745,6 +760,27 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       });
     } finally { setPuxandoFolha(false); }
   }
+  // Puxar da Folha só de UM mês (sincroniza aquele mês da estrutura com o mesmo mês/ano da Folha).
+  const [puxandoMes, setPuxandoMes] = useState<number | null>(null);
+  async function puxarDaFolhaMes(m: number) {
+    if (puxandoMes !== null) return;
+    setPuxandoMes(m);
+    try {
+      const eid = await empresaIdAtual();
+      const tot = await folhaTotais(eid, ano);
+      snapshot();
+      setD((x) => {
+        const r = structuredClone(x);
+        for (const b of r.custos) for (const g of b.grupos) for (const it of g.itens) {
+          const cat = categoriaDoItem(it.nome);
+          if (cat) it.v[m] = tot[cat][m];
+        }
+        return r;
+      });
+    } finally { setPuxandoMes(null); }
+  }
+  // um grupo é "da Folha" quando tem itens que casam com as categorias da Folha (Salários Líquidos, FGTS, etc.)
+  const ehGrupoFolha = (g: { itens: { nome: string }[] }) => g.itens.some((it) => categoriaDoItem(it.nome));
 
   // passo 1 = confirmar a DATA; passo 2 = tela igual à do Calendário (descrição/valor/recorrência)
   const [confCal, setConfCal] = useState<{ bi: number; gi: number; ii: number; mOrig: number; valorOrig: number; passo: "data" | "form"; data: string; grupo: string; item: string; valorStr: string; freq: Freq } | null>(null);
@@ -998,7 +1034,17 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                             onRemover={() => g.financeiro
                               ? setAvisoBloqueio(`O grupo "${g.nome}" alimenta o cálculo do EBITDA e não pode ser apagado. Você pode zerar os valores dos itens, mas o grupo precisa continuar.`)
                               : pedirExcluir(g.nome || "este grupo", () => removerGrupo(bi, gi))} />
-                          {mesesVis.map((m) => <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}>{fmt(gm[m])}</td>)}
+                          {mesesVis.map((m) => ehGrupoFolha(g) ? (
+                            <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 500 }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 5, width: "100%" }}>
+                                <button onClick={(e) => { e.stopPropagation(); puxarDaFolhaMes(m); }} disabled={puxandoMes !== null} title={`Puxar os dados da Folha de ${MES_CHEIO[m]} de ${ano} para este mês`} className="no-print"
+                                  style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, display: "grid", placeItems: "center", cursor: puxandoMes !== null ? "default" : "pointer", border: 0, background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", fontSize: 12, fontWeight: 800, lineHeight: 0 }}>↧</button>
+                                <span onClick={() => toggleGrupo(id)} style={{ cursor: "pointer" }}>{fmt(gm[m])}</span>
+                              </span>
+                            </td>
+                          ) : (
+                            <td key={m} onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 500, cursor: "pointer" }}>{fmt(gm[m])}</td>
+                          ))}
                           <td onClick={() => toggleGrupo(id)} className="oc-num" style={{ ...tdNum, fontWeight: 700, cursor: "pointer" }}>{fmt(totalDe(gm))}</td>
                         </tr>
                         {/* itens (folhas editáveis: nome e valores). Linhas do calendário são só-leitura. */}
@@ -1038,7 +1084,9 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                         ) : (
                           <FragBloco key={ii}>
                             <tr style={{ borderTop: "1px solid var(--line)" }}>
-                              <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)} onRemover={() => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))}
+                              <NomeCel valor={it.nome} placeholder="Novo item" italico indent={30} onSalvo={salvo} onChange={(nv) => nomeItem(bi, gi, ii, nv)}
+                                bloqueado={!!categoriaDoItem(it.nome)}
+                                onRemover={categoriaDoItem(it.nome) ? undefined : () => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))}
                                 drag={{ onStart: () => { arrastarItem.current = { bi, gi, ii }; }, onDrop: () => { const a = arrastarItem.current; if (a && a.bi === bi && a.gi === gi) moverItem(bi, gi, a.ii, ii); arrastarItem.current = null; } }} />
                               {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => aoDigitarCusto(bi, gi, ii, m, nv, g.nome, it.nome)} />)}
                               <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
@@ -1190,12 +1238,12 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
               </span>
               <div>
                 <b style={{ fontSize: 15 }}>Remover essa conta prevista?</b>
-                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>Essa conta se repete. Você quer remover só <strong>{MES[remPrev.mes]}</strong> ou também os meses seguintes?</p>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>Essa conta se repete. Você quer remover só <strong>{MES_CHEIO[remPrev.mes]}</strong> ou também os meses seguintes?</p>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 20 }}>
-              <button className="btn" style={{ width: "100%", justifyContent: "center", background: VERMELHO }} onClick={() => { removerPendentesMes(remPrev.origem, remPrev.grupo, remPrev.item, remPrev.mes); setRemPrev(null); }}>Remover só {MES[remPrev.mes]}</button>
-              <button className="btn" style={{ width: "100%", justifyContent: "center", background: VERMELHO }} onClick={() => { removerPendentesDaqui(remPrev.origem, remPrev.grupo, remPrev.item, remPrev.mes); setRemPrev(null); }}>Remover {MES[remPrev.mes]} e os seguintes</button>
+              <button className="btn" style={{ width: "100%", justifyContent: "center", background: VERMELHO }} onClick={() => { removerPendentesMes(remPrev.origem, remPrev.grupo, remPrev.item, remPrev.mes); setRemPrev(null); }}>Remover só {MES_CHEIO[remPrev.mes]}</button>
+              <button className="btn" style={{ width: "100%", justifyContent: "center", background: VERMELHO }} onClick={() => { removerPendentesDaqui(remPrev.origem, remPrev.grupo, remPrev.item, remPrev.mes); setRemPrev(null); }}>Remover {MES_CHEIO[remPrev.mes]} e os seguintes</button>
               <button className="btn ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => setRemPrev(null)}>Cancelar</button>
             </div>
           </div>
@@ -1346,9 +1394,9 @@ function THead({ icone, titulo, cor, meses }: { icone: React.ReactNode; titulo: 
  * `reservaChevron` guarda o espaço da setinha para as bolinhas ficarem alinhadas
  * com as dos grupos (que têm o chevron de expandir).
  */
-function NomeCel({ cor, valor, placeholder, onChange, onRemover, italico, indent, reservaChevron, onSalvo, lider, peso, drag }: {
+function NomeCel({ cor, valor, placeholder, onChange, onRemover, italico, indent, reservaChevron, onSalvo, lider, peso, drag, bloqueado }: {
   cor?: string; valor: string; placeholder: string; onChange: (v: string) => void; onRemover?: () => void; italico?: boolean; indent?: number; reservaChevron?: boolean; onSalvo?: (el: HTMLElement) => void; lider?: React.ReactNode; peso?: number;
-  drag?: { onStart: () => void; onDrop: () => void };
+  drag?: { onStart: () => void; onDrop: () => void }; bloqueado?: boolean;
 }) {
   const [focado, setFocado] = useState(false);
   const [sobre, setSobre] = useState(false);
@@ -1370,7 +1418,11 @@ function NomeCel({ cor, valor, placeholder, onChange, onRemover, italico, indent
           onMouseLeave={(e) => { if (document.activeElement !== e.currentTarget) e.currentTarget.style.borderColor = "transparent"; }}
           onFocus={(e) => { setFocado(true); inicial.current = valor; e.currentTarget.style.borderColor = "var(--line-2)"; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; if (valor !== inicial.current) onSalvo?.(e.currentTarget); setTimeout(() => setFocado(false), 150); }} />
-        {onRemover && focado && (
+        {bloqueado ? (
+          <span title="Item da Folha de pagamento: não pode ser excluído" style={{ flexShrink: 0, color: "var(--muted-2)", display: "grid", placeItems: "center", opacity: .7, lineHeight: 0 }}>
+            <Lock size={12} />
+          </span>
+        ) : onRemover && focado && (
           <button onMouseDown={(e) => e.preventDefault()} onClick={onRemover} title="Excluir" aria-label="Excluir"
             style={{ flexShrink: 0, background: "transparent", border: 0, color: "var(--red)", cursor: "pointer", padding: 2, borderRadius: 5, lineHeight: 0 }}>
             <Trash2 size={13} />

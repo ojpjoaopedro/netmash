@@ -1,9 +1,11 @@
 // Totais da Folha de pagamento por mês, para puxar na Estrutura de Custos.
-// Lê os mesmos dados da tela de Folha (localStorage) e recalcula com as regras 2026.
+// Lê o mesmo snapshot mensal da tela de Folha (me_folha_mensal:<empresa>:<ano-mes>) e
+// recalcula com as regras 2026, para cada mês sincronizar com o mesmo mês/ano da Folha.
 import { getFuncionarios } from "@/lib/db";
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
+const INSS_TETO = 8475.55;
 const INSS_FAIXAS: [number, number][] = [[1621, 0.075], [2902.84, 0.09], [4354.27, 0.12], [8475.55, 0.14]];
 function calcINSS(bruto: number): number {
   let ant = 0, inss = 0;
@@ -22,48 +24,59 @@ function calcIRRF(bruto: number, inss: number): number {
 }
 
 function ler<T>(key: string): T | null { if (typeof window === "undefined") return null; try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } }
-function valNum(x: unknown): number { if (x == null) return 0; if (typeof x === "number") return x; const o = x as { valor?: number }; return o.valor || 0; }
 
-export type TotaisFolha = { liquido: number[]; fgts: number[]; provisao: number[]; rescisao: number[]; comissao: number[]; proLabore: number[] };
+type VarsMes = { base?: number; comissao?: number; horaExtra?: number; gratificacao?: number; sindicato?: number; planoSaude?: number; adiantamento?: number; extra?: Record<string, number> };
+type ColsFolha = { prov: { id: string }[]; desc: { id: string }[] };
+type Pessoa = { id: string; cargo: string | null; ativo: boolean };
 
-/** Totais mês a mês da Folha (12 posições cada). Líquido/FGTS/provisões seguem o Preenchimento geral; comissão vem da Folha mensal. */
+// pessoas com login (superadmin + admins) também entram na folha; o tipo (Funcionário/Sócio) fica em "area"
+function lerLogin(): Pessoa[] {
+  const s = ler<{ sup?: { id?: string; nome?: string; area?: string }; admins?: { id?: string; nome?: string; area?: string }[] }>("me_diretores");
+  if (!s || !s.sup) return [];
+  const lista = [s.sup, ...(Array.isArray(s.admins) ? s.admins : [])];
+  return lista.filter((d) => (d?.nome || "").trim()).map((d) => ({ id: d.id || "super", cargo: d.area || "Funcionário", ativo: true }));
+}
+
+export type TotaisFolha = { liquido: number[]; fgts: number[]; provisao: number[]; rescisao: number[]; comissao: number[]; proLabore: number[]; darf: number[] };
+
+/** Totais mês a mês da Folha (12 posições). Cada mês vem do snapshot daquele mês/ano da Folha mensal. */
 export async function folhaTotais(empresaId: string | null | undefined, ano: number): Promise<TotaisFolha> {
   const eid = empresaId || "default";
-  const funcs = (await getFuncionarios()).filter((f) => f.ativo);
-  const benef = ler<Record<string, { vt?: unknown; va?: unknown; extra?: Record<string, unknown> }>>(`me_folha_beneficios:${eid}`) || {};
-  const modos = ler<Record<string, "pct" | "fixo">>(`me_folha_benef_modos:${eid}`) || {};
+  const dbFuncs: Pessoa[] = (await getFuncionarios()).map((f) => ({ id: f.id, cargo: f.cargo, ativo: f.ativo }));
+  const idsDb = new Set(dbFuncs.map((f) => f.id));
+  const pessoas = [...dbFuncs, ...lerLogin().filter((l) => !idsDb.has(l.id))].filter((p) => p.ativo);
+  const cols = ler<ColsFolha>(`me_folha_cols:${eid}`) || { prov: [], desc: [] };
   const cfg = ler<{ fgtsPct?: number }>(`me_folha_config:${eid}`) || {};
   const fgtsPct = cfg.fgtsPct ?? 8;
-  const modoDe = (k: string) => modos[k] || "fixo";
-  const efet = (k: "vt" | "va", f: { id: string; salario?: number }) => { const num = valNum(benef[f.id]?.[k]); if (!num) return 0; return modoDe(k) === "pct" ? round2((f.salario || 0) * num / 100) : round2(num); };
-
-  // Preenchimento geral (mesmo em todo mês)
-  let gLiq = 0, gFgts = 0, gProv = 0, gResc = 0;
-  for (const f of funcs) {
-    const bruto = f.salario || 0;
-    const inss = calcINSS(bruto);
-    const irrf = calcIRRF(bruto, inss);
-    const vt = efet("vt", f);
-    const totalDesc = round2(vt + inss + irrf);
-    gLiq += round2(bruto - totalDesc);
-    gProv += round2(bruto / 12 + (bruto + bruto / 3) / 12);
-    const fgts = round2(bruto * fgtsPct / 100);
-    gFgts += fgts;
-    gResc += round2(fgts * 0.40);
-  }
+  const ehSocio = (p: Pessoa) => (p.cargo || "") === "Sócio";
 
   const z = () => new Array(12).fill(0);
-  const out: TotaisFolha = { liquido: z(), fgts: z(), provisao: z(), rescisao: z(), comissao: z(), proLabore: z() };
+  const out: TotaisFolha = { liquido: z(), fgts: z(), provisao: z(), rescisao: z(), comissao: z(), proLabore: z(), darf: z() };
+
   for (let m = 0; m < 12; m++) {
     const ym = `${ano}-${String(m + 1).padStart(2, "0")}`;
-    const mensal = ler<Record<string, { comissao?: number }>>(`me_folha_mensal:${eid}:${ym}`) || {};
-    let comissao = 0;
-    for (const fid in mensal) comissao += mensal[fid]?.comissao || 0;
-    out.comissao[m] = round2(comissao);
-    out.liquido[m] = round2(gLiq);
-    out.fgts[m] = round2(gFgts);
-    out.provisao[m] = round2(gProv);
-    out.rescisao[m] = round2(gResc);
+    const mensal = ler<Record<string, VarsMes>>(`me_folha_mensal:${eid}:${ym}`) || {};
+    for (const p of pessoas) {
+      const v = mensal[p.id] || {};
+      const base = v.base || 0;
+      if (ehSocio(p)) { out.proLabore[m] += base; continue; }   // pró-labore (regra própria, apurado à parte)
+      const extra = v.extra || {};
+      const provExtra = cols.prov.reduce((s, c) => s + (extra[c.id] || 0), 0);
+      const descExtra = cols.desc.reduce((s, c) => s + (extra[c.id] || 0), 0);
+      const proventos = round2(base + (v.comissao || 0) + (v.horaExtra || 0) + (v.gratificacao || 0) + provExtra);
+      const inss = calcINSS(proventos);
+      const irrf = calcIRRF(proventos, inss);
+      const descManual = (v.sindicato || 0) + (v.planoSaude || 0) + (v.adiantamento || 0) + descExtra;
+      const liquido = round2(proventos - inss - irrf - descManual);
+      const fgts = round2(base * fgtsPct / 100);
+      out.liquido[m] += liquido;
+      out.comissao[m] += (v.comissao || 0);
+      out.fgts[m] += fgts;
+      out.provisao[m] += base / 12 + (base + base / 3) / 12;
+      out.rescisao[m] += fgts * 0.40;
+      out.darf[m] += inss + irrf;
+    }
+    for (const k of Object.keys(out) as (keyof TotaisFolha)[]) out[k][m] = round2(out[k][m]);
   }
   return out;
 }
@@ -73,9 +86,10 @@ export function categoriaDoItem(nome: string): keyof TotaisFolha | null {
   const n = (nome || "").toLowerCase();
   if (n.includes("líquido") || n.includes("liquido")) return "liquido";
   if (n.includes("fgts")) return "fgts";
-  if (n.includes("13") || n.includes("féria") || n.includes("feria")) return "provisao";
+  if (n.includes("darf")) return "darf";
   if (n.includes("rescis")) return "rescisao";
+  if (n.includes("13") || n.includes("féria") || n.includes("feria")) return "provisao";
   if (n.includes("comiss")) return "comissao";
-  if (n.includes("labore") || n.includes("pró-labore") || n.includes("pro-labore")) return "proLabore";
+  if (n.includes("labore")) return "proLabore";
   return null;
 }
