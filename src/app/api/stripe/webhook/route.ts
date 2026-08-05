@@ -92,6 +92,28 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ASSINATURA: pagamento FALHOU -> bloqueia; RENOVOU/pagou -> reativa.
+  if (event.type === "invoice.payment_failed" || event.type === "invoice.paid" || event.type === "invoice.payment_succeeded") {
+    const inv = event.data.object as Stripe.Invoice;
+    let email = (inv.customer_email || "").toLowerCase();
+    if (!email && inv.customer) {
+      try { const cust = await stripe.customers.retrieve(String(inv.customer)); if (!("deleted" in cust)) email = (cust.email || "").toLowerCase(); } catch { /* sem e-mail */ }
+    }
+    if (email) {
+      const id = await idPorEmail(s, email);
+      if (id) {
+        if (event.type === "invoice.payment_failed") {
+          await s.auth.admin.updateUserById(id, { ban_duration: "876000h" }); // bloqueia
+          await s.from("vendas").update({ status: "inadimplente" }).ilike("email", email);
+          return NextResponse.json({ ok: true, acao: "acesso_bloqueado_falta_pagamento" });
+        }
+        await s.auth.admin.updateUserById(id, { ban_duration: "none" }); // reativa na renovação
+        await s.from("vendas").update({ status: "pago" }).ilike("email", email);
+        return NextResponse.json({ ok: true, acao: "acesso_reativado_pagamento" });
+      }
+    }
+  }
+
   return NextResponse.json({ received: true });
 }
 
