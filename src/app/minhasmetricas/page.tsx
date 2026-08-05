@@ -44,17 +44,17 @@ import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
 
 type View =
-  | "dashboard" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
+  | "dashboard" | "painel" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
   | "assistente" | "equipe" | "apresentacao" | "importar" | "empresa";
 
 // URL <-> seção: o endereço muda por seção (nomes genéricos), a empresa nunca aparece.
 const VIEW_SEG: Record<string, string> = {
-  dashboard: "home", financas: "financas", planejamento: "planejamento", clientes: "clientes",
+  dashboard: "home", painel: "painel", financas: "financas", planejamento: "planejamento", clientes: "clientes",
   assistente: "assistente", config: "config", equipe: "equipe", empresa: "empresa",
   importar: "importar", apresentacao: "apresentacao", marketing: "marketing",
 };
 const SEG_VIEW: Record<string, View> = {
-  home: "dashboard", dashboard: "dashboard", financas: "financas", planejamento: "planejamento",
+  home: "dashboard", dashboard: "dashboard", painel: "painel", financas: "financas", planejamento: "planejamento",
   clientes: "clientes", assistente: "assistente", config: "config", equipe: "equipe",
   empresa: "empresa", importar: "importar", apresentacao: "apresentacao", marketing: "marketing",
 };
@@ -62,8 +62,7 @@ const SEG_VIEW: Record<string, View> = {
 const METRICAS = [
   { key: "dashboard", label: "Home", Icon: LayoutDashboard },
   { key: "financas", label: "Finanças", Icon: DollarSign },
-  { key: "planejamento", label: "Planejamento", Icon: Compass },
-  { key: "clientes", label: "Cadastro de clientes", Icon: UserPlus },
+  { key: "painel", label: "Dashboard", Icon: LayoutDashboard },
 ] as const;
 // sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
@@ -573,22 +572,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
           </div>
         )}
         {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
-        {view === "dashboard" && (
-          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "relatorios", label: "Análises financeiras", Icon: FileText }].map((a) => (
-              <button key={a.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}
-                style={{ display: "flex", alignItems: "center", gap: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                  padding: "22px 24px", borderRadius: 18, border: 0, color: "#fff",
-                  background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000))",
-                  boxShadow: "0 16px 34px -18px color-mix(in srgb, var(--brand) 70%, transparent)", transition: "transform .15s, box-shadow .15s" }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 22px 42px -18px color-mix(in srgb, var(--brand) 80%, transparent)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 16px 34px -18px color-mix(in srgb, var(--brand) 70%, transparent)"; }}>
-                <span style={{ width: 48, height: 48, borderRadius: 14, display: "grid", placeItems: "center", background: "rgba(255,255,255,.18)", flexShrink: 0 }}><a.Icon size={24} color="#fff" /></span>
-                <b style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-.01em" }}>{a.label}</b>
-              </button>
-            ))}
-          </div>
-        )}
         {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} /></div>}
         {view === "dashboard" && (
           <div className="cal-promo" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
@@ -603,6 +586,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
         <div className={estreito && view !== "dashboard" ? "msub-body" : undefined} style={estreito && view === "dashboard" ? { display: "none" } : undefined}>
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
         {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} reload={carregarDados} voltarRef={voltarRef} onNivel={setVoltarLabel} />}
+        {view === "painel" && <TelaPainel empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <TelaUpgrade Icon={Compass} titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." preco="R$ 29,90" />}
         {view === "clientes" && <TelaUpgrade Icon={UserPlus} titulo="Cadastro de clientes" texto="Cadastre e organize seus clientes em um só lugar. Ative este módulo no seu plano para liberar esta tela." preco="R$ 39,90" />}
@@ -667,6 +651,47 @@ function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebime
         <ArrowLeft size={17} /> Voltar
       </button>
       <CalendarioPagamentos anoInicial={ano} tipo={tipo} />
+    </div>
+  );
+}
+
+/**
+ * Tela Dashboard (mesmo estilo do Finanças): título + abas.
+ * Abre no Dashboard e tem a aba "Análises financeiras".
+ */
+function TelaPainel({ empresa, brand, ano, setAno }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void }) {
+  const [aba, setAba] = useState<"dashboard" | "relatorios">("dashboard");
+  const abas = [
+    { key: "dashboard" as const, label: "Dashboard", Icon: LayoutDashboard },
+    { key: "relatorios" as const, label: "Análises financeiras", Icon: FileText },
+  ];
+  const tab = (ativo: boolean): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
+    padding: "11px 16px", marginBottom: -1, fontSize: 13.5, fontWeight: 700,
+    cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+    background: "transparent", border: 0,
+    borderBottom: `2px solid ${ativo ? "var(--brand)" : "transparent"}`,
+    color: ativo ? "var(--brand)" : "var(--muted)",
+  });
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
+          <LayoutDashboard size={22} />
+        </span>
+        <h2 style={{ margin: 0, fontSize: "clamp(21px, 6vw, 27px)", fontWeight: 800, letterSpacing: "-.6px" }}>Dashboard</h2>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
+        <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0, overflowX: "auto" }}>
+          {abas.map((a, i) => (
+            <Fragment key={a.key}>
+              {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px", flexShrink: 0 }} />}
+              <button onClick={() => setAba(a.key)} style={tab(aba === a.key)}><a.Icon size={16} /> {a.label}</button>
+            </Fragment>
+          ))}
+        </div>
+      </div>
+      {aba === "dashboard" ? <FinancasDashboard ano={ano} setAno={setAno} /> : <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} setAno={setAno} />}
     </div>
   );
 }
