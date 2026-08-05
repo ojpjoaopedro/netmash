@@ -213,10 +213,11 @@ function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
     return () => window.removeEventListener("me:diretores", ler);
   }, []);
 
-  // junta equipe (funcs) + usuários com login, sem duplicar quem aparece nos dois (por nome)
+  // junta equipe (funcs) + usuários com login — só ATIVOS, sem duplicar quem aparece nos dois (por nome)
   const nascFunc = funcs.filter((f) => f.ativo && f.nascimento).map((f) => ({ id: f.id, nome: f.nome, nascimento: f.nascimento! }));
   const vistos = new Set(nascFunc.map((p) => (p.nome || "").trim().toLowerCase()));
-  const todosNasc = [...nascFunc, ...logins.filter((p) => !vistos.has((p.nome || "").trim().toLowerCase()))];
+  const inativos = new Set(funcs.filter((f) => !f.ativo).map((f) => (f.nome || "").trim().toLowerCase()));   // desativados na Equipe
+  const todosNasc = [...nascFunc, ...logins.filter((p) => { const n = (p.nome || "").trim().toLowerCase(); return !vistos.has(n) && !inativos.has(n); })];
   const niver = todosNasc.filter((p) => mesDe(p.nascimento) === mes)
     .sort((a, b) => a.nascimento.slice(8, 10).localeCompare(b.nascimento.slice(8, 10)));
   const admis = funcs.filter((f) => f.ativo && f.admissao && mesDe(f.admissao) === mes)
