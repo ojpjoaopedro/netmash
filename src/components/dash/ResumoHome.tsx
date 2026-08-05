@@ -197,8 +197,28 @@ function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
   const mes = agora.getMonth();
   const anoAtual = agora.getFullYear();
 
-  const niver = funcs.filter((f) => f.ativo && f.nascimento && mesDe(f.nascimento) === mes)
-    .sort((a, b) => a.nascimento!.slice(8, 10).localeCompare(b.nascimento!.slice(8, 10)));
+  // usuários com login (superadmin/admins) guardam o nascimento em me_diretores, não em funcs
+  const [logins, setLogins] = useState<{ id: string; nome: string; nascimento: string }[]>([]);
+  useEffect(() => {
+    const ler = () => {
+      try {
+        const s = JSON.parse(localStorage.getItem("me_diretores") || "null");
+        const lista = s ? [s.sup, ...(s.admins || [])] : [];
+        setLogins(lista.filter((p: { nome?: string; nascimento?: string }) => p && p.nascimento && (p.nome || "").trim())
+          .map((p: { id?: string; email?: string; nome: string; nascimento: string }, i: number) => ({ id: `login:${p.id || p.email || i}`, nome: p.nome, nascimento: p.nascimento })));
+      } catch { setLogins([]); }
+    };
+    ler();
+    window.addEventListener("me:diretores", ler);
+    return () => window.removeEventListener("me:diretores", ler);
+  }, []);
+
+  // junta equipe (funcs) + usuários com login, sem duplicar quem aparece nos dois (por nome)
+  const nascFunc = funcs.filter((f) => f.ativo && f.nascimento).map((f) => ({ id: f.id, nome: f.nome, nascimento: f.nascimento! }));
+  const vistos = new Set(nascFunc.map((p) => (p.nome || "").trim().toLowerCase()));
+  const todosNasc = [...nascFunc, ...logins.filter((p) => !vistos.has((p.nome || "").trim().toLowerCase()))];
+  const niver = todosNasc.filter((p) => mesDe(p.nascimento) === mes)
+    .sort((a, b) => a.nascimento.slice(8, 10).localeCompare(b.nascimento.slice(8, 10)));
   const admis = funcs.filter((f) => f.ativo && f.admissao && mesDe(f.admissao) === mes)
     .sort((a, b) => a.admissao!.slice(8, 10).localeCompare(b.admissao!.slice(8, 10)));
 
