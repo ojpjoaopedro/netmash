@@ -153,24 +153,28 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
   const conteudo = (
     <div style={{ display: "flex", flexDirection: "column", gap: full ? 16 : 14, height: full ? "100%" : "auto", ...(full ? { width: "min(100vw, calc(100vh * 16 / 9))", maxHeight: "100vh", margin: "0 auto" } : {}) }}>
       {/* seletor de meses + expandir */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        {setAno && <SeletorAno ano={ano} setAno={setAno} escuro />}
-        {MES.map((nome, m) => {
-          const on = sel.has(m);
-          return (
-            <button key={m} onClick={() => toggle(m)}
-              style={{ padding: "7px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "var(--brand)" : "rgba(148,163,184,.28)"}`, background: on ? "var(--brand)" : "transparent", color: on ? "var(--brand-ct,#fff)" : "#94a3b8" }}>
-              {nome}
-            </button>
-          );
-        })}
-        <span style={{ width: 1, height: 22, background: "rgba(148,163,184,.28)", margin: "0 3px" }} />
-        {(() => { const btn: React.CSSProperties = { padding: "7px 13px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid rgba(148,163,184,.28)", background: "transparent", color: "#94a3b8" }; return (
-          <>
-            <button onClick={() => setSel(sel.size === 0 ? new Set(Array.from({ length: 12 }, (_, i) => i)) : new Set())} style={btn}>{sel.size === 0 ? "Marcar todos" : "Desmarcar todos"}</button>
-            <button onClick={() => setSel(new Set([new Date().getMonth()]))} style={btn}>Só mês atual</button>
-          </>
-        ); })()}
+      <div className="mesbar">
+        {setAno && <span className="mesbar-ano"><SeletorAno ano={ano} setAno={setAno} escuro /></span>}
+        <div className="mesbar-meses">
+          {MES.map((nome, m) => {
+            const on = sel.has(m);
+            return (
+              <button key={m} onClick={() => toggle(m)}
+                style={{ padding: "7px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "var(--brand)" : "rgba(148,163,184,.28)"}`, background: on ? "var(--brand)" : "transparent", color: on ? "var(--brand-ct,#fff)" : "#94a3b8" }}>
+                {nome}
+              </button>
+            );
+          })}
+        </div>
+        <span className="mesbar-sep" style={{ width: 1, height: 22, background: "rgba(148,163,184,.28)", margin: "0 3px" }} />
+        <div className="mesbar-acoes">
+          {(() => { const btn: React.CSSProperties = { padding: "7px 13px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid rgba(148,163,184,.28)", background: "transparent", color: "#94a3b8" }; return (
+            <>
+              <button onClick={() => setSel(sel.size === 0 ? new Set(Array.from({ length: 12 }, (_, i) => i)) : new Set())} style={btn}>{sel.size === 0 ? "Marcar todos" : "Desmarcar todos"}</button>
+              <button onClick={() => setSel(new Set([new Date().getMonth()]))} style={btn}>Só mês atual</button>
+            </>
+          ); })()}
+        </div>
         {!estreito && (
           <button onClick={toggleFull} title={full ? "Sair da tela cheia" : "Expandir para tela cheia"}
             style={{ marginLeft: "auto", width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}>

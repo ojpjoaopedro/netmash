@@ -153,7 +153,7 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
       )}
 
       {/* dois lados: à esquerda os dados da empresa, à direita a identidade */}
-      <div style={{ display: "grid", gridTemplateColumns: secao === "tudo" ? "1.15fr .85fr" : "1fr", gap: 16, alignItems: "start" }}>
+      <div className="cfg-grid" style={{ display: "grid", gridTemplateColumns: secao === "tudo" ? "1.15fr .85fr" : "1fr", gap: 16, alignItems: "start" }}>
         {/* Dados da empresa — cada campo salva sozinho ao sair (auto-save) */}
         {secao !== "identidade" && (
         <div className="card compacto">

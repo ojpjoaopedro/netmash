@@ -654,3 +654,24 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   animation:splashLetra .5s cubic-bezier(.2,.85,.25,1) forwards}
 @keyframes splashLetra{to{opacity:1;transform:translateY(0) scale(1)}}
 
+
+/* ============================================================
+   Barra de meses (Estrutura + Dashboard) — responsiva no celular
+   ============================================================ */
+.mesbar{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.mesbar-meses,.mesbar-acoes{display:contents}
+@media (max-width:640px){
+  .mesbar{display:grid;grid-template-columns:1fr;gap:10px;width:100%}
+  .mesbar-ano{width:100%}
+  .mesbar-meses{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .mesbar-meses>button{width:100% !important;padding:11px 0 !important;font-size:13px !important}
+  .mesbar-acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .mesbar-acoes>button{width:100% !important;padding:11px 0 !important;font-size:13px !important}
+  .mesbar-sep{display:none !important}
+}
+
+/* Config "Dados da empresa" — empilha em coluna única no celular */
+@media (max-width:640px){
+  .cfg-grid{grid-template-columns:1fr !important}
+  .fgrid{grid-template-columns:1fr !important;gap:12px !important}
+}

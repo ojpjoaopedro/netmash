@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useRef, Fragment } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, Compass, Settings,
@@ -7,7 +7,7 @@ import {
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
-  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet,
+  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -138,6 +138,31 @@ export default function Home({ secao }: { secao?: string } = {}) {
   useEffect(() => assinarNav((a) => setView(a.view as View)), []);
   const [editor, setEditor] = useState<Categoria | null>(null);
   const [menuAberto, setMenuAberto] = useState(false);
+  // notificações (sino da Home mobile): aniversariantes do mês
+  const [notifAberto, setNotifAberto] = useState(false);
+  const [niverLogins, setNiverLogins] = useState<{ id: string; nome: string; nascimento: string }[]>([]);
+  useEffect(() => {
+    const ler = () => {
+      try {
+        const s = JSON.parse(localStorage.getItem("me_diretores") || "null");
+        const lista = s ? [s.sup, ...(s.admins || [])] : [];
+        setNiverLogins(lista.filter((p: { nome?: string; nascimento?: string }) => p && p.nascimento && (p.nome || "").trim())
+          .map((p: { id?: string; email?: string; nome: string; nascimento: string }, i: number) => ({ id: `login:${p.id || p.email || i}`, nome: p.nome, nascimento: p.nascimento })));
+      } catch { setNiverLogins([]); }
+    };
+    ler();
+    window.addEventListener("me:diretores", ler);
+    return () => window.removeEventListener("me:diretores", ler);
+  }, []);
+  const niverMes = useMemo(() => {
+    const mes = new Date().getMonth();
+    const mesDe = (iso: string) => Number(iso.slice(5, 7)) - 1;
+    const ativos = funcs.filter((f) => f.ativo && f.nascimento).map((f) => ({ id: f.id, nome: f.nome, nascimento: f.nascimento! }));
+    const vistos = new Set(ativos.map((p) => (p.nome || "").trim().toLowerCase()));
+    const inativos = new Set(funcs.filter((f) => !f.ativo).map((f) => (f.nome || "").trim().toLowerCase()));
+    const todos = [...ativos, ...niverLogins.filter((p) => { const n = (p.nome || "").trim().toLowerCase(); return !vistos.has(n) && !inativos.has(n); })];
+    return todos.filter((p) => mesDe(p.nascimento) === mes).sort((a, b) => a.nascimento.slice(8, 10).localeCompare(b.nascimento.slice(8, 10)));
+  }, [funcs, niverLogins]);
   // nome do Super Admin (definido em Configurações › Meus Usuários) para o rodapé
   const [superNome, setSuperNome] = useState("");
   useEffect(() => {
@@ -501,9 +526,31 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <button onClick={() => setMenuAberto(true)} title="Menu"><Menu size={24} color="var(--brand)" /></button>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button onClick={toggleOcultarHome} title={ocultoHome ? "Mostrar valores" : "Ocultar valores"}>{ocultoHome ? <EyeOff size={22} color="var(--brand)" /> : <Eye size={22} color="var(--brand)" />}</button>
-                <button title="Notificações" style={{ position: "relative" }}><Bell size={22} color="var(--brand)" /><span className="mhome-dot" /></button>
+                <button onClick={() => setNotifAberto((v) => !v)} title="Aniversariantes do mês" style={{ position: "relative" }}><Bell size={22} color="var(--brand)" />{niverMes.length > 0 && <span className="mhome-dot" />}</button>
               </div>
             </div>
+
+            {/* notificações: aniversariantes do mês */}
+            {notifAberto && (
+              <div onClick={() => setNotifAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 140, background: "rgba(15,23,42,.4)", backdropFilter: "blur(1px)", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", padding: "62px 12px 0" }}>
+                <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 320, padding: 16, boxShadow: "0 18px 44px -18px rgba(0,0,0,.5)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Cake size={15} /></span>
+                    <b style={{ fontSize: 14, textTransform: "capitalize" }}>Aniversariantes de {new Date().toLocaleDateString("pt-BR", { month: "long" })}</b>
+                  </div>
+                  {niverMes.length === 0
+                    ? <p className="sub" style={{ fontStyle: "italic", fontSize: 13, margin: 0 }}>Nenhum aniversariante neste mês.</p>
+                    : <div style={{ display: "grid", gap: 9 }}>
+                        {niverMes.map((p) => (
+                          <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</span>
+                            <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 10px", borderRadius: 99 }}>🎈 {p.nascimento.slice(8, 10)}/{p.nascimento.slice(5, 7)}</span>
+                          </div>
+                        ))}
+                      </div>}
+                </div>
+              </div>
+            )}
 
             <div className="mhome-quote">
               <p>{fraseHome ? `“${fraseHome.t.replace(/\.\s*$/, "")}”` : "…"}</p>
@@ -526,7 +573,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
             <div className="mhome-gray">
               <div className="mhome-wgrid">
-                {[{ v: "financas", label: "Finanças", Icon: DollarSign }, { v: "planejamento", label: "Planejamento", Icon: Compass }, { v: "clientes", label: "Cadastro de clientes", Icon: UserPlus }, { v: "assistente", label: "Assistente", Icon: Sparkles }, { v: "config", label: "Configurações", Icon: Settings }].map((c) => (
+                {[{ v: "financas", label: "Finanças", Icon: DollarSign }, { v: "assistente", label: "Assistente", Icon: Sparkles }, { v: "config", label: "Configurações", Icon: Settings }].map((c) => (
                   <button key={c.v} className="mhome-wcard" onClick={() => { playTick(); setView(c.v as View); }}>
                     <span className="mhome-wcard-ico"><c.Icon size={22} /></span>
                     <b>{c.label}</b>
@@ -768,7 +815,6 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
     { key: "estrutura", label: "Estrutura de Receitas e Custos", Icon: Layers },
     { key: "calendario", label: "Calendário", Icon: CalendarDays },
     { key: "folha", label: "Folha de pagamento", Icon: Wallet },
-    { key: "importar", label: "Importar planilha", Icon: Upload },
   ];
   // Dashboard/Relatório são abertos pelos atalhos da Home: sem cabeçalho/abas, só um "Voltar".
   const ehAtalhoHome = aba === "dashboard" || aba === "relatorios";
