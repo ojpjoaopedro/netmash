@@ -741,27 +741,21 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   }
   // Ao digitar um custo direto na Estrutura: oferece confirmar também no Calendário (data + recorrência).
   // Confirmando, o valor sai do manual e vira lançamento do calendário (volta somando 1x, sem dupla contagem).
-  // Puxar da Folha de pagamento: preenche os itens do grupo Salários (por nome) com os totais mês a mês.
-  const [puxandoFolha, setPuxandoFolha] = useState(false);
-  async function puxarDaFolha() {
-    if (puxandoFolha) return;
-    setPuxandoFolha(true);
-    try {
-      const eid = await empresaIdAtual();
-      const tot = await folhaTotais(eid, ano);
-      snapshot();
-      setD((x) => {
-        const r = structuredClone(x);
-        for (const b of r.custos) for (const g of b.grupos) for (const it of g.itens) {
-          const cat = categoriaDoItem(it.nome);
-          if (cat) it.v = tot[cat].slice();
-        }
-        return r;
-      });
-    } finally { setPuxandoFolha(false); }
-  }
   // Puxar da Folha só de UM mês (sincroniza aquele mês da estrutura com o mesmo mês/ano da Folha).
   const [puxandoMes, setPuxandoMes] = useState<number | null>(null);
+  // meses que têm dados na Folha (para o botão de puxar ficar azul; cinza quando não há nada)
+  const [folhaMesDados, setFolhaMesDados] = useState<boolean[]>(() => new Array(12).fill(false));
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      const eid = await empresaIdAtual();
+      const tot = await folhaTotais(eid, ano);
+      if (!vivo) return;
+      const cats = ["liquido", "fgts", "provisao", "rescisao", "comissao", "proLabore", "darf"] as const;
+      setFolhaMesDados(Array.from({ length: 12 }, (_, m) => cats.some((k) => Math.abs(tot[k][m]) > 0.005)));
+    })();
+    return () => { vivo = false; };
+  }, [ano]);
   async function puxarDaFolhaMes(m: number) {
     if (puxandoMes !== null) return;
     setPuxandoMes(m);
@@ -920,10 +914,6 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
           })}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={puxarDaFolha} disabled={puxandoFolha} title="Preenche os itens do grupo Salários com os totais da Folha de pagamento (líquido, FGTS, provisões, comissão), mês a mês"
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: puxandoFolha ? "wait" : "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 30%, transparent)", padding: "6px 12px", borderRadius: 9 }}>
-            ↧ {puxandoFolha ? "Puxando…" : "Puxar da Folha"}
-          </button>
           <BotaoOcultar />
         </div>
       </div>
@@ -1037,8 +1027,13 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                           {mesesVis.map((m) => ehGrupoFolha(g) ? (
                             <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 500 }}>
                               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 5, width: "100%" }}>
-                                <button onClick={(e) => { e.stopPropagation(); puxarDaFolhaMes(m); }} disabled={puxandoMes !== null} title={`Puxar os dados da Folha de ${MES_CHEIO[m]} de ${ano} para este mês`} className="no-print"
-                                  style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, display: "grid", placeItems: "center", cursor: puxandoMes !== null ? "default" : "pointer", border: 0, background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", fontSize: 12, fontWeight: 800, lineHeight: 0 }}>↧</button>
+                                {(() => { const temDados = folhaMesDados[m]; const bloqueado = puxandoMes !== null || !temDados;
+                                  return (
+                                    <button onClick={(e) => { e.stopPropagation(); if (!bloqueado) puxarDaFolhaMes(m); }} disabled={bloqueado}
+                                      title={temDados ? `Puxar os dados da Folha de ${MES_CHEIO[m]} de ${ano} para este mês` : `Sem dados na Folha de ${MES_CHEIO[m]} de ${ano}`} className="no-print"
+                                      style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, display: "grid", placeItems: "center", cursor: bloqueado ? "default" : "pointer", border: 0, fontSize: 12, fontWeight: 800, lineHeight: 0,
+                                        background: temDados ? "color-mix(in srgb, var(--brand) 14%, transparent)" : "var(--bg-2)", color: temDados ? "var(--brand)" : "var(--muted-2)" }}>↧</button>
+                                  ); })()}
                                 <span onClick={() => toggleGrupo(id)} style={{ cursor: "pointer" }}>{fmt(gm[m])}</span>
                               </span>
                             </td>

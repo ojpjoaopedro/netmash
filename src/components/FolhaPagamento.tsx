@@ -590,7 +590,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const totMfgts = round2(linhasMes.reduce((s, l) => s + round2((l.base || 0) * (cfg.fgtsPct / 100)), 0));
   const totMprov = round2(linhasMes.reduce((s, l) => s + round2((l.base || 0) / 12 + ((l.base || 0) + (l.base || 0) / 3) / 12), 0));
   const totMresc = round2(linhasMes.reduce((s, l) => s + round2(round2((l.base || 0) * (cfg.fgtsPct / 100)) * 0.40), 0));
-  const custoTotalMes = round2(totM.proventos + totMfgts + totMprov + totMresc);
+  // IRRF é desconto do trabalhador (repassado ao governo), não é custo da empresa: sai do custo total
+  const custoTotalMes = round2(totM.proventos - totM.irrf + totMfgts + totMprov + totMresc);
   const mesView = ordenar(linhasMes.filter((l) => combina(l.f)), (l) => {
     switch (sortCol) {
       case "nome": return l.f.nome || ""; case "base": return l.base;
@@ -1248,7 +1249,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             <div style={{ display: "grid", gap: 8 }}>
               {[
                 <><b>Líquido a pagar</b> aos funcionários ({brl(totM.liquido)})</>,
-                <><b>INSS e IRRF retidos</b>, repassados ao governo ({brl(round2(totM.inss + totM.irrf))})</>,
+                <><b>INSS retido</b>, repassado ao governo ({brl(totM.inss)})</>,
                 <><b>FGTS</b> ({brl(totMfgts)}) e <b>provisão de rescisão</b> ({brl(totMresc)})</>,
                 <><b>Provisão de 13º + férias</b> ({brl(totMprov)})</>,
               ].map((t, i) => (
@@ -1299,6 +1300,86 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setAvisoCol(null)}>Entendi</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ===== versão de impressão (só aparece no PDF): folha compacta do mês selecionado ===== */}
+      {modo === "mensal" && !semEquipe && (
+        <div className="folha-print print-only" style={{ color: "#000" }}>
+          <h2 style={{ fontSize: 16, margin: "0 0 2px" }}>Folha de pagamento</h2>
+          <div style={{ fontSize: 12, color: "#444", marginBottom: 12 }}>{MESES[mesAtualIdx]} de {anoAtual}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 12, fontSize: 11 }}>
+            {[
+              { t: "Salários (bruto)", v: totM.proventos },
+              { t: "Líquido a pagar", v: totM.liquido },
+              { t: "Encargos (FGTS + provisões)", v: round2(totMfgts + totMprov) },
+              { t: "Custo total da folha", v: custoTotalMes },
+            ].map((c) => (
+              <div key={c.t}><div style={{ textTransform: "uppercase", fontWeight: 700, color: "#666", fontSize: 8.5 }}>{c.t}</div><div style={{ fontWeight: 800, fontSize: 12 }}>{brl(c.v)}</div></div>
+            ))}
+          </div>
+          <table className="folha-print-tab" style={{ width: "100%", borderCollapse: "collapse", fontSize: 9.5 }}>
+            <thead>
+              <tr>
+                {["Nome", "Salário base", "Proventos", "INSS", "IRRF", "Descontos", "Líquido"].map((h, i) => (
+                  <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "5px 6px", borderBottom: "1.5px solid #000", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {linhasMes.map((l) => (
+                <tr key={`pr-${l.f.id}`}>
+                  <td style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{l.f.nome || "—"}</td>
+                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.base || 0)}</td>
+                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.proventos)}</td>
+                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.inss)}</td>
+                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.irrf)}</td>
+                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.totalDesc)}</td>
+                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc", fontWeight: 700 }}>{brl(l.liquido)}</td>
+                </tr>
+              ))}
+              <tr style={{ fontWeight: 800 }}>
+                <td style={{ textAlign: "left", padding: "6px", borderTop: "1.5px solid #000" }}>Total ({linhasMes.length})</td>
+                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }} />
+                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.proventos)}</td>
+                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.inss)}</td>
+                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.irrf)}</td>
+                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.totalDesc)}</td>
+                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.liquido)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {linhasSocio.length > 0 && (
+            <>
+              <h3 style={{ fontSize: 13, margin: "18px 0 8px" }}>Pró-labore dos sócios</h3>
+              <table className="folha-print-tab" style={{ width: "100%", borderCollapse: "collapse", fontSize: 9.5 }}>
+                <thead>
+                  <tr>
+                    {["Nome", "Pró-labore", "INSS (11%)", "Líquido"].map((h, i) => (
+                      <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "5px 6px", borderBottom: "1.5px solid #000", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {linhasSocio.map((l) => (
+                    <tr key={`prs-${l.f.id}`}>
+                      <td style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{l.f.nome || "—"}</td>
+                      <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.base)}</td>
+                      <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.inss)}</td>
+                      <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc", fontWeight: 700 }}>{brl(l.liquido)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ fontWeight: 800 }}>
+                    <td style={{ textAlign: "left", padding: "6px", borderTop: "1.5px solid #000" }}>Total ({linhasSocio.length})</td>
+                    <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totSocio.base)}</td>
+                    <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totSocio.inss)}</td>
+                    <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totSocio.liquido)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -13,6 +13,8 @@ function calcINSS(bruto: number): number {
   return round2(inss);
 }
 const IRRF_FAIXAS: [number, number, number][] = [[2428.80, 0, 0], [2826.65, 0.075, 182.16], [3751.05, 0.15, 394.16], [4664.68, 0.225, 675.49], [Infinity, 0.275, 908.73]];
+// INSS do pró-labore (sócio): 11% sobre o pró-labore, limitado ao teto.
+function calcINSSprolabore(base: number): number { return round2(Math.min(base, INSS_TETO) * 0.11); }
 function calcIRRF(bruto: number, inss: number): number {
   const base = bruto - inss;
   let imp = 0;
@@ -59,7 +61,7 @@ export async function folhaTotais(empresaId: string | null | undefined, ano: num
     for (const p of pessoas) {
       const v = mensal[p.id] || {};
       const base = v.base || 0;
-      if (ehSocio(p)) { out.proLabore[m] += base; continue; }   // pró-labore (regra própria, apurado à parte)
+      if (ehSocio(p)) { out.proLabore[m] += base; out.darf[m] += calcINSSprolabore(base); continue; }   // pró-labore: INSS 11% entra no DARF
       const extra = v.extra || {};
       const provExtra = cols.prov.reduce((s, c) => s + (extra[c.id] || 0), 0);
       const descExtra = cols.desc.reduce((s, c) => s + (extra[c.id] || 0), 0);
@@ -74,7 +76,7 @@ export async function folhaTotais(empresaId: string | null | undefined, ano: num
       out.fgts[m] += fgts;
       out.provisao[m] += base / 12 + (base + base / 3) / 12;
       out.rescisao[m] += fgts * 0.40;
-      out.darf[m] += inss + irrf;
+      out.darf[m] += inss;   // DARF = soma do INSS (o IRRF é recolhido à parte)
     }
     for (const k of Object.keys(out) as (keyof TotaisFolha)[]) out[k][m] = round2(out[k][m]);
   }
