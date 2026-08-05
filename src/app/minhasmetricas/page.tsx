@@ -543,7 +543,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
                     : <div style={{ display: "grid", gap: 9 }}>
                         {niverMes.map((p) => (
                           <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                            <span style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</span>
+                            <span title={p.nome} style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</span>
                             <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 10px", borderRadius: 99 }}>🎈 {p.nascimento.slice(8, 10)}/{p.nascimento.slice(5, 7)}</span>
                           </div>
                         ))}
@@ -563,7 +563,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
             </div>
 
             <div className="mhome-blue">
-              {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "relatorios", label: "Análises financeiras", Icon: FileText }].map((a) => (
+              {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "relatorios", label: "Análises financeiras", Icon: FileText }].map((a) => (
                 <button key={a.aba} className="mhome-bcard" onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}>
                   <span className="mhome-bcard-ico"><a.Icon size={22} color="#fff" /></span>
                   <span>{a.label}</span>
