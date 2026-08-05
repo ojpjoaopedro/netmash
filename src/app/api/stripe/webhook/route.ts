@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { stripe, stripeTest } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_KEY;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const whSecret = process.env.STRIPE_WEBHOOK_SECRET;            // produção (whsec_ do endpoint live)
+const whSecretTest = process.env.STRIPE_WEBHOOK_SECRET_TEST;  // teste (whsec_ do endpoint de teste) — opcional
 
 function svc(): SupabaseClient | null {
   if (!url || !serviceKey) return null;
@@ -40,18 +41,28 @@ async function liberarAcesso(s: SupabaseClient, email: string, nome: string, ori
 }
 
 export async function POST(req: NextRequest) {
-  if (!stripe || !whSecret) return NextResponse.json({ error: "Stripe não configurado (STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET)." }, { status: 500 });
+  // Aceita PRODUÇÃO e TESTE ao mesmo tempo: tenta validar com cada par (chave + segredo).
+  const modos = [
+    { cli: stripe, secret: whSecret },
+    { cli: stripeTest, secret: whSecretTest },
+  ].filter((m) => m.cli && m.secret);
+  if (modos.length === 0) return NextResponse.json({ error: "Stripe não configurado (STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET)." }, { status: 500 });
+
   const s = svc();
   if (!s) return NextResponse.json({ error: "SUPABASE_SERVICE_KEY ausente." }, { status: 500 });
 
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(body, sig as string, whSecret);
-  } catch {
-    return NextResponse.json({ error: "Assinatura inválida." }, { status: 400 });
+  let event: Stripe.Event | null = null;
+  let sc: NonNullable<typeof stripe> | null = null; // cliente Stripe do modo que validou
+  for (const m of modos) {
+    try {
+      event = m.cli!.webhooks.constructEvent(body, sig as string, m.secret!);
+      sc = m.cli!;
+      break;
+    } catch { /* tenta o próximo modo */ }
   }
+  if (!event || !sc) return NextResponse.json({ error: "Assinatura inválida." }, { status: 400 });
 
   const origin = new URL(req.url).origin;
 
@@ -80,7 +91,7 @@ export async function POST(req: NextRequest) {
     } else {
       const sub = event.data.object as Stripe.Subscription;
       try {
-        const cust = await stripe.customers.retrieve(String(sub.customer));
+        const cust = await sc.customers.retrieve(String(sub.customer));
         if (!("deleted" in cust)) email = (cust.email || "").toLowerCase();
       } catch { /* sem e-mail do cliente */ }
     }
@@ -97,7 +108,7 @@ export async function POST(req: NextRequest) {
     const inv = event.data.object as Stripe.Invoice;
     let email = (inv.customer_email || "").toLowerCase();
     if (!email && inv.customer) {
-      try { const cust = await stripe.customers.retrieve(String(inv.customer)); if (!("deleted" in cust)) email = (cust.email || "").toLowerCase(); } catch { /* sem e-mail */ }
+      try { const cust = await sc.customers.retrieve(String(inv.customer)); if (!("deleted" in cust)) email = (cust.email || "").toLowerCase(); } catch { /* sem e-mail */ }
     }
     if (email) {
       const id = await idPorEmail(s, email);

@@ -1,9 +1,13 @@
 import Stripe from "stripe";
 
-const key = process.env.STRIPE_SECRET_KEY;
+const liveKey = process.env.STRIPE_SECRET_KEY;       // produção (sk_live_…)
+const testKey = process.env.STRIPE_SECRET_KEY_TEST;  // teste (sk_test_…) — opcional
 
-/** true quando a chave secreta da Stripe está configurada no servidor. */
-export const stripeReady = Boolean(key);
+/** true quando pelo menos uma chave secreta da Stripe está configurada. */
+export const stripeReady = Boolean(liveKey || testKey);
 
-/** Cliente Stripe (servidor). null se a chave não estiver configurada. */
-export const stripe = key ? new Stripe(key) : null;
+/** Cliente Stripe de PRODUÇÃO. null se a chave não estiver configurada. */
+export const stripe = liveKey ? new Stripe(liveKey) : null;
+
+/** Cliente Stripe de TESTE. null se a chave de teste não estiver configurada. */
+export const stripeTest = testKey ? new Stripe(testKey) : null;
