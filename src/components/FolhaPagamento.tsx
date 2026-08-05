@@ -1381,7 +1381,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
         const nasc = p.nascimento ? p.nascimento.slice(0, 10).split("-").reverse().join("/") : "";
         const linhas: [string, string][] = [
           ["E-mail", p.email || ""], ["Telefone", p.contato || ""], ["CPF", p.cpf || ""],
-          ["Pix", p.pix || ""], ["Nascimento", nasc], ["Cargo", p.cargo || ""],
+          ["Nascimento", nasc],
           ["Departamento", p.departamento || ""], ["Salário base", p.salario ? brl(p.salario) : ""],
         ];
         return (

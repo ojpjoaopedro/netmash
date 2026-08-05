@@ -389,6 +389,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   // ---- trocar nível de acesso (cria/remove login de verdade) ----
   const [processando, setProcessando] = useState(false);
   const [aRemover, setARemover] = useState<Linha | null>(null);
+  const [confirmarAdmin, setConfirmarAdmin] = useState<Linha | null>(null);   // confirma antes de dar acesso Admin (envia e-mail + muda o plano)
   async function tokenAtual(): Promise<string | null> {
     if (!supabaseReady || !supabase) return null;
     const { data } = await supabase.auth.getSession();
@@ -422,7 +423,11 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   }
   function trocarNivel(l: Linha, novo: Nivel) {
     if (novo === l.nivel) return;
-    if (novo === "admin") void promover(l);
+    if (novo === "admin") {
+      const email = (l.email || "").trim();
+      if (!emailValido(email)) { setAviso({ titulo: "Falta o e-mail", texto: "Preencha um e-mail válido nesta pessoa antes de dar acesso de Admin. É para lá que vai o convite." }); return; }
+      setConfirmarAdmin(l);   // pede confirmação (envia e-mail + atualiza o plano)
+    }
     else if (novo === "sem") setARemover(l);
   }
 
@@ -812,6 +817,31 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
             <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
               <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setARemover(null)}>Cancelar</button>
               <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERMELHO }} disabled={processando} onClick={async () => { const alvo = aRemover; setARemover(null); if (alvo) await remover(alvo); }}>{processando ? "Removendo…" : "Remover acesso"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* pop-up: confirmar dar acesso Admin (envia e-mail + atualiza o plano) */}
+      {confirmarAdmin && (
+        <div onClick={() => setConfirmarAdmin(null)} style={{ position: "fixed", inset: 0, zIndex: 93, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 440, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", flexShrink: 0 }}><User size={19} /></span>
+              <div>
+                <b style={{ fontSize: 15.5 }}>Dar acesso de Admin para &ldquo;{confirmarAdmin.nome || confirmarAdmin.email}&rdquo;?</b>
+                <p className="sub" style={{ marginTop: 6, lineHeight: 1.55, fontSize: 13 }}>
+                  Ao confirmar:
+                </p>
+                <ul className="sub" style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.6, fontSize: 13 }}>
+                  <li>Enviaremos um <b>e-mail</b> para <b>{confirmarAdmin.email}</b> criar a senha e acessar o painel.</li>
+                  <li>O <b>valor do seu plano será atualizado</b> (a cobrança é por usuário com acesso).</li>
+                </ul>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setConfirmarAdmin(null)}>Cancelar</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} disabled={processando} onClick={async () => { const alvo = confirmarAdmin; setConfirmarAdmin(null); if (alvo) await promover(alvo); }}>{processando ? "Enviando…" : "Confirmar e enviar"}</button>
             </div>
           </div>
         </div>

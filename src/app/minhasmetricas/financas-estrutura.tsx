@@ -1201,11 +1201,13 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                               {mesesVis.map((m) => {
                                 const pago = it.conf?.[m] || 0;
                                 if (pago > 0) return (
-                                  // mês pago pelo Calendário: mostra o valor + lixeira para apagar (não edita direto aqui)
-                                  <td key={m} className="oc-num" style={{ ...tdNum }}>
+                                  // mês pago pelo Calendário: mostra o valor + lixeira (só aparece ao passar o mouse na célula)
+                                  <td key={m} className="oc-num" style={{ ...tdNum }}
+                                    onMouseEnter={(e) => { (e.currentTarget.querySelector("button") as HTMLElement | null)?.style.setProperty("opacity", "1"); }}
+                                    onMouseLeave={(e) => { (e.currentTarget.querySelector("button") as HTMLElement | null)?.style.setProperty("opacity", "0"); }}>
                                     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 5, width: "100%" }}>
                                       <span style={{ fontStyle: "italic", color: "var(--muted)" }}>{fmt(it.v[m])}</span>
-                                      <button className="no-print" onClick={() => pedirRemoverConfirmado("pag", g.nome, it.nome, m, `o pagamento de "${it.nome}" em ${MES[m]} (já pago pelo Calendário)`)} title="Apagar esta conta paga (remove também do Calendário)" style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "var(--red)" }}><Trash2 size={11} strokeWidth={2.5} /></button>
+                                      <button className="no-print" onClick={() => pedirRemoverConfirmado("pag", g.nome, it.nome, m, `o pagamento de "${it.nome}" em ${MES[m]} (já pago pelo Calendário)`)} title="Apagar esta conta paga (remove também do Calendário)" style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "var(--red)", opacity: 0, transition: "opacity .12s" }}><Trash2 size={11} strokeWidth={2.5} /></button>
                                     </span>
                                   </td>
                                 );
