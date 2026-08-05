@@ -93,6 +93,12 @@ const OPERACOES = [
   { key: "config", label: "Configurações", Icon: Settings },
 ] as const;
 
+// trava por empresa: o Colégio Araguaia não exibe "Meus Benefícios" nem "Plano"
+const soDigitos = (s?: string | null) => (s || "").replace(/\D/g, "");
+function ehColegioAraguaia(empresa?: { nome?: string | null; cnpj?: string | null } | null) {
+  return soDigitos(empresa?.cnpj) === "33364563000118" || (empresa?.nome || "").toLowerCase().includes("araguaia");
+}
+
 export default function Home({ secao }: { secao?: string } = {}) {
   const router = useRouter();
   const { brand, save: saveBrand, theme, toggleTheme, aplicarRemoto: aplicarBrandRemoto, aplicarLogoCor } = useBrand();
@@ -354,7 +360,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
             <div className="navgroup"><div className="gl">Configurações</div><nav className="nav">
-              {MENU_APP.map(({ aba, label, Icon }) => (
+              {MENU_APP.filter((m) => !(ehColegioAraguaia(empresa) && (m.aba === "beneficios" || m.aba === "plano"))).map(({ aba, label, Icon }) => (
                 <button key={aba} onClick={() => { playTick(); navegar({ view: "config", aba }); setMenuAberto(false); }}><Icon size={16} color="var(--brand)" /> {label}</button>
               ))}
             </nav></div>
@@ -915,12 +921,13 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
     window.addEventListener("me:destacar-beneficios", destacar);
     return () => window.removeEventListener("me:destacar-beneficios", destacar);
   }, []);
-  const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
+  const abasBase: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
     { key: "dados", label: "Dados da Empresa", Icon: Building2 },
     { key: "equipe", label: "Equipe", Icon: Users },
     { key: "beneficios", label: "Meus Benefícios", Icon: Gift },
     { key: "plano", label: "Plano", Icon: CreditCard },
   ];
+  const abas = abasBase.filter((a) => !(ehColegioAraguaia(empresa) && (a.key === "beneficios" || a.key === "plano")));
   const tab = (ativo: boolean): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
     padding: "11px 15px", marginBottom: -1, fontSize: 13.5, fontWeight: 700,
