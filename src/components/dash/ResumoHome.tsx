@@ -241,9 +241,6 @@ function Aniversarios({ funcs }: { funcs: Funcionario[] }) {
 
       {niver.length > 0 && (
         <div style={{ marginBottom: admis.length > 0 ? 14 : 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--muted)", marginBottom: 8 }}>
-            <Cake size={13} /> Aniversário
-          </div>
           <div style={{ display: "grid", gap: 7 }}>
             {niver.map((f) => (
               <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
