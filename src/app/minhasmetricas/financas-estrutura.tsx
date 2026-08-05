@@ -5,6 +5,7 @@ import BotaoOcultar from "@/components/ocultar";
 import SeletorAno from "@/components/SeletorAno";
 import { AnimNum } from "@/components/AnimNum";
 import { SeletorCusto } from "@/components/CalendarioPagamentos";
+import { folhaTotais, categoriaDoItem } from "@/lib/folha-totais";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
@@ -394,17 +395,13 @@ export const MODELO_LIMPO: Dados = {
       nome: "Custos Fixos",
       grupos: [
         { nome: "Salários", cor: AZUL, itens: [
-          { nome: "", v: v12([]) },
-          { nome: "", v: v12([]) },
-          { nome: "", v: v12([]) },
+          { nome: "Salários Líquidos", v: v12([]) },
           { nome: "FGTS", v: v12([]) },
           { nome: "DARF", v: v12([]) },
-          { nome: "13º", v: v12([]) },
-          { nome: "Férias", v: v12([]) },
-          { nome: "Rescisão / Admissão", v: v12([]) },
-        ] },
-        { nome: "Comissão", cor: LARANJA, itens: [
-          { nome: "Time comercial", v: v12([]) },
+          { nome: "Provisão 13º e férias", v: v12([]) },
+          { nome: "Provisão Rescisão", v: v12([]) },
+          { nome: "Comissão", v: v12([]) },
+          { nome: "Pro-Labore", v: v12([]) },
         ] },
         { nome: "Operacional", cor: VERDE, itens: [
           { nome: "Aluguel", v: v12([]) },
@@ -488,6 +485,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   const [blocosFechados, setBlocosFechados] = useState<Set<number>>(new Set()); // blocos recolhidos
   const toggleBloco = (bi: number) => setBlocosFechados((p) => { const n = new Set(p); if (n.has(bi)) n.delete(bi); else n.add(bi); return n; });
   const [aExcluir, setAExcluir] = useState<{ nome: string; onOk: () => void } | null>(null);
+  const [remPrev, setRemPrev] = useState<{ origem: "pag" | "rec"; grupo: string; item: string; mes: number; nome: string } | null>(null);
   const [avisoBloqueio, setAvisoBloqueio] = useState<string | null>(null);
   const pedirExcluir = (nome: string, onOk: () => void) => setAExcluir({ nome, onOk });
 
@@ -658,6 +656,33 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       return { ...p, puladosDia, pulados };
     }));
   };
+  // remove esse mês e todos os seguintes (corta a recorrência a partir daqui)
+  const removerPendentesDaqui = (origem: "pag" | "rec", grupo: string, item: string, mes: number) => {
+    snapshot();
+    const ymMes = ano * 12 + mes;
+    const isoInicioMes = `${ano}-${String(mes + 1).padStart(2, "0")}-01`;
+    lojaSalvar(origem, lojaLer(origem).map((p) => {
+      if (!bate(origem, p, grupo, item)) return p;
+      const pend = datasDaDespesa(p, ano).filter((o) => o.mes === mes && !ocConfirmada(p, o, ano));
+      if (!pend.length) return p;
+      let ate = p.ate, ateDia = p.ateDia;
+      if (pend.some((o) => o.mensal)) ate = ate == null ? ymMes : Math.min(ate, ymMes);
+      if (pend.some((o) => !o.mensal)) ateDia = ateDia == null || isoInicioMes < ateDia ? isoInicioMes : ateDia;
+      return { ...p, ate, ateDia };
+    }));
+  };
+  // esse "previsto" vem de uma conta recorrente? (decide se pergunta "só este mês / e os próximos")
+  const previstoRecorrente = (origem: "pag" | "rec", grupo: string, item: string, mes: number) => {
+    for (const p of lojaLer(origem)) {
+      if (!bate(origem, p, grupo, item) || !p.recorrente) continue;
+      if (datasDaDespesa(p, ano).some((o) => o.mes === mes && !ocConfirmada(p, o, ano))) return true;
+    }
+    return false;
+  };
+  const pedirRemoverPrevisto = (origem: "pag" | "rec", grupo: string, item: string, mes: number, nome: string) => {
+    if (previstoRecorrente(origem, grupo, item, mes)) setRemPrev({ origem, grupo, item, mes, nome });
+    else pedirExcluir(nome, () => removerPendentesMes(origem, grupo, item, mes));
+  };
   const confirmarPagarEst = () => {
     if (!pagarEst) return;
     snapshot();
@@ -701,6 +726,26 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   }
   // Ao digitar um custo direto na Estrutura: oferece confirmar também no Calendário (data + recorrência).
   // Confirmando, o valor sai do manual e vira lançamento do calendário (volta somando 1x, sem dupla contagem).
+  // Puxar da Folha de pagamento: preenche os itens do grupo Salários (por nome) com os totais mês a mês.
+  const [puxandoFolha, setPuxandoFolha] = useState(false);
+  async function puxarDaFolha() {
+    if (puxandoFolha) return;
+    setPuxandoFolha(true);
+    try {
+      const eid = await empresaIdAtual();
+      const tot = await folhaTotais(eid, ano);
+      snapshot();
+      setD((x) => {
+        const r = structuredClone(x);
+        for (const b of r.custos) for (const g of b.grupos) for (const it of g.itens) {
+          const cat = categoriaDoItem(it.nome);
+          if (cat) it.v = tot[cat].slice();
+        }
+        return r;
+      });
+    } finally { setPuxandoFolha(false); }
+  }
+
   // passo 1 = confirmar a DATA; passo 2 = tela igual à do Calendário (descrição/valor/recorrência)
   const [confCal, setConfCal] = useState<{ bi: number; gi: number; ii: number; mOrig: number; valorOrig: number; passo: "data" | "form"; data: string; grupo: string; item: string; valorStr: string; freq: Freq } | null>(null);
   const diasNoMes = (a: number, mes: number) => new Date(a, mes + 1, 0).getDate();
@@ -838,7 +883,13 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
             );
           })}
         </div>
-        <BotaoOcultar />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={puxarDaFolha} disabled={puxandoFolha} title="Preenche os itens do grupo Salários com os totais da Folha de pagamento (líquido, FGTS, provisões, comissão), mês a mês"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: puxandoFolha ? "wait" : "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 30%, transparent)", padding: "6px 12px", borderRadius: 9 }}>
+            ↧ {puxandoFolha ? "Puxando…" : "Puxar da Folha"}
+          </button>
+          <BotaoOcultar />
+        </div>
       </div>
 
       {/* COMPOSIÇÃO DAS RECEITAS */}
@@ -884,7 +935,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                 <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A receber (ainda não somado)">{fmt(pend)}</span>
                                 <span style={{ display: "inline-flex", gap: 4 }}>
                                   <button onClick={() => abrirPagarEst("rec", "", r.nome, m)} title="Confirmar recebimento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
-                                  <button onClick={() => pedirExcluir(`recebíveis a receber de "${r.nome}" em ${MES[m]}`, () => removerPendentesMes("rec", "", r.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
+                                  <button onClick={() => pedirRemoverPrevisto("rec", "", r.nome, m, `recebíveis a receber de "${r.nome}" em ${MES[m]}`)} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
                                 </span>
                               </div>
                             </td>
@@ -974,7 +1025,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                         <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A pagar (ainda não somado)">{fmt(pend)}</span>
                                         <span style={{ display: "inline-flex", gap: 4 }}>
                                           <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
-                                          <button onClick={() => pedirExcluir(`pagamentos a pagar de "${it.nome}" em ${MES[m]}`, () => removerPendentesMes("pag", g.nome, it.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => pedirRemoverPrevisto("pag", g.nome, it.nome, m, `pagamentos a pagar de "${it.nome}" em ${MES[m]}`)} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
                                         </span>
                                       </div>
                                     </td>
@@ -1006,7 +1057,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                         <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A pagar (ainda não somado)">{fmt(pend)}</span>
                                         <span style={{ display: "inline-flex", gap: 4 }}>
                                           <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
-                                          <button onClick={() => pedirExcluir(`pagamentos a pagar de "${it.nome}" em ${MES[m]}`, () => removerPendentesMes("pag", g.nome, it.nome, m))} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => pedirRemoverPrevisto("pag", g.nome, it.nome, m, `pagamentos a pagar de "${it.nome}" em ${MES[m]}`)} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
                                         </span>
                                       </div>
                                     </td>
@@ -1129,6 +1180,28 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
         </div>
       )}
 
+      {remPrev && (
+        <div onClick={() => setRemPrev(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 82, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 420, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.14)", color: VERMELHO, flexShrink: 0 }}>
+                <Trash2 size={19} />
+              </span>
+              <div>
+                <b style={{ fontSize: 15 }}>Remover essa conta prevista?</b>
+                <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>Essa conta se repete. Você quer remover só <strong>{MES[remPrev.mes]}</strong> ou também os meses seguintes?</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 20 }}>
+              <button className="btn" style={{ width: "100%", justifyContent: "center", background: VERMELHO }} onClick={() => { removerPendentesMes(remPrev.origem, remPrev.grupo, remPrev.item, remPrev.mes); setRemPrev(null); }}>Remover só {MES[remPrev.mes]}</button>
+              <button className="btn" style={{ width: "100%", justifyContent: "center", background: VERMELHO }} onClick={() => { removerPendentesDaqui(remPrev.origem, remPrev.grupo, remPrev.item, remPrev.mes); setRemPrev(null); }}>Remover {MES[remPrev.mes]} e os seguintes</button>
+              <button className="btn ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => setRemPrev(null)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* popup de pagamento (a partir da Estrutura) — reflete no Calendário */}
       {pagarEst && (
         <div onClick={() => setPagarEst(null)} style={{ position: "fixed", inset: 0, zIndex: 96, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
@@ -1177,9 +1250,8 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                     <label className="f">Data</label>
                     <input type="date" value={confCal.data} autoFocus onChange={(e) => setConfCal({ ...confCal, data: e.target.value })} />
                   </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-                    <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={cancelarCal}>Manter só na estrutura</button>
-                    <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setConfCal({ ...confCal, passo: "form" })}>Continuar →</button>
+                  <div style={{ marginTop: 18 }}>
+                    <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={() => setConfCal({ ...confCal, passo: "form" })}>Continuar →</button>
                   </div>
                 </>
               ) : (
@@ -1203,11 +1275,11 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                   <div className="field">
                     <label className="f">Recorrência</label>
                     <select value={confCal.freq} onChange={(e) => setConfCal({ ...confCal, freq: e.target.value as Freq })}>
-                      <option value="unica">Não recorrente (só neste dia)</option>
-                      <option value="diaria_uteis">Diária — apenas em dias úteis</option>
-                      <option value="diaria_todos">Diária — todos os dias da semana</option>
-                      <option value="semanal">Semanal</option>
                       <option value="mensal">Mensal</option>
+                      <option value="semanal">Semanal</option>
+                      <option value="diaria_todos">Diária, todos os dias da semana</option>
+                      <option value="diaria_uteis">Diária, apenas em dias úteis</option>
+                      <option value="unica">Não recorrente (só neste dia)</option>
                     </select>
                   </div>
                   <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={confirmarCal} disabled={!confCal.grupo || !confCal.item.trim()}>+ Cadastrar</button>

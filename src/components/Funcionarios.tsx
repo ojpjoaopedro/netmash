@@ -148,6 +148,18 @@ function Chave({ ops, valor, onChange }: { ops: { k: string; txt: string }[]; va
   );
 }
 
+/** Seletor de tipo da pessoa: Funcionário ou Sócio (guardado no campo cargo/área). */
+function TipoSelect({ valor, disabled, onSalvar }: { valor: string; disabled?: boolean; onSalvar: (v: string, el: HTMLElement) => void }) {
+  const atual = valor === "Sócio" ? "Sócio" : "Funcionário";
+  return (
+    <select value={atual} disabled={disabled} onChange={(e) => onSalvar(e.target.value, e.currentTarget)}
+      style={{ fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--muted)", background: "transparent", border: 0, cursor: disabled ? "default" : "pointer", textAlign: "center", padding: "2px 4px", outline: "none", appearance: "auto" }}>
+      <option value="Funcionário">Funcionário</option>
+      <option value="Sócio">Sócio</option>
+    </select>
+  );
+}
+
 type DiretorRel = { nome: string; cargo?: string; area?: string; email?: string; telefone?: string; cpf?: string; pix?: string; nascimento?: string };
 
 // ---- Usuários com login (superadmin + admins), guardados em me_diretores (sincroniza no banco) ----
@@ -354,7 +366,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   // ---- modo Lista: busca + ordenação por coluna ----
   const COLS: { k: string; label: string }[] = [
     { k: "nome", label: "Nome" }, { k: "contato", label: "Telefone" }, { k: "email", label: "E-mail" },
-    { k: "cpf", label: "CPF" }, { k: "pix", label: "Pix" }, { k: "nascimento", label: "Nascimento" }, { k: "cargo", label: "Cargo" },
+    { k: "cpf", label: "CPF" }, { k: "pix", label: "Pix" }, { k: "nascimento", label: "Nascimento" }, { k: "cargo", label: "Tipo" },
   ];
   const valDe = (l: Linha, col: string): string => {
     switch (col) {
@@ -578,7 +590,6 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                     <tr key={l.chave} className="eq-row" style={{ opacity: l.ativo ? 1 : .6 }}>
                       <td>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: l.ehSuper ? `${AMBAR}22` : (l.nivel === "admin" ? `${AZUL}22` : "color-mix(in srgb, var(--brand) 16%, transparent)"), color: l.ehSuper ? AMBAR : (l.nivel === "admin" ? AZUL : "var(--brand)"), fontWeight: 800, fontSize: 11 }}>{iniciaisDe(l.nome) || <User size={15} />}</span>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <Campo valor={l.nome} placeholder="Nome" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
                               onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nome: v.trim() || l.nome }, el) : salvarCampoLogin(l, { nome: v.trim() }, el)}
@@ -596,8 +607,8 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                         onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { pix: v.trim() || null }, el) : salvarCampoLogin(l, { pix: v.trim() }, el)} /></td>
                       <td><Campo valor={l.nascimento} placeholder="dd/mm/aaaa" tipo="date" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
                         onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nascimento: v || null }, el) : salvarCampoLogin(l, { nascimento: v }, el)} /></td>
-                      <td><Campo valor={l.cargo} placeholder="—" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
-                        onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { cargo: v.trim() || null }, el) : salvarCampoLogin(l, { area: v.trim() }, el)} /></td>
+                      <td style={{ textAlign: "center" }}><TipoSelect valor={l.cargo} disabled={!edit}
+                        onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { cargo: v }, el) : salvarCampoLogin(l, { area: v }, el)} /></td>
                       <td><NivelCel l={l} /></td>
                       <td style={{ textAlign: "center" }}>
                         {l.origem === "func" && l.func ? (
@@ -663,7 +674,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                 <div style={{ padding: "8px 16px 0" }}>
                   <CampoNome valor={l.nome} placeholder="Nome" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { nome: v.trim() }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center" }} />
                   <div style={{ marginTop: 2 }}>
-                    <Campo valor={l.cargo} placeholder="Cargo" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { area: v.trim() }, el)} style={{ fontSize: 12.5, fontWeight: 600, textAlign: "center", color: "var(--muted)" }} />
+                    <TipoSelect valor={l.cargo} disabled={!edit} onSalvar={(v, el) => salvarCampoLogin(l, { area: v }, el)} />
                   </div>
                 </div>
                 <div style={{ padding: "12px 16px 16px", marginTop: 10, display: "grid", gap: 10, borderTop: "1px solid var(--line)" }}>
@@ -711,7 +722,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                 <div style={{ padding: "8px 16px 0" }}>
                   <CampoNome valor={f.nome} placeholder="Nome" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center" }} />
                   <div style={{ marginTop: 2 }}>
-                    <Campo valor={f.cargo} placeholder="Cargo" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { cargo: v.trim() || null }, el)} style={{ fontSize: 12.5, fontWeight: 600, textAlign: "center", color: "var(--muted)" }} />
+                    <TipoSelect valor={f.cargo || ""} disabled={!edit} onSalvar={(v, el) => salvarCampoFunc(f.id, { cargo: v }, el)} />
                   </div>
                   <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
                     {ehDono ? (

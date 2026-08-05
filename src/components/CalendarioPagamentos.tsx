@@ -535,11 +535,11 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                   <div className="field">
                     <label className="f">Recorrência</label>
                     <select value={form.freq} onChange={(e) => setForm({ ...form, freq: e.target.value as Freq, recorrente: e.target.value !== "unica" })}>
-                      <option value="unica">Não recorrente (só neste dia)</option>
-                      <option value="diaria_uteis">Diária — apenas em dias úteis</option>
-                      <option value="diaria_todos">Diária — todos os dias da semana</option>
-                      <option value="semanal">Semanal</option>
                       <option value="mensal">Mensal</option>
+                      <option value="semanal">Semanal</option>
+                      <option value="diaria_todos">Diária, todos os dias da semana</option>
+                      <option value="diaria_uteis">Diária, apenas em dias úteis</option>
+                      <option value="unica">Não recorrente (só neste dia)</option>
                     </select>
                   </div>
                   <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={salvarForm} disabled={tipo === "pagamentos" ? (!form.grupo || !form.item.trim()) : !form.item.trim()}>{form.editId ? "Salvar" : "+ Cadastrar"}</button>

@@ -38,6 +38,9 @@ function calcINSS(bruto: number): number {
   }
   return round2(inss);
 }
+// INSS do pró-labore (sócio / contribuinte individual): 11% sobre o pró-labore, limitado ao teto (máx. R$ 932,31 em 2026).
+const INSS_PROLABORE_ALIQ = 0.11;
+function calcINSSprolabore(base: number): number { return round2(Math.min(base, INSS_TETO) * INSS_PROLABORE_ALIQ); }
 // Tabela IRRF 2026 (base = bruto − INSS): [teto da base, alíquota, parcela a deduzir]
 const IRRF_FAIXAS: [number, number, number][] = [
   [2428.80, 0, 0], [2826.65, 0.075, 182.16], [3751.05, 0.15, 394.16], [4664.68, 0.225, 675.49], [Infinity, 0.275, 908.73],
@@ -96,17 +99,16 @@ function novoIdCol(): string { return "c" + Date.now().toString(36) + Math.rando
 /** Cálculo da folha mensal de uma pessoa (snapshot do mês: base + vt + variáveis). */
 function calcLinhaMes(v: VarsMes, cols: ColsFolha) {
   const base = v.base || 0;
-  const vt = v.vt || 0;
   const extra = v.extra || {};
   const provExtra = cols.prov.reduce((s, c) => s + (extra[c.id] || 0), 0);
   const descExtra = cols.desc.reduce((s, c) => s + (extra[c.id] || 0), 0);
   const proventos = round2(base + v.comissao + v.horaExtra + v.gratificacao + provExtra);
   const inss = calcINSS(proventos);
   const irrf = calcIRRF(proventos, inss);
-  const descManual = round2(v.sindicato + v.planoSaude + v.mensalidade + v.adiantamento + descExtra);
-  const totalDesc = round2(inss + irrf + vt + descManual);
+  const descManual = round2(v.sindicato + v.planoSaude + v.adiantamento + descExtra);
+  const totalDesc = round2(inss + irrf + descManual);
   const liquido = round2(proventos - totalDesc);
-  return { base, vt, proventos, inss, irrf, descManual, totalDesc, liquido };
+  return { base, proventos, inss, irrf, descManual, totalDesc, liquido };
 }
 const chaveMes = (id: string | null | undefined, ym: string) => `me_folha_mensal:${id || "default"}:${ym}`;
 function lerMes(id: string | null | undefined, ym: string): Record<string, VarsMes> {
@@ -176,15 +178,18 @@ function BadgeSalvo() {
   return <span style={{ flexShrink: 0, background: "#64748b", color: "#fff", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 99, whiteSpace: "nowrap" }}>✓ Salvo</span>;
 }
 
-/** Campo de dinheiro editável no nosso padrão: clica, digita e salva ao sair. */
+/** Campo de dinheiro editável no nosso padrão: clica, digita e salva ao sair. 0 = vazio. */
 function CampoMoeda({ valor, onSalvar }: { valor: number; onSalvar: (n: number) => void }) {
   const [salvo, marcar] = useSalvo();
+  const [txt, setTxt] = useState(valor ? num2(valor) : "");
+  useEffect(() => { setTxt(valor ? num2(valor) : ""); }, [valor]);   // sincroniza ao trocar de mês / puxar
   return (
     <span style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, width: "100%" }}>
       {salvo && <BadgeSalvo />}
-      <input defaultValue={valor ? num2(valor) : ""} placeholder="0,00" inputMode="decimal"
+      <input value={txt} placeholder="" inputMode="decimal"
         onFocus={(e) => { e.currentTarget.style.background = "var(--bg-2)"; e.currentTarget.select(); }}
-        onBlur={(e) => { e.currentTarget.style.background = "transparent"; const n = round2(parseNum(e.target.value)); e.target.value = n ? num2(n) : ""; if (n !== valor) { onSalvar(n); marcar(); } }}
+        onChange={(e) => setTxt(e.target.value)}
+        onBlur={(e) => { e.currentTarget.style.background = "transparent"; const n = round2(parseNum(txt)); setTxt(n ? num2(n) : ""); if (n !== valor) { onSalvar(n); marcar(); } }}
         style={{ border: 0, outline: "none", background: "transparent", padding: "3px 6px", borderRadius: 6, width: "100%", minWidth: 0, font: "inherit", color: "inherit", textAlign: "right", transition: "background .12s" }} />
     </span>
   );
@@ -252,7 +257,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [funcs, setFuncs] = useState<Funcionario[]>([]);
   const [cfg, setCfg] = useState<Config>(() => lerCfg(empresa?.id));
   const [carregado, setCarregado] = useState(false);
-  const [modo, setModo] = useState<"geral" | "mensal">("geral");
+  const [modo, setModo] = useState<"geral" | "mensal">("mensal");
   const [ym, setYm] = useState<string>("");   // "YYYY-MM" — definido no cliente para evitar divergência de hidratação
   const [dadosMes, setDadosMes] = useState<Record<string, VarsMes>>({});
   const [benef, setBenef] = useState<Record<string, Benef>>({});
@@ -275,6 +280,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [infoRescisao, setInfoRescisao] = useState(false);
   const [infoProvisao, setInfoProvisao] = useState(false);
   const [infoCusto, setInfoCusto] = useState(false);
+  const [infoProlabore, setInfoProlabore] = useState(false);
   const BtnInfoInss = () => <BtnInfo onClick={() => setInfoInss(true)} titulo="Como o INSS é calculado" />;
   const BtnInfoIrrf = () => <BtnInfo onClick={() => setInfoIrrf(true)} titulo="Como o IRRF é calculado" />;
   const BtnInfoFgts = () => <BtnInfo onClick={() => setInfoFgts(true)} titulo="O que é o FGTS" />;
@@ -482,9 +488,13 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
   const ativos = useMemo(() => funcs.filter((f) => filtro === "ativos" ? f.ativo : !f.ativo), [funcs, filtro]);
+  // sócios recebem pró-labore (tabela própria); os demais entram na folha CLT
+  const ehSocio = (f: Funcionario) => (f.cargo || "") === "Sócio";
+  const funcsFolha = useMemo(() => ativos.filter((f) => !ehSocio(f)), [ativos]);
+  const socios = useMemo(() => ativos.filter(ehSocio), [ativos]);
 
   // ---- linhas da visão GERAL (só salário base) ----
-  const linhasGeral = useMemo(() => ativos.map((f) => {
+  const linhasGeral = useMemo(() => funcsFolha.map((f) => {
     const bruto = f.salario || 0;
     const vt = vtDe(f);
     const va = vaDe(f);
@@ -496,7 +506,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     const fgts = round2(bruto * (cfg.fgtsPct / 100));
     const rescisao = round2(fgts * 0.40); // provisão da multa de 40% do FGTS (acerto final)
     return { f, bruto, vt, va, inss, irrf, totalDesc, liquido, provisao, fgts, rescisao };
-  }), [ativos, cfg, benef]);
+  }), [funcsFolha, cfg, benef]);
   const totG = linhasGeral.reduce((a, l) => ({ bruto: a.bruto + l.bruto, vt: a.vt + l.vt, va: a.va + l.va, inss: a.inss + l.inss, irrf: a.irrf + l.irrf, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido, provisao: a.provisao + l.provisao, fgts: a.fgts + l.fgts, rescisao: a.rescisao + l.rescisao }), { bruto: 0, vt: 0, va: 0, inss: 0, irrf: 0, totalDesc: 0, liquido: 0, provisao: 0, fgts: 0, rescisao: 0 });
   const totBenefExtra = round2(benefCols.reduce((s, c) => s + totBenefCol(c.id), 0));
   const custoTotal = round2(totG.bruto + totG.provisao + totG.fgts + totG.va + totG.rescisao + totBenefExtra);
@@ -510,32 +520,47 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   });
 
   // ---- linhas da visão MENSAL (com variáveis do mês) ----
-  const linhasMes = useMemo(() => ativos.map((f) => {
+  const linhasMes = useMemo(() => funcsFolha.map((f) => {
     const v = { ...VARS_ZERO, ...(dadosMes[f.id] || {}) };
     const r = calcLinhaMes(v, cols);
-    return { f, v, extra: v.extra || {}, ...r };
-  }), [ativos, dadosMes, cols]);
-  // mês vazio (nenhum lançamento) -> mostra os botões de puxar
-  const mesVazio = Object.keys(dadosMes).length === 0;
+    const fgtsM = round2((r.base || 0) * (cfg.fgtsPct / 100));
+    const provisaoM = round2((r.base || 0) / 12 + ((r.base || 0) + (r.base || 0) / 3) / 12);
+    const rescisaoM = round2(fgtsM * 0.40);
+    return { f, v, extra: v.extra || {}, ...r, fgtsM, provisaoM, rescisaoM };
+  }), [funcsFolha, dadosMes, cols, cfg]);
+  // ---- pró-labore dos sócios (regra própria: só salário base e INSS 11%; sem 13º/férias/FGTS) ----
+  const linhasSocio = useMemo(() => socios.map((f) => {
+    const base = (dadosMes[f.id]?.base) || 0;
+    const inss = calcINSSprolabore(base);
+    const liquido = round2(base - inss);
+    return { f, base, inss, liquido };
+  }), [socios, dadosMes]);
+  const socioView = linhasSocio.filter((l) => combina(l.f));
+  const totSocio = linhasSocio.reduce((a, l) => ({ base: a.base + l.base, inss: a.inss + l.inss, liquido: a.liquido + l.liquido }), { base: 0, inss: 0, liquido: 0 });
   const ymAnterior = () => { if (!ym) return ""; const [a, m] = ym.split("-").map(Number); let py = a, pm = m - 1; if (pm < 1) { pm = 12; py = a - 1; } return `${py}-${String(pm).padStart(2, "0")}`; };
   const temMesAnterior = () => { const p = ymAnterior(); return !!p && Object.keys(lerMes(empresa?.id, p)).length > 0; };
-  function puxarDoGeral() {
-    const next: Record<string, VarsMes> = {};
-    ativos.forEach((f) => { next[f.id] = { ...VARS_ZERO, base: f.salario || 0, vt: vtDe(f) }; });
-    setDadosMes(next); salvarMes(empresa?.id, ym, next);
-  }
   function puxarDoMesAnterior() {
     const prev = lerMes(empresa?.id, ymAnterior());
-    setDadosMes(prev); salvarMes(empresa?.id, ym, prev);
+    // só traz quem está ativo: desativado não tem mais salário
+    const ativoId = new Set(funcs.filter((f) => f.ativo).map((f) => f.id));
+    const next: Record<string, VarsMes> = {};
+    for (const id in prev) if (ativoId.has(id)) next[id] = prev[id];
+    setDadosMes(next); salvarMes(empresa?.id, ym, next);
   }
-  const totM = linhasMes.reduce((a, l) => ({ proventos: a.proventos + l.proventos, inss: a.inss + l.inss, irrf: a.irrf + l.irrf, vt: a.vt + l.vt, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido }), { proventos: 0, inss: 0, irrf: 0, vt: 0, totalDesc: 0, liquido: 0 });
+  const totM = linhasMes.reduce((a, l) => ({ proventos: a.proventos + l.proventos, inss: a.inss + l.inss, irrf: a.irrf + l.irrf, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido }), { proventos: 0, inss: 0, irrf: 0, totalDesc: 0, liquido: 0 });
+  // encargos do mês (sobre o salário base): FGTS, provisão 13º+férias e provisão de rescisão
+  const totMfgts = round2(linhasMes.reduce((s, l) => s + round2((l.base || 0) * (cfg.fgtsPct / 100)), 0));
+  const totMprov = round2(linhasMes.reduce((s, l) => s + round2((l.base || 0) / 12 + ((l.base || 0) + (l.base || 0) / 3) / 12), 0));
+  const totMresc = round2(linhasMes.reduce((s, l) => s + round2(round2((l.base || 0) * (cfg.fgtsPct / 100)) * 0.40), 0));
+  const custoTotalMes = round2(totM.proventos + totMfgts + totMprov + totMresc);
   const mesView = ordenar(linhasMes.filter((l) => combina(l.f)), (l) => {
     switch (sortCol) {
       case "nome": return l.f.nome || ""; case "base": return l.base;
       case "comissao": return l.v.comissao; case "horaExtra": return l.v.horaExtra; case "gratificacao": return l.v.gratificacao;
-      case "proventos": return l.proventos; case "inss": return l.inss; case "irrf": return l.irrf; case "vt": return l.vt;
-      case "sindicato": return l.v.sindicato; case "planoSaude": return l.v.planoSaude; case "mensalidade": return l.v.mensalidade;
-      case "adiantamento": return l.v.adiantamento; case "totalDesc": return l.totalDesc; case "liquido": return l.liquido; default: return "";
+      case "proventos": return l.proventos; case "inss": return l.inss; case "irrf": return l.irrf;
+      case "sindicato": return l.v.sindicato; case "planoSaude": return l.v.planoSaude;
+      case "adiantamento": return l.v.adiantamento; case "totalDesc": return l.totalDesc; case "liquido": return l.liquido;
+      case "provisaoM": return l.provisaoM; case "fgtsM": return l.fgtsM; case "rescisaoM": return l.rescisaoM; default: return "";
     }
   });
 
@@ -546,8 +571,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     const header = ["Nome", "Departamento", ...MES, "Total ano"];
     const aoa: (string | number)[][] = [header];
     const totalMes = new Array(12).fill(0);
-    ativos.forEach((f) => {
-      const linha: (string | number)[] = [f.nome || "—", f.departamento || f.cargo || ""];
+    funcsFolha.forEach((f) => {
+      const linha: (string | number)[] = [f.nome || "—", f.departamento || ""];
       let totalPessoa = 0;
       for (let m = 0; m < 12; m++) {
         const dados = lerMes(empresa?.id, `${ano}-${String(m + 1).padStart(2, "0")}`);
@@ -580,16 +605,13 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const mesAtualIdx = ym ? Number(ym.slice(5, 7)) - 1 : 0;
   const anoAtual = ym ? ym.slice(0, 4) : "";
 
-  const seg = (k: "geral" | "mensal", txt: string) => (
-    <button onClick={() => setModo(k)} style={{ padding: "6px 14px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: 0, background: modo === k ? "color-mix(in srgb, var(--brand) 14%, transparent)" : "transparent", color: modo === k ? "var(--brand)" : "var(--muted)", transition: ".15s" }}>{txt}</button>
-  );
 
   const semEquipe = carregado && funcs.length === 0;
   const zbrl = (n: number) => (Math.abs(n) < 0.005 ? "" : brl(n)); // 0 fica em branco
   // larguras fixas por coluna (table-layout: fixed) — evita colunas com input esticarem
   const wGeral = [150, 116, 100, 104, 104, ...benefCols.map(() => 92), 42, 90, 84, 104, 106, 94, 84, 104];
   const somaGeral = wGeral.reduce((a, b) => a + b, 0);
-  const wMensal = [150, 100, 96, 90, 92, ...cols.prov.map(() => 92), 42, 104, 90, 84, 96, 90, 92, 92, 94, ...cols.desc.map(() => 92), 42, 104, 100];
+  const wMensal = [150, 100, 96, 90, 92, ...cols.prov.map(() => 92), 42, 104, 90, 84, 90, 92, 94, ...cols.desc.map(() => 92), 42, 104, 100, 94, 84, 104];
   const somaMensal = wMensal.reduce((a, b) => a + b, 0);
 
   return (
@@ -597,10 +619,6 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
       {/* barra de topo: alternância Geral/Mensal + ações */}
       <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div data-tut="modos" style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
-            {seg("geral", "Preenchimento geral")}
-            {seg("mensal", "Folha mensal")}
-          </div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
             {(["ativos", "desativados"] as const).map((k) => {
               const on = filtro === k, cor = k === "ativos" ? "#10B981" : "#EF4444";
@@ -636,11 +654,10 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
         </div>
       )}
 
-      {/* mês em branco: 2 botões iguais (com destaque) logo abaixo dos meses */}
-      {modo === "mensal" && !semEquipe && mesVazio && (
+      {/* puxar dados: 2 botões iguais (sempre disponíveis) logo abaixo dos meses */}
+      {modo === "mensal" && !semEquipe && (
         <div className="no-print" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
           {[
-            { txt: "↧ Puxar do preenchimento geral", on: puxarDoGeral, off: false },
             { txt: "↧ Puxar do mês anterior", on: puxarDoMesAnterior, off: !temMesAnterior() },
           ].map((b) => (
             <button key={b.txt} onClick={b.on} disabled={b.off} title={b.off ? "O mês anterior também está vazio" : ""}
@@ -755,6 +772,14 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             <table className="eq-tab eq-vsep" style={{ borderCollapse: "separate", borderSpacing: 0, tableLayout: "fixed", width: somaMensal, minWidth: somaMensal }}>
               <colgroup>{wMensal.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
               <thead>
+                {/* faixa agrupando Proventos e Descontos */}
+                <tr>
+                  <th className="eq-th eq-fix" style={{ background: "var(--card)" }} />
+                  <th colSpan={6 + cols.prov.length} style={{ textAlign: "center", padding: "6px 8px", fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "#10B981", background: "rgba(16,185,129,.10)", borderBottom: "1px solid var(--line)" }}>Proventos</th>
+                  <th colSpan={7 + cols.desc.length} style={{ textAlign: "center", padding: "6px 8px", fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "#EF4444", background: "rgba(239,68,68,.08)", borderBottom: "1px solid var(--line)" }}>Descontos</th>
+                  <th style={{ background: "#fff", borderBottom: "1px solid var(--line)" }} />
+                  <th colSpan={3} style={{ textAlign: "center", padding: "6px 8px", fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)", background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>Encargos da empresa</th>
+                </tr>
                 <tr>
                   <th className="eq-th eq-fix" onClick={() => ordenarPor("nome")}>Nome {seta("nome")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("base")} style={{ textAlign: "right" }}><Rot t="Salário base" /> {seta("base")}</th>
@@ -766,19 +791,20 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   <th className="eq-th" onClick={() => ordenarPor("proventos")} style={{ textAlign: "right" }}>Proventos {seta("proventos")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("inss")} style={{ textAlign: "right" }}>INSS {seta("inss")}<BtnInfoInss /></th>
                   <th className="eq-th" onClick={() => ordenarPor("irrf")} style={{ textAlign: "right" }}>IRRF {seta("irrf")}<BtnInfoIrrf /></th>
-                  <th className="eq-th" onClick={() => ordenarPor("vt")} style={{ textAlign: "right" }}><Rot t="Vale transp." /> {seta("vt")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("sindicato")} style={{ textAlign: "right" }}>Sindicato {seta("sindicato")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("planoSaude")} style={{ textAlign: "right" }}><Rot t="Plano saúde" /> {seta("planoSaude")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("mensalidade")} style={{ textAlign: "right" }}><>Mensa-<br />lidade</> {seta("mensalidade")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("adiantamento")} style={{ textAlign: "right" }}><>Adianta-<br />mento</> {seta("adiantamento")}</th>
                   {thsCol("desc")}
                   {thMais("desc")}
                   <th className="eq-th" onClick={() => ordenarPor("totalDesc")} style={{ textAlign: "right" }}>Descontos {seta("totalDesc")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("liquido")} style={{ textAlign: "right" }}>Líquido {seta("liquido")}</th>
+                  <th className="eq-th" onClick={() => ordenarPor("provisaoM")} style={{ textAlign: "right" }}><Rot t="13º + Férias" /> {seta("provisaoM")}<BtnInfoProvisao /></th>
+                  <th className="eq-th" onClick={() => ordenarPor("fgtsM")} style={{ textAlign: "right" }}>FGTS {seta("fgtsM")}<BtnInfoFgts /></th>
+                  <th className="eq-th" onClick={() => ordenarPor("rescisaoM")} style={{ textAlign: "right" }}><Rot t="Provisão p/ rescisão" /> {seta("rescisaoM")}<BtnInfoRescisao /></th>
                 </tr>
               </thead>
               <tbody>
-                {mesView.map(({ f, v, extra, base, proventos, inss, irrf, vt, totalDesc, liquido }) => (
+                {mesView.map(({ f, v, extra, base, proventos, inss, irrf, totalDesc, liquido, provisaoM, fgtsM, rescisaoM }) => (
                   <tr key={`${ym}-${f.id}`} className="eq-row">
                     <td className="eq-fix">{celNome(f)}</td>
                     <td style={{ fontWeight: 700 }}><CampoMoeda valor={base} onSalvar={(n) => setVar(f.id, "base", n)} /></td>
@@ -790,19 +816,20 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                     <td style={{ textAlign: "right", fontWeight: 700 }}>{zbrl(proventos)}</td>
                     <td style={{ textAlign: "right", color: "var(--muted)" }}>{zbrl(inss)}</td>
                     <td style={{ textAlign: "right", color: "var(--muted)" }}>{zbrl(irrf)}</td>
-                    <td><CampoMoeda key={ym} valor={vt} onSalvar={(n) => setVar(f.id, "vt", n)} /></td>
                     <td><CampoMoeda valor={v.sindicato} onSalvar={(n) => setVar(f.id, "sindicato", n)} /></td>
                     <td><CampoMoeda valor={v.planoSaude} onSalvar={(n) => setVar(f.id, "planoSaude", n)} /></td>
-                    <td><CampoMoeda valor={v.mensalidade} onSalvar={(n) => setVar(f.id, "mensalidade", n)} /></td>
                     <td><CampoMoeda valor={v.adiantamento} onSalvar={(n) => setVar(f.id, "adiantamento", n)} /></td>
                     {tdsCol("desc", f.id, extra)}
                     <td />
                     <td style={{ textAlign: "right", color: "#EF4444", fontWeight: 600 }}>{zbrl(totalDesc)}</td>
                     <td style={{ textAlign: "right", color: "#10B981", fontWeight: 800 }}>{zbrl(liquido)}</td>
+                    <td style={{ textAlign: "right", color: "var(--muted)" }}>{zbrl(provisaoM)}</td>
+                    <td style={{ textAlign: "right", color: "var(--muted)" }}>{zbrl(fgtsM)}</td>
+                    <td style={{ textAlign: "right", color: "var(--muted)" }}>{zbrl(rescisaoM)}</td>
                   </tr>
                 ))}
-                {mesView.length === 0 && <tr><td colSpan={15 + cols.prov.length + cols.desc.length + 2} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
-                {linhaCadastrar(15 + cols.prov.length + cols.desc.length + 2)}
+                {mesView.length === 0 && <tr><td colSpan={16 + cols.prov.length + cols.desc.length + 2} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
+                {linhaCadastrar(16 + cols.prov.length + cols.desc.length + 2)}
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 800 }}>
@@ -812,20 +839,23 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   <td style={{ textAlign: "right" }}>{brl(totM.proventos)}</td>
                   <td style={{ textAlign: "right" }}>{brl(totM.inss)}</td>
                   <td style={{ textAlign: "right" }}>{brl(totM.irrf)}</td>
-                  <td style={{ textAlign: "right" }}>{brl(totM.vt)}</td>
-                  <td /><td /><td /><td />
+                  <td /><td /><td />
                   {tdsVazias("desc")}
                   <td style={{ textAlign: "right", color: "#EF4444" }}>{brl(totM.totalDesc)}</td>
                   <td style={{ textAlign: "right", color: "#10B981" }}>{brl(totM.liquido)}</td>
+                  <td style={{ textAlign: "right" }}>{brl(totMprov)}</td>
+                  <td style={{ textAlign: "right" }}>{brl(totMfgts)}</td>
+                  <td style={{ textAlign: "right" }}>{brl(totMresc)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
             {[
-              { t: `Proventos ${MESES[mesAtualIdx]}`, v: totM.proventos, cor: "var(--txt)" },
-              { t: "Total de descontos", v: totM.totalDesc, cor: "#EF4444" },
-              { t: "Líquido a pagar no mês", v: totM.liquido, cor: "#10B981" },
+              { t: "Salários (bruto)", v: totM.proventos, cor: "var(--txt)", info: false },
+              { t: "Líquido a pagar", v: totM.liquido, cor: "#10B981", info: false },
+              { t: "Encargos (FGTS + provisões)", v: round2(totMfgts + totMprov), cor: "var(--brand)" },
+              { t: "Custo total da folha", v: custoTotalMes, cor: "var(--brand)" },
             ].map((c) => (
               <div key={c.t} className="card" style={{ flex: "1 1 200px", padding: 16 }}>
                 <div className="sub" style={{ fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>{c.t}</div>
@@ -833,6 +863,47 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               </div>
             ))}
           </div>
+
+          {/* ---- Pró-labore dos sócios (regra própria, sem 13º/férias/FGTS) ---- */}
+          {socios.length > 0 && (
+            <div style={{ marginTop: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <b style={{ fontSize: 15 }}>Pró-labore dos sócios</b>
+                <BtnInfo onClick={() => setInfoProlabore(true)} titulo="Como funciona o pró-labore" />
+              </div>
+              <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
+                <table className="eq-tab eq-vsep" style={{ borderCollapse: "separate", borderSpacing: 0, width: "100%", minWidth: 520 }}>
+                  <thead>
+                    <tr>
+                      <th className="eq-th eq-fix">Nome</th>
+                      <th className="eq-th" style={{ textAlign: "right" }}>Pró-labore</th>
+                      <th className="eq-th" style={{ textAlign: "right" }}>INSS (11%)<BtnInfo onClick={() => setInfoProlabore(true)} titulo="Como funciona o pró-labore" /></th>
+                      <th className="eq-th" style={{ textAlign: "right" }}>Líquido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {socioView.map(({ f, base, inss, liquido }) => (
+                      <tr key={`pl-${ym}-${f.id}`} className="eq-row">
+                        <td className="eq-fix">{celNome(f)}</td>
+                        <td style={{ fontWeight: 700 }}><CampoMoeda valor={base} onSalvar={(n) => setVar(f.id, "base", n)} /></td>
+                        <td style={{ textAlign: "right", color: "var(--muted)" }}>{zbrl(inss)}</td>
+                        <td style={{ textAlign: "right", color: "#10B981", fontWeight: 800 }}>{zbrl(liquido)}</td>
+                      </tr>
+                    ))}
+                    {socioView.length === 0 && <tr><td colSpan={4} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 800 }}>
+                      <td className="eq-fix" style={{ padding: "12px 10px" }}>Total ({linhasSocio.length})</td>
+                      <td style={{ textAlign: "right" }}>{brl(totSocio.base)}</td>
+                      <td style={{ textAlign: "right" }}>{brl(totSocio.inss)}</td>
+                      <td style={{ textAlign: "right", color: "#10B981" }}>{brl(totSocio.liquido)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -1054,6 +1125,37 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               Total: <b style={{ color: "var(--brand)" }}>{brl(custoTotal)}</b>.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoCusto(false)}>Entendi</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* pop-up: como funciona o pró-labore dos sócios */}
+      {infoProlabore && (
+        <div onClick={() => setInfoProlabore(false)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 520, padding: 22 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Info size={18} /></span>
+                <b style={{ fontSize: 16 }}>Como funciona o pró-labore</b>
+              </div>
+              <button onClick={() => setInfoProlabore(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+            </div>
+            <p className="sub" style={{ margin: "4px 0 12px", lineHeight: 1.55, fontSize: 12.5 }}>
+              O <b>pró-labore</b> é a remuneração do <b>sócio</b> pelo trabalho na empresa. A regra é <b>mais simples</b> que a do funcionário CLT:
+            </p>
+            <div style={{ display: "grid", gap: 8 }}>
+              {[
+                <>Tem <b>salário base</b> (o valor do pró-labore) e o desconto de <b>INSS</b>.</>,
+                <>O INSS do sócio é de <b>11%</b> sobre o pró-labore, limitado ao teto de <b>{brl(INSS_TETO)}</b> (desconto máximo de <b>R$ 932,31</b> por mês).</>,
+                <><b>Não tem 13º salário e não tem férias</b> (esses direitos são da CLT, não do sócio).</>,
+                <><b>Não tem FGTS</b> nem provisão de rescisão.</>,
+                <><b>Líquido</b> = pró-labore menos o INSS.</>,
+              ].map((t, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}><span style={{ color: "var(--brand)", fontWeight: 800 }}>•</span><span>{t}</span></div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoProlabore(false)}>Entendi</button></div>
           </div>
         </div>
       )}
