@@ -295,9 +295,9 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [confirmCol, setConfirmCol] = useState<{ grupo: "prov" | "desc" | "benef"; id: string; nome: string } | null>(null);
   const [avisoCol, setAvisoCol] = useState<{ titulo: string; texto: string } | null>(null);
   const [colFoco, setColFoco] = useState<string | null>(null);
+  // tutorial da Folha desativado (removido a pedido); mantido o estado só para não abrir.
   const [tut, setTut] = useState(false);
-  useEffect(() => { try { if (localStorage.getItem("me_tut_folha") !== "1") setTut(true); } catch { /* ignore */ } }, []);
-  const fecharTut = () => { setTut(false); try { localStorage.setItem("me_tut_folha", "1"); salvarEstadoRemoto("me_tut_folha", "1"); } catch { /* ignore */ } };
+  const fecharTut = () => setTut(false);
   const BtnInfo = ({ onClick, titulo }: { onClick: () => void; titulo: string }) => (
     <button onClick={(e) => { e.stopPropagation(); onClick(); }} title={titulo} className="no-print"
       style={{ marginLeft: 5, verticalAlign: "middle", width: 16, height: 16, borderRadius: "50%", display: "inline-grid", placeItems: "center", cursor: "pointer", border: 0, background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", padding: 0 }}>

@@ -545,7 +545,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                   <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={salvarForm} disabled={tipo === "pagamentos" ? (!form.grupo || !form.item.trim()) : !form.item.trim()}>{form.editId ? "Salvar" : "+ Cadastrar"}</button>
                 </div>
               ) : (
-                <button onClick={() => setForm({ descricao: "", valor: "", recorrente: false, freq: "unica", grupo: "", item: "" })}
+                <button onClick={() => setForm({ descricao: "", valor: "", recorrente: true, freq: "mensal", grupo: "", item: "" })}
                   style={{ width: "100%", marginTop: 12, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, border: "2px dashed var(--line-2)", background: "transparent", color: "var(--brand)" }}>
                   <Plus size={16} /> {cfg.add}
                 </button>

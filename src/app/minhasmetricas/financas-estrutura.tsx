@@ -64,14 +64,47 @@ function limparGruposLegado(d: Dados): Dados {
   return mudou ? { ...d, custos } : d;
 }
 
+// garante itens/canais padrão também nas empresas que já existiam antes deles entrarem no modelo:
+// - grupo "Salários": Plano de Saúde, Contribuição Sindical, Outro benefício
+// - receitas: Canal de receita 1, Canal de receita 2
+function garantirBeneficiosSalarios(d: Dados): Dados {
+  if (!d || !Array.isArray(d.custos)) return d;
+  const padrao = ["Plano de Saúde", "Contribuição Sindical", "Outro benefício"];
+  let mudou = false;
+  const custos = d.custos.map((bloco) => ({
+    ...bloco,
+    grupos: (bloco.grupos || []).map((g) => {
+      if ((g.nome || "").trim().toLowerCase() !== "salários") return g;
+      const jaTem = new Set((g.itens || []).map((it) => (it.nome || "").trim().toLowerCase()));
+      const faltando = padrao.filter((n) => !jaTem.has(n.toLowerCase()));
+      if (!faltando.length) return g;
+      mudou = true;
+      return { ...g, itens: [...(g.itens || []), ...faltando.map((n) => ({ nome: n, v: v12([]) }))] };
+    }),
+  }));
+  // canais de receita padrão
+  const paletaRec = [ROXO, LARANJA];
+  const canais = ["Canal de receita 1", "Canal de receita 2"];
+  let receitas = d.receitas;
+  if (Array.isArray(d.receitas)) {
+    const jaTemRec = new Set(d.receitas.map((r) => (r.nome || "").trim().toLowerCase()));
+    const faltandoRec = canais.filter((n) => !jaTemRec.has(n.toLowerCase()));
+    if (faltandoRec.length) {
+      mudou = true;
+      receitas = [...d.receitas, ...faltandoRec.map((n, i) => ({ nome: n, cor: paletaRec[i % paletaRec.length], v: v12([]) }))];
+    }
+  }
+  return mudou ? { ...d, receitas, custos } : d;
+}
+
 export function carregarEstrutura(ano: number = 2026): Dados {
   if (typeof window === "undefined") return PADRAO;
   try {
     const cru = localStorage.getItem(chaveAno(ano));
-    if (cru) return limparGruposLegado(JSON.parse(cru));
+    if (cru) return garantirBeneficiosSalarios(limparGruposLegado(JSON.parse(cru)));
     if (ano === 2026) {
       const legado = localStorage.getItem(CHAVE);
-      if (legado) return limparGruposLegado(JSON.parse(legado));
+      if (legado) return garantirBeneficiosSalarios(limparGruposLegado(JSON.parse(legado)));
       // conta real (banco): empresa nova começa com o MODELO LIMPO (genérico).
       // No modo demonstração, mostra o exemplo com dados da Dynamis (PADRAO).
       return supabaseReady ? MODELO_LIMPO : PADRAO;
@@ -401,8 +434,8 @@ export const PADRAO: Dados = {
  */
 export const MODELO_LIMPO: Dados = {
   receitas: [
-    { nome: "Time de vendas", cor: ROXO, v: v12([]) },
-    { nome: "", cor: LARANJA, v: v12([]) },
+    { nome: "Canal de receita 1", cor: ROXO, v: v12([]) },
+    { nome: "Canal de receita 2", cor: LARANJA, v: v12([]) },
     { nome: "", cor: "#94a3b8", v: v12([]) },
   ],
   custos: [
@@ -417,6 +450,9 @@ export const MODELO_LIMPO: Dados = {
           { nome: "Provisão Rescisão", v: v12([]) },
           { nome: "Comissão", v: v12([]) },
           { nome: "Pro-Labore", v: v12([]) },
+          { nome: "Plano de Saúde", v: v12([]) },
+          { nome: "Contribuição Sindical", v: v12([]) },
+          { nome: "Outro benefício", v: v12([]) },
         ] },
         { nome: "Operacional", cor: VERDE, itens: [
           { nome: "Aluguel", v: v12([]) },
@@ -922,6 +958,19 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                 onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "transparent"; }}>{m}</button>
             );
           })}
+          <span style={{ width: 1, height: 20, background: "var(--line-2)", margin: "0 3px" }} />
+          {(() => { const btn: React.CSSProperties = { padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".12s" }; return (
+            <>
+              <button onClick={() => setSel(sel.size === 0 ? new Set(Array.from({ length: 12 }, (_, i) => i)) : new Set())} style={btn}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                {sel.size === 0 ? "Marcar todos" : "Desmarcar todos"}
+              </button>
+              <button onClick={() => setSel(new Set([new Date().getMonth()]))} style={btn}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                Só mês atual
+              </button>
+            </>
+          ); })()}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <BotaoOcultar />
@@ -971,7 +1020,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                 <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A receber (ainda não somado)">{fmt(pend)}</span>
                                 <span style={{ display: "inline-flex", gap: 4 }}>
                                   <button onClick={() => abrirPagarEst("rec", "", r.nome, m)} title="Confirmar recebimento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
-                                  <button onClick={() => pedirRemoverPrevisto("rec", "", r.nome, m, `recebíveis a receber de "${r.nome}" em ${MES[m]}`)} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
+                                  <button onClick={() => pedirRemoverPrevisto("rec", "", r.nome, m, `recebíveis a receber de "${r.nome}" em ${MES[m]}`)} title="Remover este previsto (apaga também do Calendário)" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "var(--red)" }}><Trash2 size={11} strokeWidth={2.5} /></button>
                                 </span>
                               </div>
                             </td>
@@ -1077,7 +1126,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                         <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A pagar (ainda não somado)">{fmt(pend)}</span>
                                         <span style={{ display: "inline-flex", gap: 4 }}>
                                           <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
-                                          <button onClick={() => pedirRemoverPrevisto("pag", g.nome, it.nome, m, `pagamentos a pagar de "${it.nome}" em ${MES[m]}`)} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => pedirRemoverPrevisto("pag", g.nome, it.nome, m, `pagamentos a pagar de "${it.nome}" em ${MES[m]}`)} title="Remover este previsto (apaga também do Calendário)" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "var(--red)" }}><Trash2 size={11} strokeWidth={2.5} /></button>
                                         </span>
                                       </div>
                                     </td>
@@ -1111,7 +1160,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                         <span style={{ color: "#aab2bd", fontStyle: "italic" }} title="A pagar (ainda não somado)">{fmt(pend)}</span>
                                         <span style={{ display: "inline-flex", gap: 4 }}>
                                           <button onClick={() => abrirPagarEst("pag", g.nome, it.nome, m)} title="Confirmar pagamento" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><Check size={12} strokeWidth={3} /></button>
-                                          <button onClick={() => pedirRemoverPrevisto("pag", g.nome, it.nome, m, `pagamentos a pagar de "${it.nome}" em ${MES[m]}`)} title="Remover" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(148,163,184,.16)", color: "#94a3b8" }}><X size={12} strokeWidth={3} /></button>
+                                          <button onClick={() => pedirRemoverPrevisto("pag", g.nome, it.nome, m, `pagamentos a pagar de "${it.nome}" em ${MES[m]}`)} title="Remover este previsto (apaga também do Calendário)" style={{ display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "var(--red)" }}><Trash2 size={11} strokeWidth={2.5} /></button>
                                         </span>
                                       </div>
                                     </td>
@@ -1460,6 +1509,8 @@ function CalNomeCel({ nome, onRenomear, onRemover, onSalvo, cor, italico, indent
   return (
     <td style={{ ...tdRot, fontWeight: italico ? 400 : 500, fontStyle: italico ? "italic" : undefined, color: italico ? "var(--muted)" : undefined, paddingLeft: indent }}>
       <span style={{ display: "flex", alignItems: "center", gap: 7, width: "100%" }}>
+        {/* mesma alça dos demais itens (só visual: a ordem destes segue o Calendário) */}
+        <span title="Item lançado pelo Calendário: a ordem segue o Calendário" style={{ color: "var(--muted-2)", flexShrink: 0, display: "grid", placeItems: "center", opacity: .5 }}><GripVertical size={13} /></span>
         {reservaChevron && <span style={{ width: 13, flexShrink: 0 }} />}
         {cor && <span style={{ width: 7, height: 7, borderRadius: 99, background: cor, flexShrink: 0 }} />}
         <input value={val} onChange={(e) => setVal(e.target.value)}

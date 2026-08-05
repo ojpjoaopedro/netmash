@@ -323,12 +323,14 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
     flashT.current = window.setTimeout(() => setFlash(null), 1500);
   };
   async function salvarCampoFunc(id: string, patch: Partial<Funcionario>, el: HTMLElement) {
+    if (patch.nome != null) patch = { ...patch, nome: patch.nome.toUpperCase() };   // nome da equipe sempre em MAIÚSCULO
     await updateFuncionario(id, patch);
     reload();
     flashEm(el);
   }
   // salva um campo de um usuário com login (em me_diretores)
   function salvarCampoLogin(l: Linha, patch: Partial<DPessoa>, el: HTMLElement) {
+    if (patch.nome != null) patch = { ...patch, nome: patch.nome.toUpperCase() };   // nome da equipe sempre em MAIÚSCULO
     if (l.ehSuper) setDir((s) => ({ ...s, sup: { ...s.sup, ...patch } }));
     else setDir((s) => ({ ...s, admins: s.admins.map((a) => a.id === l.perfilId ? { ...a, ...patch } : a) }));
     flashEm(el);
@@ -366,7 +368,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   // ---- modo Lista: busca + ordenação por coluna ----
   const COLS: { k: string; label: string }[] = [
     { k: "nome", label: "Nome" }, { k: "contato", label: "Telefone" }, { k: "email", label: "E-mail" },
-    { k: "cpf", label: "CPF" }, { k: "pix", label: "Pix" }, { k: "nascimento", label: "Nascimento" }, { k: "cargo", label: "Tipo" },
+    { k: "cpf", label: "CPF" }, { k: "nascimento", label: "Nascimento" }, { k: "cargo", label: "Tipo" },
   ];
   const bq = busca.trim().toLowerCase();
   const passaBusca = (l: Linha) => !bq || [l.nome, l.telefone, l.email, l.cpf, l.pix, l.cargo].some((x) => (x || "").toLowerCase().includes(bq));
@@ -538,17 +540,16 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
           {/* busca no topo */}
           <div style={{ position: "relative", maxWidth: 400, marginBottom: 14 }}>
             <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, e-mail, CPF, Pix ou cargo…" style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10 }} />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, e-mail, CPF ou cargo…" style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10 }} />
           </div>
           {/* tabela ordenável (clique nos títulos das colunas) */}
           <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1248, tableLayout: "fixed" }}>
+            <table className="eq-tab" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1218, tableLayout: "fixed" }}>
               <colgroup>
-                <col style={{ width: 165 }} />{/* Nome */}
+                <col style={{ width: 240 }} />{/* Nome (mais larga) */}
                 <col style={{ width: 115 }} />{/* Telefone */}
                 <col style={{ width: 215 }} />{/* E-mail (mais larga) */}
                 <col style={{ width: 115 }} />{/* CPF */}
-                <col style={{ width: 105 }} />{/* Pix */}
                 <col style={{ width: 115 }} />{/* Nascimento */}
                 <col style={{ width: 105 }} />{/* Cargo */}
                 <col style={{ width: 150 }} />{/* Nível de acesso */}
@@ -590,8 +591,6 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                         onSalvar={(v, el) => l.origem === "func" ? salvarEmail(l.func!.id, v, el) : undefined} /></td>
                       <td><Campo valor={l.cpf} placeholder="—" disabled={!edit} titulo={roDica} formatar={mascararCPF} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
                         onSalvar={(v, el) => l.origem === "func" ? salvarCpf(l.func!.id, v, el) : salvarCampoLogin(l, { cpf: v.trim() }, el)} /></td>
-                      <td><Campo valor={l.pix} placeholder="—" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
-                        onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { pix: v.trim() || null }, el) : salvarCampoLogin(l, { pix: v.trim() }, el)} /></td>
                       <td><Campo valor={l.nascimento} placeholder="dd/mm/aaaa" tipo="date" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
                         onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nascimento: v || null }, el) : salvarCampoLogin(l, { nascimento: v }, el)} /></td>
                       <td style={{ textAlign: "center" }}><TipoSelect valor={l.cargo} disabled={!edit}

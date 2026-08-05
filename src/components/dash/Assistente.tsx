@@ -74,6 +74,7 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
   const [entrada, setEntrada] = useState("");
   const [gravando, setGravando] = useState(false);
   const [previa, setPrevia] = useState<LancParsed | null>(null);
+  const [freqLanc, setFreqLanc] = useState<"unica" | "mensal">("mensal");
   const [salvando, setSalvando] = useState(false);
   const [msgReg, setMsgReg] = useState("");
   const [erroReg, setErroReg] = useState("");
@@ -125,7 +126,7 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
       // grava no Calendário → aparece na Estrutura de Receitas e Custos
       const novo = {
         id: uidLanc(), descricao: previa.item, valor: previa.valor, dia, mes: m, ano: y,
-        recorrente: false, freq: "unica" as const,
+        recorrente: freqLanc !== "unica", freq: freqLanc,
         grupo: previa.tipo === "despesa" ? previa.grupo : undefined, item: previa.item,
         confirmados: previa.pago ? [ym] : [], confirmadosDia: [] as string[],
       };
@@ -137,7 +138,7 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
         data_competencia: iso, vencimento: iso, pago: previa.pago,
         data_pagamento: previa.pago ? iso : null, forma: null, contato: null, origem: "assistente",
       });
-      setPrevia(null); setEntrada(""); setDataTxt("");
+      setPrevia(null); setEntrada(""); setDataTxt(""); setFreqLanc("mensal");
       setMsgReg(`✅ ${previa.tipo === "receita" ? "Faturamento" : "Despesa"} de ${brl(previa.valor)} lançado na Estrutura!`);
       reload?.();
     } catch {
@@ -240,6 +241,12 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
                     <input type="checkbox" checked={previa.pago} onChange={(e) => setPrevia({ ...previa, pago: e.target.checked })} style={{ width: 18, height: 18 }} />
                     {previa.tipo === "receita" ? "Já recebido" : "Já pago"}
                   </label>
+                </div>
+                <div className="field"><label className="f">Recorrência</label>
+                  <select value={freqLanc} onChange={(e) => setFreqLanc(e.target.value as "unica" | "mensal")}>
+                    <option value="mensal">Mensal (repete todo mês)</option>
+                    <option value="unica">Não recorrente (só nesta data)</option>
+                  </select>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>

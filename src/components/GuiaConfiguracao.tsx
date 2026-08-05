@@ -9,6 +9,7 @@ import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 const KEY_MIN = "me_guia_min";
 const KEY_OK = "me_guia_concluido";
+const KEY_PARABENS = "me_guia_parabens_visto";   // o recado "Parabéns" aparece só 1 vez
 
 function lerJSON<T = unknown>(k: string): T | null {
   if (typeof window === "undefined") return null;
@@ -136,8 +137,10 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
   useEffect(() => {
     if (!montado) return;
     if (anteriorOK.current === null) { anteriorOK.current = tudoOK; return; }  // 1ª leitura não comemora
-    if (tudoOK && !anteriorOK.current) {
+    // comemora só na virada incompleto -> completo E só se ainda não tiver comemorado nenhuma vez
+    if (tudoOK && !anteriorOK.current && localStorage.getItem(KEY_PARABENS) !== "1") {
       setConfetti(true); setRecado(true);
+      try { localStorage.setItem(KEY_PARABENS, "1"); salvarEstadoRemoto(KEY_PARABENS, "1"); } catch { /* ignore */ }
       if (somLigado()) tocarParabens();
       window.setTimeout(() => setConfetti(false), 4500);   // confete some sozinho; o recado só sai no X
     }
