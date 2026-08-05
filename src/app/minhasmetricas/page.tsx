@@ -630,7 +630,6 @@ function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "rec
   const opcoes = [
     { key: "pagamentos" as const, titulo: "Despesas", desc: "Contas a pagar, com vencimentos e despesas recorrentes.", Icon: ArrowUpCircle, cor: "#EF4444" },
     { key: "recebimentos" as const, titulo: "Faturamento", desc: "Faturamento marcado por data.", Icon: ArrowDownCircle, cor: "#10B981" },
-    { key: "financeiro" as const, titulo: "Calendário financeiro", desc: "Faturamento e despesas juntos, dia a dia no mês.", Icon: CalendarDays, cor: "#7C3AED" },
   ];
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 14 }}>

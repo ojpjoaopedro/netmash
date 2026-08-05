@@ -311,6 +311,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [infoProlabore, setInfoProlabore] = useState(false);
   const [infoCustoMes, setInfoCustoMes] = useState(false);
   const [infoPuxar, setInfoPuxar] = useState(false);
+  const [pessoaCard, setPessoaCard] = useState<Funcionario | null>(null);   // card da pessoa em popup
   const BtnInfoInss = () => <BtnInfo onClick={() => setInfoInss(true)} titulo="Como o INSS é calculado" />;
   const BtnInfoIrrf = () => <BtnInfo onClick={() => setInfoIrrf(true)} titulo="Como o IRRF é calculado" />;
   const BtnInfoFgts = () => <BtnInfo onClick={() => setInfoFgts(true)} titulo="O que é o FGTS" />;
@@ -395,7 +396,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const irParaEquipe = () => navegar({ view: "config", aba: "equipe", voltar: { view: "financas", aba: "folha" } });
   // célula do nome: clicar (ou passar o mouse) leva ao cadastro na Equipe
   const celNome = (f: Funcionario) => (
-    <div onClick={irParaEquipe} title="Abrir o cadastro desta pessoa na Equipe"
+    <div onClick={() => setPessoaCard(f)} title={f.nome || "—"}
       onMouseEnter={(e) => { (e.currentTarget.querySelector("b") as HTMLElement | null)?.style.setProperty("color", "var(--brand)"); }}
       onMouseLeave={(e) => { (e.currentTarget.querySelector("b") as HTMLElement | null)?.style.removeProperty("color"); }}
       style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, cursor: "pointer" }}>
@@ -1373,6 +1374,47 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
           </div>
         </div>
       )}
+
+      {/* card da pessoa (abre ao clicar no nome) */}
+      {pessoaCard && (() => { const p = pessoaCard;
+        const ini = (p.nome || "?").trim().split(/\s+/).map((x) => x[0]).join("").toUpperCase().slice(0, 2);
+        const nasc = p.nascimento ? p.nascimento.slice(0, 10).split("-").reverse().join("/") : "";
+        const linhas: [string, string][] = [
+          ["E-mail", p.email || ""], ["Telefone", p.contato || ""], ["CPF", p.cpf || ""],
+          ["Pix", p.pix || ""], ["Nascimento", nasc], ["Cargo", p.cargo || ""],
+          ["Departamento", p.departamento || ""], ["Salário base", p.salario ? brl(p.salario) : ""],
+        ];
+        return (
+        <div onClick={() => setPessoaCard(null)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 130, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 440, padding: 0, overflow: "hidden" }}>
+            {/* cabeçalho com avatar + nome */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "20px 22px", background: "linear-gradient(120deg, color-mix(in srgb, var(--brand) 16%, transparent), transparent)" }}>
+              {p.foto
+                ? <img src={p.foto} alt={p.nome || ""} style={{ width: 56, height: 56, borderRadius: 14, objectFit: "cover", flexShrink: 0 }} />
+                : <span style={{ width: 56, height: 56, borderRadius: 14, flexShrink: 0, display: "grid", placeItems: "center", background: "var(--brand)", color: "#fff", fontSize: 20, fontWeight: 800 }}>{ini}</span>}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <b style={{ fontSize: 17, display: "block", lineHeight: 1.2 }}>{p.nome || "—"}</b>
+                {(p.cargo || p.departamento) && <span className="sub" style={{ fontSize: 12.5 }}>{[p.cargo, p.departamento].filter(Boolean).join(" · ")}</span>}
+              </div>
+              <button onClick={() => setPessoaCard(null)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", flexShrink: 0 }}><X size={18} /></button>
+            </div>
+            {/* dados */}
+            <div style={{ padding: "8px 22px 18px", display: "grid", gap: 2 }}>
+              {linhas.map(([r, v]) => (
+                <div key={r} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+                  <span className="sub" style={{ fontSize: 12.5, fontWeight: 600 }}>{r}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, textAlign: "right", wordBreak: "break-word" }}>{v || "—"}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+                <button className="btn ghost" onClick={() => setPessoaCard(null)}>Fechar</button>
+                <button className="btn" onClick={irParaEquipe}>Abrir na Equipe</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        ); })()}
 
       {/* confirmação de exclusão de coluna (padrão do app) */}
       {confirmCol && (

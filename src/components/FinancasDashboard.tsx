@@ -164,6 +164,13 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
             </button>
           );
         })}
+        <span style={{ width: 1, height: 22, background: "rgba(148,163,184,.28)", margin: "0 3px" }} />
+        {(() => { const btn: React.CSSProperties = { padding: "7px 13px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid rgba(148,163,184,.28)", background: "transparent", color: "#94a3b8" }; return (
+          <>
+            <button onClick={() => setSel(sel.size === 0 ? new Set(Array.from({ length: 12 }, (_, i) => i)) : new Set())} style={btn}>{sel.size === 0 ? "Marcar todos" : "Desmarcar todos"}</button>
+            <button onClick={() => setSel(new Set([new Date().getMonth()]))} style={btn}>Só mês atual</button>
+          </>
+        ); })()}
         {!estreito && (
           <button onClick={toggleFull} title={full ? "Sair da tela cheia" : "Expandir para tela cheia"}
             style={{ marginLeft: "auto", width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", cursor: "pointer", border: "1px solid rgba(148,163,184,.28)", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}>

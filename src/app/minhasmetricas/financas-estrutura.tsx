@@ -30,7 +30,7 @@ const CHAVE = "me_financas_estrutura";
 // completa o array de valores até 12 meses (o que não veio nos dados é 0)
 const v12 = (a: number[]): number[] => Array.from({ length: 12 }, (_, i) => a[i] ?? 0);
 
-export type Item = { nome: string; cor?: string; v: number[]; cal?: boolean; pend?: number[] };  // cal = linha do Calendário; pend = valores ainda não pagos (não somam)
+export type Item = { nome: string; cor?: string; v: number[]; cal?: boolean; pend?: number[]; conf?: number[] };  // cal = linha do Calendário; pend = valores ainda não pagos (não somam); conf = pagos vindos do Calendário
 // `financeiro` marca empréstimo/juros — o que o EBITDA soma de volta ao lucro
 export type Grupo = { nome: string; cor: string; itens: Item[]; financeiro?: boolean };
 export type Bloco = { nome: string; grupos: Grupo[] };
@@ -152,6 +152,35 @@ export const freqDe = (p: Pagamento): Freq => p.freq || (p.recorrente ? "mensal"
 const fimDeSemana = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
 const isoDe = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+// ── Feriados (para empurrar contas recorrentes ao próximo dia útil) ───────────
+// Páscoa (algoritmo de Meeus/Butcher) para calcular os feriados móveis do ano.
+function pascoa(ano: number): Date {
+  const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7, mm = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mes = Math.floor((h + l - 7 * mm + 114) / 31), dia = ((h + l - 7 * mm + 114) % 31) + 1;
+  return new Date(ano, mes - 1, dia);
+}
+const _feriadosCache: Record<number, Set<string>> = {};
+const chaveDia = (d: Date) => `${d.getMonth()}-${d.getDate()}`;
+function feriadosDoAno(ano: number): Set<string> {
+  if (_feriadosCache[ano]) return _feriadosCache[ano];
+  const s = new Set<string>();
+  // fixos (mês 0-based): Confraternização, Tiradentes, Trabalho, Independência, N.Sra Aparecida, Finados, República, Consciência Negra, Natal
+  ([[0, 1], [3, 21], [4, 1], [8, 7], [9, 12], [10, 2], [10, 15], [10, 20], [11, 25]] as [number, number][]).forEach(([m, dia]) => s.add(`${m}-${dia}`));
+  const pa = pascoa(ano);
+  const mover = (delta: number) => { const d = new Date(pa); d.setDate(pa.getDate() + delta); return chaveDia(d); };
+  s.add(mover(-2));    // Sexta-feira Santa
+  s.add(mover(-47));   // Terça de Carnaval (bancos fechados)
+  s.add(mover(60));    // Corpus Christi (bancos fechados)
+  _feriadosCache[ano] = s;
+  return s;
+}
+const ehFeriado = (d: Date) => feriadosDoAno(d.getFullYear()).has(chaveDia(d));
+// dia sem expediente bancário: fim de semana ou feriado nacional
+const naoUtil = (d: Date) => fimDeSemana(d) || ehFeriado(d);
+
 export type Ocorrencia = { mes: number; dia: number; iso: string; mensal: boolean };
 /** Todas as ocorrências (datas) da despesa/recebimento no ano, conforme a frequência. */
 export function datasDaDespesa(p: Pagamento, ano: number): Ocorrencia[] {
@@ -166,7 +195,7 @@ export function datasDaDespesa(p: Pagamento, ano: number): Ocorrencia[] {
       if (p.pulados?.includes(idx)) continue;
       const last = new Date(ano, m + 1, 0).getDate();
       const dt = new Date(ano, m, Math.min(p.dia, last));
-      while (fimDeSemana(dt)) dt.setDate(dt.getDate() + 1);   // cai sempre em dia útil
+      while (naoUtil(dt)) dt.setDate(dt.getDate() + 1);   // cai sempre em dia útil (pula fim de semana e feriado)
       out.push({ mes: dt.getMonth(), dia: dt.getDate(), iso: isoDe(dt), mensal: true });
     }
     return out;
@@ -180,7 +209,7 @@ export function datasDaDespesa(p: Pagamento, ano: number): Ocorrencia[] {
     const idx = ymIdx(cur.getFullYear(), cur.getMonth());
     const isoAtual = isoDe(cur);
     const cortado = (p.ate != null && idx >= p.ate) || (p.pulados?.includes(idx)) || (p.ateDia != null && isoAtual >= p.ateDia) || (p.puladosDia?.includes(isoAtual));
-    if (cur.getFullYear() === ano && !cortado && !(f === "diaria_uteis" && fimDeSemana(cur))) {
+    if (cur.getFullYear() === ano && !cortado && !(f === "diaria_uteis" && naoUtil(cur))) {
       out.push({ mes: cur.getMonth(), dia: cur.getDate(), iso: isoAtual, mensal: false });
     }
     cur.setDate(cur.getDate() + passo);
@@ -642,6 +671,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       const real = g.itens.find((it) => it.nome === l.item && !it.cal);
       if (real) {
         real.v = real.v.map((x, m) => x + (l.conf[m] || 0));                 // soma o pago no item existente (mesmo nome)
+        if (l.conf.some((x) => x > 0)) real.conf = l.conf.slice();           // guarda os pagos (para poder remover pela Estrutura)
         if (l.pend.some((x) => x > 0)) real.pend = l.pend.slice();           // pendentes viram 2ª linha "a pagar"
       } else {
         g.itens.push({ nome: l.item, v: l.conf.slice(), pend: l.pend.slice(), cal: true });   // v = pago (soma); pend = a pagar (não soma)
@@ -707,6 +737,31 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       return { ...p, puladosDia, pulados };
     }));
   };
+  // remove uma conta JÁ PAGA (confirmada) do calendário, direto pela Estrutura: desfaz a confirmação e pula a ocorrência
+  const removerConfirmadosMes = (origem: "pag" | "rec", grupo: string, item: string, mes: number) => {
+    snapshot();
+    const ymMes = ano * 12 + mes;
+    lojaSalvar(origem, lojaLer(origem).map((p) => {
+      if (!bate(origem, p, grupo, item)) return p;
+      const confs = datasDaDespesa(p, ano).filter((o) => o.mes === mes && ocConfirmada(p, o, ano));
+      if (!confs.length) return p;
+      let confirmadosDia = [...(p.confirmadosDia || [])];
+      let confirmados = [...(p.confirmados || [])];
+      const valoresDia = { ...(p.valoresDia || {}) };
+      const pagoEmDia = { ...(p.pagoEmDia || {}) };
+      const puladosDia = [...(p.puladosDia || [])];
+      const pulados = [...(p.pulados || [])];
+      for (const o of confs) {
+        confirmadosDia = confirmadosDia.filter((iso) => iso !== o.iso);
+        delete valoresDia[o.iso]; delete pagoEmDia[o.iso];
+        if (o.mensal) { confirmados = confirmados.filter((x) => x !== ymMes); if (!pulados.includes(ymMes)) pulados.push(ymMes); }
+        else puladosDia.push(o.iso);
+      }
+      return { ...p, confirmadosDia, confirmados, valoresDia, pagoEmDia, puladosDia, pulados };
+    }));
+  };
+  const pedirRemoverConfirmado = (origem: "pag" | "rec", grupo: string, item: string, mes: number, nome: string) =>
+    pedirExcluir(nome, () => removerConfirmadosMes(origem, grupo, item, mes));
   // remove esse mês e todos os seguintes (corta a recorrência a partir daqui)
   const removerPendentesDaqui = (origem: "pag" | "rec", grupo: string, item: string, mes: number) => {
     snapshot();
@@ -1143,7 +1198,19 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                                 bloqueado={!!categoriaDoItem(it.nome)}
                                 onRemover={categoriaDoItem(it.nome) ? undefined : () => pedirExcluir(it.nome || "este item", () => removerItem(bi, gi, ii))}
                                 drag={{ onStart: () => { arrastarItem.current = { bi, gi, ii }; }, onDrop: () => { const a = arrastarItem.current; if (a && a.bi === bi && a.gi === gi) moverItem(bi, gi, a.ii, ii); arrastarItem.current = null; } }} />
-                              {mesesVis.map((m) => <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => aoDigitarCusto(bi, gi, ii, m, nv, g.nome, it.nome)} />)}
+                              {mesesVis.map((m) => {
+                                const pago = it.conf?.[m] || 0;
+                                if (pago > 0) return (
+                                  // mês pago pelo Calendário: mostra o valor + lixeira para apagar (não edita direto aqui)
+                                  <td key={m} className="oc-num" style={{ ...tdNum }}>
+                                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 5, width: "100%" }}>
+                                      <span style={{ fontStyle: "italic", color: "var(--muted)" }}>{fmt(it.v[m])}</span>
+                                      <button className="no-print" onClick={() => pedirRemoverConfirmado("pag", g.nome, it.nome, m, `o pagamento de "${it.nome}" em ${MES[m]} (já pago pelo Calendário)`)} title="Apagar esta conta paga (remove também do Calendário)" style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "var(--red)" }}><Trash2 size={11} strokeWidth={2.5} /></button>
+                                    </span>
+                                  </td>
+                                );
+                                return <Celula key={m} valor={it.v[m]} italico onSalvo={salvo} onChange={(nv) => aoDigitarCusto(bi, gi, ii, m, nv, g.nome, it.nome)} />;
+                              })}
                               <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(it.v))}</td>
                             </tr>
                             {it.pend && it.pend.some((x) => x > 0) && (
