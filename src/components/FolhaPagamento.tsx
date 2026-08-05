@@ -590,9 +590,10 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const totSocio = linhasSocio.reduce((a, l) => ({ base: a.base + l.base, inss: a.inss + l.inss, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido }), { base: 0, inss: 0, totalDesc: 0, liquido: 0 });
   const ymAnterior = () => { if (!ym) return ""; const [a, m] = ym.split("-").map(Number); let py = a, pm = m - 1; if (pm < 1) { pm = 12; py = a - 1; } return `${py}-${String(pm).padStart(2, "0")}`; };
   const temMesAnterior = () => { const p = ymAnterior(); return !!p && Object.keys(lerMes(empresa?.id, p)).length > 0; };
-  // o mês já tem lançamentos na folha dos funcionários? (se sim, o botão de puxar fica travado até apagar tudo)
+  // o mês já tem lançamentos? (funcionários OU pró-labore dos sócios). Só libera o "puxar" com as duas tabelas vazias.
   // usa os valores realmente calculados (ignora resíduos de colunas já removidas)
-  const mesTemDados = linhasMes.some((l) => l.proventos > 0.005 || l.totalDesc > 0.005);
+  const mesTemDados = linhasMes.some((l) => l.proventos > 0.005 || l.totalDesc > 0.005)
+    || linhasSocio.some((l) => l.proventos > 0.005 || l.totalDesc > 0.005);
   function puxarDoMesAnterior() {
     const prev = lerMes(empresa?.id, ymAnterior());
     // só traz quem está ativo: desativado não tem mais salário
@@ -655,38 +656,56 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   function baixarFolhaExcel() {
     const ano = anoAtual || String(new Date().getFullYear());
     const mesNome = MESES[mesAtualIdx];
-    const titulos = new Set<string>();   // linhas em negrito (cabeçalhos e totais)
-    const aoa: (string | number)[][] = [];
-    const push = (row: (string | number)[]) => { aoa.push(row); };
+    const ncols = 1 + colsPrint.length;
+    const brandHex = "FF" + (brand?.cor || "#1AADE2").replace("#", "").toUpperCase();
+    const cidade = (empresa && "cidade" in empresa ? (empresa as { cidade?: string }).cidade : "") || "";
+    let resp = ""; try { const s = JSON.parse(localStorage.getItem("me_diretores") || "null"); resp = s?.sup?.nome || ""; } catch { /* ignore */ }
 
-    push(["Nome", ...colsPrint.map((c) => c.h)]);
-    titulos.add("0");
-    linhasMes.forEach((l) => push([l.f.nome || "—", ...colsPrint.map((c) => round2(c.get(l)))]));
-    push([`Total (${linhasMes.length})`, ...colsPrint.map((c) => somaCol(linhasMes, c.get))]);
-    titulos.add(String(aoa.length - 1));
+    type Papel = "titulo" | "kv" | "vazio" | "th" | "data" | "total" | "secao";
+    const aoa: (string | number)[][] = [];
+    const papeis: Papel[] = [];
+    const push = (row: (string | number)[], p: Papel) => { aoa.push(row); papeis.push(p); };
+
+    // cabeçalho (faixa azul + dados da empresa), igual ao Excel da Estrutura
+    push([`FOLHA DE PAGAMENTO ${mesNome.toUpperCase()} DE ${ano}`], "titulo");
+    push(["Empresa", nomeEmpresa], "kv");
+    push(["CNPJ", empresa?.cnpj || empExtra.cnpj || ""], "kv");
+    push(["Cidade", cidade], "kv");
+    push(["Responsável financeiro", resp], "kv");
+    push([], "vazio");
+
+    push(["Nome", ...colsPrint.map((c) => c.h)], "th");
+    linhasMes.forEach((l) => push([l.f.nome || "—", ...colsPrint.map((c) => round2(c.get(l)))], "data"));
+    push([`Total (${linhasMes.length})`, ...colsPrint.map((c) => somaCol(linhasMes, c.get))], "total");
 
     if (linhasSocio.length > 0) {
-      push([]);
-      push([`Pró-labore dos sócios · ${mesNome} de ${ano}`]);
-      push(["Nome", ...colsPrintPl.map((c) => c.h)]);
-      titulos.add(String(aoa.length - 1));
-      linhasSocio.forEach((l) => push([l.f.nome || "—", ...colsPrintPl.map((c) => round2(c.get(l)))]));
-      push([`Total (${linhasSocio.length})`, ...colsPrintPl.map((c) => somaCol(linhasSocio, c.get))]);
-      titulos.add(String(aoa.length - 1));
+      push([], "vazio");
+      push([`PRÓ-LABORE DOS SÓCIOS`], "secao");
+      push(["Nome", ...colsPrintPl.map((c) => c.h)], "th");
+      linhasSocio.forEach((l) => push([l.f.nome || "—", ...colsPrintPl.map((c) => round2(c.get(l)))], "data"));
+      push([`Total (${linhasSocio.length})`, ...colsPrintPl.map((c) => somaCol(linhasSocio, c.get))], "total");
     }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = [];
     const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
     for (let R = range.s.r; R <= range.e.r; R++) {
-      const linhaTitulo = titulos.has(String(R));
+      const papel = papeis[R];
+      if (papel === "titulo" || papel === "secao") ws["!merges"]!.push({ s: { r: R, c: 0 }, e: { r: R, c: ncols - 1 } });
       for (let C = range.s.c; C <= range.e.c; C++) {
         const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
         if (!cell) continue;
-        cell.s = { ...(cell.s || {}), font: { bold: linhaTitulo }, alignment: { horizontal: C >= 1 ? "right" : "left" } };
-        if (linhaTitulo && R === 0) cell.s.fill = { fgColor: { rgb: "E5EDFF" } };
-        if (C >= 1 && typeof cell.v === "number") cell.z = 'R$ #,##0.00';
+        const s: Record<string, unknown> = {};
+        if (papel === "titulo") { s.font = { bold: true, sz: 14, color: { rgb: "FFFFFFFF" } }; s.fill = { fgColor: { rgb: brandHex } }; s.alignment = { vertical: "center" }; }
+        else if (papel === "kv") { if (C === 0) s.font = { bold: true, color: { rgb: "FF334155" } }; }
+        else if (papel === "secao") { s.font = { bold: true, color: { rgb: "FF0F172A" } }; s.fill = { fgColor: { rgb: "FFCBD9EC" } }; }
+        else if (papel === "th") { s.font = { bold: true, color: { rgb: "FF0F172A" } }; s.fill = { fgColor: { rgb: "FFE2E8F0" } }; s.alignment = { horizontal: C === 0 ? "left" : "right", vertical: "center" }; }
+        else { s.font = { bold: papel === "total" }; s.alignment = { horizontal: C >= 1 ? "right" : "left" }; }
+        if (C >= 1 && (papel === "data" || papel === "total") && typeof cell.v === "number") cell.z = 'R$ #,##0.00';
+        cell.s = s;
       }
     }
+    ws["!rows"] = papeis.map((p) => ({ hpt: p === "titulo" ? 24 : p === "th" || p === "secao" ? 18 : 15 }));
     ws["!cols"] = [{ wch: 24 }, ...colsPrint.map(() => ({ wch: 13 }))];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `${MES[mesAtualIdx]} ${ano}`);

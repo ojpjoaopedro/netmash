@@ -511,7 +511,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
             </div>
 
             <div className="mhome-blue">
-              {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "relatorios", label: "Relatório", Icon: FileText }].map((a) => (
+              {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "relatorios", label: "Análises financeiras", Icon: FileText }].map((a) => (
                 <button key={a.aba} className="mhome-bcard" onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}>
                   <span className="mhome-bcard-ico"><a.Icon size={22} color="#fff" /></span>
                   <span>{a.label}</span>
@@ -575,7 +575,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
         {view === "dashboard" && (
           <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "relatorios", label: "Relatório", Icon: FileText }].map((a) => (
+            {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "relatorios", label: "Análises financeiras", Icon: FileText }].map((a) => (
               <button key={a.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}
                 style={{ display: "flex", alignItems: "center", gap: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                   padding: "22px 24px", borderRadius: 18, border: 0, color: "#fff",
@@ -722,7 +722,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
   const [videoTut, setVideoTut] = useState(false);
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos", folha: "Folha de pagamento",
-    calendario: "Calendário", relatorios: "Relatórios", importar: "Importar planilha",
+    calendario: "Calendário", relatorios: "Análises financeiras", importar: "Importar planilha",
   };
   // aba em barra (estilo print2): ícone + rótulo, ativo em azul com sublinhado
   const tab = (ativo: boolean): React.CSSProperties => ({

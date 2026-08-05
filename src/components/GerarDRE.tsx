@@ -1,5 +1,6 @@
 "use client";
-import { useState, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
+import { createPortal } from "react-dom";
 import { Printer, X, FileText } from "lucide-react";
 import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
@@ -28,6 +29,12 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
   const nomeEmpresa = brand?.nome && brand.nome !== "Minha Empresa" ? brand.nome
     : (empresa?.nome && empresa.nome !== "Minha Empresa (demonstração)" ? empresa.nome : "Minha Empresa");
 
+  // enquanto o DRE está aberto, marca o body para a impressão esconder o resto do app
+  useEffect(() => {
+    document.body.classList.add("imprimindo-relatorio");
+    return () => document.body.classList.remove("imprimindo-relatorio");
+  }, []);
+
   const grupos = data.custos.flatMap((b) => b.grupos);
   const receitaMes = (m: number) => somaMes(data.receitas, m);
   const custoMes = (m: number) => somaGrupos(grupos, m);
@@ -53,7 +60,7 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
     );
   };
 
-  return (
+  return createPortal(
     <div className="relatorio-modal" style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(15,23,42,.6)", backdropFilter: "blur(2px)", display: "flex", flexDirection: "column" }}>
       {/* barra superior branca */}
       <div className="no-print" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, rowGap: 10, flexWrap: "wrap", padding: "10px 16px", background: "#fff", color: "#0f172a", borderBottom: "1px solid #e2e8f0" }}>
@@ -142,7 +149,8 @@ function DRE({ data, ano, empresa, brand, onFechar }: { data: Dados; ano: number
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -545,6 +545,8 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 @media print{
   @page{size:A4 portrait;margin:10mm}
   body *{visibility:hidden !important}
+  /* com o relatório aberto, esconde o resto do app (fica só o modal, no topo da página) */
+  body.imprimindo-relatorio > *:not(.relatorio-modal){display:none !important}
   .relatorio-print,.relatorio-print *{visibility:visible !important}
   /* neutraliza o modal fixo e a área de rolagem para o conteúdo fluir normalmente */
   .relatorio-modal{position:static !important;inset:auto !important;height:auto !important;overflow:visible !important;background:#fff !important;backdrop-filter:none !important;display:block !important}

@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Printer, X } from "lucide-react";
 import { Funcionario, Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
@@ -30,7 +31,14 @@ function Relatorio({ funcs, empresa, brand, diretores = [], onFechar }: { funcs:
   const th: React.CSSProperties = { textAlign: "left", padding: "6px 8px", fontSize: 9, letterSpacing: ".04em", textTransform: "uppercase", color: "#334155", borderBottom: "1.5px solid #cbd5e1" };
   const td: React.CSSProperties = { padding: "6px 8px", fontSize: 10.5, color: "#1e293b", borderBottom: "1px solid #e2e8f0", verticalAlign: "top" };
 
-  return (
+  // enquanto o relatório está aberto, marca o body para a impressão esconder o resto do app
+  useEffect(() => {
+    document.body.classList.add("imprimindo-relatorio");
+    return () => document.body.classList.remove("imprimindo-relatorio");
+  }, []);
+
+  // renderiza no body (portal) para o modal não herdar a posição do conteúdo da página na impressão
+  return createPortal(
     <div className="relatorio-modal" style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(15,23,42,.6)", backdropFilter: "blur(2px)", display: "flex", flexDirection: "column" }}>
       {/* barra superior branca (não sai na impressão) */}
       <div className="no-print" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 16px", background: "#fff", color: "#0f172a", borderBottom: "1px solid #e2e8f0" }}>
@@ -113,7 +121,8 @@ function Relatorio({ funcs, empresa, brand, diretores = [], onFechar }: { funcs:
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

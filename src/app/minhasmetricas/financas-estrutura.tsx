@@ -786,7 +786,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
     const hoje = new Date();
     const dia = hoje.getFullYear() === ano && hoje.getMonth() === m ? Math.min(hoje.getDate(), diasNoMes(ano, m)) : 1;
     const data = `${ano}-${String(m + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
-    setConfCal({ bi, gi, ii, mOrig: m, valorOrig: valor, passo: "data", data, grupo, item: nome, valorStr: valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), freq: "unica" });
+    setConfCal({ bi, gi, ii, mOrig: m, valorOrig: valor, passo: "data", data, grupo, item: nome, valorStr: valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), freq: "mensal" });
   }
   function confirmarCal() {
     if (!confCal) return;
@@ -856,6 +856,13 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   function ordenarItens(bi: number, gi: number) {
     snapshot();
     setD((x) => { const r = structuredClone(x); r.custos[bi].grupos[gi].itens.sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" })); return r; });
+  }
+  // arrastar grupos para reordenar (dentro do mesmo bloco de custos)
+  const arrastarGrupo = useRef<{ bi: number; gi: number } | null>(null);
+  function moverGrupo(bi: number, de: number, para: number) {
+    if (de === para) return;
+    snapshot();
+    setD((x) => { const r = structuredClone(x); const arr = r.custos[bi].grupos; const [m] = arr.splice(de, 1); arr.splice(para, 0, m); return r; });
   }
   const CORES_GRUPO = [AZUL, ROXO, LARANJA, ROSA, VERDE];
   function nomeGrupo(bi: number, gi: number, nome: string) {
@@ -1024,6 +1031,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                             onChange={(nv) => nomeGrupo(bi, gi, nv)}
                             onOrdenar={() => ordenarItens(bi, gi)}
                             protegido={g.financeiro}
+                            drag={{ onStart: () => { arrastarGrupo.current = { bi, gi }; }, onDrop: () => { const a = arrastarGrupo.current; if (a && a.bi === bi) moverGrupo(bi, a.gi, gi); arrastarGrupo.current = null; } }}
                             onRemover={() => g.financeiro
                               ? setAvisoBloqueio(`O grupo "${g.nome}" alimenta o cálculo do EBITDA e não pode ser apagado. Você pode zerar os valores dos itens, mas o grupo precisa continuar.`)
                               : pedirExcluir(g.nome || "este grupo", () => removerGrupo(bi, gi))} />
@@ -1417,12 +1425,13 @@ function NomeCel({ cor, valor, placeholder, onChange, onRemover, italico, indent
         {lider}
         {reservaChevron && !lider && <span style={{ width: 13, flexShrink: 0 }} />}
         {cor && <span style={{ width: 7, height: 7, borderRadius: 99, background: cor, flexShrink: 0 }} />}
-        <input value={valor} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-          style={{ flex: 1, minWidth: 40, background: "transparent", border: "1px solid transparent", borderRadius: 6, padding: "3px 5px", font: "inherit", fontStyle: italico ? "italic" : undefined, color: "inherit", outline: "none" }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--line-2)")}
-          onMouseLeave={(e) => { if (document.activeElement !== e.currentTarget) e.currentTarget.style.borderColor = "transparent"; }}
-          onFocus={(e) => { setFocado(true); inicial.current = valor; e.currentTarget.style.borderColor = "var(--line-2)"; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; if (valor !== inicial.current) onSalvo?.(e.currentTarget); setTimeout(() => setFocado(false), 150); }} />
+        <input value={valor} onChange={bloqueado ? undefined : (e) => onChange(e.target.value)} placeholder={placeholder} readOnly={bloqueado} tabIndex={bloqueado ? -1 : undefined}
+          title={bloqueado ? "Item da Folha de pagamento: o nome não pode ser alterado" : undefined}
+          style={{ flex: 1, minWidth: 40, background: "transparent", border: "1px solid transparent", borderRadius: 6, padding: "3px 5px", font: "inherit", fontStyle: italico ? "italic" : undefined, color: "inherit", outline: "none", cursor: bloqueado ? "default" : "text" }}
+          onMouseEnter={bloqueado ? undefined : (e) => (e.currentTarget.style.borderColor = "var(--line-2)")}
+          onMouseLeave={bloqueado ? undefined : (e) => { if (document.activeElement !== e.currentTarget) e.currentTarget.style.borderColor = "transparent"; }}
+          onFocus={bloqueado ? undefined : (e) => { setFocado(true); inicial.current = valor; e.currentTarget.style.borderColor = "var(--line-2)"; }}
+          onBlur={bloqueado ? undefined : (e) => { e.currentTarget.style.borderColor = "transparent"; if (valor !== inicial.current) onSalvo?.(e.currentTarget); setTimeout(() => setFocado(false), 150); }} />
         {bloqueado ? (
           <span title="Item da Folha de pagamento: não pode ser excluído" style={{ flexShrink: 0, color: "var(--muted-2)", display: "grid", placeItems: "center", opacity: .7, lineHeight: 0 }}>
             <Lock size={12} />
@@ -1475,14 +1484,21 @@ function CalNomeCel({ nome, onRenomear, onRemover, onSalvo, cor, italico, indent
  * está aberto surge um lápis quase transparente; clicando nele é que o nome vira
  * editável (e aparece a lixeira). Fora disso, o nome é só texto clicável.
  */
-function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, onOrdenar, protegido }: {
+function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, onOrdenar, protegido, drag }: {
   cor: string; valor: string; aberto: boolean; onToggle: () => void; onChange: (v: string) => void; onSalvo?: (el: HTMLElement) => void; onRemover?: () => void; onOrdenar?: () => void; protegido?: boolean;
+  drag?: { onStart: () => void; onDrop: () => void };
 }) {
   const [editando, setEditando] = useState(false);
+  const [sobre, setSobre] = useState(false);
   const inicial = useRef("");
   return (
-    <td style={{ ...tdRot, fontWeight: 600 }}>
+    <td style={{ ...tdRot, fontWeight: 600, boxShadow: sobre ? "inset 0 2px 0 0 var(--brand)" : undefined }}
+      onDragOver={drag ? (e) => { e.preventDefault(); if (!sobre) setSobre(true); } : undefined}
+      onDragLeave={drag ? () => setSobre(false) : undefined}
+      onDrop={drag ? (e) => { e.preventDefault(); setSobre(false); drag.onDrop(); } : undefined}>
       <span style={{ display: "flex", alignItems: "center", gap: 7, width: "100%" }}>
+        {drag && <span draggable onDragStart={drag.onStart} onDragEnd={() => setSobre(false)} title="Arrastar para reordenar"
+          style={{ cursor: "grab", color: "var(--muted-2)", flexShrink: 0, display: "grid", placeItems: "center" }}><GripVertical size={13} /></span>}
         <Chevron aberto={aberto} onClick={onToggle} />
         <span style={{ width: 7, height: 7, borderRadius: 99, background: cor, flexShrink: 0 }} />
         {editando ? (
