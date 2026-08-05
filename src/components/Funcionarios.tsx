@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   User, Phone, Mail, CreditCard, KeyRound, Cake, Trash2, Plus, Power, Search,
   ChevronUp, ChevronDown, ChevronsUpDown, Crown, Shield, Lock, SlidersHorizontal, Eye, EyeOff, Check, X,
-  LayoutDashboard, DollarSign, Compass, UserPlus, Sparkles, Settings,
+  LayoutDashboard, DollarSign, BarChart3, Sparkles, Settings,
 } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
@@ -25,8 +25,7 @@ const GRUPOS = [
   { titulo: "Métricas", itens: [
     { k: "dashboard", label: "Home", Icon: LayoutDashboard },
     { k: "financas", label: "Finanças", Icon: DollarSign },
-    { k: "planejamento", label: "Planejamento", Icon: Compass },
-    { k: "clientes", label: "Cadastro de clientes", Icon: UserPlus },
+    { k: "painel", label: "Dashboard", Icon: BarChart3 },
   ] },
   { titulo: "Operações", itens: [
     { k: "assistente", label: "Assistente", Icon: Sparkles },
@@ -362,7 +361,9 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
       ativo: true, areas: x.p.permissoes,
     }));
 
-  const podeEditar = (l: Linha) => ehDono || (!!emailLog && !!l.email && l.email.toLowerCase() === emailLog);
+  // dono edita tudo; admin edita as linhas de funcionário (a equipe) e a própria linha de login.
+  // linhas de login de OUTROS usuários (superadmin/admins) só o dono ou o próprio dono da linha editam.
+  const podeEditar = (l: Linha) => ehDono || l.origem === "func" || (!!emailLog && !!l.email && l.email.toLowerCase() === emailLog);
   const ehMinha = (l: Linha) => !!emailLog && !!l.email && l.email.toLowerCase() === emailLog;
 
   // ---- modo Lista: busca + ordenação por coluna ----
@@ -402,7 +403,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
     if (!token) { setAviso({ titulo: "Sessão expirada", texto: "Entre novamente e tente de novo." }); return; }
     setProcessando(true);
     try {
-      const r = await fetch("/api/colaboradores", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ nome: l.nome || email, email, areas: [] }) });
+      const r = await fetch("/api/colaboradores", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ nome: l.nome ? l.nome.toUpperCase() : email, email, areas: [] }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { setAviso({ titulo: "Não consegui dar o acesso", texto: (j as { error?: string }).error || "Tente novamente." }); return; }
       await recarregarColab();
@@ -586,7 +587,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <Campo valor={l.nome} placeholder="Nome" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
                               onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nome: v.trim() || l.nome }, el) : salvarCampoLogin(l, { nome: v.trim() }, el)}
-                              style={{ fontSize: 12, fontWeight: 700 }} />
+                              style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }} />
                           </div>
                         </div>
                       </td>
@@ -663,7 +664,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                   </div>
                 </div>
                 <div style={{ padding: "8px 16px 0" }}>
-                  <CampoNome valor={l.nome} placeholder="Nome" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { nome: v.trim() }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center" }} />
+                  <CampoNome valor={l.nome} placeholder="Nome" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoLogin(l, { nome: v.trim() }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center", textTransform: "uppercase" }} />
                   <div style={{ marginTop: 2 }}>
                     <TipoSelect valor={l.cargo} disabled={!edit} onSalvar={(v, el) => salvarCampoLogin(l, { area: v }, el)} />
                   </div>
@@ -711,7 +712,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                   </div>
                 </div>
                 <div style={{ padding: "8px 16px 0" }}>
-                  <CampoNome valor={f.nome} placeholder="Nome" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center" }} />
+                  <CampoNome valor={f.nome} placeholder="Nome" disabled={!edit} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar} onSalvar={(v, el) => salvarCampoFunc(f.id, { nome: v.trim() || f.nome }, el)} style={{ fontSize: 16, fontWeight: 800, textAlign: "center", textTransform: "uppercase" }} />
                   <div style={{ marginTop: 2 }}>
                     <TipoSelect valor={f.cargo || ""} disabled={!edit} onSalvar={(v, el) => salvarCampoFunc(f.id, { cargo: v }, el)} />
                   </div>
