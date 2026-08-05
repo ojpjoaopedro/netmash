@@ -880,6 +880,9 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   const recTotais = useMemo(() => somaPorMes(dExibido.receitas), [dExibido]);
   const blocosMes = useMemo(() => dExibido.custos.map((b) => somaPorMes(b.grupos.flatMap((g) => g.itens))), [dExibido]);
   const custosTotais = useMemo(() => Array.from({ length: 12 }, (_, m) => blocosMes.reduce((s, b) => s + b[m], 0)), [blocosMes]);
+  // Previsão (a pagar): soma dos valores previstos no calendário e ainda não pagos, por mês
+  const previsaoTotais = useMemo(() => Array.from({ length: 12 }, (_, m) => dExibido.custos.reduce((s, b) => s + b.grupos.reduce((sg, g) => sg + g.itens.reduce((si, it) => si + ((it.pend && it.pend[m]) || 0), 0), 0), 0)), [dExibido]);
+  const temPrevisao = previsaoTotais.some((x) => x > 0);
   // Resultado, EBITDA e margem agora são CALCULADOS a partir dos dados exibidos
   // (mexer numa receita/custo atualiza tudo na hora; inclui pagamentos confirmados do calendário).
   const resultadoMes = useMemo(() => resultadoDe(dExibido), [dExibido]);
@@ -1125,6 +1128,13 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                 {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontWeight: 800 }}><AnimNum value={custosTotais[m]} fmt={fmt} /></td>)}
                 <td className="oc-num" style={{ ...tdNum, fontWeight: 800, color: VERMELHO }}><AnimNum value={totalDe(custosTotais)} fmt={fmt} /></td>
               </tr>
+              {temPrevisao && (
+                <tr style={{ background: "var(--card-2)" }}>
+                  <td style={{ ...tdRot, fontStyle: "italic", color: "var(--muted)", background: "var(--card-2)" }}>Previsão (a pagar)</td>
+                  {mesesVis.map((m) => <td key={m} className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{previsaoTotais[m] > 0 ? fmt(previsaoTotais[m]) : "–"}</td>)}
+                  <td className="oc-num" style={{ ...tdNum, fontStyle: "italic", color: "var(--muted)" }}>{fmt(totalDe(previsaoTotais))}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

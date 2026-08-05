@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Wallet, Info, Printer, Users, ArrowUpRight, X, Search, ChevronsUpDown, ChevronUp, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Wallet, Info, Printer, Users, ArrowUpRight, X, Search, ChevronsUpDown, ChevronUp, ChevronDown, Plus, Trash2, Lock } from "lucide-react";
 import { Empresa, Funcionario, getFuncionarios, updateFuncionario } from "@/lib/db";
 import { brl } from "@/lib/format";
 import * as XLSX from "xlsx-js-style";
@@ -8,6 +8,13 @@ import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { navegar } from "@/lib/nav";
 import { MES } from "@/app/minhasmetricas/financas-estrutura";
 import SeletorAno from "./SeletorAno";
+import { useBrand } from "@/lib/brand";
+
+// dados extras da empresa (endereço/CNPJ), usados no cabeçalho do PDF
+function lerEmpresaExtra(id?: string | null): { cnpj?: string; endereco?: string } {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(`me_empresa_extra:${id || "default"}`) || "{}"); } catch { return {}; }
+}
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -271,6 +278,9 @@ function Rot({ t }: { t: string }) {
 }
 
 export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa | null }) {
+  const { brand } = useBrand();
+  const empExtra = lerEmpresaExtra(empresa?.id);
+  const nomeEmpresa = brand?.nome && brand.nome !== "Minha Empresa" ? brand.nome : (empresa?.nome || "Minha Empresa");
   const [funcs, setFuncs] = useState<Funcionario[]>([]);
   const [loginFuncs, setLoginFuncs] = useState<Funcionario[]>([]);
   const [cfg, setCfg] = useState<Config>(() => lerCfg(empresa?.id));
@@ -300,6 +310,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [infoCusto, setInfoCusto] = useState(false);
   const [infoProlabore, setInfoProlabore] = useState(false);
   const [infoCustoMes, setInfoCustoMes] = useState(false);
+  const [infoPuxar, setInfoPuxar] = useState(false);
   const BtnInfoInss = () => <BtnInfo onClick={() => setInfoInss(true)} titulo="Como o INSS é calculado" />;
   const BtnInfoIrrf = () => <BtnInfo onClick={() => setInfoIrrf(true)} titulo="Como o IRRF é calculado" />;
   const BtnInfoFgts = () => <BtnInfo onClick={() => setInfoFgts(true)} titulo="O que é o FGTS" />;
@@ -392,7 +403,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     </div>
   );
   // link fino de "+ cadastrar" como uma linha da tabela, logo acima do Total (vai direto para a Equipe)
-  const linhaCadastrar = (colSpan: number) => (
+  const linhaCadastrar = (colSpan: number) => soLeitura ? null : (
     <tr className="no-print eq-row">
       <td colSpan={colSpan} style={{ padding: "8px 10px" }}>
         <button data-tut="cadastrar" onClick={irParaEquipe}
@@ -519,6 +530,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   }
 
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
+  // na aba Desativados a folha é só para consulta: não edita valores, não puxa, não cadastra
+  const soLeitura = filtro === "desativados";
   const ativos = useMemo(() => funcsTodos.filter((f) => filtro === "ativos" ? f.ativo : !f.ativo), [funcsTodos, filtro]);
   // sócios recebem pró-labore (tabela própria); os demais entram na folha CLT
   const ehSocio = (f: Funcionario) => (f.cargo || "") === "Sócio";
@@ -577,6 +590,9 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const totSocio = linhasSocio.reduce((a, l) => ({ base: a.base + l.base, inss: a.inss + l.inss, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido }), { base: 0, inss: 0, totalDesc: 0, liquido: 0 });
   const ymAnterior = () => { if (!ym) return ""; const [a, m] = ym.split("-").map(Number); let py = a, pm = m - 1; if (pm < 1) { pm = 12; py = a - 1; } return `${py}-${String(pm).padStart(2, "0")}`; };
   const temMesAnterior = () => { const p = ymAnterior(); return !!p && Object.keys(lerMes(empresa?.id, p)).length > 0; };
+  // o mês já tem lançamentos na folha dos funcionários? (se sim, o botão de puxar fica travado até apagar tudo)
+  // usa os valores realmente calculados (ignora resíduos de colunas já removidas)
+  const mesTemDados = linhasMes.some((l) => l.proventos > 0.005 || l.totalDesc > 0.005);
   function puxarDoMesAnterior() {
     const prev = lerMes(empresa?.id, ymAnterior());
     // só traz quem está ativo: desativado não tem mais salário
@@ -592,6 +608,37 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const totMresc = round2(linhasMes.reduce((s, l) => s + round2(round2((l.base || 0) * (cfg.fgtsPct / 100)) * 0.40), 0));
   // IRRF é desconto do trabalhador (repassado ao governo), não é custo da empresa: sai do custo total
   const custoTotalMes = round2(totM.proventos - totM.irrf + totMfgts + totMprov + totMresc);
+  // colunas usadas na exportação (PDF e Excel do mês): iguais às da tela
+  type LinhaMes = typeof linhasMes[number];
+  const colsPrint: { h: string; get: (l: LinhaMes) => number; b?: boolean }[] = [
+    { h: "Salário base", get: (l) => l.base || 0 },
+    { h: "Comissão", get: (l) => l.v.comissao || 0 },
+    { h: "Hora extra", get: (l) => l.v.horaExtra || 0 },
+    { h: "Gratificação", get: (l) => l.v.gratificacao || 0 },
+    ...cols.prov.map((c) => ({ h: c.nome, get: (l: LinhaMes) => l.extra?.[c.id] || 0 })),
+    { h: "Proventos", get: (l) => l.proventos, b: true },
+    { h: "INSS", get: (l) => l.inss },
+    { h: "IRRF", get: (l) => l.irrf },
+    { h: "Sindicato", get: (l) => l.v.sindicato || 0 },
+    { h: "Plano saúde", get: (l) => l.v.planoSaude || 0 },
+    { h: "Adiantamento", get: (l) => l.v.adiantamento || 0 },
+    ...cols.desc.map((c) => ({ h: c.nome, get: (l: LinhaMes) => l.extra?.[c.id] || 0 })),
+    { h: "Descontos", get: (l) => l.totalDesc, b: true },
+    { h: "Líquido", get: (l) => l.liquido, b: true },
+    { h: "13º + Férias", get: (l) => l.provisaoM },
+    { h: "FGTS", get: (l) => l.fgtsM },
+    { h: "Provisão rescisão", get: (l) => l.rescisaoM },
+  ];
+  type LinhaSoc = typeof linhasSocio[number];
+  const colsPrintPl: { h: string; get: (l: LinhaSoc) => number; b?: boolean }[] = [
+    { h: "Pró-labore", get: (l) => l.base },
+    ...cols.prov.map((c) => ({ h: c.nome, get: (l: LinhaSoc) => l.extra?.[c.id] || 0 })),
+    { h: "INSS (11%)", get: (l) => l.inss },
+    ...cols.desc.map((c) => ({ h: c.nome, get: (l: LinhaSoc) => l.extra?.[c.id] || 0 })),
+    { h: "Líquido", get: (l) => l.liquido, b: true },
+  ];
+  const somaCol = <T,>(arr: T[], get: (l: T) => number) => round2(arr.reduce((s, l) => s + get(l), 0));
+  const pv = (n: number) => (Math.abs(n) < 0.005 ? "" : brl(n));
   const mesView = ordenar(linhasMes.filter((l) => combina(l.f)), (l) => {
     switch (sortCol) {
       case "nome": return l.f.nome || ""; case "base": return l.base;
@@ -604,42 +651,46 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   });
 
   const imprimir = () => window.print();
-  // Baixa a folha do ano em Excel: uma coluna por mês (líquido de cada pessoa) + total.
+  // Baixa SÓ o mês selecionado, completo (todas as colunas da tela) + pró-labore dos sócios.
   function baixarFolhaExcel() {
     const ano = anoAtual || String(new Date().getFullYear());
-    const header = ["Nome", "Departamento", ...MES, "Total ano"];
-    const aoa: (string | number)[][] = [header];
-    const totalMes = new Array(12).fill(0);
-    funcsFolha.forEach((f) => {
-      const linha: (string | number)[] = [f.nome || "—", f.departamento || ""];
-      let totalPessoa = 0;
-      for (let m = 0; m < 12; m++) {
-        const dados = lerMes(empresa?.id, `${ano}-${String(m + 1).padStart(2, "0")}`);
-        const v = { ...VARS_ZERO, ...(dados[f.id] || {}) };
-        const { liquido } = calcLinhaMes(v, cols);
-        linha.push(liquido); totalPessoa += liquido; totalMes[m] += liquido;
-      }
-      linha.push(round2(totalPessoa));
-      aoa.push(linha);
-    });
-    aoa.push(["Total", "", ...totalMes.map((n) => round2(n)), round2(totalMes.reduce((a, b) => a + b, 0))]);
+    const mesNome = MESES[mesAtualIdx];
+    const titulos = new Set<string>();   // linhas em negrito (cabeçalhos e totais)
+    const aoa: (string | number)[][] = [];
+    const push = (row: (string | number)[]) => { aoa.push(row); };
+
+    push(["Nome", ...colsPrint.map((c) => c.h)]);
+    titulos.add("0");
+    linhasMes.forEach((l) => push([l.f.nome || "—", ...colsPrint.map((c) => round2(c.get(l)))]));
+    push([`Total (${linhasMes.length})`, ...colsPrint.map((c) => somaCol(linhasMes, c.get))]);
+    titulos.add(String(aoa.length - 1));
+
+    if (linhasSocio.length > 0) {
+      push([]);
+      push([`Pró-labore dos sócios · ${mesNome} de ${ano}`]);
+      push(["Nome", ...colsPrintPl.map((c) => c.h)]);
+      titulos.add(String(aoa.length - 1));
+      linhasSocio.forEach((l) => push([l.f.nome || "—", ...colsPrintPl.map((c) => round2(c.get(l)))]));
+      push([`Total (${linhasSocio.length})`, ...colsPrintPl.map((c) => somaCol(linhasSocio, c.get))]);
+      titulos.add(String(aoa.length - 1));
+    }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
     for (let R = range.s.r; R <= range.e.r; R++) {
+      const linhaTitulo = titulos.has(String(R));
       for (let C = range.s.c; C <= range.e.c; C++) {
         const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
         if (!cell) continue;
-        const ehCabecalho = R === 0, ehTotal = R === range.e.r;
-        cell.s = { ...(cell.s || {}), font: { bold: ehCabecalho || ehTotal }, alignment: { horizontal: C >= 2 ? "right" : "left" } };
-        if (ehCabecalho) cell.s.fill = { fgColor: { rgb: "E5EDFF" } };
-        if (C >= 2 && typeof cell.v === "number") cell.z = 'R$ #,##0.00';
+        cell.s = { ...(cell.s || {}), font: { bold: linhaTitulo }, alignment: { horizontal: C >= 1 ? "right" : "left" } };
+        if (linhaTitulo && R === 0) cell.s.fill = { fgColor: { rgb: "E5EDFF" } };
+        if (C >= 1 && typeof cell.v === "number") cell.z = 'R$ #,##0.00';
       }
     }
-    ws["!cols"] = [{ wch: 26 }, { wch: 16 }, ...Array(12).fill({ wch: 12 }), { wch: 14 }];
+    ws["!cols"] = [{ wch: 24 }, ...colsPrint.map(() => ({ wch: 13 }))];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `Folha ${ano}`);
-    XLSX.writeFile(wb, `folha-pagamento-${ano}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, `${MES[mesAtualIdx]} ${ano}`);
+    XLSX.writeFile(wb, `folha-${mesNome.toLowerCase()}-${ano}.xlsx`);
   }
   const mesAtualIdx = ym ? Number(ym.slice(5, 7)) - 1 : 0;
   const anoAtual = ym ? ym.slice(0, 4) : "";
@@ -709,18 +760,30 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
       )}
 
       {/* puxar dados do mês anterior: botão de destaque, alinhado embaixo do mês selecionado */}
-      {modo === "mensal" && !semEquipe && (
-        <div className="no-print" style={{ display: "flex", flexWrap: "wrap", marginBottom: 16 }}>
+      {modo === "mensal" && !semEquipe && !soLeitura && (
+        <div className="no-print" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
           {(() => {
-            const off = !temMesAnterior();
+            const jaFeito = mesTemDados;                 // mês já preenchido: trava até apagar tudo
+            const off = jaFeito || !temMesAnterior();
             return (
-              <button onClick={puxarDoMesAnterior} disabled={off} title={off ? "O mês anterior também está vazio" : "Copia os lançamentos do mês anterior para este mês"}
-                style={{ marginLeft: puxarLeft, transition: "margin-left .2s ease", display: "inline-flex", alignItems: "center", gap: 10, cursor: off ? "default" : "pointer", opacity: off ? .5 : 1, fontFamily: "inherit", fontSize: 14, fontWeight: 800, padding: "13px 24px", borderRadius: 14, border: 0, color: "#fff", background: "linear-gradient(120deg, var(--brand-dark), var(--brand))", boxShadow: off ? "none" : "0 14px 30px -14px color-mix(in srgb, var(--brand) 75%, transparent)" }}>
-                <span style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(255,255,255,.20)", flexShrink: 0 }}><ArrowUpRight size={17} style={{ transform: "rotate(90deg)" }} /></span>
-                Puxar do mês anterior
-              </button>
+              <div style={{ marginLeft: puxarLeft, transition: "margin-left .2s ease", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <button onClick={() => { if (!off) puxarDoMesAnterior(); }} disabled={off}
+                  title={jaFeito ? "Este mês já tem lançamentos" : (!temMesAnterior() ? "O mês anterior também está vazio" : "Copia os lançamentos do mês anterior para este mês")}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 10, cursor: off ? "default" : "pointer", opacity: off ? .55 : 1, fontFamily: "inherit", fontSize: 14, fontWeight: 800, padding: "13px 24px", borderRadius: 14, border: 0, color: "#fff", background: jaFeito ? "var(--muted)" : "linear-gradient(120deg, var(--brand-dark), var(--brand))", boxShadow: off ? "none" : "0 14px 30px -14px color-mix(in srgb, var(--brand) 75%, transparent)" }}>
+                  <span style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(255,255,255,.20)", flexShrink: 0 }}><ArrowUpRight size={17} style={{ transform: "rotate(90deg)" }} /></span>
+                  {jaFeito ? "Já exportado" : "Puxar do mês anterior"}
+                </button>
+                {jaFeito && <BtnInfo onClick={() => setInfoPuxar(true)} titulo="Por que está travado?" />}
+              </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* aviso de somente consulta na aba Desativados */}
+      {modo === "mensal" && !semEquipe && soLeitura && (
+        <div className="no-print" style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 14px", borderRadius: 10, background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--muted)", fontSize: 12.5, fontWeight: 600 }}>
+          <Lock size={14} /> Somente consulta: os valores dos desativados não podem ser alterados.
         </div>
       )}
 
@@ -825,7 +888,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou departamento…" style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10 }} />
           </div>
           <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-            <table className="eq-tab eq-vsep" style={{ borderCollapse: "separate", borderSpacing: 0, tableLayout: "fixed", width: somaMensal, minWidth: somaMensal }}>
+            <table className="eq-tab eq-vsep" style={{ borderCollapse: "separate", borderSpacing: 0, tableLayout: "fixed", width: somaMensal, minWidth: somaMensal, pointerEvents: soLeitura ? "none" : undefined }}>
               <colgroup>{wMensal.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
               <thead>
                 {/* faixa agrupando Proventos e Descontos */}
@@ -840,23 +903,23 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   <th className="eq-th eq-fix" onClick={() => ordenarPor("nome")}>Nome {seta("nome")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("base")} style={{ textAlign: "right" }}><Rot t="Salário base" /> {seta("base")}</th>
                   <th className="eq-th" onClick={() => ordenarPor("comissao")} style={{ textAlign: "right" }}>Comissão {seta("comissao")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("horaExtra")} style={{ textAlign: "right" }}><Rot t="Hora extra" /> {seta("horaExtra")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("gratificacao")} style={{ textAlign: "right" }}><>Gratifi-<br />cação</> {seta("gratificacao")}</th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}><Rot t="Hora extra" /></th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}><>Gratifi-<br />cação</></th>
                   {thsCol("prov")}
                   {thMais("prov")}
                   <th className="eq-th" onClick={() => ordenarPor("proventos")} style={{ textAlign: "right" }}>Proventos {seta("proventos")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("inss")} style={{ textAlign: "right" }}>INSS {seta("inss")}<BtnInfoInss /></th>
-                  <th className="eq-th" onClick={() => ordenarPor("irrf")} style={{ textAlign: "right" }}>IRRF {seta("irrf")}<BtnInfoIrrf /></th>
-                  <th className="eq-th" onClick={() => ordenarPor("sindicato")} style={{ textAlign: "right" }}>Sindicato {seta("sindicato")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("planoSaude")} style={{ textAlign: "right" }}><Rot t="Plano saúde" /> {seta("planoSaude")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("adiantamento")} style={{ textAlign: "right" }}><>Adianta-<br />mento</> {seta("adiantamento")}</th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}>INSS <BtnInfoInss /></th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}>IRRF <BtnInfoIrrf /></th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}>Sindicato</th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}><Rot t="Plano saúde" /></th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}><>Adianta-<br />mento</></th>
                   {thsCol("desc")}
                   {thMais("desc")}
-                  <th className="eq-th" onClick={() => ordenarPor("totalDesc")} style={{ textAlign: "right" }}>Descontos {seta("totalDesc")}</th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}>Descontos</th>
                   <th className="eq-th" onClick={() => ordenarPor("liquido")} style={{ textAlign: "right" }}>Líquido {seta("liquido")}</th>
-                  <th className="eq-th" onClick={() => ordenarPor("provisaoM")} style={{ textAlign: "right" }}><Rot t="13º + Férias" /> {seta("provisaoM")}<BtnInfoProvisao /></th>
-                  <th className="eq-th" onClick={() => ordenarPor("fgtsM")} style={{ textAlign: "right" }}>FGTS {seta("fgtsM")}<BtnInfoFgts /></th>
-                  <th className="eq-th" onClick={() => ordenarPor("rescisaoM")} style={{ textAlign: "right" }}><Rot t="Provisão p/ rescisão" /> {seta("rescisaoM")}<BtnInfoRescisao /></th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}><Rot t="13º + Férias" /> <BtnInfoProvisao /></th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}>FGTS <BtnInfoFgts /></th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}><Rot t="Provisão p/ rescisão" /> <BtnInfoRescisao /></th>
                 </tr>
               </thead>
               <tbody>
@@ -906,22 +969,6 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               </tfoot>
             </table>
           </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
-            {[
-              { t: "Salários (bruto)", v: totM.proventos, cor: "var(--txt)", info: false },
-              { t: "Líquido a pagar", v: totM.liquido, cor: "#10B981", info: false },
-              { t: "Encargos (FGTS + provisões)", v: round2(totMfgts + totMprov), cor: "var(--brand)", info: false },
-              { t: "Custo total da folha", v: custoTotalMes, cor: "var(--brand)", info: true },
-            ].map((c) => (
-              <div key={c.t} className="card" style={{ flex: "1 1 200px", padding: 16 }}>
-                <div className="sub" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>
-                  {c.t}
-                  {c.info && <BtnInfo onClick={() => setInfoCustoMes(true)} titulo="Como o custo total é calculado" />}
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4, color: c.cor }}>{brl(c.v)}</div>
-              </div>
-            ))}
-          </div>
 
           {/* ---- Pró-labore dos sócios (regra própria, sem 13º/férias/FGTS) ---- */}
           {(
@@ -931,7 +978,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                 <BtnInfo onClick={() => setInfoProlabore(true)} titulo="Como funciona o pró-labore" />
               </div>
               <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 14px 36px -26px rgba(0,0,0,.45)" }}>
-                <table className="eq-tab eq-vsep" style={{ borderCollapse: "separate", borderSpacing: 0, tableLayout: "fixed", width: somaPl, minWidth: somaPl }}>
+                <table className="eq-tab eq-vsep" style={{ borderCollapse: "separate", borderSpacing: 0, tableLayout: "fixed", width: somaPl, minWidth: somaPl, pointerEvents: soLeitura ? "none" : undefined }}>
                   <colgroup>{wPl.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
                   <thead>
                     <tr>
@@ -974,6 +1021,26 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                 </table>
               </div>
             </div>
+          )}
+
+          {/* ---- somatório completo da folha (funcionários + pró-labore dos sócios) ---- */}
+          {!soLeitura && (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20 }}>
+            {[
+              { t: "Salários (bruto)", v: round2(totM.proventos + totSocio.base), cor: "var(--txt)", info: false },
+              { t: "Líquido a pagar", v: round2(totM.liquido + totSocio.liquido), cor: "#10B981", info: false },
+              { t: "Encargos (FGTS + provisões)", v: round2(totMfgts + totMprov), cor: "var(--brand)", info: false },
+              { t: "Custo total da folha", v: round2(custoTotalMes + totSocio.base), cor: "var(--brand)", info: true },
+            ].map((c) => (
+              <div key={c.t} className="card" style={{ flex: "1 1 200px", padding: 16 }}>
+                <div className="sub" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                  {c.t}
+                  {c.info && <BtnInfo onClick={() => setInfoCustoMes(true)} titulo="Como o custo total é calculado" />}
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4, color: c.cor }}>{brl(c.v)}</div>
+              </div>
+            ))}
+          </div>
           )}
         </>
       )}
@@ -1244,22 +1311,46 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               <button onClick={() => setInfoCustoMes(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
             </div>
             <p className="sub" style={{ margin: "4px 0 12px", lineHeight: 1.55, fontSize: 12.5 }}>
-              É <b>quanto a empresa gasta de verdade</b> com a equipe neste mês. A empresa <b>não paga o salário bruto</b> direto: paga o <b>líquido</b> a cada pessoa e <b>repassa/provisiona</b> o resto. Soma:
+              É <b>quanto a empresa gasta de verdade</b> com a equipe neste mês:
             </p>
             <div style={{ display: "grid", gap: 8 }}>
               {[
                 <><b>Líquido a pagar</b> aos funcionários ({brl(totM.liquido)})</>,
-                <><b>INSS retido</b>, repassado ao governo ({brl(totM.inss)})</>,
-                <><b>FGTS</b> ({brl(totMfgts)}) e <b>provisão de rescisão</b> ({brl(totMresc)})</>,
+                <><b>INSS</b> ({brl(totM.inss)})</>,
+                <><b>FGTS</b> ({brl(totMfgts)})</>,
                 <><b>Provisão de 13º + férias</b> ({brl(totMprov)})</>,
+                <><b>Provisão de rescisão</b> ({brl(totMresc)})</>,
+                ...(linhasSocio.length > 0 ? [<><b>Pró-labore dos sócios</b> ({brl(totSocio.base)})</>] : []),
               ].map((t, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}><span style={{ color: "var(--brand)", fontWeight: 800 }}>•</span><span>{t}</span></div>
               ))}
             </div>
             <p className="sub" style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.5 }}>
-              Total do mês: <b style={{ color: "var(--brand)" }}>{brl(custoTotalMes)}</b>. O pró-labore dos sócios é apurado à parte, na tabela abaixo.
+              Total do mês: <b style={{ color: "var(--brand)" }}>{brl(round2(custoTotalMes + totSocio.base))}</b>{linhasSocio.length > 0 ? " (funcionários + pró-labore dos sócios)" : ""}.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoCustoMes(false)}>Entendi</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* pop-up: por que o "Puxar do mês anterior" está travado */}
+      {infoPuxar && (
+        <div onClick={() => setInfoPuxar(false)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 460, padding: 22 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--bg-2)", color: "var(--muted)" }}><Lock size={17} /></span>
+                <b style={{ fontSize: 16 }}>Este mês já foi preenchido</b>
+              </div>
+              <button onClick={() => setInfoPuxar(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+            </div>
+            <p className="sub" style={{ margin: "4px 0 0", lineHeight: 1.6, fontSize: 12.5 }}>
+              O botão fica travado como <b>&ldquo;Já exportado&rdquo;</b> para você não sobrescrever os lançamentos deste mês sem querer.
+              <br /><br />
+              Para <b>puxar de novo</b> do mês anterior, <b>apague os valores</b> das tabelas deste mês (deixe tudo em branco). Assim que estiverem vazias, o botão volta a ficar disponível automaticamente.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><button className="btn" onClick={() => setInfoPuxar(false)}>Entendi</button></div>
           </div>
         </div>
       )}
@@ -1303,49 +1394,51 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
         </div>
       )}
 
-      {/* ===== versão de impressão (só aparece no PDF): folha compacta do mês selecionado ===== */}
+      {/* ===== versão de impressão (só aparece no PDF): folha completa do mês selecionado ===== */}
       {modo === "mensal" && !semEquipe && (
         <div className="folha-print print-only" style={{ color: "#000" }}>
+          {/* cabeçalho com a marca/dados da empresa */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20, borderBottom: "3px solid #0f172a", paddingBottom: 12, marginBottom: 14 }}>
+            <div>
+              {brand?.logo ? <img src={brand.logo} alt={nomeEmpresa} style={{ maxHeight: 46, maxWidth: 220, objectFit: "contain" }} /> : <b style={{ fontSize: 20 }}>{nomeEmpresa}</b>}
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <b style={{ fontSize: 13, textTransform: "uppercase" }}>{nomeEmpresa}</b>
+              <div style={{ fontSize: 10.5, color: "#475569" }}>CNPJ {empresa?.cnpj || empExtra.cnpj || "00.000.000/0000-00"}</div>
+              <div style={{ fontSize: 10.5, color: "#475569" }}>{empExtra.endereco || "xxxxxxxxxx/xx"}</div>
+            </div>
+          </div>
+
           <h2 style={{ fontSize: 16, margin: "0 0 2px" }}>Folha de pagamento</h2>
           <div style={{ fontSize: 12, color: "#444", marginBottom: 12 }}>{MESES[mesAtualIdx]} de {anoAtual}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 12, fontSize: 11 }}>
             {[
-              { t: "Salários (bruto)", v: totM.proventos },
-              { t: "Líquido a pagar", v: totM.liquido },
+              { t: "Salários (bruto)", v: round2(totM.proventos + totSocio.base) },
+              { t: "Líquido a pagar", v: round2(totM.liquido + totSocio.liquido) },
               { t: "Encargos (FGTS + provisões)", v: round2(totMfgts + totMprov) },
-              { t: "Custo total da folha", v: custoTotalMes },
+              { t: "Custo total da folha", v: round2(custoTotalMes + totSocio.base) },
             ].map((c) => (
               <div key={c.t}><div style={{ textTransform: "uppercase", fontWeight: 700, color: "#666", fontSize: 8.5 }}>{c.t}</div><div style={{ fontWeight: 800, fontSize: 12 }}>{brl(c.v)}</div></div>
             ))}
           </div>
-          <table className="folha-print-tab" style={{ width: "100%", borderCollapse: "collapse", fontSize: 9.5 }}>
+
+          <table className="folha-print-tab" style={{ width: "100%", borderCollapse: "collapse", fontSize: 7 }}>
             <thead>
               <tr>
-                {["Nome", "Salário base", "Proventos", "INSS", "IRRF", "Descontos", "Líquido"].map((h, i) => (
-                  <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "5px 6px", borderBottom: "1.5px solid #000", whiteSpace: "nowrap" }}>{h}</th>
-                ))}
+                <th style={{ textAlign: "left", padding: "4px 4px", borderBottom: "1.5px solid #000", whiteSpace: "nowrap" }}>Nome</th>
+                {colsPrint.map((c) => <th key={c.h} style={{ textAlign: "right", padding: "4px 4px", borderBottom: "1.5px solid #000", whiteSpace: "nowrap" }}>{c.h}</th>)}
               </tr>
             </thead>
             <tbody>
               {linhasMes.map((l) => (
                 <tr key={`pr-${l.f.id}`}>
-                  <td style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{l.f.nome || "—"}</td>
-                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.base || 0)}</td>
-                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.proventos)}</td>
-                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.inss)}</td>
-                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.irrf)}</td>
-                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.totalDesc)}</td>
-                  <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc", fontWeight: 700 }}>{brl(l.liquido)}</td>
+                  <td style={{ textAlign: "left", padding: "3px 4px", borderBottom: "1px solid #ddd", whiteSpace: "nowrap" }}>{l.f.nome || "—"}</td>
+                  {colsPrint.map((c) => <td key={c.h} style={{ textAlign: "right", padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: c.b ? 700 : 400 }}>{pv(c.get(l))}</td>)}
                 </tr>
               ))}
               <tr style={{ fontWeight: 800 }}>
-                <td style={{ textAlign: "left", padding: "6px", borderTop: "1.5px solid #000" }}>Total ({linhasMes.length})</td>
-                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }} />
-                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.proventos)}</td>
-                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.inss)}</td>
-                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.irrf)}</td>
-                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.totalDesc)}</td>
-                <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totM.liquido)}</td>
+                <td style={{ textAlign: "left", padding: "5px 4px", borderTop: "1.5px solid #000" }}>Total ({linhasMes.length})</td>
+                {colsPrint.map((c) => <td key={c.h} style={{ textAlign: "right", padding: "5px 4px", borderTop: "1.5px solid #000" }}>{pv(somaCol(linhasMes, c.get))}</td>)}
               </tr>
             </tbody>
           </table>
@@ -1353,28 +1446,23 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
           {linhasSocio.length > 0 && (
             <>
               <h3 style={{ fontSize: 13, margin: "18px 0 8px" }}>Pró-labore dos sócios</h3>
-              <table className="folha-print-tab" style={{ width: "100%", borderCollapse: "collapse", fontSize: 9.5 }}>
+              <table className="folha-print-tab" style={{ width: "100%", borderCollapse: "collapse", fontSize: 7.5 }}>
                 <thead>
                   <tr>
-                    {["Nome", "Pró-labore", "INSS (11%)", "Líquido"].map((h, i) => (
-                      <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "5px 6px", borderBottom: "1.5px solid #000", whiteSpace: "nowrap" }}>{h}</th>
-                    ))}
+                    <th style={{ textAlign: "left", padding: "4px 4px", borderBottom: "1.5px solid #000", whiteSpace: "nowrap" }}>Nome</th>
+                    {colsPrintPl.map((c) => <th key={c.h} style={{ textAlign: "right", padding: "4px 4px", borderBottom: "1.5px solid #000", whiteSpace: "nowrap" }}>{c.h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {linhasSocio.map((l) => (
                     <tr key={`prs-${l.f.id}`}>
-                      <td style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{l.f.nome || "—"}</td>
-                      <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.base)}</td>
-                      <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc" }}>{brl(l.inss)}</td>
-                      <td style={{ textAlign: "right", padding: "4px 6px", borderBottom: "1px solid #ccc", fontWeight: 700 }}>{brl(l.liquido)}</td>
+                      <td style={{ textAlign: "left", padding: "3px 4px", borderBottom: "1px solid #ddd", whiteSpace: "nowrap" }}>{l.f.nome || "—"}</td>
+                      {colsPrintPl.map((c) => <td key={c.h} style={{ textAlign: "right", padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: c.b ? 700 : 400 }}>{pv(c.get(l))}</td>)}
                     </tr>
                   ))}
                   <tr style={{ fontWeight: 800 }}>
-                    <td style={{ textAlign: "left", padding: "6px", borderTop: "1.5px solid #000" }}>Total ({linhasSocio.length})</td>
-                    <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totSocio.base)}</td>
-                    <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totSocio.inss)}</td>
-                    <td style={{ textAlign: "right", padding: "6px", borderTop: "1.5px solid #000" }}>{brl(totSocio.liquido)}</td>
+                    <td style={{ textAlign: "left", padding: "5px 4px", borderTop: "1.5px solid #000" }}>Total ({linhasSocio.length})</td>
+                    {colsPrintPl.map((c) => <td key={c.h} style={{ textAlign: "right", padding: "5px 4px", borderTop: "1.5px solid #000" }}>{pv(somaCol(linhasSocio, c.get))}</td>)}
                   </tr>
                 </tbody>
               </table>

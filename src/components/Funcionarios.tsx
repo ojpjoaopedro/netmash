@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Users, User, Phone, Mail, CreditCard, KeyRound, Cake, Trash2, Plus, Power, Search,
+  User, Phone, Mail, CreditCard, KeyRound, Cake, Trash2, Plus, Power, Search,
   ChevronUp, ChevronDown, ChevronsUpDown, Crown, Shield, Lock, SlidersHorizontal, Eye, EyeOff, Check, X,
   LayoutDashboard, DollarSign, Compass, UserPlus, Sparkles, Settings,
 } from "lucide-react";
@@ -187,7 +187,6 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   loginEmail?: string; ehDono?: boolean; irParaPlano?: () => void;
 }) {
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
-  const [ordem, setOrdem] = useState<"cadastro" | "alfabetica">("alfabetica");
   const [modo, setModo] = useState<"card" | "lista">("lista");
   const emailLog = (loginEmail || "").trim().toLowerCase();
   // no celular o botão de apagar fica sempre visível (sem hover)
@@ -234,11 +233,12 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   }, []);
   useEffect(() => { if (dirCarregado) void recarregarColab(); }, [dirCarregado, recarregarColab]);
 
-  // busca por título + ordenação por coluna (modo Lista)
+  // busca + ordenação (só Nome, Nascimento e Tipo) no modo Lista
   const [busca, setBusca] = useState("");
   const [sortCol, setSortCol] = useState<string>("");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const ordenarPor = (col: string) => { if (sortCol === col) setSortDir((d) => d === "asc" ? "desc" : "asc"); else { setSortCol(col); setSortDir("asc"); } };
+  const ORDENAVEIS = new Set(["nome", "nascimento", "cargo"]);
   // qual linha está em edição (algum campo com foco) — libera a lixeira só nela
   const [focoId, setFocoId] = useState<string | null>(null);
   const focoT = useRef<number | undefined>(undefined);
@@ -368,20 +368,12 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
     { k: "nome", label: "Nome" }, { k: "contato", label: "Telefone" }, { k: "email", label: "E-mail" },
     { k: "cpf", label: "CPF" }, { k: "pix", label: "Pix" }, { k: "nascimento", label: "Nascimento" }, { k: "cargo", label: "Tipo" },
   ];
-  const valDe = (l: Linha, col: string): string => {
-    switch (col) {
-      case "nome": return l.nome; case "contato": return l.telefone; case "email": return l.email;
-      case "cpf": return l.cpf; case "pix": return l.pix; case "nascimento": return l.nascimento;
-      case "cargo": return l.cargo; case "ativo": return l.ativo ? "1" : "0"; default: return "";
-    }
-  };
   const bq = busca.trim().toLowerCase();
   const passaBusca = (l: Linha) => !bq || [l.nome, l.telefone, l.email, l.cpf, l.pix, l.cargo].some((x) => (x || "").toLowerCase().includes(bq));
   const loginVis = (filtro === "ativos" ? loginLinhas : []).filter(passaBusca);
   const funcVis0 = funcLinhas.filter((l) => filtro === "ativos" ? l.ativo : !l.ativo).filter(passaBusca);
-  const funcVis = ordem === "alfabetica"
-    ? funcVis0.slice().sort((a, b) => (!a.nome.trim() !== !b.nome.trim()) ? (a.nome.trim() ? -1 : 1) : a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }))
-    : funcVis0;
+  const funcVis = funcVis0.slice().sort((a, b) => (!a.nome.trim() !== !b.nome.trim()) ? (a.nome.trim() ? -1 : 1) : a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }));
+  const valDe = (l: Linha, col: string): string => col === "nome" ? l.nome : col === "nascimento" ? l.nascimento : col === "cargo" ? l.cargo : "";
   const funcTab = sortCol
     ? funcVis.slice().sort((a, b) => { const r = valDe(a, sortCol).localeCompare(valDe(b, sortCol), "pt-BR", { sensitivity: "base", numeric: true }); return sortDir === "asc" ? r : -r; })
     : funcVis;
@@ -525,12 +517,8 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
 
   return (
     <>
-      {/* título da equipe + imprimir PDF */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--brand)18", color: "var(--brand)" }}><Users size={19} /></span>
-          <h2 style={{ margin: 0, fontSize: 19 }}>Equipe</h2>
-        </div>
+      {/* imprimir PDF */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
         <BotaoRelatorioEquipe funcs={funcs} empresa={empresa}
           brand={brand ?? { nome: "Minha Empresa", logo: null, cor: "#1AADE2", saudacao: "", logoTamanho: 40 }}
           diretores={diretoresRel} />
@@ -538,7 +526,6 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
 
       {/* filtros */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
-        <Chave ops={[{ k: "cadastro", txt: "Cadastro" }, { k: "alfabetica", txt: "A–Z" }]} valor={ordem} onChange={(v) => setOrdem(v as "cadastro" | "alfabetica")} />
         <Chave ops={[{ k: "card", txt: "Card" }, { k: "lista", txt: "Lista" }]} valor={modo} onChange={(v) => setModo(v as "card" | "lista")} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
           {opc("ativos", "Ativos")}
@@ -570,15 +557,15 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
               </colgroup>
               <thead>
                 <tr>
-                  {COLS.map((c) => (
+                  {COLS.map((c) => ORDENAVEIS.has(c.k) ? (
                     <th key={c.k} className="eq-th" onClick={() => ordenarPor(c.k)} title="Ordenar por esta coluna">
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{c.label} {seta(c.k)}</span>
                     </th>
+                  ) : (
+                    <th key={c.k} className="eq-th" style={{ cursor: "default" }}>{c.label}</th>
                   ))}
-                  <th className="eq-th" title="Nível de acesso ao painel">Nível de acesso</th>
-                  <th className="eq-th" onClick={() => ordenarPor("ativo")} title="Ordenar por status" style={{ textAlign: "center" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Status {seta("ativo")}</span>
-                  </th>
+                  <th className="eq-th" title="Nível de acesso ao painel" style={{ cursor: "default" }}>Nível de acesso</th>
+                  <th className="eq-th" style={{ textAlign: "center", cursor: "default" }}>Status</th>
                   <th className="eq-th" style={{ width: 84 }} />
                 </tr>
               </thead>
@@ -696,7 +683,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
               </div>
             );
           })}
-          {funcTab.map((l) => {
+          {funcVis.map((l) => {
             const f = l.func!;
             const edit = podeEditar(l);
             return (
