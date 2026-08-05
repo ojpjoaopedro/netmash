@@ -420,18 +420,18 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   .mhome-quote-acts{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
   .mhome-share{display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--brand);border:1px solid color-mix(in srgb,var(--brand) 35%,transparent);border-radius:99px;padding:10px 16px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit}
   .mhome-quote-btn{background:var(--brand);color:var(--brand-ct,#fff);border:0;border-radius:99px;padding:11px 24px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
-  .mhome-blue{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 14px 10px}
-  .mhome-bcard{min-width:0;min-height:80px;display:flex;flex-direction:column;justify-content:space-between;gap:9px;
+  .mhome-blue{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 10px}
+  .mhome-bcard{min-width:0;min-height:108px;display:flex;flex-direction:column;justify-content:space-between;gap:9px;
     position:relative;overflow:hidden;padding:11px;border-radius:15px;color:#fff;border:0;cursor:pointer;font-family:inherit;text-align:left;
     background:linear-gradient(155deg,color-mix(in srgb,var(--brand) 88%,#fff),var(--brand-dark));
     box-shadow:0 12px 24px -18px color-mix(in srgb,var(--brand) 90%,transparent),inset 0 1px 0 rgba(255,255,255,.22);
     transition:transform .15s ease,box-shadow .15s ease}
   .mhome-bcard:active{transform:scale(.96)}
   .mhome-bcard::after{content:"";position:absolute;right:-24px;top:-26px;width:76px;height:76px;border-radius:50%;background:rgba(255,255,255,.12)}
-  .mhome-bcard-ico{position:relative;z-index:1;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;
+  .mhome-bcard-ico{position:relative;z-index:1;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
     background:rgba(255,255,255,.22);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
-  .mhome-bcard-ico svg{width:17px;height:17px}
-  .mhome-bcard>span:last-child{position:relative;z-index:1;font-size:11.5px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
+  .mhome-bcard-ico svg{width:21px;height:21px}
+  .mhome-bcard>span:last-child{position:relative;z-index:1;font-size:14px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
   .mhome-gray{background:var(--bg-2);border-radius:20px 20px 0 0;padding:14px 14px 20px;margin-top:2px}
   .mhome-wgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
   .mhome-wcard{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:8px;padding:13px 6px;border-radius:16px;
