@@ -592,6 +592,9 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .eq-tab thead .eq-fix{z-index:3;background:color-mix(in srgb,var(--brand) 8%,var(--card))}
 .eq-tab .eq-row:nth-child(even) .eq-fix{background:color-mix(in srgb,var(--brand) 3%,var(--card))}
 .eq-tab tfoot .eq-fix{background:var(--card)}
+/* traços finos verticais entre as colunas (Folha) */
+.eq-tab.eq-vsep th,.eq-tab.eq-vsep td{border-right:1px solid var(--line)}
+.eq-tab.eq-vsep th:last-child,.eq-tab.eq-vsep td:last-child{border-right:0}
 
 /* ===== Impressão / PDF ===== */
 @media print{
