@@ -797,6 +797,15 @@ function TutorialFinancas({ onFim }: { onFim: () => void }) {
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const cur = PASSOS_FIN[step];
+  // ampulheta de 5s por passo: só libera o "Próximo" quando termina (força ler cada item)
+  const [prog, setProg] = useState(0);
+  useEffect(() => {
+    setProg(0);
+    const start = Date.now();
+    const id = window.setInterval(() => { const p = Math.min(100, ((Date.now() - start) / 8000) * 100); setProg(p); if (p >= 100) window.clearInterval(id); }, 50);
+    return () => window.clearInterval(id);
+  }, [step]);
+  const pronto = prog >= 100;
   useEffect(() => {
     const upd = () => { const el = document.querySelector(cur.sel); if (el) { const r = el.getBoundingClientRect(); setRect({ left: r.left, top: r.top, width: r.width, height: r.height }); } else setRect(null); };
     upd(); const t = window.setTimeout(upd, 140);
@@ -823,14 +832,18 @@ function TutorialFinancas({ onFim }: { onFim: () => void }) {
           <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 9px", borderRadius: 99 }}>{step + 1} de {PASSOS_FIN.length}</span>
         </div>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--txt)" }}>{cur.texto}</p>
-        <div style={{ display: "flex", gap: 5, margin: "14px 0" }}>
-          {PASSOS_FIN.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 99, background: i <= step ? "var(--brand)" : "var(--line)" }} />)}
+        {/* ampulheta / linha do tempo de 5s */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 12px" }}>
+          <span style={{ fontSize: 15, lineHeight: 1 }}>⏳</span>
+          <div style={{ flex: 1, height: 6, borderRadius: 99, background: "var(--line)", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${prog}%`, background: "var(--brand)", transition: "width .05s linear" }} />
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button className="btn ghost sm" onClick={onFim}>Pular</button>
-          <div style={{ flex: 1 }} />
           {step > 0 && <button className="btn ghost sm" onClick={() => setStep((s) => s - 1)}>Anterior</button>}
-          <button className="btn sm" onClick={() => { if (ultimo) onFim(); else setStep((s) => s + 1); }}>{ultimo ? "Concluir ✓" : "Próximo →"}</button>
+          <div style={{ flex: 1 }} />
+          <button className="btn sm" disabled={!pronto} onClick={() => { if (ultimo) onFim(); else setStep((s) => s + 1); }}
+            style={{ opacity: pronto ? 1 : .5, cursor: pronto ? "pointer" : "default" }}>{ultimo ? "Concluir ✓" : "Próximo →"}</button>
         </div>
       </div>
     </div>
