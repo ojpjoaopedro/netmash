@@ -186,7 +186,17 @@ export type Ocorrencia = { mes: number; dia: number; iso: string; mensal: boolea
 export function datasDaDespesa(p: Pagamento, ano: number): Ocorrencia[] {
   const f = freqDe(p);
   const out: Ocorrencia[] = [];
-  if (f === "unica") { if (p.ano === ano) { const dt = new Date(ano, p.mes, p.dia); out.push({ mes: p.mes, dia: p.dia, iso: isoDe(dt), mensal: true }); } return out; }
+  if (f === "unica") {
+    if (p.ano === ano) {
+      const dt = new Date(ano, p.mes, p.dia);
+      const iso = isoDe(dt);
+      const idx = ymIdx(ano, p.mes);
+      // respeita a remoção (pulados/ate), senão o lançamento único nunca some ao ser apagado
+      const cortado = (p.ate != null && idx >= p.ate) || !!p.pulados?.includes(idx) || (p.ateDia != null && iso >= p.ateDia) || !!p.puladosDia?.includes(iso);
+      if (!cortado) out.push({ mes: p.mes, dia: p.dia, iso, mensal: true });
+    }
+    return out;
+  }
   if (f === "mensal") {
     for (let m = 0; m < 12; m++) {
       const idx = ymIdx(ano, m);
@@ -681,6 +691,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
       const real = nd.receitas.find((r) => r.nome === l.item && !r.cal);
       if (real) {
         real.v = real.v.map((x, m) => x + (l.conf[m] || 0));                 // soma o confirmado no canal existente
+        if (l.conf.some((x) => x > 0)) real.conf = l.conf.slice();           // guarda os recebidos (para poder remover pela Estrutura)
         if (l.pend.some((x) => x > 0)) real.pend = l.pend.slice();           // pendentes viram 2ª linha "a receber"
       } else {
         const pal = [AZUL, VERDE, ROXO, LARANJA, ROSA, VERMELHO];
@@ -1061,7 +1072,21 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
                     ) : (
                       <tr style={{ borderTop: "1px solid var(--line)" }}>
                         <NomeCel cor={r.cor} valor={r.nome} placeholder="Novo canal" reservaChevron onSalvo={salvo} onChange={(nv) => nomeReceita(ri, nv)} onRemover={() => pedirExcluir(r.nome || "este canal de venda", () => removerReceita(ri))} />
-                        {mesesVis.map((m) => <Celula key={m} valor={r.v[m]} onSalvo={salvo} onChange={(nv) => editarReceita(ri, m, nv)} />)}
+                        {mesesVis.map((m) => {
+                          const receb = r.conf?.[m] || 0;
+                          if (receb > 0) return (
+                            // mês recebido pelo Calendário: mostra o valor + lixeira (aparece ao passar o mouse)
+                            <td key={m} className="oc-num" style={{ ...tdNum }}
+                              onMouseEnter={(e) => { (e.currentTarget.querySelector("button") as HTMLElement | null)?.style.setProperty("opacity", "1"); }}
+                              onMouseLeave={(e) => { (e.currentTarget.querySelector("button") as HTMLElement | null)?.style.setProperty("opacity", "0"); }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 5, width: "100%" }}>
+                                <span style={{ fontStyle: "italic", color: "var(--muted)" }}>{fmt(r.v[m])}</span>
+                                <button className="no-print" onClick={() => pedirRemoverConfirmado("rec", "", r.nome, m, `o recebimento de "${r.nome}" em ${MES[m]} (já recebido pelo Calendário)`)} title="Apagar este recebimento (remove também do Calendário)" style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 17, height: 17, borderRadius: 5, cursor: "pointer", border: 0, background: "rgba(239,68,68,.14)", color: "var(--red)", opacity: 0, transition: "opacity .12s" }}><Trash2 size={11} strokeWidth={2.5} /></button>
+                              </span>
+                            </td>
+                          );
+                          return <Celula key={m} valor={r.v[m]} onSalvo={salvo} onChange={(nv) => editarReceita(ri, m, nv)} />;
+                        })}
                         <Total>{fmt(totalDe(r.v))}</Total>
                       </tr>
                     )}
