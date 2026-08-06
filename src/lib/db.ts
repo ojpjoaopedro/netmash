@@ -198,6 +198,13 @@ function seedDemo() {
   lsSet(K.emp, emp);
   lsSet(K.lanc, lanc);
   lsSet(K.func, func);
+  // demonstração: o superadmin já nasce como a Ana Souza (mesmo e-mail do funcionário, para virar 1 linha só)
+  if (!localStorage.getItem("me_diretores")) {
+    localStorage.setItem("me_diretores", JSON.stringify({
+      sup: { id: "super", nome: "Ana Souza", area: "Administrativo", acesso: "ana.souza@empresa.com", email: "ana.souza@empresa.com", telefone: "(62) 99999-0001", cpf: "000.000.000-01", pix: "ana.souza@empresa.com", nascimento: "1990-02-13", permissoes: "total" },
+      admins: [],
+    }));
+  }
   lsSet(K.seed, "1");
 }
 

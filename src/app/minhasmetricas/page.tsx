@@ -21,7 +21,7 @@ import {
 } from "@/lib/db";
 import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
 import { useBrand } from "@/lib/brand";
-import ResumoHome, { fraseDoDia } from "@/components/dash/ResumoHome";
+import { fraseDoDia } from "@/components/dash/ResumoHome";
 import { useOcultar } from "@/components/ocultar";
 import PainelCobrancas from "@/components/PainelCobrancas";
 import CalendarioRecebimento from "@/components/CalendarioRecebimento";
@@ -61,8 +61,8 @@ const SEG_VIEW: Record<string, View> = {
 
 const METRICAS = [
   { key: "dashboard", label: "Home", Icon: LayoutDashboard },
-  { key: "financas", label: "Finanças", Icon: DollarSign },
   { key: "painel", label: "Dashboard", Icon: BarChart3 },
+  { key: "analises", label: "Análises financeiras", Icon: FileText },
 ] as const;
 // sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
@@ -406,8 +406,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
         <div className="navgroup">
           <div className="gl">Métricas</div>
           <nav className="nav">
-            {metricasVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
-              <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
+            {metricasVis.map(({ key, label, Icon }) => { const at = key === "analises" ? (view === "financas" && abaFin === "relatorios") : grupoDe(view) === key; return (
+              <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); if (key === "analises") navegar({ view: "financas", aba: "relatorios" }); else setView(key as View); }}>
                 <Icon size={16} color={corDe(key)} /> {label}
               </button>
             ); })}
@@ -528,28 +528,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
               </div>
             </div>
 
-            {/* notificações: aniversariantes do mês */}
-            {notifAberto && (
-              <div onClick={() => setNotifAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 140, background: "rgba(15,23,42,.4)", backdropFilter: "blur(1px)", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", padding: "62px 12px 0" }}>
-                <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 320, padding: 16, boxShadow: "0 18px 44px -18px rgba(0,0,0,.5)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                    <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Cake size={15} /></span>
-                    <b style={{ fontSize: 14, textTransform: "capitalize" }}>Aniversariantes de {new Date().toLocaleDateString("pt-BR", { month: "long" })}</b>
-                  </div>
-                  {niverMes.length === 0
-                    ? <p className="sub" style={{ fontStyle: "italic", fontSize: 13, margin: 0 }}>Nenhum aniversariante neste mês.</p>
-                    : <div style={{ display: "grid", gap: 9 }}>
-                        {niverMes.map((p) => (
-                          <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                            <span title={p.nome} style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</span>
-                            <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 10px", borderRadius: 99 }}>🎈 {p.nascimento.slice(8, 10)}/{p.nascimento.slice(5, 7)}</span>
-                          </div>
-                        ))}
-                      </div>}
-                </div>
-              </div>
-            )}
-
             <div className="mhome-quote">
               <p>{fraseHome ? `“${fraseHome.t.replace(/\.\s*$/, "")}”` : "…"}</p>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
@@ -599,6 +577,28 @@ export default function Home({ secao }: { secao?: string } = {}) {
           </div>
         )}
 
+        {/* notificações: aniversariantes do mês (sino do topo, mobile e desktop) */}
+        {notifAberto && (
+          <div onClick={() => setNotifAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(15,23,42,.4)", backdropFilter: "blur(1px)", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", padding: "62px 16px 0" }}>
+            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 340, padding: 16, boxShadow: "0 18px 44px -18px rgba(0,0,0,.5)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Cake size={15} /></span>
+                <b style={{ fontSize: 14, textTransform: "capitalize" }}>Aniversariantes de {new Date().toLocaleDateString("pt-BR", { month: "long" })}</b>
+              </div>
+              {niverMes.length === 0
+                ? <p className="sub" style={{ fontStyle: "italic", fontSize: 13, margin: 0 }}>Nenhum aniversariante neste mês.</p>
+                : <div style={{ display: "grid", gap: 9 }}>
+                    {niverMes.map((p) => (
+                      <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                        <span title={p.nome} style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</span>
+                        <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 10px", borderRadius: 99 }}>🎈 {p.nascimento.slice(8, 10)}/{p.nascimento.slice(5, 7)}</span>
+                      </div>
+                    ))}
+                  </div>}
+            </div>
+          </div>
+        )}
+
         {/* modal: Política de privacidade (aberto pelo rodapé) */}
         {politicaAberta && (
           <div onClick={() => setPoliticaAberta(false)} style={{ position: "fixed", inset: 0, zIndex: 150, background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 14, overflow: "auto" }}>
@@ -620,6 +620,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
           {/* o seletor de ano agora fica dentro de cada tela (Finanças/Calendário têm o seu) */}
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
           <button className="btn ghost sm desk-only" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
+          {view === "dashboard" && (
+            <button className="btn ghost sm desk-only" onClick={() => setNotifAberto((v) => !v)} title="Aniversariantes do mês" style={{ position: "relative" }}>
+              <Bell size={15} />{niverMes.length > 0 && <span style={{ position: "absolute", top: 3, right: 5, width: 7, height: 7, borderRadius: "50%", background: "#EF4444" }} />}
+            </button>
+          )}
         </div>
         {SUBTABS[view] && (
           <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
@@ -644,8 +649,39 @@ export default function Home({ secao }: { secao?: string } = {}) {
             </div>
           </div>
         )}
-        {view === "dashboard" && <ResumoHome funcs={funcs} nome={saudacaoNome} />}
-        {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} /></div>}
+        {!estreito && view === "dashboard" && <div style={{ margin: "6px 2px 10px", fontSize: 11.5, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>}
+        {!estreito && view === "dashboard" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18 }}>
+            {[{ aba: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers },
+              { aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
+              { aba: "folha", label: "Folha de pagamento", sub: "Salários, benefícios e encargos", Icon: Wallet }].map((c) => (
+              <button key={c.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}
+                style={{ position: "relative", overflow: "hidden", minHeight: 168, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 20, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                  padding: "22px 24px", borderRadius: 22, color: "#fff",
+                  border: "1px solid color-mix(in srgb, var(--brand) 45%, transparent)",
+                  background: "linear-gradient(140deg, color-mix(in srgb, var(--brand) 96%, #4bc6ff), color-mix(in srgb, var(--brand-dark) 78%, #06122e))",
+                  boxShadow: "0 20px 44px -18px color-mix(in srgb, var(--brand) 70%, transparent), 0 0 30px -10px color-mix(in srgb, var(--brand) 55%, transparent)",
+                  transition: "transform .18s ease, box-shadow .18s ease" }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 28px 54px -18px color-mix(in srgb, var(--brand) 85%, transparent), 0 0 44px -8px color-mix(in srgb, var(--brand) 70%, transparent)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 20px 44px -18px color-mix(in srgb, var(--brand) 70%, transparent), 0 0 30px -10px color-mix(in srgb, var(--brand) 55%, transparent)"; }}>
+                {/* grade de pontos (tech) */}
+                <span aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: .5, backgroundImage: "radial-gradient(rgba(255,255,255,.18) 1px, transparent 1px)", backgroundSize: "18px 18px", maskImage: "radial-gradient(120% 90% at 85% -10%, #000, transparent 70%)", WebkitMaskImage: "radial-gradient(120% 90% at 85% -10%, #000, transparent 70%)" }} />
+                {/* orbe de brilho */}
+                <span aria-hidden style={{ position: "absolute", right: -40, top: -50, width: 150, height: 150, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, rgba(255,255,255,.28), transparent 68%)" }} />
+                <span aria-hidden style={{ position: "absolute", left: -30, bottom: -50, width: 120, height: 120, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, color-mix(in srgb, var(--brand) 60%, transparent), transparent 70%)" }} />
+                <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                  <span style={{ width: 56, height: 56, borderRadius: 16, display: "grid", placeItems: "center", flexShrink: 0, background: "linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", border: "1px solid rgba(255,255,255,.4)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px -8px rgba(0,0,0,.35)" }}><c.Icon size={28} color="#fff" /></span>
+                  <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>
+                </div>
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <b style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.02em", display: "block", lineHeight: 1.15 }}>{c.label}</b>
+                  <p style={{ margin: "5px 0 0", fontSize: 12.5, fontWeight: 500, color: "rgba(255,255,255,.82)" }}>{c.sub}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} semTitulo /></div>}
         {view === "dashboard" && (
           <div className="cal-promo" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
             <CalendarioRecebimento ano={Number(anoSel)} />
@@ -668,7 +704,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
         <div className={estreito && view !== "dashboard" ? "msub-body" : undefined} style={estreito && view === "dashboard" ? { display: "none" } : undefined}>
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
         {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} reload={carregarDados} voltarRef={voltarRef} onAba={setAbaFin} />}
-        {view === "painel" && <TelaPainel empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} />}
+        {view === "painel" && <TelaPainel ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <TelaUpgrade Icon={Compass} titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." preco="R$ 29,90" />}
         {view === "clientes" && <TelaUpgrade Icon={UserPlus} titulo="Cadastro de clientes" texto="Cadastre e organize seus clientes em um só lugar. Ative este módulo no seu plano para liberar esta tela." preco="R$ 39,90" />}
@@ -740,39 +776,57 @@ function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebime
  * Tela Dashboard (mesmo estilo do Finanças): título + abas.
  * Abre no Dashboard e tem a aba "Análises financeiras".
  */
-function TelaPainel({ empresa, brand, ano, setAno }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void }) {
-  const [aba, setAba] = useState<"dashboard" | "relatorios">("dashboard");
-  const abas = [
-    { key: "dashboard" as const, label: "Dashboard", Icon: LayoutDashboard },
-    { key: "relatorios" as const, label: "Análises financeiras", Icon: FileText },
-  ];
-  const tab = (ativo: boolean): React.CSSProperties => ({
-    display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
-    padding: "11px 16px", marginBottom: -1, fontSize: 13.5, fontWeight: 700,
-    cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-    background: "transparent", border: 0,
-    borderBottom: `2px solid ${ativo ? "var(--brand)" : "transparent"}`,
-    color: ativo ? "var(--brand)" : "var(--muted)",
-  });
+function TelaPainel({ ano, setAno }: { ano: number; setAno: (a: number) => void }) {
+  return <FinancasDashboard ano={ano} setAno={setAno} />;
+}
+
+// ---- Tutorial guiado das 3 abas de Finanças (+ vídeo) ----
+const PASSOS_FIN: { sel: string; emoji: string; titulo: string; texto: React.ReactNode }[] = [
+  { sel: '[data-aba="estrutura"]', emoji: "🧾", titulo: "Painel financeiro", texto: <>É <b>aqui que você preenche</b> suas <b>receitas</b> e <b>custos</b> e vê o <b>resultado</b> do mês. Tudo começa por aqui.</> },
+  { sel: '[data-aba="calendario"]', emoji: "🗓️", titulo: "Calendário", texto: <>Marque as <b>contas a pagar e a receber</b> por data. O que você lança no Calendário <b>aparece automaticamente no Painel financeiro</b>: os dois estão <b>conectados</b>.</> },
+  { sel: '[data-aba="folha"]', emoji: "💼", titulo: "Folha de pagamento", texto: <>Cadastre <b>salários</b>, <b>benefícios</b> e <b>encargos</b> da equipe. Os totais também entram no Painel financeiro.</> },
+  { sel: '[data-tour="video"]', emoji: "▶️", titulo: "Vídeo", texto: <>Quer ver tudo em ação? Assista ao <b>vídeo-tutorial</b> completo.</> },
+];
+function TutorialFinancas({ onFim }: { onFim: () => void }) {
+  const [step, setStep] = useState(0);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const cur = PASSOS_FIN[step];
+  useEffect(() => {
+    const upd = () => { const el = document.querySelector(cur.sel); if (el) { const r = el.getBoundingClientRect(); setRect({ left: r.left, top: r.top, width: r.width, height: r.height }); } else setRect(null); };
+    upd(); const t = window.setTimeout(upd, 140);
+    window.addEventListener("resize", upd); window.addEventListener("scroll", upd, true);
+    return () => { window.clearTimeout(t); window.removeEventListener("resize", upd); window.removeEventListener("scroll", upd, true); };
+  }, [step, cur.sel]);
+  const popW = 340;
+  const largura = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const altura = typeof window !== "undefined" ? window.innerHeight : 800;
+  const left = rect ? Math.max(16, Math.min(rect.left, largura - popW - 16)) : 0;
+  const abaixo = rect ? rect.top + rect.height + 16 : 0;
+  const top = rect && abaixo + 220 > altura ? Math.max(16, rect.top - 220) : abaixo;
+  const ultimo = step === PASSOS_FIN.length - 1;
+  const posBalao: React.CSSProperties = rect
+    ? { position: "fixed", left, top, width: popW }
+    : { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: popW };
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
-          <BarChart3 size={22} />
-        </span>
-        <h2 style={{ margin: 0, fontSize: "clamp(21px, 6vw, 27px)", fontWeight: 800, letterSpacing: "-.6px" }}>Dashboard</h2>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
-        <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0, overflowX: "auto" }}>
-          {abas.map((a, i) => (
-            <Fragment key={a.key}>
-              {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px", flexShrink: 0 }} />}
-              <button onClick={() => setAba(a.key)} style={tab(aba === a.key)}><a.Icon size={16} /> {a.label}</button>
-            </Fragment>
-          ))}
+    <div style={{ position: "fixed", inset: 0, zIndex: 170, background: rect ? undefined : "rgba(15,23,42,.62)" }}>
+      {rect && <div style={{ position: "fixed", left: rect.left - 7, top: rect.top - 7, width: rect.width + 14, height: rect.height + 14, borderRadius: 12, boxShadow: "0 0 0 9999px rgba(15,23,42,.62)", border: "2px solid var(--brand)", pointerEvents: "none", transition: "all .2s" }} />}
+      <div style={{ ...posBalao, maxWidth: "calc(100vw - 32px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 14, boxShadow: "0 22px 54px -12px rgba(0,0,0,.55)", padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 18 }}>{cur.emoji}</span>
+          <b style={{ fontSize: 15.5, flex: 1 }}>{cur.titulo}</b>
+          <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 9px", borderRadius: 99 }}>{step + 1} de {PASSOS_FIN.length}</span>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--txt)" }}>{cur.texto}</p>
+        <div style={{ display: "flex", gap: 5, margin: "14px 0" }}>
+          {PASSOS_FIN.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 99, background: i <= step ? "var(--brand)" : "var(--line)" }} />)}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button className="btn ghost sm" onClick={onFim}>Pular</button>
+          <div style={{ flex: 1 }} />
+          {step > 0 && <button className="btn ghost sm" onClick={() => setStep((s) => s - 1)}>Anterior</button>}
+          <button className="btn sm" onClick={() => { if (ultimo) onFim(); else setStep((s) => s + 1); }}>{ultimo ? "Concluir ✓" : "Próximo →"}</button>
         </div>
       </div>
-      {aba === "dashboard" ? <FinancasDashboard ano={ano} setAno={setAno} /> : <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} setAno={setAno} />}
     </div>
   );
 }
@@ -828,6 +882,10 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
 
   // pop-up do vídeo-tutorial (ainda não gravado)
   const [videoTut, setVideoTut] = useState(false);
+  // tutorial guiado das 3 abas (+ vídeo); abre 1x sozinho e pelo botão "Tutorial"
+  const [tutFin, setTutFin] = useState(false);
+  useEffect(() => { try { if (!estreito && localStorage.getItem("me_tut_financas") !== "1") setTutFin(true); } catch { /* ignore */ } }, [estreito]);
+  const fecharTutFin = () => { setTutFin(false); try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } };
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Painel financeiro", folha: "Folha de pagamento",
     calendario: "Calendário", relatorios: "Análises financeiras", importar: "Importar planilha",
@@ -870,8 +928,13 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
           style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "6px 12px", borderRadius: 99 }}>
           <PlayCircle size={18} /> Vídeo
         </button>
+        <button onClick={() => setTutFin(true)} title="Fazer o tutorial guiado"
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "6px 12px", borderRadius: 99 }}>
+          <Sparkles size={16} /> Tutorial
+        </button>
       </div>
       )}
+      {tutFin && !estreito && <TutorialFinancas onFim={fecharTutFin} />}
 
       {/* no celular vai direto pro conteúdo (a navegação é pela barra fixa da Home) */}
       {(

@@ -336,7 +336,8 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   }
 
   // ---- monta as linhas: usuários com login (topo) + equipe comum ----
-  const mostrarLogins = supabaseReady;
+  // mostra as linhas de login quando há login real (Supabase) OU quando o demo já tem um superadmin preenchido
+  const mostrarLogins = supabaseReady || !!(dir.sup?.nome?.trim() || dir.sup?.email?.trim());
   const loginList = mostrarLogins && dirCarregado
     ? [{ p: dir.sup, nivel: "superadmin" as Nivel, ehSuper: true }, ...dir.admins.map((a) => ({ p: a, nivel: "admin" as Nivel, ehSuper: false }))]
     : [];
@@ -424,6 +425,12 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   }
   function trocarNivel(l: Linha, novo: Nivel) {
     if (novo === l.nivel) return;
+    if (novo === "superadmin") {
+      // só no modo demonstração (sem login real): marca a pessoa como superadmin copiando os dados dela pro sup
+      if (supabaseReady) return;
+      setDir((s) => ({ ...s, sup: { ...s.sup, nome: l.nome, area: l.cargo || "Geral", email: l.email, acesso: l.email, telefone: l.telefone, cpf: l.cpf, pix: l.pix, nascimento: l.nascimento } }));
+      return;
+    }
     if (novo === "admin") {
       const email = (l.email || "").trim();
       if (!emailValido(email)) { setAviso({ titulo: "Falta o e-mail", texto: "Preencha um e-mail válido nesta pessoa antes de dar acesso de Admin. É para lá que vai o convite." }); return; }
@@ -509,7 +516,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
           onChange={(e) => trocarNivel(l, e.target.value as Nivel)}
           title="Nível de acesso ao painel"
           style={{ fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "5px 8px", borderRadius: 9, border: "1px solid var(--line-2)", background: "var(--bg-2)", color: l.nivel === "admin" ? AZUL : "var(--muted)", cursor: processando ? "wait" : "pointer" }}>
-          <option value="super" disabled>Superadmin</option>
+          <option value="superadmin" disabled={supabaseReady}>Superadmin</option>
           <option value="admin">Admin</option>
           <option value="sem">Sem acesso</option>
         </select>
@@ -615,13 +622,13 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                         )}
                       </td>
                       <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                        {ehMinha(l) && (
-                          <button title="Trocar a minha senha" onClick={abrirSenha}
+                        {(ehMinha(l) || l.ehSuper) && (
+                          <button title="Trocar a senha" onClick={abrirSenha}
                             style={{ width: 28, height: 28, borderRadius: 8, display: "inline-grid", placeItems: "center", cursor: "pointer", border: "1px solid var(--line-2)", background: "transparent", color: "var(--brand)", marginRight: 6, verticalAlign: "middle" }}>
                             <Lock size={14} />
                           </button>
                         )}
-                        {l.origem === "func" && l.func && edit && (
+                        {l.origem === "func" && l.func && edit && !l.ehSuper && (
                           <button title="Excluir" onMouseDown={(e) => e.preventDefault()} onClick={() => setAExcluir({ nome: l.func!.nome, onOk: () => excluir(l.func!) })}
                             style={{ width: 28, height: 28, borderRadius: 8, display: "inline-grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: VERMELHO, verticalAlign: "middle" }}>
                             <Trash2 size={14} />
