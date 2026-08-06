@@ -525,11 +525,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {estreito && view === "dashboard" && (
           <div className="mhome">
             <div className="mhome-top">
-              <button onClick={() => setMenuAberto(true)} title="Menu"><Menu size={24} color="var(--brand)" /></button>
+              <button onClick={() => setMenuAberto(true)} title="Menu"><Menu size={24} color="#79d6f7" /></button>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button onClick={() => setTutMobile(true)} title="Tutorial guiado"><Sparkles size={22} color="var(--brand)" /></button>
-                <button onClick={toggleOcultarHome} title={ocultoHome ? "Mostrar valores" : "Ocultar valores"}>{ocultoHome ? <EyeOff size={22} color="var(--brand)" /> : <Eye size={22} color="var(--brand)" />}</button>
-                <button onClick={() => setNotifAberto((v) => !v)} title="Aniversariantes do mês" style={{ position: "relative" }}><Bell size={22} color="var(--brand)" />{niverMes.length > 0 && <span className="mhome-dot" />}</button>
+                <button onClick={() => setTutMobile(true)} title="Tutorial guiado"><Sparkles size={22} color="#79d6f7" /></button>
+                <button onClick={toggleOcultarHome} title={ocultoHome ? "Mostrar valores" : "Ocultar valores"}>{ocultoHome ? <EyeOff size={22} color="#79d6f7" /> : <Eye size={22} color="#79d6f7" />}</button>
+                <button onClick={() => setNotifAberto((v) => !v)} title="Aniversariantes do mês" style={{ position: "relative" }}><Bell size={22} color="#79d6f7" />{niverMes.length > 0 && <span className="mhome-dot" />}</button>
               </div>
             </div>
 

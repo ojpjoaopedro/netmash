@@ -117,8 +117,8 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
     const carregar = () => {
       const d = carregarEstruturaComPagamentos(ano);
       setData(d);
-      // padrão: TODOS os meses marcados
-      setSel(new Set(Array.from({ length: 12 }, (_, i) => i)));
+      // padrão: só o mês atual marcado
+      setSel(new Set([new Date().getMonth()]));
     };
     carregar();
     window.addEventListener("me:pagamentos", carregar);
@@ -170,7 +170,7 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
         <div className="mesbar-acoes">
           {(() => { const btn: React.CSSProperties = { padding: "7px 13px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid rgba(148,163,184,.28)", background: "transparent", color: "#94a3b8" }; return (
             <>
-              <button onClick={() => setSel(sel.size === 0 ? new Set(Array.from({ length: 12 }, (_, i) => i)) : new Set())} style={btn}>{sel.size === 0 ? "Marcar todos" : "Desmarcar todos"}</button>
+              <button onClick={() => setSel(sel.size === 12 ? new Set([new Date().getMonth()]) : new Set(Array.from({ length: 12 }, (_, i) => i)))} style={btn}>{sel.size === 12 ? "Desmarcar todos" : "Marcar todos"}</button>
               <button onClick={() => setSel(new Set([new Date().getMonth()]))} style={btn}>Só mês atual</button>
             </>
           ); })()}

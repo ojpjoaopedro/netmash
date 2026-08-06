@@ -572,11 +572,11 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
               <thead>
                 <tr>
                   {COLS.map((c) => ORDENAVEIS.has(c.k) ? (
-                    <th key={c.k} className="eq-th" onClick={() => ordenarPor(c.k)} title="Ordenar por esta coluna">
+                    <th key={c.k} className={`eq-th${c.k === "nome" ? " eq-fix" : ""}`} onClick={() => ordenarPor(c.k)} title="Ordenar por esta coluna">
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{c.label} {seta(c.k)}</span>
                     </th>
                   ) : (
-                    <th key={c.k} className="eq-th" style={{ cursor: "default" }}>{c.label}</th>
+                    <th key={c.k} className={`eq-th${c.k === "nome" ? " eq-fix" : ""}`} style={{ cursor: "default" }}>{c.label}</th>
                   ))}
                   <th className="eq-th" title="Nível de acesso ao painel" style={{ cursor: "default" }}>Nível de acesso</th>
                   <th className="eq-th" style={{ textAlign: "center", cursor: "default" }}>Status</th>
@@ -589,7 +589,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                   const roDica = l.ehSuper ? "Só o superadmin pode editar os próprios dados." : "Só o próprio usuário pode editar estes dados.";
                   return (
                     <tr key={l.chave} className="eq-row" style={{ opacity: l.ativo ? 1 : .6 }}>
-                      <td>
+                      <td className="eq-fix">
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <Campo valor={l.nome} placeholder="Nome" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}

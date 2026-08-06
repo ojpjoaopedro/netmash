@@ -637,8 +637,8 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
     undoStack.current = [];                      // histórico é por ano
     pularSalvar.current = true;                 // não regravar logo após carregar
     setD(carregarEstrutura(ano));
-    // padrão: TODOS os meses marcados
-    setSel(new Set(Array.from({ length: 12 }, (_, i) => i)));
+    // padrão: só o mês atual marcado
+    setSel(new Set([new Date().getMonth()]));
     setCarregado(true);
     // busca no banco (fonte da verdade) e, se veio algo, recarrega do cache
     let vivo = true;
@@ -1019,9 +1019,9 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
           <div className="mesbar-acoes">
             {(() => { const btn: React.CSSProperties = { padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)", transition: ".12s" }; return (
               <>
-                <button onClick={() => setSel(sel.size === 0 ? new Set(Array.from({ length: 12 }, (_, i) => i)) : new Set())} style={btn}
+                <button onClick={() => setSel(sel.size === 12 ? new Set([new Date().getMonth()]) : new Set(Array.from({ length: 12 }, (_, i) => i)))} style={btn}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                  {sel.size === 0 ? "Marcar todos" : "Desmarcar todos"}
+                  {sel.size === 12 ? "Desmarcar todos" : "Marcar todos"}
                 </button>
                 <button onClick={() => setSel(new Set([new Date().getMonth()]))} style={btn}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>

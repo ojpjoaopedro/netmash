@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, DollarSign, CreditCard, TrendingUp, Sparkles } from "lucide-react";
 import { MES, carregarEstruturaComPagamentos, resultadoDe, ebitdaDe } from "@/app/minhasmetricas/financas-estrutura";
 import BotaoOcultar from "./ocultar";
@@ -48,8 +48,9 @@ function Composicao({ titulo, Icon, cor, total, itens, badge }: {
 
 export default function AnaliseResultados({ onVoltar, ano = 2026 }: { onVoltar: () => void; ano?: number }) {
   const data = useMemo(() => carregarEstruturaComPagamentos(ano), [ano]);
-  // padrão: TODOS os meses marcados
-  const [sel, setSel] = useState<Set<number>>(() => new Set(Array.from({ length: 12 }, (_, i) => i)));
+  // padrão: só o mês atual (preenchido no efeito, evita divergência no SSR)
+  const [sel, setSel] = useState<Set<number>>(() => new Set());
+  useEffect(() => { setSel(new Set([new Date().getMonth()])); }, []);
   const toggle = (m: number) => setSel((s) => { const n = new Set(s); if (n.has(m)) n.delete(m); else n.add(m); return n.size ? n : s; });
 
   const calc = useMemo(() => {

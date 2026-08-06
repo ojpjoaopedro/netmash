@@ -425,14 +425,14 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   .main{padding:0 0 24px;max-width:none;min-height:100dvh;color:#eaf0ff;
     /* tema DARK/NEON em todo o app mobile: redefine as variáveis -> tudo abaixo vira escuro */
     --card:#141c40;--card-2:#1b2559;--bg-2:#0f1638;
-    --txt:#eaf0ff;--muted:#9db0ea;--muted-2:#6f80bd;
+    --txt:#eaf0ff;--txt-2:#c4d0f2;--muted:#9db0ea;--muted-2:#6f80bd;
     --line:rgba(150,180,255,.14);--line-2:rgba(150,180,255,.26);
     background:linear-gradient(180deg,#182a72 0%,#0c1338 300px,#080c22 660px)}
   /* Home */
   .mhome{width:100%;max-width:100%;overflow-x:clip;padding-bottom:110px;min-height:100vh;color:#eaf0ff;
     /* tema DARK/NEON só na home do app: redefine as variáveis -> tudo abaixo vira escuro automaticamente */
     --card:#141c40;--card-2:#1b2559;--bg-2:#0f1638;
-    --txt:#eaf0ff;--muted:#9db0ea;--muted-2:#6f80bd;
+    --txt:#eaf0ff;--txt-2:#c4d0f2;--muted:#9db0ea;--muted-2:#6f80bd;
     --line:rgba(150,180,255,.14);--line-2:rgba(150,180,255,.26);
     background:radial-gradient(135% 95% at 50% -12%,#1d2b74 0%,#0d1440 45%,#070b24 100%)}
   .main{overflow-x:clip}

@@ -127,7 +127,7 @@ export default function PainelCobrancas({ ano, semTitulo = false }: { ano: numbe
 
   const itens: Item[] = [
     { tipo: "canal", titulo: "Faturamento por canal", dica: "Faturamento do período separado por canal de venda.", canal: porCanal },
-    { tipo: "lista", titulo: "Despesa", dica: "A pagar e despesas em atraso vêm do Calendário; as despesas realizadas vêm da Estrutura de Custos.",
+    { tipo: "lista", titulo: "Despesa", dica: "",
       lados: [
         { rotulo: "Despesas pagas", m: custosEstrutura, cor: VERDE },
         { rotulo: "A pagar", m: dados.pagAPagar, cor: AMBAR },
@@ -226,8 +226,8 @@ function CaixaCard({ titulo, dica, aberto, onInfo, onFechar, children }: { titul
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6, marginBottom: 14 }}>
         <b style={{ fontSize: 13.5, lineHeight: 1.3 }}>{titulo}</b>
         <div style={{ position: "relative", flexShrink: 0 }}>
-          <button onClick={onInfo} title="Sobre este dado" style={{ background: "transparent", border: 0, cursor: "pointer", padding: 0, display: "grid", placeItems: "center", color: aberto ? "var(--brand)" : "var(--muted)" }}><Info size={15} /></button>
-          {aberto && (
+          {dica && <button onClick={onInfo} title="Sobre este dado" style={{ background: "transparent", border: 0, cursor: "pointer", padding: 0, display: "grid", placeItems: "center", color: aberto ? "var(--brand)" : "var(--muted)" }}><Info size={15} /></button>}
+          {dica && aberto && (
             <>
               <div onClick={onFechar} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
               <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 51, width: 230, maxWidth: "calc(100vw - 24px)", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 14px 34px -12px rgba(0,0,0,.4)", padding: 12, fontSize: 12.5, lineHeight: 1.5, color: "var(--txt)", textAlign: "left", fontWeight: 400 }}>
