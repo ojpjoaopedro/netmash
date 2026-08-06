@@ -7,7 +7,7 @@ import {
   Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
-  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake,
+  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -124,10 +124,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
   // back inteligente das telas internas: cada tela registra como voltar 1 nível;
   // se não houver nível interno, o botão azul do topo volta para a Home.
   const voltarRef = useRef<(() => boolean) | null>(null);
-  const voltarTopo = () => { if (voltarRef.current && voltarRef.current()) return; setView("dashboard"); };
-  // rótulo do voltar = para onde o botão leva (Home, Finanças, Configurações…)
-  const [voltarLabel, setVoltarLabel] = useState("Home");
-  useEffect(() => { setVoltarLabel("Home"); }, [view]);   // telas com níveis internos sobrescrevem
+  const [abaFin, setAbaFin] = useState("");   // aba atual do Finanças (p/ destacar Dashboard/Análises na barra)
   // reflete a seção atual na URL (/dashboard/<seção>), sem recarregar o painel
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -140,6 +137,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const [menuAberto, setMenuAberto] = useState(false);
   // notificações (sino da Home mobile): aniversariantes do mês
   const [notifAberto, setNotifAberto] = useState(false);
+  const [politicaAberta, setPoliticaAberta] = useState(false);   // modal da Política de privacidade (rodapé mobile)
   const [niverLogins, setNiverLogins] = useState<{ id: string; nome: string; nascimento: string }[]>([]);
   useEffect(() => {
     const ler = () => {
@@ -384,10 +382,10 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <span style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>{marcaInterna}</span>
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
-            <div className="navgroup"><div className="gl">Configurações</div><nav className="nav">
-              {MENU_APP.filter((m) => !(ehColegioAraguaia(empresa) && (m.aba === "beneficios" || m.aba === "plano"))).map(({ aba, label, Icon }) => (
-                <button key={aba} onClick={() => { playTick(); navegar({ view: "config", aba }); setMenuAberto(false); }}><Icon size={16} color="var(--brand)" /> {label}</button>
-              ))}
+            <div className="navgroup"><nav className="nav">
+              <button onClick={() => { playTick(); setView("assistente"); setMenuAberto(false); }}><Sparkles size={16} color="var(--brand)" /> Assistente</button>
+              <button onClick={() => { playTick(); navegar({ view: "config", aba: "dados" }); setMenuAberto(false); }}><Building2 size={16} color="var(--brand)" /> Dados da empresa</button>
+              <button onClick={() => { playTick(); navegar({ view: "config", aba: "equipe" }); setMenuAberto(false); }}><Users size={16} color="var(--brand)" /> Equipe</button>
             </nav></div>
             <div className="navgroup"><nav className="nav">
               <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
@@ -562,36 +560,58 @@ export default function Home({ secao }: { secao?: string } = {}) {
               </div>
             </div>
 
-            <div className="mhome-blue">
-              {[{ aba: "dashboard", label: "Dashboard", Icon: LayoutDashboard }, { aba: "relatorios", label: "Análises financeiras", Icon: FileText }].map((a) => (
-                <button key={a.aba} className="mhome-bcard" onClick={() => { playTick(); navegar({ view: "financas", aba: a.aba }); }}>
-                  <span className="mhome-bcard-ico"><a.Icon size={22} color="#fff" /></span>
-                  <span>{a.label}</span>
+            <div style={{ padding: "2px 16px 8px", fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>
+            <div className="mhome-wgrid" style={{ padding: "0 14px 10px" }}>
+              {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "folha", label: "Folha de pagamento", Icon: Wallet }].map((c) => (
+                <button key={c.aba} className="mhome-wcard" onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
+                  <span className="mhome-wcard-ico"><c.Icon size={22} /></span>
+                  <b>{c.label}</b>
                 </button>
               ))}
             </div>
 
             <div className="mhome-gray">
-              <div className="mhome-wgrid">
-                {[{ v: "financas", label: "Finanças", Icon: DollarSign }, { v: "assistente", label: "Assistente", Icon: Sparkles }, { v: "config", label: "Configurações", Icon: Settings }].map((c) => (
-                  <button key={c.v} className="mhome-wcard" onClick={() => { playTick(); setView(c.v as View); }}>
-                    <span className="mhome-wcard-ico"><c.Icon size={22} /></span>
-                    <b>{c.label}</b>
-                  </button>
-                ))}
+              <div style={{ marginTop: 4 }}><PainelCobrancas ano={Number(anoSel)} semTitulo /></div>
+            </div>
+
+            {/* rodapé com links (estilo app) */}
+            {(() => { const link: React.CSSProperties = { background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--muted)", padding: 0 }; return (
+              <div style={{ padding: "20px 16px 26px", marginTop: 8, borderTop: "1px solid var(--line)", textAlign: "center" }}>
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                  <button style={link} onClick={() => setPoliticaAberta(true)}>Política de privacidade</button>
+                  <span style={{ color: "var(--line-2)" }}>·</span>
+                  <button style={link} onClick={() => { playTick(); navegar({ view: "config", aba: "beneficios" }); }}>Benefícios</button>
+                  <span style={{ color: "var(--line-2)" }}>·</span>
+                  <button style={link} onClick={() => { playTick(); navegar({ view: "config", aba: "plano" }); }}>Planos</button>
+                </div>
               </div>
-              <div style={{ marginTop: 14 }}><PainelCobrancas ano={Number(anoSel)} /></div>
+            ); })()}
+
+          </div>
+        )}
+
+        {/* barra fixa no rodapé (efeito vidro) — navegação principal, em TODAS as telas do app (some com o menu aberto) */}
+        {estreito && !menuAberto && (
+          <div className="mhome-tabbar">
+            <button className={`mhome-tab${view === "dashboard" ? " ativo" : ""}`} onClick={() => { playTick(); setView("dashboard"); }}><HomeIcon size={22} /><b>Home</b></button>
+            <button className={`mhome-tab${view === "financas" && abaFin === "dashboard" ? " ativo" : ""}`} onClick={() => { playTick(); navegar({ view: "financas", aba: "dashboard" }); }}><LayoutDashboard size={22} /><b>Dashboard</b></button>
+            <button className={`mhome-tab${view === "financas" && abaFin === "relatorios" ? " ativo" : ""}`} onClick={() => { playTick(); navegar({ view: "financas", aba: "relatorios" }); }}><FileText size={22} /><b>Análises</b></button>
+          </div>
+        )}
+
+        {/* modal: Política de privacidade (aberto pelo rodapé) */}
+        {politicaAberta && (
+          <div onClick={() => setPoliticaAberta(false)} style={{ position: "fixed", inset: 0, zIndex: 150, background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 14, overflow: "auto" }}>
+            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 560, padding: 0, maxHeight: "92vh", overflow: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: "1px solid var(--line)", position: "sticky", top: 0, background: "var(--card)", zIndex: 1 }}>
+                <b style={{ fontSize: 15 }}>Termos e Políticas</b>
+                <button onClick={() => setPoliticaAberta(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+              </div>
+              <div style={{ padding: 18 }}><TermosDeUso /></div>
             </div>
           </div>
         )}
 
-        {/* ===== APP MOBILE: cabeçalho azul + voltar nas demais telas ===== */}
-        {estreito && view !== "dashboard" && (
-          <header className="msub-top">
-            <button className="msub-back" onClick={voltarTopo} title="Voltar"><ArrowLeft size={20} /></button>
-            <b>{voltarLabel}</b>
-          </header>
-        )}
 
         {/* ===== DESKTOP: controles + conteúdo do dashboard ===== */}
         {!estreito && (
@@ -632,18 +652,27 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <PromoParaVoce />
           </div>
         )}
+        {!estreito && view === "dashboard" && (() => { const link: React.CSSProperties = { background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--muted)", padding: 0 }; return (
+          <div style={{ marginTop: 20, padding: "18px 0 6px", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", alignItems: "center", gap: 12 }}>
+            <button style={link} onClick={() => setPoliticaAberta(true)}>Política de privacidade</button>
+            <span style={{ color: "var(--line-2)" }}>·</span>
+            <button style={link} onClick={() => { playTick(); navegar({ view: "config", aba: "beneficios" }); }}>Benefícios</button>
+            <span style={{ color: "var(--line-2)" }}>·</span>
+            <button style={link} onClick={() => { playTick(); navegar({ view: "config", aba: "plano" }); }}>Plano</button>
+          </div>
+        ); })()}
         </>
         )}
 
         {/* Conteúdo das telas (desktop e mobile-sub); no mobile ganha padding próprio */}
         <div className={estreito && view !== "dashboard" ? "msub-body" : undefined} style={estreito && view === "dashboard" ? { display: "none" } : undefined}>
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
-        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} reload={carregarDados} voltarRef={voltarRef} onNivel={setVoltarLabel} />}
+        {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} reload={carregarDados} voltarRef={voltarRef} onAba={setAbaFin} />}
         {view === "painel" && <TelaPainel empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <TelaUpgrade Icon={Compass} titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." preco="R$ 29,90" />}
         {view === "clientes" && <TelaUpgrade Icon={UserPlus} titulo="Cadastro de clientes" texto="Cadastre e organize seus clientes em um só lugar. Ative este módulo no seu plano para liberar esta tela." preco="R$ 39,90" />}
-        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} ehDono={ehDono} voltarRef={voltarRef} onNivel={setVoltarLabel} />}
+        {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} ehDono={ehDono} voltarRef={voltarRef} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} brand={brandObj} ano={Number(anoSel)} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
         {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} empresa={empresa} brand={brand} loginEmail={perfil?.email || ""} ehDono={ehDono} />}
@@ -659,8 +688,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
       <LgpdConsent userKey={perfil?.email || perfil?.id || "demo"} onSair={async () => { await logout(); router.replace("/login"); }} />
 
-      {/* Guia de configuração inicial (some quando tudo estiver preenchido) */}
-      <GuiaConfiguracao empresa={empresa} brand={brand} funcsCount={funcs.length} />
+      {/* Guia de configuração inicial (some quando tudo estiver preenchido) — só no desktop */}
+      {!estreito && <GuiaConfiguracao empresa={empresa} brand={brand} funcsCount={funcs.length} />}
 
 
     </div>
@@ -753,7 +782,7 @@ function TelaPainel({ empresa, brand, ano, setAno }: { empresa: Empresa | null; 
  * três abas (Dashboard, Estrutura de Receitas e Custos, Calendário de
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
-function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void; reload: () => Promise<void>; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void }) {
+function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel, onAba }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void; reload: () => Promise<void>; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void; onAba?: (aba: string) => void }) {
   const [aba, setAba] = useState<"dashboard" | "estrutura" | "folha" | "calendario" | "relatorios" | "importar">("estrutura");
   // dentro do Calendário: escolha entre pagamentos e recebimentos (null = mostra as 2 opções)
   const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | "financeiro" | null>(null);
@@ -794,11 +823,13 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
     const abaCard = aba !== "dashboard" && aba !== "relatorios";
     onNivel?.(calSub || (entrou && abaCard) ? "Finanças" : "Home");
   }, [entrou, calSub, aba, onNivel]);
+  // informa a aba atual à página (para destacar Dashboard/Análises na barra fixa)
+  useEffect(() => { onAba?.(aba); }, [aba, onAba]);
 
   // pop-up do vídeo-tutorial (ainda não gravado)
   const [videoTut, setVideoTut] = useState(false);
   const rotulos: Record<typeof aba, string> = {
-    dashboard: "Dashboard", estrutura: "Estrutura de Receitas e Custos", folha: "Folha de pagamento",
+    dashboard: "Dashboard", estrutura: "Painel financeiro", folha: "Folha de pagamento",
     calendario: "Calendário", relatorios: "Análises financeiras", importar: "Importar planilha",
   };
   // aba em barra (estilo print2): ícone + rótulo, ativo em azul com sublinhado
@@ -812,7 +843,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
   });
   // Dashboard e Relatórios saíram das abas: agora são abertos pelos 2 cards da Home.
   const abas: { key: typeof aba; label: string; Icon: typeof LayoutDashboard }[] = [
-    { key: "estrutura", label: "Estrutura de Receitas e Custos", Icon: Layers },
+    { key: "estrutura", label: "Painel financeiro", Icon: Layers },
     { key: "calendario", label: "Calendário", Icon: CalendarDays },
     { key: "folha", label: "Folha de pagamento", Icon: Wallet },
   ];
@@ -842,18 +873,8 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel 
       </div>
       )}
 
-      {/* CELULAR: menu de cards (estilo app). Ao tocar, entra na seção. */}
-      {estreito && !entrou ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
-          {abas.filter((a) => a.key !== "dashboard" && a.key !== "relatorios").map((a) => (
-            <button key={a.key} className="appcard"
-              onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); setEntrou(true); }}>
-              <span className="appcard-ico"><a.Icon size={24} color="#fff" strokeWidth={2} /></span>
-              <b>{a.label}</b>
-            </button>
-          ))}
-        </div>
-      ) : (
+      {/* no celular vai direto pro conteúdo (a navegação é pela barra fixa da Home) */}
+      {(
       <>
       {/* DESKTOP: barra de abas */}
       {!estreito && !ehAtalhoHome && (
@@ -966,13 +987,11 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
     window.addEventListener("me:destacar-beneficios", destacar);
     return () => window.removeEventListener("me:destacar-beneficios", destacar);
   }, []);
-  const abasBase: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
+  // Benefícios e Plano saíram das abas (agora ficam no rodapé); o conteúdo continua acessível por lá.
+  const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
     { key: "dados", label: "Dados da Empresa", Icon: Building2 },
     { key: "equipe", label: "Equipe", Icon: Users },
-    { key: "beneficios", label: "Meus Benefícios", Icon: Gift },
-    { key: "plano", label: "Plano", Icon: CreditCard },
   ];
-  const abas = abasBase.filter((a) => !(ehColegioAraguaia(empresa) && (a.key === "beneficios" || a.key === "plano")));
   const tab = (ativo: boolean): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
     padding: "11px 15px", marginBottom: -1, fontSize: 13.5, fontWeight: 700,
@@ -994,19 +1013,8 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
       </div>
       )}
 
-      {/* barra de abas (só no desktop; no celular navega pelo MENU do topo) */}
-      {/* CELULAR: menu de cards (igual Finanças). Só os itens de cadastro; o resto vai no MENU do topo. */}
-      {estreito && !entrou ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
-          {abas.filter((a) => CONFIG_CARDS.includes(a.key)).map((a) => (
-            <button key={a.key} onClick={() => { playTick(); setAba(a.key); setEntrou(true); }}
-              className={`appcard${a.key === "beneficios" && destaqueBenef ? " destaque-benef" : ""}`}>
-              <span className="appcard-ico"><a.Icon size={24} color="#fff" strokeWidth={2} /></span>
-              <b>{a.label}</b>
-            </button>
-          ))}
-        </div>
-      ) : (
+      {/* no celular vai direto pro conteúdo (a navegação é pelo menu ☰ e pela barra fixa) */}
+      {(
       <>
       {!estreito && (
       <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: "auto", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
@@ -1032,12 +1040,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
       {aba === "dados" ? <Config secao="tudo" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
         : aba === "equipe" ? <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} loginEmail={loginEmail} ehDono={ehDono} irParaPlano={() => setAba("plano")} />
         : aba === "beneficios" ? <MeusBeneficios />
-        : aba === "plano" ? (
-          <div style={{ display: "grid", gap: 22 }}>
-            <MeuPlano />
-            <TermosDeUso />
-          </div>
-        )
+        : aba === "plano" ? <MeuPlano />
         : <EmConstrucao titulo={rotulo} />}
       </>
       )}

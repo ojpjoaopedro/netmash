@@ -765,17 +765,19 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
       {/* barra de ano + meses (estilo Dashboard): seleciona 1 mês */}
       {modo === "mensal" && !semEquipe && ym && (
-        <div ref={barraMesRef} data-tut="meses" className="no-print" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          <SeletorAno ano={Number(anoAtual)} setAno={(a) => setYm(`${a}-${String(mesAtualIdx + 1).padStart(2, "0")}`)} />
-          {MES.map((nome, m) => {
-            const on = m === mesAtualIdx;
-            return (
-              <button key={m} ref={(el) => { mesRefs.current[m] = el; }} onClick={() => setYm(`${anoAtual}-${String(m + 1).padStart(2, "0")}`)}
-                style={{ padding: "7px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "var(--brand)" : "var(--line-2)"}`, background: on ? "var(--brand)" : "transparent", color: on ? "var(--brand-ct,#fff)" : "var(--muted)" }}>
-                {nome}
-              </button>
-            );
-          })}
+        <div ref={barraMesRef} data-tut="meses" className="mesbar no-print" style={{ marginBottom: 16 }}>
+          <span className="mesbar-ano"><SeletorAno ano={Number(anoAtual)} setAno={(a) => setYm(`${a}-${String(mesAtualIdx + 1).padStart(2, "0")}`)} /></span>
+          <div className="mesbar-meses">
+            {MES.map((nome, m) => {
+              const on = m === mesAtualIdx;
+              return (
+                <button key={m} ref={(el) => { mesRefs.current[m] = el; }} onClick={() => setYm(`${anoAtual}-${String(m + 1).padStart(2, "0")}`)}
+                  style={{ padding: "7px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${on ? "var(--brand)" : "var(--line-2)"}`, background: on ? "var(--brand)" : "transparent", color: on ? "var(--brand-ct,#fff)" : "var(--muted)" }}>
+                  {nome}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

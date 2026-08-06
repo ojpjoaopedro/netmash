@@ -12,7 +12,7 @@ type Metrica = { valor: number; qtd: number };
 const zero = (): Metrica => ({ valor: 0, qtd: 0 });
 
 /** Painel "Situação das cobranças": recebíveis e pagamentos do Calendário, por período. */
-export default function PainelCobrancas({ ano }: { ano: number }) {
+export default function PainelCobrancas({ ano, semTitulo = false }: { ano: number; semTitulo?: boolean }) {
   const [montado, setMontado] = useState(false);
   const [versao, setVersao] = useState(0);
   const [modo, setModo] = useState<"card" | "grafico">("grafico");
@@ -147,10 +147,10 @@ export default function PainelCobrancas({ ano }: { ano: number }) {
   if (!montado) return null;
 
   return (
-    <div className="card" style={{ padding: 20 }}>
+    <div className={semTitulo ? undefined : "card"} style={{ padding: semTitulo ? 0 : 20, background: semTitulo ? "transparent" : undefined, border: semTitulo ? 0 : undefined, boxShadow: semTitulo ? "none" : undefined }}>
       {/* cabeçalho: título + toggle gráfico + filtro por data */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <b style={{ fontSize: 17 }}>Situação das cobranças</b>
+        {semTitulo ? <span /> : <b style={{ fontSize: 17 }}>Situação das cobranças</b>}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {/* alternar card / gráfico */}
           <div style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 10, background: "var(--bg-2)", border: "1px solid var(--line)" }}>
