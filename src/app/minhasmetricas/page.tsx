@@ -137,6 +137,10 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const [menuAberto, setMenuAberto] = useState(false);
   // notificações (sino da Home mobile): aniversariantes do mês
   const [notifAberto, setNotifAberto] = useState(false);
+  // tutorial guiado dos 3 cards na home do celular (mesmo do desktop)
+  const [tutMobile, setTutMobile] = useState(false);
+  useEffect(() => { try { if (estreito && localStorage.getItem("me_tut_financas") !== "1") setTutMobile(true); } catch { /* ignore */ } }, [estreito]);
+  const fecharTutMobile = () => { setTutMobile(false); try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } };
   const [politicaAberta, setPoliticaAberta] = useState(false);   // modal da Política de privacidade (rodapé mobile)
   const [niverLogins, setNiverLogins] = useState<{ id: string; nome: string; nascimento: string }[]>([]);
   useEffect(() => {
@@ -523,6 +527,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <div className="mhome-top">
               <button onClick={() => setMenuAberto(true)} title="Menu"><Menu size={24} color="var(--brand)" /></button>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button onClick={() => setTutMobile(true)} title="Tutorial guiado"><Sparkles size={22} color="var(--brand)" /></button>
                 <button onClick={toggleOcultarHome} title={ocultoHome ? "Mostrar valores" : "Ocultar valores"}>{ocultoHome ? <EyeOff size={22} color="var(--brand)" /> : <Eye size={22} color="var(--brand)" />}</button>
                 <button onClick={() => setNotifAberto((v) => !v)} title="Aniversariantes do mês" style={{ position: "relative" }}><Bell size={22} color="var(--brand)" />{niverMes.length > 0 && <span className="mhome-dot" />}</button>
               </div>
@@ -541,7 +546,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <div style={{ padding: "2px 16px 8px", fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>
             <div className="mhome-wgrid" style={{ padding: "0 14px 10px" }}>
               {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "folha", label: "Folha de pagamento", Icon: Wallet }].map((c) => (
-                <button key={c.aba} className="mhome-wcard" onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
+                <button key={c.aba} data-aba={c.aba} className="mhome-wcard" onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
                   <span className="mhome-wcard-ico"><c.Icon size={22} /></span>
                   <b>{c.label}</b>
                 </button>
@@ -565,6 +570,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
               </div>
             ); })()}
 
+            {tutMobile && <TutorialFinancas onFim={fecharTutMobile} />}
           </div>
         )}
 
