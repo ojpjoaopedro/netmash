@@ -40,7 +40,7 @@ export function LineChart({ pts, cor = "#1AADE2", meta, formatValor = (n: number
 }
 
 /** Composição em barras horizontais. itens = [{label, valor}]. */
-export function CompBars({ itens, total, corTotal }: { itens: { label: string; valor: number }[]; total: number; corTotal?: string }) {
+export function CompBars({ itens, corTotal }: { itens: { label: string; valor: number }[]; total?: number; corTotal?: string }) {
   const max = Math.max(...itens.map((i) => i.valor), 1);
   return (
     <div style={{ display: "grid", gap: 10 }}>

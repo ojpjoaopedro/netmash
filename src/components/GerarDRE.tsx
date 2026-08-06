@@ -6,8 +6,6 @@ import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { MES, Dados, Grupo, carregarEstruturaComPagamentos, resultadoDe, ebitdaDe } from "@/app/minhasmetricas/financas-estrutura";
 
-const MESES_EXT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
 function lerExtra(id?: string | null): { ie?: string; email?: string; contato?: string; endereco?: string } {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(localStorage.getItem(`me_empresa_extra:${id || "default"}`) || "{}"); } catch { return {}; }

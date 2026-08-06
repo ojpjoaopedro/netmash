@@ -4,7 +4,7 @@ import {
   Shield, Crown, Plus, Trash2, X, Check,
   Eye, EyeOff, Lock, SlidersHorizontal, LayoutDashboard, DollarSign, UserPlus, Sparkles, Compass, Settings,
 } from "lucide-react";
-import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
+import { mascararTelefone, mascararCPF, cpfValido, isoParaBR, mascararDataBR, validarDataBR } from "@/lib/format";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { supabase, supabaseReady } from "@/lib/supabase";
 
@@ -24,7 +24,6 @@ const GRUPOS = [
   ] },
 ];
 const TODAS = GRUPOS.flatMap((g) => g.itens.map((i) => i.k));
-const rotulo = (k: string) => GRUPOS.flatMap((g) => g.itens).find((i) => i.k === k)?.label || k;
 
 type Perm = "total" | string[];
 type Diretor = {
@@ -300,7 +299,6 @@ export default function Diretores({ loginEmail = "", ehDono = true, irParaPlano 
   if (!carregado) return null;
 
   const selecionado: Diretor | null = selId === "super" ? store.sup : (store.admins.find((a) => a.id === selId) || null);
-  const selTotal = selecionado ? selecionado.permissoes === "total" : true;
   const selMarcadas = selecionado ? chaves(selecionado.permissoes) : TODAS;
   const selLocked = selId === "super";
   const alternar = (k: string) => {

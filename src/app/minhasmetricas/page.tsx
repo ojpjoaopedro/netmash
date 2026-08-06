@@ -3,10 +3,10 @@ import { useEffect, useState, useCallback, useRef, useMemo, Fragment } from "rea
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, Compass, Settings,
-  Users, Upload, Building2, LogOut, Sun, Moon, X,
-  Menu, Presentation, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
+  Users, Building2, LogOut, Sun, Moon, X,
+  Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
-  Gift, CreditCard, ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
+  ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
   PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
@@ -66,12 +66,6 @@ const METRICAS = [
 ] as const;
 // sem métricas recolhidas por enquanto
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
-// Menu do app (mobile): abre pelo MENU do topo. Os itens de cadastro ficam nos cards
-// de "Configurações"; aqui ficam só os itens de sistema.
-const MENU_APP: { aba: string; label: string; Icon: typeof LayoutDashboard }[] = [
-  { aba: "beneficios", label: "Meus Benefícios", Icon: Gift },
-  { aba: "plano", label: "Plano", Icon: CreditCard },
-];
 // Cards de Configurações (mobile): só os itens de cadastro.
 const CONFIG_CARDS = ["dados", "equipe"];
 // Sub-abas (pílulas) — Empresa e Equipe
@@ -371,8 +365,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const opsCore = opsVis.filter((o) => !SISTEMA_KEYS.includes(o.key));
   const opsSistema = opsVis.filter((o) => SISTEMA_KEYS.includes(o.key));
   const sistemaTemAtivo = opsSistema.some((o) => o.key === view);
-
-  const navClick = (k: View) => { playTick(); setView(k); setMenuAberto(false); };
 
   return (
     <div className="app">

@@ -15,7 +15,7 @@ import {
   X as XIcon, ChevronLeft, ChevronRight, Presentation,
   Target, Map, Users, RefreshCw, TrendingUp, DollarSign, Megaphone,
   Cpu, Plane, GraduationCap, Handshake, AlertTriangle, HelpCircle,
-  Gauge as GaugeIcon, Clock, Layers, Database, Settings2, BarChart3, ShieldCheck, CheckCheck, LayoutGrid, Download, Home, FileText,
+  Gauge as GaugeIcon, Layers, Database, Settings2, BarChart3, ShieldCheck, CheckCheck, LayoutGrid, Download, Home, FileText,
 } from 'lucide-react';
 
 /* ── Paleta (design system Dynamis) ──────────────────────────────────────── */

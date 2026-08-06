@@ -54,21 +54,6 @@ export function apagarEstadoRemoto(chave: string) {
 }
 
 /**
- * Salva no navegador E no banco de uma vez. É o substituto do localStorage.setItem
- * para tudo o que precisa ficar guardado de verdade.
- */
-export function lsSalvar(chave: string, valorCru: string) {
-  if (typeof window !== "undefined") { try { localStorage.setItem(chave, valorCru); } catch { /* ignore */ } }
-  salvarEstadoRemoto(chave, valorCru);
-}
-
-/** Apaga no navegador E no banco. */
-export function lsApagar(chave: string) {
-  if (typeof window !== "undefined") { try { localStorage.removeItem(chave); } catch { /* ignore */ } }
-  apagarEstadoRemoto(chave);
-}
-
-/**
  * Puxa as chaves informadas do banco para o navegador. Se o banco não tiver a
  * chave mas o navegador tiver, sobe o que já existe (migração automática, 1x).
  * Retorna os valores que vieram do banco (útil para itens grandes, como a foto,

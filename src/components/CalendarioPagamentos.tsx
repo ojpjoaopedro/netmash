@@ -226,15 +226,6 @@ function feriados(ano: number): Map<string, string> {
   return map;
 }
 const nomeFeriado = (dt: Date) => feriados(dt.getFullYear()).get(`${dt.getMonth()}-${dt.getDate()}`);
-const ehFinalDeSemana = (dt: Date) => dt.getDay() === 0 || dt.getDay() === 6;
-
-/** Próximo dia útil (pula fim de semana e feriado). */
-function proxUtil(ano: number, mes: number, dia: number): Date {
-  const ultimo = new Date(ano, mes + 1, 0).getDate();
-  const dt = new Date(ano, mes, Math.min(dia, ultimo));
-  while (ehFinalDeSemana(dt) || nomeFeriado(dt)) dt.setDate(dt.getDate() + 1);
-  return dt;
-}
 
 type Despesa = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; freq?: Freq; pulados?: number[]; ate?: number; puladosDia?: string[]; ateDia?: string; grupo?: string; item?: string;
   confirmados?: number[]; valores?: Record<number, number>; pagoEm?: Record<number, string>;

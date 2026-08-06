@@ -5,7 +5,7 @@ import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3, Megaphone,
   EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
   Check, Rocket, DollarSign, TrendingUp, Award, ChevronDown, X as XIcon,
-  Calendar, Home, Hand, Shuffle, Compass, TriangleAlert,
+  Home, Hand, Shuffle, Compass, TriangleAlert,
 } from "lucide-react";
 
 const ENTRAR_URL = "/login";

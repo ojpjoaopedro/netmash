@@ -2,17 +2,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ShieldCheck, Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
-  LayoutDashboard, KeyRound, Pencil, Eye, EyeOff, Send, UserPlus,
-  ArrowLeft, ExternalLink, Image as ImageIcon, Palette, FileText, Search, Info,
-  HeartPulse, ShoppingCart, Megaphone, Package,
+  Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
+  LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
+  FileText, Search, Info,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
 import AdminProdutos from "@/components/AdminProdutos";
 import AdminCupons from "@/components/AdminCupons";
-import AdminVendas from "@/components/AdminVendas";
 
 type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
@@ -41,13 +39,6 @@ type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome
 
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
-const AREAS = [
-  { k: "financas", l: "Finanças", Icon: DollarSign },
-  { k: "saude", l: "Cliente", Icon: HeartPulse },
-  { k: "comercial", l: "Comercial", Icon: ShoppingCart },
-  { k: "marketing", l: "Marketing", Icon: Megaphone },
-  { k: "estoque", l: "Estoque", Icon: Package },
-];
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
 type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[] };
 
@@ -233,7 +224,6 @@ export default function Admin() {
     const { qs, qa } = seatsDePlano(e.plano);
     setForm({ editId: e.id, nomeEmpresa: e.nome, responsavel: e.dono?.nome || "", email: e.dono?.email || "", senha: "", cnpj: e.cnpj || "", segmento: e.segmento || "", saldoInicial: String(e.saldo_inicial ?? 0), qtdSuperadmins: String(qs), qtdAcessos: String(qa), logo: "", slug: e.slug || "" });
   }
-  function onLogo(file: File) { const r = new FileReader(); r.onload = () => setForm((f) => (f ? { ...f, logo: String(r.result) } : f)); r.readAsDataURL(file); }
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
@@ -258,31 +248,6 @@ export default function Admin() {
     if (!res.ok) { setErroForm(j.error || "Não consegui salvar."); return; }
     const novo = !form.editId;
     setForm(null); if (novo) setAba("empresas"); await carregar();
-  }
-  async function salvarCor(empresaId: string, cor: string) {
-    if (demo) {
-      setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === empresaId ? { ...emp, cor } : emp) } : d);
-      return;
-    }
-    if (!supabase) return;
-    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "empresa-cor", empresaId, cor }) });
-    setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === empresaId ? { ...emp, cor } : emp) } : d);
-  }
-  async function salvarDados(empresaId: string, patch: { nomeEmpresa?: string; cnpj?: string; segmento?: string; cidade?: string; estado?: string; responsavel?: string; email?: string; logo?: string }) {
-    const aplicar = (emp: Empresa): Empresa => ({
-      ...emp,
-      ...(patch.nomeEmpresa !== undefined ? { nome: patch.nomeEmpresa } : {}),
-      ...(patch.cnpj !== undefined ? { cnpj: patch.cnpj || null } : {}),
-      ...(patch.segmento !== undefined ? { segmento: patch.segmento || null } : {}),
-      ...(patch.cidade !== undefined ? { cidade: patch.cidade || null } : {}),
-      ...(patch.estado !== undefined ? { estado: patch.estado || null } : {}),
-      ...(patch.logo ? { logo_url: patch.logo } : {}),
-      dono: emp.dono ? { ...emp.dono, ...(patch.responsavel !== undefined ? { nome: patch.responsavel || null } : {}), ...(patch.email ? { email: patch.email } : {}) } : emp.dono,
-    });
-    if (!demo && supabase) {
-      await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "empresa-dados", empresaId, ...patch }) });
-    }
-    setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === empresaId ? aplicar(emp) : emp) } : d);
   }
   async function reenviarAcesso(e: Empresa) {
     if (!e.dono?.email) { window.alert("Essa empresa ainda não tem e-mail de responsável."); return; }
@@ -340,28 +305,12 @@ export default function Admin() {
     setNovoAcesso({ nome: "", email: "", senha: "", areas: [] });
     await selecionarEmpresa(permEmpresa);
   }
-  // Cria e envia UM acesso de funcionário (usado pelas linhas "+", uma por funcionário).
-  async function criarAcessoDireto(d: { nome: string; email: string; areas: string[] }): Promise<boolean> {
-    if (!permEmpresa || !d.email.includes("@")) return false;
-    if (demo) {
-      setAcessos((a) => [...(a ?? []), { id: "demo-novo-" + Date.now(), nome: d.nome || d.email, email: d.email, papel: "colaborador", areas: d.areas }]);
-      return true;
-    }
-    if (!supabase) return false;
-    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-criar", empresaId: permEmpresa, nome: d.nome, email: d.email, areas: d.areas }) });
-    if (!res.ok) return false;
-    await selecionarEmpresa(permEmpresa);
-    return true;
-  }
   async function removerAcesso(userId: string) {
     if (!window.confirm("Remover este acesso?")) return;
     if (demo) { setAcessos((a) => (a ?? []).filter((x) => x.id !== userId)); return; }
     if (!supabase) return;
     await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "acesso-remover", userId }) });
     await selecionarEmpresa(permEmpresa);
-  }
-  function toggleArea(k: string) {
-    setNovoAcesso((n) => ({ ...n, areas: n.areas.includes(k) ? n.areas.filter((x) => x !== k) : [...n.areas, k] }));
   }
   async function salvarPrecos() {
     if (!precoForm || !supabase) return;
@@ -410,7 +359,6 @@ export default function Admin() {
     { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
   ];
 
-  const detalhe = detalheId ? (data?.empresas.find((e) => e.id === detalheId) ?? null) : null;
   // A empresa "Metricas" (conta minhasmetricas@gmail.com) é o modelo: é dela que
   // as outras devem herdar. Aqui só a marcamos; a herança em si é decisão à parte.
   const ehPadrao = (e: Empresa) => (e.dono?.email || "").toLowerCase() === "minhasmetricas@gmail.com";
@@ -755,8 +703,6 @@ function Aviso({ titulo, texto, botao, botaoTxt, botao2, botao2Txt }: { titulo: 
     </div>
   );
 }
-
-const COR_PRESETS = ["#1AADE2", "#E11D48", "#16A34A", "#7C3AED", "#F59E0B", "#0EA5E9", "#EC4899", "#0F172A"];
 
 const CSS = `
 .adm{min-height:100vh;background:#0A0A0A;color:#f4f5f7;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}

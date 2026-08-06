@@ -40,9 +40,3 @@ export function playTick(freq = 520, vol = 0.05): void {
     o.start(); o.stop(a.currentTime + 0.13);
   } catch { /* ignora */ }
 }
-
-/** Duas notas ascendentes — sucesso ao salvar. */
-export function playSuccess(): void {
-  playTick(660, 0.06);
-  setTimeout(() => playTick(880, 0.06), 90);
-}

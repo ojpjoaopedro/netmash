@@ -2,8 +2,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Sparkles, Send, ArrowRight, MessageCircle, Plus, Mic, MicOff, Check, Presentation } from "lucide-react";
 import GerarApresentacao from "./GerarApresentacao";
-import { Lancamento, Cliente, Funcionario, addLancamento, Tipo } from "@/lib/db";
-import { Metrica } from "@/lib/indicadores";
+import { addLancamento } from "@/lib/db";
 import { brl, isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { PERGUNTAS, responder, type Resposta, type Bloco, type Tom, type Ctx } from "@/lib/assistente";
 import { parseLancamento, type LancParsed } from "@/lib/lancParser";

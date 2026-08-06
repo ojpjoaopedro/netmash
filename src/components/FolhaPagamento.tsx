@@ -506,7 +506,6 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
   async function salvarSalario(id: string, salario: number) { await updateFuncionario(id, { salario }); carregar(); }
   async function salvarDepto(id: string, departamento: string) { await updateFuncionario(id, { departamento: departamento || null }); carregar(); }
-  const varsDe = (id: string): VarsMes => ({ ...VARS_ZERO, ...(dadosMes[id] || {}) });
   const setVar = (id: string, campo: keyof VarsMes, valor: number) => {
     setDadosMes((prev) => { const next = { ...prev, [id]: { ...VARS_ZERO, ...(prev[id] || {}), [campo]: valor } }; salvarMes(empresa?.id, ym, next); return next; });
   };

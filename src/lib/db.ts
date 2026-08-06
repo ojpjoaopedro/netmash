@@ -1,7 +1,7 @@
 import { supabase, supabaseReady } from "./supabase";
 import { salvarEstadoRemoto } from "./estado-remoto";
 import { empresaAtualId, limparCacheEmpresa } from "./empresa-atual";
-import { uid, hoje } from "./format";
+import { uid } from "./format";
 
 // ============================================================
 // TIPOS
@@ -317,27 +317,6 @@ export async function addLancamentosLote(ls_: Omit<Lancamento, "id" | "empresa_i
   await supabase.from("lancamentos").insert(ls_.map((l) => ({ ...l, empresa_id: emp?.id })));
 }
 
-export async function updateLancamento(id: string, patch: Partial<Lancamento>): Promise<void> {
-  if (!supabaseReady || !supabase) {
-    const arr = ls<Lancamento[]>(K.lanc, []).map((l) => (l.id === id ? { ...l, ...patch } : l));
-    lsSet(K.lanc, arr);
-    return;
-  }
-  await supabase.from("lancamentos").update(patch).eq("id", id);
-}
-
-export async function marcarPago(id: string, pago: boolean): Promise<void> {
-  await updateLancamento(id, { pago, data_pagamento: pago ? hoje() : null });
-}
-
-export async function delLancamento(id: string): Promise<void> {
-  if (!supabaseReady || !supabase) {
-    lsSet(K.lanc, ls<Lancamento[]>(K.lanc, []).filter((l) => l.id !== id));
-    return;
-  }
-  await supabase.from("lancamentos").delete().eq("id", id);
-}
-
 // ============================================================
 // FUNCIONÁRIOS
 // ============================================================
@@ -373,7 +352,9 @@ export async function updateFuncionario(id: string, patch: Partial<Funcionario>)
     return;
   }
   const cols = soColunas(patch);
-  if (Object.keys(cols).length) await supabase.from("funcionarios").update(cols).eq("id", id);
+  if (!Object.keys(cols).length) return;
+  const eid = await empresaAtualId(); if (!eid) return;   // defesa em profundidade: nunca editar de outra empresa
+  await supabase.from("funcionarios").update(cols).eq("id", id).eq("empresa_id", eid);
 }
 
 export async function delFuncionario(id: string): Promise<void> {
@@ -381,7 +362,8 @@ export async function delFuncionario(id: string): Promise<void> {
     lsSet(K.func, ls<Funcionario[]>(K.func, []).filter((f) => f.id !== id));
     return;
   }
-  await supabase.from("funcionarios").delete().eq("id", id);
+  const eid = await empresaAtualId(); if (!eid) return;   // defesa em profundidade
+  await supabase.from("funcionarios").delete().eq("id", id).eq("empresa_id", eid);
 }
 
 // ============================================================
@@ -396,34 +378,6 @@ export async function getClientes(): Promise<Cliente[]> {
   if (!eid) return [];
   const { data } = await supabase.from("clientes").select("*").eq("empresa_id", eid).order("nome");
   return (data ?? []) as Cliente[];
-}
-
-export async function addCliente(c: { nome: string; email?: string | null; telefone?: string | null; obs?: string | null }): Promise<Cliente | null> {
-  if (!supabaseReady || !supabase) {
-    const arr = ls<Cliente[]>(K.cli, []);
-    const novo: Cliente = { id: uid(), empresa_id: DEMO_EMP, nome: c.nome, email: c.email ?? null, telefone: c.telefone ?? null, obs: c.obs ?? null, criado_em: new Date().toISOString() };
-    arr.push(novo); lsSet(K.cli, arr);
-    return novo;
-  }
-  const emp = await getEmpresa();
-  const { data } = await supabase.from("clientes").insert({ ...c, empresa_id: emp?.id }).select().single();
-  return (data as Cliente) ?? null;
-}
-
-export async function updateCliente(id: string, patch: Partial<Cliente>): Promise<void> {
-  if (!supabaseReady || !supabase) {
-    lsSet(K.cli, ls<Cliente[]>(K.cli, []).map((c) => (c.id === id ? { ...c, ...patch } : c)));
-    return;
-  }
-  await supabase.from("clientes").update(patch).eq("id", id);
-}
-
-export async function delCliente(id: string): Promise<void> {
-  if (!supabaseReady || !supabase) {
-    lsSet(K.cli, ls<Cliente[]>(K.cli, []).filter((c) => c.id !== id));
-    return;
-  }
-  await supabase.from("clientes").delete().eq("id", id);
 }
 
 // ============================================================
@@ -481,36 +435,3 @@ export async function definirSenha(senha: string) {
   if (!senhaIgualOk(error)) throw error;
 }
 
-// ============================================================
-// COLABORADORES (acesso à empresa) — via rota /api/colaboradores
-// ============================================================
-export type ColabPerfil = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null };
-
-async function authHeader(): Promise<Record<string, string>> {
-  if (!supabase) return {};
-  const { data } = await supabase.auth.getSession();
-  const t = data.session?.access_token;
-  return t ? { Authorization: `Bearer ${t}` } : {};
-}
-
-export async function getColaboradores(): Promise<ColabPerfil[]> {
-  if (!supabaseReady) return [];
-  const res = await fetch("/api/colaboradores", { headers: await authHeader() });
-  if (!res.ok) return [];
-  const j = await res.json();
-  return (j.colaboradores ?? []) as ColabPerfil[];
-}
-
-export async function convidarColaborador(nome: string, email: string, senha: string, areas: string[]): Promise<{ ok: boolean; error?: string }> {
-  const res = await fetch("/api/colaboradores", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...(await authHeader()) },
-    body: JSON.stringify({ nome, email, senha, areas }),
-  });
-  const j = await res.json().catch(() => ({}));
-  return res.ok ? { ok: true } : { ok: false, error: (j as { error?: string }).error || "Não consegui criar o acesso." };
-}
-
-export async function removerColaborador(id: string): Promise<void> {
-  await fetch(`/api/colaboradores?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: await authHeader() });
-}
