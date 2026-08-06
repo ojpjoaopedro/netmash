@@ -44,26 +44,28 @@ revoke all on function public.meu_empresa_id() from public;
 grant execute on function public.meu_empresa_id() to authenticated;
 
 -- 2) painel_estado — trocar a política aberta pela filtrada por empresa
-alter table public.painel_estado enable row level security;
-drop policy if exists "painel_estado_all" on public.painel_estado;
-drop policy if exists "painel_estado_rls" on public.painel_estado;
-create policy "painel_estado_rls"
-  on public.painel_estado
-  for all
-  to authenticated
-  using (empresa_id = public.meu_empresa_id())
-  with check (empresa_id = public.meu_empresa_id());
+--    (só se a tabela existir neste banco; senão pula sem erro)
+do $$
+begin
+  if to_regclass('public.painel_estado') is not null then
+    execute 'alter table public.painel_estado enable row level security';
+    execute 'drop policy if exists "painel_estado_all" on public.painel_estado';
+    execute 'drop policy if exists "painel_estado_rls" on public.painel_estado';
+    execute 'create policy "painel_estado_rls" on public.painel_estado for all to authenticated using (empresa_id = public.meu_empresa_id()) with check (empresa_id = public.meu_empresa_id())';
+  end if;
+end $$;
 
 -- 3) financas_estrutura — trocar a política aberta pela filtrada por empresa
-alter table public.financas_estrutura enable row level security;
-drop policy if exists "fin_estrutura_auth_all" on public.financas_estrutura;
-drop policy if exists "fin_estrutura_rls" on public.financas_estrutura;
-create policy "fin_estrutura_rls"
-  on public.financas_estrutura
-  for all
-  to authenticated
-  using (empresa_id = public.meu_empresa_id())
-  with check (empresa_id = public.meu_empresa_id());
+--    (só se a tabela existir neste banco; senão pula sem erro)
+do $$
+begin
+  if to_regclass('public.financas_estrutura') is not null then
+    execute 'alter table public.financas_estrutura enable row level security';
+    execute 'drop policy if exists "fin_estrutura_auth_all" on public.financas_estrutura';
+    execute 'drop policy if exists "fin_estrutura_rls" on public.financas_estrutura';
+    execute 'create policy "fin_estrutura_rls" on public.financas_estrutura for all to authenticated using (empresa_id = public.meu_empresa_id()) with check (empresa_id = public.meu_empresa_id())';
+  end if;
+end $$;
 
 -- ============================================================================
 -- ROLLBACK (só se algo travar): volta as duas tabelas ao estado aberto anterior
