@@ -117,8 +117,8 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
     const carregar = () => {
       const d = carregarEstruturaComPagamentos(ano);
       setData(d);
-      // padrão: só o mês atual marcado
-      setSel(new Set([new Date().getMonth()]));
+      // padrão: TODOS os meses marcados (só no Dashboard)
+      setSel(new Set(Array.from({ length: 12 }, (_, i) => i)));
     };
     carregar();
     window.addEventListener("me:pagamentos", carregar);

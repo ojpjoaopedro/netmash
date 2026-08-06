@@ -919,10 +919,10 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
     color: ativo ? "var(--brand)" : "var(--muted)",
   });
   // Dashboard e Relatórios saíram das abas: agora são abertos pelos 2 cards da Home.
-  const abas: { key: typeof aba; label: string; Icon: typeof LayoutDashboard }[] = [
-    { key: "estrutura", label: "Painel financeiro", Icon: Layers },
-    { key: "calendario", label: "Calendário", Icon: CalendarDays },
-    { key: "folha", label: "Folha de pagamento", Icon: Wallet },
+  const abas: { key: typeof aba; label: string; sub: string; Icon: typeof LayoutDashboard }[] = [
+    { key: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers },
+    { key: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
+    { key: "folha", label: "Folha de pagamento", sub: "Salários, benefícios e encargos", Icon: Wallet },
   ];
   // Dashboard/Relatório são abertos pelos atalhos da Home: sem cabeçalho/abas, só um "Voltar".
   const ehAtalhoHome = aba === "dashboard" || aba === "relatorios";
@@ -964,9 +964,10 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
         <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0, overflowX: "auto" }}>
           {abas.map((a, i) => (
             <Fragment key={a.key}>
-              {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px", flexShrink: 0 }} />}
-              <button data-aba={a.key} onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={tab(aba === a.key)}>
-                <a.Icon size={16} /> {a.label}
+              {i > 0 && <span style={{ width: 1, height: 34, background: "var(--line-2)", alignSelf: "center", margin: "0 4px", flexShrink: 0 }} />}
+              <button data-aba={a.key} onClick={() => { setAba(a.key); if (a.key === "calendario") setCalSub(null); }} style={{ ...tab(aba === a.key), flexDirection: "column", alignItems: "flex-start", gap: 2, paddingTop: 9, paddingBottom: 10 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><a.Icon size={16} /> {a.label}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 500, color: "var(--muted)", whiteSpace: "nowrap" }}>{a.sub}</span>
               </button>
             </Fragment>
           ))}
