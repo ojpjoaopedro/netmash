@@ -637,8 +637,8 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
     undoStack.current = [];                      // histórico é por ano
     pularSalvar.current = true;                 // não regravar logo após carregar
     setD(carregarEstrutura(ano));
-    // padrão: só o mês atual marcado
-    setSel(new Set([new Date().getMonth()]));
+    // padrão: mês atual + os 2 seguintes (3 meses), sem passar de dezembro
+    { const m0 = new Date().getMonth(); setSel(new Set([m0, m0 + 1, m0 + 2].filter((x) => x <= 11))); }
     setCarregado(true);
     // busca no banco (fonte da verdade) e, se veio algo, recarrega do cache
     let vivo = true;

@@ -229,13 +229,16 @@ const nomeFeriado = (dt: Date) => feriados(dt.getFullYear()).get(`${dt.getMonth(
 
 type Despesa = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; freq?: Freq; pulados?: number[]; ate?: number; puladosDia?: string[]; ateDia?: string; grupo?: string; item?: string;
   confirmados?: number[]; valores?: Record<number, number>; pagoEm?: Record<number, string>;
-  confirmadosDia?: string[]; valoresDia?: Record<string, number>; pagoEmDia?: Record<string, string> };
+  confirmadosDia?: string[]; valoresDia?: Record<string, number>; pagoEmDia?: Record<string, string>;
+  // usado só no modo unificado (calendário único): diz se a linha é uma despesa ou uma receita.
+  // Não é gravado nas gavetas (cada tipo já vai pra sua gaveta separada).
+  origem?: "despesa" | "receita" };
 const isoDia = (ano: number, mes: number, dia: number) => `${ano}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 const CLARO = "#93c5fd";   // azul bem claro para ocorrências pendentes (a confirmar)
-type TipoCal = "pagamentos" | "recebimentos";
+type TipoCal = "pagamentos" | "recebimentos" | "ambos";
 type CfgCal = { key: string; evento: string; legenda: string; tituloDia: string; novo: string; editar: string; add: string; ph: string; vazio: string; recorrencia: boolean;
   acaoPagar: string; pago: string; emAberto: string; aConfirmar: string; recorrenteLabel: string; dicaItem: string; itemLabel: string; realizadoLabel: string };
-const CFG: Record<TipoCal, CfgCal> = {
+const CFG: Record<"pagamentos" | "recebimentos", CfgCal> = {
   pagamentos: { key: "me_calendario_pagamentos", evento: "me:pagamentos", legenda: "Vencimento", tituloDia: "Vencimento", novo: "Nova conta", editar: "Editar conta", add: "Adicionar conta", ph: "Ex: Aluguel", vazio: "Nenhuma conta neste dia.", recorrencia: true,
     acaoPagar: "Pagar", pago: "Pago", emAberto: "Em aberto", aConfirmar: "A confirmar", recorrenteLabel: "Pagamento recorrente", dicaItem: "Este pagamento entra direto na Estrutura de Custos, no DRE e nos Gráficos, no item escolhido.", itemLabel: "Descrição", realizadoLabel: "Pago" },
   recebimentos: { key: "me_calendario_recebimentos", evento: "me:recebimentos", legenda: "Recebimento", tituloDia: "Recebimento", novo: "Novo recebível", editar: "Editar recebível", add: "Adicionar recebível", ph: "Ex: Cliente X", vazio: "Nenhum recebimento neste dia.", recorrencia: true,
@@ -247,28 +250,52 @@ const ym = (ano: number, mes: number) => ano * 12 + mes;   // índice absoluto a
 type Ocor = { d: Despesa; venc: Date; mesGer: number; iso: string; confirmado: boolean; valor: number };
 
 export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagamentos" }: { anoInicial?: number; tipo?: TipoCal }) {
-  const cfg = CFG[tipo];
+  const ambos = tipo === "ambos";
+  // no modo unificado usamos rótulos por linha (cfgDe); o cfg "base" serve de fallback.
+  const cfg = CFG[ambos ? "pagamentos" : tipo];
+  const cfgDe = (o?: Despesa["origem"]) => CFG[o === "receita" ? "recebimentos" : "pagamentos"];
   const [ano, setAno] = useState(ANOS.includes(anoInicial) ? anoInicial : 2026);
   const [desps, setDesps] = useState<Despesa[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [modal, setModal] = useState<{ mes: number; dia: number } | null>(null);
-  const [form, setForm] = useState<{ editId?: string; descricao: string; valor: string; recorrente: boolean; freq: Freq; grupo: string; item: string } | null>(null);
+  const [form, setForm] = useState<{ editId?: string; descricao: string; valor: string; recorrente: boolean; freq: Freq; grupo: string; item: string; origem?: "despesa" | "receita" } | null>(null);
   const [hover, setHover] = useState<{ mes: number; dia: number; x: number; y: number } | null>(null);
   const fecharHoverT = useRef<number | undefined>(undefined);   // atraso para o tooltip não sumir ao levar o mouse até ele
   const [aExcluir, setAExcluir] = useState<{ d: Despesa; venym: number; iso: string; porMes: boolean } | null>(null);
   const [pagar, setPagar] = useState<{ d: Despesa; mesGer: number; iso: string; valor: string; data: string } | null>(null);
-  const [baixaPrim, setBaixaPrim] = useState<{ id: string; iso: string; valor: number; item: string; recorrente: boolean } | null>(null);
+  const [baixaPrim, setBaixaPrim] = useState<{ id: string; iso: string; valor: number; item: string; recorrente: boolean; origem?: "despesa" | "receita" } | null>(null);
 
-  useEffect(() => { setDesps(ler(cfg.key)); setCarregado(true); }, [cfg.key]);
-  useEffect(() => { if (carregado) { const cru = JSON.stringify(desps); localStorage.setItem(cfg.key, cru); salvarEstadoRemoto(cfg.key, cru); window.dispatchEvent(new Event(cfg.evento)); } }, [desps, carregado, cfg.key, cfg.evento]);
+  useEffect(() => {
+    if (ambos) {
+      const p = ler("me_calendario_pagamentos").map((d) => ({ ...d, origem: "despesa" as const }));
+      const r = ler("me_calendario_recebimentos").map((d) => ({ ...d, origem: "receita" as const }));
+      setDesps([...p, ...r]);
+    } else setDesps(ler(cfg.key));
+    setCarregado(true);
+  }, [cfg.key, ambos]);
+  useEffect(() => {
+    if (!carregado) return;
+    if (ambos) {
+      // cada tipo volta pra sua gaveta (sem o campo origem), pra o DRE/Estrutura seguirem lendo certo
+      const gravar = (key: string, arr: Despesa[], ev: string) => {
+        const cru = JSON.stringify(arr.map(({ origem: _o, ...x }) => x));
+        localStorage.setItem(key, cru); salvarEstadoRemoto(key, cru); window.dispatchEvent(new Event(ev));
+      };
+      gravar("me_calendario_pagamentos", desps.filter((d) => d.origem !== "receita"), "me:pagamentos");
+      gravar("me_calendario_recebimentos", desps.filter((d) => d.origem === "receita"), "me:recebimentos");
+    } else {
+      const cru = JSON.stringify(desps); localStorage.setItem(cfg.key, cru); salvarEstadoRemoto(cfg.key, cru); window.dispatchEvent(new Event(cfg.evento));
+    }
+  }, [desps, carregado, ambos, cfg.key, cfg.evento]);
 
   // blocos de custo (com grupos e itens) para direcionar o pagamento ao lugar certo na Estrutura
   const [estruturaVersao, setEstruturaVersao] = useState(0);
   const custosBlocos = useMemo(() => {
-    if (tipo !== "pagamentos") return [];
+    if (tipo === "recebimentos") return [];
     const blocos = structuredClone(carregarEstrutura(ano).custos);
     // inclui os itens já criados pelos próprios pagamentos (para reaproveitar na árvore)
     for (const p of desps) {
+      if (ambos && p.origem === "receita") continue;
       if (!p.grupo || !p.item) continue;
       const g = blocos.flatMap((b) => b.grupos).find((x) => x.nome === p.grupo);
       if (g && !g.itens.some((it) => it.nome === p.item)) g.itens.push({ nome: p.item, v: [] });
@@ -286,9 +313,9 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   };
   // canais de receita (para os recebimentos), com os já criados pelos próprios recebimentos
   const canaisReceita = useMemo(() => {
-    if (tipo !== "recebimentos") return [] as { nome: string; cor?: string }[];
+    if (tipo === "pagamentos") return [] as { nome: string; cor?: string }[];
     const canais = carregarEstrutura(ano).receitas.map((r) => ({ nome: r.nome, cor: r.cor }));
-    for (const p of desps) if (p.item && !canais.some((c) => c.nome === p.item)) canais.push({ nome: p.item, cor: undefined });
+    for (const p of desps) { if (ambos && p.origem !== "receita") continue; if (p.item && !canais.some((c) => c.nome === p.item)) canais.push({ nome: p.item, cor: undefined }); }
     return canais;
   }, [ano, tipo, desps, estruturaVersao]);
   const renomearCanal = (antigo: string, novo: string) => {
@@ -316,6 +343,9 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   // previsto = soma de tudo (confirmado + pendente); realizado = só o confirmado
   const totalPrevisto = (m: number) => Object.entries(porDia).reduce((s, [k, arr]) => (Number(k.split("-")[0]) === m ? s + arr.reduce((a, o) => a + o.valor, 0) : s), 0);
   const totalRealizado = (m: number) => Object.entries(porDia).reduce((s, [k, arr]) => (Number(k.split("-")[0]) === m ? s + arr.reduce((a, o) => a + (o.confirmado ? o.valor : 0), 0) : s), 0);
+  // soma do mês filtrando por origem (para os totais separados do modo unificado)
+  const somaMes = (m: number, ehReceita: boolean, soConfirmado: boolean) => Object.entries(porDia).reduce((s, [k, arr]) => (Number(k.split("-")[0]) === m
+    ? s + arr.filter((o) => (o.d.origem === "receita") === ehReceita).reduce((a, o) => a + (soConfirmado && !o.confirmado ? 0 : o.valor), 0) : s), 0);
   const doDia = (m: number, dia: number): Ocor[] => porDia[`${m}-${dia}`] || [];
 
   if (!carregado) return null;
@@ -324,8 +354,10 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   // o nome do lançamento vem do item/canal escolhido
   const salvarForm = () => {
     if (!form) return;
-    if (tipo === "pagamentos" && (!form.grupo || !form.item.trim())) return;   // grupo e item são obrigatórios
-    if (tipo === "recebimentos" && !form.item.trim()) return;                  // canal é obrigatório
+    // origem efetiva: no modo unificado vem da escolha Receita/Despesa; senão, do tipo do calendário
+    const orig: "despesa" | "receita" = ambos ? (form.origem || "despesa") : (tipo === "recebimentos" ? "receita" : "despesa");
+    if (orig === "despesa" && (!form.grupo || !form.item.trim())) return;   // grupo e item são obrigatórios
+    if (orig === "receita" && !form.item.trim()) return;                     // canal é obrigatório
     const desc = form.item.trim();
     if (!desc) return;
     const valor = Number(form.valor.replace(/\./g, "").replace(",", ".")) || 0;
@@ -333,15 +365,15 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
     const freq: Freq = form.freq;
     const recorrente = freq !== "unica";
     if (form.editId) {
-      setDesps((xs) => xs.map((x) => x.id === form.editId ? { ...x, descricao: desc, valor, recorrente, freq, grupo: form.grupo || undefined, item } : x));
+      setDesps((xs) => xs.map((x) => x.id === form.editId ? { ...x, descricao: desc, valor, recorrente, freq, grupo: orig === "receita" ? undefined : (form.grupo || undefined), item } : x));
     } else if (modal) {
       // nada entra confirmado no cadastro; a confirmação do pagamento/recebimento é feita na 2ª tela (dia)
       const novoId = uid();
       const isoPrim = isoDia(ano, modal.mes, modal.dia);
-      setDesps((xs) => [...xs, { id: novoId, descricao: desc, valor, dia: modal.dia, mes: modal.mes, ano, recorrente, freq, grupo: form.grupo || undefined, item,
-        confirmados: [], confirmadosDia: [] }]);
+      setDesps((xs) => [...xs, { id: novoId, descricao: desc, valor, dia: modal.dia, mes: modal.mes, ano, recorrente, freq, grupo: orig === "receita" ? undefined : (form.grupo || undefined), item,
+        origem: ambos ? orig : undefined, confirmados: [], confirmadosDia: [] }]);
       setForm(null);
-      setBaixaPrim({ id: novoId, iso: isoPrim, valor, item: desc, recorrente });
+      setBaixaPrim({ id: novoId, iso: isoPrim, valor, item: desc, recorrente, origem: ambos ? orig : undefined });
       return;
     }
     setForm(null);
@@ -398,10 +430,14 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
         {/* título destacado no centro */}
         <b style={{ flex: "1 1 auto", display: "flex", justifyContent: "center" }}>
           <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 18px", borderRadius: 10, background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", fontWeight: 800, fontSize: 14.5, whiteSpace: "nowrap" }}>
-            {tipo === "pagamentos" ? "Calendário de Pagamentos" : "Calendário de Recebimentos"}
+            {ambos ? "Calendário financeiro" : tipo === "pagamentos" ? "Calendário de Pagamentos" : "Calendário de Recebimentos"}
           </span>
         </b>
         <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 12, color: "var(--muted)", flexWrap: "wrap" }}>
+          {ambos && <>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: VERMELHO, display: "inline-block" }} /> Despesa</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: VERDE, display: "inline-block" }} /> Receita</span>
+          </>}
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: AMBAR, display: "inline-block" }} /> Feriado nacional</span>
           <BotaoOcultar />
         </div>
@@ -413,7 +449,20 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
           <div key={m} className="card" style={{ padding: 16 }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
               <b style={{ fontSize: 15 }}>{nome}</b>
-              {totalPrevisto(m) > 0 ? (
+              {ambos ? (
+                (somaMes(m, false, false) > 0 || somaMes(m, true, false) > 0) ? (
+                  <div style={{ display: "flex", gap: 14, textAlign: "right" }}>
+                    <div style={{ lineHeight: 1.15 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 800, color: VERMELHO, display: "block" }} className="oc-num"><AnimNum value={somaMes(m, false, false)} fmt={fmtR0} /></span>
+                      <span style={{ fontSize: 8.5, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".03em" }}>Saídas</span>
+                    </div>
+                    <div style={{ lineHeight: 1.15 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 800, color: VERDE, display: "block" }} className="oc-num"><AnimNum value={somaMes(m, true, false)} fmt={fmtR0} /></span>
+                      <span style={{ fontSize: 8.5, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".03em" }}>Entradas</span>
+                    </div>
+                  </div>
+                ) : <span style={{ fontSize: 13, fontWeight: 800, color: "var(--muted)" }} className="oc-num">–</span>
+              ) : totalPrevisto(m) > 0 ? (
                 <div style={{ display: "flex", gap: 14, textAlign: "right" }}>
                   <div style={{ lineHeight: 1.15 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--txt)", display: "block" }} className="oc-num"><AnimNum value={totalPrevisto(m)} fmt={fmtR0} /></span>
@@ -448,7 +497,12 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                       color: "var(--txt)", fontSize: 11.5, fontWeight: ehHoje || temDesp ? 700 : 500 }}>
                     {ehHoje ? <span style={{ borderBottom: "2px solid var(--muted-2)", paddingBottom: 1, lineHeight: 1 }}>{dia}</span> : dia}
                     {fer && <i style={{ position: "absolute", top: 3, right: 6, width: 5, height: 5, borderRadius: 99, background: AMBAR }} />}
-                    {temDesp && <i style={{ position: "absolute", bottom: 2, width: 5, height: 5, borderRadius: 99, background: soPendente ? CLARO : BRAND }} />}
+                    {ambos
+                      ? (temDesp && <span style={{ position: "absolute", bottom: 2, display: "flex", gap: 3 }}>
+                          {ocs.some((o) => o.d.origem !== "receita") && <i style={{ width: 5, height: 5, borderRadius: 99, background: VERMELHO }} />}
+                          {ocs.some((o) => o.d.origem === "receita") && <i style={{ width: 5, height: 5, borderRadius: 99, background: VERDE }} />}
+                        </span>)
+                      : (temDesp && <i style={{ position: "absolute", bottom: 2, width: 5, height: 5, borderRadius: 99, background: soPendente ? CLARO : BRAND }} />)}
                   </button>
                 );
               })}
@@ -474,32 +528,38 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
               </div>
 
               <div style={{ display: "grid", gap: 8 }}>
-                {ocs.map((o) => (
+                {ocs.map((o) => {
+                  const c = ambos ? cfgDe(o.d.origem) : cfg;
+                  const ehRec = o.d.origem === "receita";
+                  const acento = ambos ? (ehRec ? VERDE : VERMELHO) : (o.confirmado ? VERDE : CLARO);
+                  return (
                   <div key={o.d.id} style={{ display: "flex", flexDirection: "column", gap: 9, background: "var(--bg-2)", borderRadius: 10, padding: "10px 12px", border: o.confirmado ? "1px solid rgba(16,185,129,.35)" : "1px solid var(--line-2)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ width: 4, alignSelf: "stretch", borderRadius: 4, background: o.confirmado ? VERDE : CLARO }} />
+                      <span style={{ width: 4, alignSelf: "stretch", borderRadius: 4, background: acento }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <b style={{ fontSize: 13.5, color: o.confirmado ? undefined : CLARO }}>{o.d.descricao}</b>
+                        <b style={{ fontSize: 13.5, color: (!ambos && !o.confirmado) ? CLARO : undefined }}>{o.d.descricao}</b>
                         <div style={{ fontSize: 11, fontStyle: "italic", color: "var(--muted)" }}>
+                          {ambos && <b style={{ color: acento, fontStyle: "normal" }}>{ehRec ? "Receita" : "Despesa"} · </b>}
                           {rotuloFreq(o.d)}{o.d.item ? ` · ${o.d.grupo ? `${o.d.grupo} › ` : ""}${o.d.item}` : (o.d.grupo ? ` · ${o.d.grupo}` : "")}
                         </div>
                       </div>
-                      <b className="oc-num" style={{ fontSize: 13.5, whiteSpace: "nowrap", color: o.confirmado ? undefined : CLARO }}>{fmtR(o.valor)}</b>
-                      <button title="Editar" onClick={() => setForm({ editId: o.d.id, descricao: o.d.descricao, valor: o.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), recorrente: o.d.recorrente, freq: o.d.freq || (o.d.recorrente ? "mensal" : "unica"), grupo: o.d.grupo || "", item: o.d.item || "" })}
+                      <b className="oc-num" style={{ fontSize: 13.5, whiteSpace: "nowrap", color: (!ambos && !o.confirmado) ? CLARO : undefined }}>{fmtR(o.valor)}</b>
+                      <button title="Editar" onClick={() => setForm({ editId: o.d.id, descricao: o.d.descricao, valor: o.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), recorrente: o.d.recorrente, freq: o.d.freq || (o.d.recorrente ? "mensal" : "unica"), grupo: o.d.grupo || "", item: o.d.item || "", origem: o.d.origem })}
                         style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: 2 }}><Pencil size={14} /></button>
                       <button title="Excluir" onClick={() => o.d.recorrente ? setAExcluir({ d: o.d, venym: ym(ano, o.mesGer), iso: o.iso, porMes: (o.d.freq || "mensal") === "mensal" }) : excluir(o.d.id)} style={{ background: "transparent", border: 0, cursor: "pointer", color: VERMELHO, padding: 2 }}><Trash2 size={14} /></button>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                       {o.confirmado
-                        ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 800, color: VERDE, background: "rgba(16,185,129,.14)", padding: "3px 10px", borderRadius: 99 }}><Check size={13} /> {cfg.pago}</span>
-                        : <span style={{ fontSize: 11.5, fontWeight: 800, color: "#94a3b8", background: "rgba(148,163,184,.14)", padding: "3px 10px", borderRadius: 99 }}>{cfg.emAberto}</span>}
+                        ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 800, color: VERDE, background: "rgba(16,185,129,.14)", padding: "3px 10px", borderRadius: 99 }}><Check size={13} /> {c.pago}</span>
+                        : <span style={{ fontSize: 11.5, fontWeight: 800, color: "#94a3b8", background: "rgba(148,163,184,.14)", padding: "3px 10px", borderRadius: 99 }}>{c.emAberto}</span>}
                       {!o.confirmado && (
-                        <button onClick={() => abrirPagar(o)} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12.5, padding: "7px 14px", borderRadius: 9, border: 0, background: VERDE, color: "#fff" }}><Check size={16} /> {cfg.acaoPagar}</button>
+                        <button onClick={() => abrirPagar(o)} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12.5, padding: "7px 14px", borderRadius: 9, border: 0, background: VERDE, color: "#fff" }}><Check size={16} /> {c.acaoPagar}</button>
                       )}
                     </div>
                   </div>
-                ))}
-                {ocs.length === 0 && !form && <p className="sub" style={{ fontStyle: "italic", fontSize: 12.5 }}>{cfg.vazio}</p>}
+                  );
+                })}
+                {ocs.length === 0 && !form && <p className="sub" style={{ fontStyle: "italic", fontSize: 12.5 }}>{ambos ? "Nada lançado neste dia." : cfg.vazio}</p>}
               </div>
 
               {ocs.length > 0 && (
@@ -510,15 +570,24 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
               )}
 
               {/* formulário de nova conta / edição */}
-              {form ? (
+              {form ? (() => {
+                const ehDesp = ambos ? form.origem !== "receita" : tipo === "pagamentos";
+                const fc = ambos ? cfgDe(ehDesp ? "despesa" : "receita") : cfg;
+                return (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+                  {ambos && (
+                    <div style={{ marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 800, color: ehDesp ? VERMELHO : VERDE, background: `${ehDesp ? VERMELHO : VERDE}1f`, padding: "5px 12px", borderRadius: 99 }}>
+                      <i style={{ width: 8, height: 8, borderRadius: 99, background: ehDesp ? VERMELHO : VERDE }} />
+                      {form.editId ? (ehDesp ? "Editando despesa" : "Editando receita") : (ehDesp ? "Nova despesa" : "Nova receita")}
+                    </div>
+                  )}
                   <div className="field">
                     <label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {cfg.itemLabel}
-                      <span title={cfg.dicaItem}
+                      {fc.itemLabel}
+                      <span title={fc.dicaItem}
                         style={{ display: "inline-grid", placeItems: "center", width: 15, height: 15, borderRadius: "50%", background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--muted)", fontSize: 10, fontWeight: 800, cursor: "help" }}>?</span>
                     </label>
-                    {tipo === "pagamentos"
+                    {ehDesp
                       ? <SeletorCusto blocos={custosBlocos} grupo={form.grupo} item={form.item} onSelecionar={(g, i) => setForm({ ...form, grupo: g, item: i })} onRenomear={renomearItem} />
                       : <SeletorReceita canais={canaisReceita} item={form.item} onSelecionar={(i) => setForm({ ...form, grupo: "", item: i })} onRenomear={renomearCanal} />}
                   </div>
@@ -533,7 +602,22 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                       <option value="unica">Não recorrente (só neste dia)</option>
                     </select>
                   </div>
-                  <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={salvarForm} disabled={tipo === "pagamentos" ? (!form.grupo || !form.item.trim()) : !form.item.trim()}>{form.editId ? "Salvar" : "+ Cadastrar"}</button>
+                  <button className="btn" style={{ width: "100%", justifyContent: "center" }} onClick={salvarForm} disabled={ehDesp ? (!form.grupo || !form.item.trim()) : !form.item.trim()}>{form.editId ? "Salvar" : "+ Cadastrar"}</button>
+                </div>
+                );
+              })() : ambos ? (
+                <div style={{ marginTop: 12 }}>
+                  <p className="sub" style={{ textAlign: "center", fontSize: 12, marginBottom: 8 }}>O que você quer lançar neste dia?</p>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={() => setForm({ descricao: "", valor: "", recorrente: true, freq: "mensal", grupo: "", item: "", origem: "despesa" })}
+                      style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 13, padding: "11px", borderRadius: 10, border: `2px dashed ${VERMELHO}`, background: `${VERMELHO}12`, color: VERMELHO }}>
+                      <Plus size={16} /> Despesa
+                    </button>
+                    <button onClick={() => setForm({ descricao: "", valor: "", recorrente: true, freq: "mensal", grupo: "", item: "", origem: "receita" })}
+                      style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 13, padding: "11px", borderRadius: 10, border: `2px dashed ${VERDE}`, background: `${VERDE}12`, color: VERDE }}>
+                      <Plus size={16} /> Receita
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button onClick={() => setForm({ descricao: "", valor: "", recorrente: true, freq: "mensal", grupo: "", item: "" })}
@@ -561,21 +645,27 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                 <b className="oc-num" style={{ fontSize: 13.5, color: "#38BDF8" }}>{fmtR(total)}</b>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
-                {ocs.map((o) => (
+                {ocs.map((o) => {
+                  const c = ambos ? cfgDe(o.d.origem) : cfg;
+                  return (
                   <div key={o.d.id} style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, fontSize: 12.5 }}>
-                      <span style={{ color: o.confirmado ? "#e2e8f0" : "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.d.descricao}</span>
+                      <span style={{ color: o.confirmado ? "#e2e8f0" : "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {ambos && <i style={{ display: "inline-block", width: 7, height: 7, borderRadius: 99, marginRight: 6, background: o.d.origem === "receita" ? VERDE : VERMELHO }} />}
+                        {o.d.descricao}
+                      </span>
                       <b className="oc-num" style={{ whiteSpace: "nowrap", color: o.confirmado ? "#fff" : "#94a3b8", fontWeight: o.confirmado ? 700 : 500 }}>{fmtR(o.valor)}</b>
                     </div>
                     {o.confirmado
-                      ? <span style={{ justifySelf: "start", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#34d399", background: "rgba(16,185,129,.18)", padding: "3px 10px", borderRadius: 99 }}><Check size={12} /> {cfg.pago}</span>
-                      : <button onClick={() => abrirPagar(o)} style={{ justifySelf: "stretch", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12, padding: "6px 12px", borderRadius: 8, border: 0, background: "#10B981", color: "#fff" }}><Check size={15} /> {cfg.acaoPagar}</button>}
+                      ? <span style={{ justifySelf: "start", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#34d399", background: "rgba(16,185,129,.18)", padding: "3px 10px", borderRadius: 99 }}><Check size={12} /> {c.pago}</span>
+                      : <button onClick={() => abrirPagar(o)} style={{ justifySelf: "stretch", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12, padding: "6px 12px", borderRadius: 8, border: 0, background: "#10B981", color: "#fff" }}><Check size={15} /> {c.acaoPagar}</button>}
                     <button onClick={() => { setHover(null); o.d.recorrente ? setAExcluir({ d: o.d, venym: ym(ano, o.mesGer), iso: o.iso, porMes: (o.d.freq || "mensal") === "mensal" }) : excluir(o.d.id); }}
                       style={{ justifySelf: "stretch", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 11.5, padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(239,68,68,.5)", background: "transparent", color: "#f87171" }}>
                       <Trash2 size={13} /> Remover
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -612,32 +702,35 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       )}
 
       {/* popup de pagamento: confirma e permite ajustar valor e data */}
-      {pagar && (
+      {pagar && (() => {
+        const rec = ambos ? pagar.d.origem === "receita" : tipo === "recebimentos";
+        return (
         <div onClick={() => setPagar(null)} style={{ position: "fixed", inset: 0, zIndex: 96, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 380, padding: 24, border: `1px solid ${VERDE}`, background: "linear-gradient(160deg, rgba(16,185,129,.08), var(--card) 60%)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
               <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: VERDE, color: "#fff", flexShrink: 0 }}><Check size={22} strokeWidth={3} /></span>
               <div>
-                <b style={{ fontSize: 16 }}>{tipo === "recebimentos" ? "Confirmar recebimento" : "Confirmar pagamento"}</b>
+                <b style={{ fontSize: 16 }}>{rec ? "Confirmar recebimento" : "Confirmar pagamento"}</b>
                 <p className="sub" style={{ margin: "2px 0 0", fontSize: 12.5 }}>{pagar.d.descricao}</p>
               </div>
             </div>
             <div className="field" style={{ marginTop: 16 }}>
-              <label className="f">{tipo === "recebimentos" ? "Valor recebido (R$)" : "Valor pago (R$)"}</label>
+              <label className="f">{rec ? "Valor recebido (R$)" : "Valor pago (R$)"}</label>
               <input value={pagar.valor} onChange={(e) => setPagar({ ...pagar, valor: mascaraMoeda(e.target.value) })} inputMode="decimal" />
             </div>
             <div className="field" style={{ marginTop: 10 }}>
-              <label className="f">{tipo === "recebimentos" ? "Data do recebimento" : "Data do pagamento"}</label>
+              <label className="f">{rec ? "Data do recebimento" : "Data do pagamento"}</label>
               <input value={pagar.data} onChange={(e) => setPagar({ ...pagar, data: mascararDataBR(e.target.value) })} placeholder="dd/mm/aaaa" inputMode="numeric" maxLength={10} />
             </div>
-            <p className="sub" style={{ fontSize: 11.5, marginTop: 8 }}>Ao confirmar, este valor entra na {tipo === "recebimentos" ? "Composição das Receitas" : "Estrutura de Custos"}, no DRE e nos Gráficos.</p>
+            <p className="sub" style={{ fontSize: 11.5, marginTop: 8 }}>Ao confirmar, este valor entra na {rec ? "Composição das Receitas" : "Estrutura de Custos"}, no DRE e nos Gráficos.</p>
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setPagar(null)}>Cancelar</button>
-              <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarPagamento}><Check size={15} /> {tipo === "recebimentos" ? "Confirmar recebimento" : "Confirmar pagamento"}</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarPagamento}><Check size={15} /> {rec ? "Confirmar recebimento" : "Confirmar pagamento"}</button>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* dar baixa na 1ª parcela logo após cadastrar uma conta recorrente */}
       {baixaPrim && (
@@ -646,14 +739,14 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
             <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
               <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: VERDE, color: "#fff", flexShrink: 0 }}><Check size={22} strokeWidth={3} /></span>
               <div>
-                <b style={{ fontSize: 16 }}>{tipo === "recebimentos" ? (baixaPrim.recorrente ? "Já recebeu a primeira?" : "Já recebeu?") : (baixaPrim.recorrente ? "Já pagou a primeira?" : "Já pagou?")}</b>
+                <b style={{ fontSize: 16 }}>{(ambos ? baixaPrim.origem === "receita" : tipo === "recebimentos") ? (baixaPrim.recorrente ? "Já recebeu a primeira?" : "Já recebeu?") : (baixaPrim.recorrente ? "Já pagou a primeira?" : "Já pagou?")}</b>
                 <p className="sub" style={{ margin: "2px 0 0", fontSize: 12.5 }}>{baixaPrim.item} · {fmtR(baixaPrim.valor)} · {isoParaBR(baixaPrim.iso)}</p>
               </div>
             </div>
             <p className="sub" style={{ fontSize: 12.5, marginTop: 12, lineHeight: 1.5 }}>{baixaPrim.recorrente ? "Conta cadastrada. Quer dar baixa na primeira parcela agora? As próximas você confirma na data de cada uma." : "Lançamento cadastrado. Quer dar baixa agora? Você também pode confirmar depois, na data."}</p>
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setBaixaPrim(null)}>Agora não</button>
-              <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarBaixaPrim}><Check size={15} /> {tipo === "recebimentos" ? "Confirmar recebimento" : "Confirmar pagamento"}</button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarBaixaPrim}><Check size={15} /> {(ambos ? baixaPrim.origem === "receita" : tipo === "recebimentos") ? "Confirmar recebimento" : "Confirmar pagamento"}</button>
             </div>
           </div>
         </div>

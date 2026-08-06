@@ -7,7 +7,7 @@ import {
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
-  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake, Home as HomeIcon,
+  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake, Lock, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -539,9 +539,14 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <div style={{ padding: "2px 16px 8px", fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>
             <div className="mhome-wgrid" style={{ padding: "0 14px 10px" }}>
               {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "folha", label: "Folha de pagamento", Icon: Wallet }].map((c) => (
-                <button key={c.aba} data-aba={c.aba} className="mhome-wcard" onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
+                <button key={c.aba} data-aba={c.aba} className="mhome-wcard" style={{ position: "relative" }} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
                   <span className="mhome-wcard-ico"><c.Icon size={22} /></span>
                   <b>{c.label}</b>
+                  {c.aba === "folha" && (
+                    <span role="button" tabIndex={0} title="Recurso do plano Folha salarial · ver planos"
+                      onClick={(e) => { e.stopPropagation(); playTick(); navegar({ view: "config", aba: "plano" }); }}
+                      style={{ position: "absolute", top: 8, right: 8, width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", border: "1px solid var(--line-2)", cursor: "pointer" }}><Lock size={14} /></span>
+                  )}
                 </button>
               ))}
             </div>
@@ -670,7 +675,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <span aria-hidden style={{ position: "absolute", left: -30, bottom: -50, width: 120, height: 120, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, color-mix(in srgb, var(--brand) 60%, transparent), transparent 70%)" }} />
                 <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                   <span style={{ width: 56, height: 56, borderRadius: 16, display: "grid", placeItems: "center", flexShrink: 0, background: "linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", border: "1px solid rgba(255,255,255,.4)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px -8px rgba(0,0,0,.35)" }}><c.Icon size={28} color="#fff" /></span>
-                  <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>
+                  {c.aba === "folha"
+                    ? <span role="button" tabIndex={0} title="Recurso do plano Folha salarial · ver planos"
+                        onClick={(e) => { e.stopPropagation(); playTick(); navegar({ view: "config", aba: "plano" }); }}
+                        style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.22)", border: "1px solid rgba(255,255,255,.4)", cursor: "pointer" }}><Lock size={17} color="#fff" /></span>
+                    : <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>}
                 </div>
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <b style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.02em", display: "block", lineHeight: 1.15 }}>{c.label}</b>
@@ -736,40 +745,6 @@ function AvisoFinancas() {
   return <div aria-hidden style={{ marginBottom: 18, height: 48 }} />;
 }
 
-/** Seletor: Calendário de Pagamentos ou de Recebimentos. */
-function EscolhaCalendario({ onEscolher }: { onEscolher: (t: "pagamentos" | "recebimentos" | "financeiro") => void }) {
-  const opcoes = [
-    { key: "pagamentos" as const, titulo: "Despesas", desc: "Contas a pagar, com vencimentos e despesas recorrentes.", Icon: ArrowUpCircle, cor: "#EF4444" },
-    { key: "recebimentos" as const, titulo: "Faturamento", desc: "Faturamento marcado por data.", Icon: ArrowDownCircle, cor: "#10B981" },
-  ];
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 14 }}>
-      {opcoes.map((o) => (
-        <button key={o.key} onClick={() => onEscolher(o.key)} className="card"
-          style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", padding: 22, display: "flex", alignItems: "center", gap: 16, border: "1px solid var(--line)", background: "var(--card)" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, flexShrink: 0, display: "grid", placeItems: "center", background: `${o.cor}1f`, color: o.cor }}><o.Icon size={26} /></span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <b style={{ display: "block", fontSize: 16 }}>{o.titulo}</b>
-            <span className="sub" style={{ display: "block", marginTop: 3, fontSize: 12.5, lineHeight: 1.5 }}>{o.desc}</span>
-          </span>
-          <ChevronRight size={20} style={{ color: "var(--muted)", flexShrink: 0 }} />
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/** Um dos calendários (pagamentos ou recebimentos) com botão de voltar à escolha. */
-function SubCalendario({ tipo, ano, onVoltar }: { tipo: "pagamentos" | "recebimentos"; ano: number; onVoltar: () => void }) {
-  return (
-    <div>
-      <button className="botao-voltar-interno" onClick={onVoltar} title="Voltar" style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
-        <ArrowLeft size={17} /> Voltar
-      </button>
-      <CalendarioPagamentos anoInicial={ano} tipo={tipo} />
-    </div>
-  );
-}
 
 /**
  * Tela Dashboard (mesmo estilo do Finanças): título + abas.
@@ -969,19 +944,12 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
       )}
 
       {/* aviso/informativo por aba (no Calendário, só na tela de escolha) */}
-      {!estreito && !ehAtalhoHome && !(aba === "calendario" && calSub) && <AvisoFinancas />}
+      {!estreito && !ehAtalhoHome && aba !== "calendario" && <AvisoFinancas />}
 
       {aba === "estrutura" ? <EstruturaFinancas ano={ano} setAno={setAno} />
         : aba === "folha" ? <FolhaPagamento empresa={empresa} />
         : aba === "dashboard" ? <FinancasDashboard ano={ano} setAno={setAno} />
-        : aba === "calendario" ? (calSub
-            ? (calSub === "financeiro"
-                ? <div>
-                    <button className="botao-voltar-interno" onClick={() => setCalSub(null)} title="Voltar" style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", marginBottom: 14, borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}><ArrowLeft size={17} /> Voltar</button>
-                    <CalendarioRecebimento ano={ano} />
-                  </div>
-                : <SubCalendario tipo={calSub} ano={ano} onVoltar={() => setCalSub(null)} />)
-            : <EscolhaCalendario onEscolher={setCalSub} />)
+        : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} tipo="ambos" />
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} setAno={setAno} />
         : aba === "importar" ? <Importar reload={reload} empresa={empresa} brand={brand} />
         : <EmConstrucao titulo={rotulos[aba]} />}
@@ -1079,8 +1047,9 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
   const rotulo = abas.find((a) => a.key === aba)?.label || "";
   return (
     <div>
-      {/* título — escondido no celular (o cabeçalho azul já mostra "Configurações") */}
-      {!estreito && (
+      {/* título — escondido no celular (o cabeçalho azul já mostra "Configurações")
+          e nas telas de Plano/Benefícios (ali esse título e as abas não se aplicam) */}
+      {!estreito && aba !== "plano" && aba !== "beneficios" && (
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
           <Settings size={22} />
@@ -1092,7 +1061,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
       {/* no celular vai direto pro conteúdo (a navegação é pelo menu ☰ e pela barra fixa) */}
       {(
       <>
-      {!estreito && (
+      {!estreito && aba !== "plano" && aba !== "beneficios" && (
       <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: "auto", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         {abas.map((a, i) => (
           <Fragment key={a.key}>
