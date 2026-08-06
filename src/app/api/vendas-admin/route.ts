@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { SUPERADMINS as SUPERS } from "@/lib/superadmin";
 
 export const runtime = "nodejs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_KEY;
-const SUPERS_PADRAO = ["minhasmetricas@gmail.com"];
-const SUPERS = [...new Set([
-  ...SUPERS_PADRAO,
-  ...(process.env.SUPER_ADMINS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
-])];
 
 function svc(): SupabaseClient | null {
   if (!url || !serviceKey) return null;

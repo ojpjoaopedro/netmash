@@ -91,6 +91,7 @@ const PREFIXOS_CONTA = [
   "me_financas_estrutura", "me_calendario_", "me_diretores", "me_func_extra",
   "me_empresa_extra", "fin_brand", "fin_theme", "me_foto_perfil", "me_termos_aceite",
   "me_ocultar_valores", "me_guia_", "me_tour_", "me_bemvindo_", "me_som", "me_destacar_benef",
+  "me_folha_", "me_tut_financas",
 ];
 
 /** Apaga do navegador todos os dados que são por empresa (usado ao trocar de conta). */

@@ -13,6 +13,7 @@ import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
 import { assinarNav, pegarAlvo, navegar } from "@/lib/nav";
 import { supabase, supabaseReady } from "@/lib/supabase";
+import { ehSuperadmin } from "@/lib/superadmin";
 import { salvarEstadoRemoto, apagarEstadoRemoto, sincronizarEstado, limparDadosLocaisDaConta } from "@/lib/estado-remoto";
 import { reduzirImagem } from "@/lib/imagem";
 import {
@@ -287,7 +288,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
   // Interliga a identidade: aplica logo/cor da empresa logada (banco) na marca do painel.
   useEffect(() => {
     // Na conta da plataforma (Super Admin) mantemos a marca Minhas Métricas — não aplica logo de cliente.
-    if (["minhasmetricas@gmail.com"].includes((perfil?.email || "").toLowerCase())) return;
+    if (ehSuperadmin(perfil?.email)) return;
     const eb = empresa as (Empresa & { logo_url?: string | null; cor?: string | null }) | null;
     if (!eb) return;
     const patch: { logo?: string; cor?: string; nome?: string } = {};
@@ -314,7 +315,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
   // Controle de acesso: dono vê tudo; colaborador vê só as áreas liberadas.
   const ehDono = !supabaseReady || (perfil?.papel ?? "dono") !== "colaborador";
   const areasPerm = perfil?.areas ?? [];
-  const ehSuper = ["minhasmetricas@gmail.com"].includes((perfil?.email || "").toLowerCase());
+  const ehSuper = ehSuperadmin(perfil?.email);
   // Marca da barra lateral. No painel modelo (Super Admin / demonstração) mostramos
   // um placeholder desenhado na tela — sem depender de arquivo de imagem — que ocupa
   // o espaço todo e leva de volta ao início. Cliente real segue com a própria logo.
