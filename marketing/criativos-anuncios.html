@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kit de Criativos de Anúncio — Minhas Métricas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0A;
+    --card:#121212;
+    --border:#222;
+    --text:#f4f5f7;
+    --muted:#9aa0a6;
+    --cyan:#1AADE2;
+    --green:#10B981;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:40px 20px 80px;
+  }
+
+  /* ---------- Page header ---------- */
+  .page-head{
+    max-width:1100px;
+    margin:0 auto 50px;
+    border:1px solid var(--border);
+    background:linear-gradient(180deg,#141414,#0e0e0e);
+    border-radius:20px;
+    padding:34px 38px;
+  }
+  .page-head h1{
+    font-size:30px; font-weight:900; letter-spacing:-0.5px; margin-bottom:8px;
+  }
+  .page-head .grad{
+    background:linear-gradient(90deg,var(--cyan),var(--green));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .page-head p{color:var(--muted); font-size:15px; line-height:1.6; margin-top:6px; max-width:820px}
+  .steps{display:flex; flex-wrap:wrap; gap:14px; margin-top:22px}
+  .step{
+    flex:1 1 240px; border:1px solid var(--border); border-radius:14px;
+    background:#0e0e0e; padding:16px 18px;
+  }
+  .step .n{
+    display:inline-flex; width:26px; height:26px; align-items:center; justify-content:center;
+    border-radius:8px; font-weight:800; font-size:13px; color:#04121a; margin-bottom:10px;
+    background:linear-gradient(135deg,var(--cyan),var(--green));
+  }
+  .step b{display:block; font-size:14px; margin-bottom:4px}
+  .step span{color:var(--muted); font-size:13px; line-height:1.5}
+
+  /* ---------- Gallery layout ---------- */
+  .gallery{max-width:1100px; margin:0 auto; display:flex; flex-direction:column; gap:64px}
+  .slot{display:flex; flex-direction:column; align-items:center}
+  .slot-label{
+    align-self:flex-start; font-size:13px; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:14px;
+  }
+  .slot-label .tag{
+    color:var(--cyan); border:1px solid #1c3540; background:rgba(26,173,226,.08);
+    padding:3px 9px; border-radius:999px; margin-left:8px; font-size:11px; letter-spacing:1px;
+  }
+
+  /* Preview shells clip the real 1080 canvas scaled down */
+  .shell{border-radius:18px; overflow:hidden; border:1px solid var(--border); box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  .shell-feed{width:540px; height:540px}
+  .shell-story{width:378px; height:672px}
+  .scaler{transform-origin:top left}
+  .scale-feed{transform:scale(0.5)}
+  .scale-story{transform:scale(0.35)}
+
+  /* ---------- The REAL creative canvas (1080) ---------- */
+  .cv{
+    position:relative; overflow:hidden; color:var(--text);
+    font-family:'Inter',sans-serif; background:var(--bg);
+  }
+  .cv-feed{width:1080px; height:1080px}
+  .cv-story{width:1080px; height:1920px}
+
+  /* ambient glows */
+  .glow{position:absolute; border-radius:50%; filter:blur(90px); opacity:.5; pointer-events:none}
+  .glow-cyan{background:var(--cyan)}
+  .glow-green{background:var(--green)}
+
+  /* wordmark */
+  .wm{font-weight:800; letter-spacing:-0.5px; display:inline-flex; gap:.28em}
+  .wm .a{color:#d7dade}
+  .wm .b{background:linear-gradient(90deg,var(--cyan),var(--green)); -webkit-background-clip:text; background-clip:text; color:transparent}
+
+  /* CTA seal */
+  .cta{
+    display:inline-flex; align-items:center; gap:16px;
+    border:1px solid #263238; border-radius:999px; padding:14px 26px;
+    background:rgba(18,18,18,.75); backdrop-filter:blur(4px);
+  }
+  .cta .site{font-weight:700; font-size:26px; color:var(--text)}
+  .cta .dot{width:6px; height:6px; border-radius:50%; background:var(--muted)}
+  .cta .price{
+    font-weight:800; font-size:24px; color:#04121a; padding:8px 16px; border-radius:999px;
+    background:linear-gradient(135deg,var(--cyan),var(--green));
+  }
+
+  .eyebrow{
+    display:inline-block; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+    color:var(--cyan); font-size:22px; border:1px solid #1c3540; background:rgba(26,173,226,.08);
+    padding:8px 18px; border-radius:999px;
+  }
+
+  /* mini dashboard bits */
+  .panel{
+    background:var(--card); border:1px solid var(--border); border-radius:24px; padding:34px;
+  }
+  .panel-title{color:var(--muted); font-size:22px; font-weight:600; letter-spacing:.5px}
+  .kpi{font-weight:900; letter-spacing:-1px; line-height:1}
+  .up{color:var(--green)} .down{color:#ef5350}
+
+  /* bar chart */
+  .bars{display:flex; align-items:flex-end; gap:16px; height:220px}
+  .bar{flex:1; border-radius:10px 10px 4px 4px; position:relative; background:#1e1e1e}
+  .bar span{position:absolute; bottom:-30px; left:0; right:0; text-align:center; color:var(--muted); font-size:18px; font-weight:600}
+  .bar.pos{background:linear-gradient(180deg,var(--cyan),#0f6f92)}
+  .bar.hi{background:linear-gradient(180deg,var(--green),#0a7d5a)}
+
+  /* donut ring */
+  .ring{width:260px; height:260px; border-radius:50%; display:grid; place-items:center; position:relative}
+  .ring .inner{width:190px; height:190px; border-radius:50%; background:var(--card); display:grid; place-items:center; text-align:center}
+
+  /* projection line (svg) */
+  svg{display:block}
+
+  /* ---------- Caption box ---------- */
+  .caption{
+    width:540px; max-width:100%; margin-top:20px;
+    background:#f4f5f7; color:#15181c; border-radius:16px; padding:22px 24px;
+    font-size:15px; line-height:1.55;
+  }
+  .caption.wide{width:540px}
+  .caption .fmt{
+    display:inline-block; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+    color:#0b6b8f; background:#e2eef3; border:1px solid #cfe3ea; padding:4px 10px; border-radius:999px; margin-bottom:12px;
+  }
+  .caption .lab{font-weight:800; color:#0A0A0A; display:block; margin-top:12px; margin-bottom:3px; font-size:13px; text-transform:uppercase; letter-spacing:.5px}
+  .caption p{color:#33373d}
+  .caption .titulo{font-weight:700; color:#15181c}
+
+  .foot{max-width:1100px; margin:70px auto 0; text-align:center; color:var(--muted); font-size:13px; line-height:1.7}
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Kit de Criativos de Anúncio — <span class="grad">Minhas Métricas</span></h1>
+  <p>6 criativos prontos para exportar: 3 no formato <b>Feed 1080×1080</b> e 3 no formato <b>Stories/Reels 1080×1920</b>. Cada card é renderizado no tamanho REAL de 1080px e apenas reduzido na prévia — a exportação sai em alta resolução.</p>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><b>Dê zoom no card</b><span>Cada prévia está escalada para caber na tela. O canvas interno continua em 1080px reais.</span></div>
+    <div class="step"><span class="n">2</span><b>Print em tamanho real</b><span>Use a ferramenta de captura da DevTools (dispositivo 1080px) ou tire screenshot do elemento .cv para sair sem perda.</span></div>
+    <div class="step"><span class="n">3</span><b>Poste com a legenda</b><span>Abaixo de cada arte há a copy sugerida (texto principal + título) pronta para colar no Gerenciador de Anúncios.</span></div>
+  </div>
+</header>
+
+<main class="gallery">
+
+  <!-- ============================================================= 1 - FEED - Você trabalha muito e não sabe quanto SOBRA ============================================================= -->
+  <section class="slot">
+    <div class="slot-label">Criativo 01 <span class="tag">Feed 1080×1080</span></div>
+    <div class="shell shell-feed">
+      <div class="scaler scale-feed">
+        <div class="cv cv-feed" style="padding:80px; display:flex; flex-direction:column; justify-content:space-between; background:radial-gradient(120% 80% at 80% 0%, #10242e 0%, #0A0A0A 55%)">
+          <div class="glow glow-cyan" style="width:420px;height:420px; top:-120px; right:-120px; opacity:.35"></div>
+          <div style="position:relative">
+            <span class="wm" style="font-size:34px"><span class="a">Minhas</span><span class="b">Métricas</span></span>
+          </div>
+          <div style="position:relative">
+            <div class="eyebrow" style="margin-bottom:34px">Dono de empresa, isto é pra você</div>
+            <h2 style="font-size:82px; font-weight:900; line-height:1.02; letter-spacing:-2px">Você trabalha muito<br>e não sabe quanto<br><span class="b" style="background:linear-gradient(90deg,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent">SOBRA?</span></h2>
+          </div>
+          <!-- mini dashboard: faturamento x lucro -->
+          <div class="panel" style="position:relative; display:flex; gap:40px; align-items:center; padding:38px 44px">
+            <div style="flex:1">
+              <div class="panel-title">Faturamento</div>
+              <div class="kpi" style="font-size:56px; color:var(--text)">R$ 84.200</div>
+            </div>
+            <div style="width:1px; height:90px; background:var(--border)"></div>
+            <div style="flex:1">
+              <div class="panel-title">Lucro real</div>
+              <div class="kpi up" style="font-size:56px">R$ 9.870</div>
+              <div class="up" style="font-size:22px; font-weight:700; margin-top:6px">▲ é só isso que sobra</div>
+            </div>
+          </div>
+          <div style="position:relative; display:flex; justify-content:center">
+            <div class="cta"><span class="site">minhasmetricas.com</span><span class="dot"></span><span class="price">R$ 49,99/mês</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span class="fmt">Feed 1080×1080</span>
+      <span class="lab">Texto principal sugerido</span>
+      <p>Você fatura alto, trabalha o mês inteiro… mas no fim das contas quase nada sobra — e você nem sabe por quê. O Minhas Métricas mostra o seu LUCRO REAL em segundos, sem planilha e sem contador. Descubra hoje quanto o seu negócio realmente deixa no bolso.</p>
+      <span class="lab">Título</span>
+      <p class="titulo">Trabalha muito e não sabe quanto sobra? Descubra o lucro real.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================= 2 - FEED - Pare de decidir pelo saldo do banco ============================================================= -->
+  <section class="slot">
+    <div class="slot-label">Criativo 02 <span class="tag">Feed 1080×1080</span></div>
+    <div class="shell shell-feed">
+      <div class="scaler scale-feed">
+        <div class="cv cv-feed" style="padding:80px; display:flex; flex-direction:column; justify-content:space-between; background:radial-gradient(120% 90% at 15% 100%, #0c2a22 0%, #0A0A0A 55%)">
+          <div class="glow glow-green" style="width:460px;height:460px; bottom:-140px; left:-120px; opacity:.32"></div>
+          <div style="position:relative; display:flex; justify-content:space-between; align-items:center">
+            <span class="wm" style="font-size:34px"><span class="a">Minhas</span><span class="b">Métricas</span></span>
+            <span style="color:var(--muted); font-size:22px; font-weight:600">Fluxo de caixa</span>
+          </div>
+          <div style="position:relative">
+            <h2 style="font-size:88px; font-weight:900; line-height:1; letter-spacing:-2px">Pare de decidir<br>pelo <span style="color:#ef5350">saldo do<br>banco.</span></h2>
+            <p style="color:var(--muted); font-size:30px; margin-top:26px; line-height:1.4; max-width:760px">O dinheiro na conta não é seu lucro. Tem boleto, imposto e fornecedor por vir.</p>
+          </div>
+          <!-- mini dashboard: saldo vs disponível real -->
+          <div class="panel" style="position:relative; padding:38px 44px">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:26px">
+              <div>
+                <div class="panel-title">Saldo no banco</div>
+                <div class="kpi" style="font-size:52px">R$ 32.400</div>
+              </div>
+              <div style="text-align:right">
+                <div class="panel-title">Sobra de verdade</div>
+                <div class="kpi down" style="font-size:52px">R$ 4.150</div>
+              </div>
+            </div>
+            <div style="height:26px; border-radius:999px; background:#1e1e1e; overflow:hidden; display:flex">
+              <div style="width:52%; background:linear-gradient(90deg,#ef5350,#b23b39)"></div>
+              <div style="width:35%; background:#2a2a2a"></div>
+              <div style="width:13%; background:linear-gradient(90deg,var(--green),#0a7d5a)"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:14px; color:var(--muted); font-size:20px; font-weight:600">
+              <span style="color:#ef5350">Compromissos</span><span>Reservas</span><span class="up">Livre</span>
+            </div>
+          </div>
+          <div style="position:relative; display:flex; justify-content:center">
+            <div class="cta"><span class="site">minhasmetricas.com</span><span class="dot"></span><span class="price">R$ 49,99/mês</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span class="fmt">Feed 1080×1080</span>
+      <span class="lab">Texto principal sugerido</span>
+      <p>Olhar o saldo do banco e achar que está tudo bem é a armadilha que quebra pequenas empresas. Aquele dinheiro já tem dono: imposto, fornecedor, folha. O Minhas Métricas separa o que é compromisso do que realmente sobra — pra você decidir com clareza, não no susto.</p>
+      <span class="lab">Título</span>
+      <p class="titulo">Pare de decidir pelo saldo do banco.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================= 3 - FEED - Lucro real em 5 minutos ============================================================= -->
+  <section class="slot">
+    <div class="slot-label">Criativo 03 <span class="tag">Feed 1080×1080</span></div>
+    <div class="shell shell-feed">
+      <div class="scaler scale-feed">
+        <div class="cv cv-feed" style="padding:80px; display:flex; flex-direction:column; justify-content:space-between; background:radial-gradient(120% 80% at 50% -10%, #10242e 0%, #0A0A0A 60%)">
+          <div class="glow glow-cyan" style="width:380px;height:380px; top:40%; left:-140px; opacity:.28"></div>
+          <div style="position:relative; display:flex; justify-content:space-between; align-items:center">
+            <span class="wm" style="font-size:34px"><span class="a">Minhas</span><span class="b">Métricas</span></span>
+            <span class="eyebrow" style="font-size:18px; padding:6px 14px">⏱ 5 minutos</span>
+          </div>
+          <div style="position:relative">
+            <h2 style="font-size:80px; font-weight:900; line-height:1.02; letter-spacing:-2px">Descubra o <span class="b" style="background:linear-gradient(90deg,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent">LUCRO REAL</span><br>da sua empresa<br>em 5 minutos.</h2>
+          </div>
+          <!-- mini dashboard: donut de margem -->
+          <div class="panel" style="position:relative; display:flex; align-items:center; gap:44px; padding:40px 44px">
+            <div class="ring" style="background:conic-gradient(var(--green) 0turn 0.23turn, var(--cyan) 0.23turn 0.34turn, #242424 0.34turn 1turn)">
+              <div class="inner">
+                <div>
+                  <div class="up" style="font-size:52px; font-weight:900; line-height:1">23%</div>
+                  <div style="color:var(--muted); font-size:20px; font-weight:600">margem</div>
+                </div>
+              </div>
+            </div>
+            <div style="flex:1">
+              <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px"><span style="width:16px;height:16px;border-radius:5px;background:var(--green)"></span><span style="font-size:26px; font-weight:600">Lucro líquido <b>R$ 19.360</b></span></div>
+              <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px"><span style="width:16px;height:16px;border-radius:5px;background:var(--cyan)"></span><span style="font-size:26px; font-weight:600; color:var(--muted)">Impostos R$ 9.200</span></div>
+              <div style="display:flex; align-items:center; gap:14px"><span style="width:16px;height:16px;border-radius:5px;background:#242424"></span><span style="font-size:26px; font-weight:600; color:var(--muted)">Custos R$ 55.640</span></div>
+            </div>
+          </div>
+          <div style="position:relative; display:flex; justify-content:center">
+            <div class="cta"><span class="site">minhasmetricas.com</span><span class="dot"></span><span class="price">R$ 49,99/mês</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span class="fmt">Feed 1080×1080</span>
+      <span class="lab">Texto principal sugerido</span>
+      <p>Você sabe quanto vendeu. Mas sabe quanto LUCROU? A maioria dos donos de pequena empresa não sabe — e é aí que o dinheiro escorre. Conecte seus números no Minhas Métricas e veja sua margem real em 5 minutos. Simples assim, sem contador e sem planilha.</p>
+      <span class="lab">Título</span>
+      <p class="titulo">Seu lucro real em 5 minutos, sem planilha.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================= 4 - STORY - Chega de planilha ============================================================= -->
+  <section class="slot">
+    <div class="slot-label">Criativo 04 <span class="tag">Stories / Reels 1080×1920</span></div>
+    <div class="shell shell-story">
+      <div class="scaler scale-story">
+        <div class="cv cv-story" style="padding:110px 90px; display:flex; flex-direction:column; justify-content:space-between; background:radial-gradient(90% 50% at 80% 8%, #10242e 0%, #0A0A0A 45%)">
+          <div class="glow glow-cyan" style="width:520px;height:520px; top:-160px; right:-160px; opacity:.3"></div>
+          <div class="glow glow-green" style="width:460px;height:460px; bottom:120px; left:-180px; opacity:.22"></div>
+          <div style="position:relative; text-align:center">
+            <span class="wm" style="font-size:40px"><span class="a">Minhas</span><span class="b">Métricas</span></span>
+          </div>
+          <div style="position:relative">
+            <div class="eyebrow" style="margin-bottom:40px">Sem fórmula quebrada</div>
+            <h2 style="font-size:112px; font-weight:900; line-height:0.98; letter-spacing:-3px">Chega de<br>planilha<br>que <span style="color:#ef5350">ninguém<br>entende.</span></h2>
+          </div>
+          <!-- visual: planilha bagunçada vs painel limpo -->
+          <div style="position:relative; display:flex; flex-direction:column; gap:34px">
+            <div class="panel" style="padding:30px; opacity:.55; border-style:dashed">
+              <div style="color:var(--muted); font-size:24px; font-weight:600; margin-bottom:18px">planilha.xlsx</div>
+              <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px">
+                <div style="height:26px; background:#242424; border-radius:5px"></div><div style="height:26px; background:#2e2222; border-radius:5px"></div><div style="height:26px; background:#242424; border-radius:5px"></div><div style="height:26px; background:#242424; border-radius:5px"></div><div style="height:26px; background:#2e2222; border-radius:5px"></div>
+                <div style="height:26px; background:#242424; border-radius:5px"></div><div style="height:26px; background:#242424; border-radius:5px"></div><div style="height:26px; background:#2e2e22; border-radius:5px"></div><div style="height:26px; background:#242424; border-radius:5px"></div><div style="height:26px; background:#242424; border-radius:5px"></div>
+                <div style="height:26px; background:#2e2222; border-radius:5px"></div><div style="height:26px; background:#242424; border-radius:5px"></div><div style="height:26px; background:#242424; border-radius:5px"></div><div style="height:26px; background:#2e2222; border-radius:5px"></div><div style="height:26px; background:#242424; border-radius:5px"></div>
+              </div>
+              <div style="color:#ef5350; font-size:22px; font-weight:700; margin-top:18px">#REF!  fórmula quebrada</div>
+            </div>
+            <div style="text-align:center; font-size:40px; color:var(--cyan); font-weight:800">↓</div>
+            <div class="panel" style="padding:34px; box-shadow:0 0 0 1px rgba(26,173,226,.25), 0 20px 50px rgba(26,173,226,.12)">
+              <div style="display:flex; justify-content:space-between; align-items:center">
+                <div><div class="panel-title" style="font-size:24px">Lucro do mês</div><div class="kpi up" style="font-size:64px">R$ 12.480</div></div>
+                <div style="display:flex; align-items:flex-end; gap:10px; height:120px">
+                  <div style="width:24px; height:50%; background:#1e1e1e; border-radius:6px"></div>
+                  <div style="width:24px; height:70%; background:linear-gradient(180deg,var(--cyan),#0f6f92); border-radius:6px"></div>
+                  <div style="width:24px; height:60%; background:#1e1e1e; border-radius:6px"></div>
+                  <div style="width:24px; height:100%; background:linear-gradient(180deg,var(--green),#0a7d5a); border-radius:6px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="position:relative; display:flex; justify-content:center">
+            <div class="cta"><span class="site">minhasmetricas.com</span><span class="dot"></span><span class="price">R$ 49,99/mês</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span class="fmt">Stories / Reels 1080×1920</span>
+      <span class="lab">Texto principal sugerido</span>
+      <p>Cansado de abrir uma planilha gigante que trava, quebra fórmula e ninguém entende? O Minhas Métricas troca esse caos por um painel simples e visual: faturamento, lucro e caixa na palma da mão. Você olha e entende na hora. Arrasta pra cima e testa.</p>
+      <span class="lab">Título</span>
+      <p class="titulo">Chega de planilha que ninguém entende.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================= 5 - STORY - Caixa no vermelho ============================================================= -->
+  <section class="slot">
+    <div class="slot-label">Criativo 05 <span class="tag">Stories / Reels 1080×1920</span></div>
+    <div class="shell shell-story">
+      <div class="scaler scale-story">
+        <div class="cv cv-story" style="padding:110px 90px; display:flex; flex-direction:column; justify-content:space-between; background:radial-gradient(90% 45% at 50% 100%, #2a1414 0%, #0A0A0A 50%)">
+          <div class="glow" style="width:520px;height:520px; bottom:-160px; left:50%; transform:translateX(-50%); background:#ef5350; opacity:.22"></div>
+          <div style="position:relative; text-align:center">
+            <span class="wm" style="font-size:40px"><span class="a">Minhas</span><span class="b">Métricas</span></span>
+          </div>
+          <div style="position:relative">
+            <div class="eyebrow" style="margin-bottom:40px; color:#ef5350; border-color:#3a1f1f; background:rgba(239,83,80,.08)">⚠ Projeção de caixa</div>
+            <h2 style="font-size:104px; font-weight:900; line-height:1; letter-spacing:-3px">Seu caixa vai<br>fechar no <span style="color:#ef5350">vermelho?</span></h2>
+            <p style="color:var(--muted); font-size:34px; margin-top:30px; line-height:1.35">Descubra <b style="color:var(--text)">ANTES</b> de faltar dinheiro pra pagar as contas.</p>
+          </div>
+          <!-- visual: linha de projeção que cruza o zero -->
+          <div class="panel" style="position:relative; padding:40px 36px">
+            <div class="panel-title" style="font-size:26px; margin-bottom:22px">Projeção — próximos 60 dias</div>
+            <svg viewBox="0 0 820 360" width="100%" height="auto" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="fillg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#1AADE2" stop-opacity="0.35"/>
+                  <stop offset="1" stop-color="#1AADE2" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <!-- zero line -->
+              <line x1="0" y1="180" x2="820" y2="180" stroke="#333" stroke-width="2" stroke-dasharray="8 8"/>
+              <text x="8" y="168" fill="#9aa0a6" font-size="20" font-family="Inter">R$ 0</text>
+              <!-- area -->
+              <path d="M0,90 L160,120 L330,150 L490,210 L650,280 L820,330 L820,180 L0,180 Z" fill="url(#fillg)"/>
+              <!-- positive segment -->
+              <path d="M0,90 L160,120 L330,150 L455,180" fill="none" stroke="#1AADE2" stroke-width="6" stroke-linecap="round"/>
+              <!-- negative segment -->
+              <path d="M455,180 L490,210 L650,280 L820,330" fill="none" stroke="#ef5350" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="455" cy="180" r="10" fill="#ef5350"/>
+              <text x="470" y="150" fill="#ef5350" font-size="24" font-weight="700" font-family="Inter">vira negativo</text>
+            </svg>
+            <div style="display:flex; justify-content:space-between; margin-top:16px; color:var(--muted); font-size:22px; font-weight:600">
+              <span>Hoje</span><span style="color:#ef5350">Dia 38: -R$ 6.400</span>
+            </div>
+          </div>
+          <div style="position:relative; display:flex; justify-content:center">
+            <div class="cta"><span class="site">minhasmetricas.com</span><span class="dot"></span><span class="price">R$ 49,99/mês</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span class="fmt">Stories / Reels 1080×1920</span>
+      <span class="lab">Texto principal sugerido</span>
+      <p>Ficar sem caixa pega todo mundo de surpresa — mas não precisa. O Minhas Métricas projeta o seu saldo dos próximos dias e te avisa ANTES de faltar dinheiro pra pagar fornecedor, folha ou imposto. Descubra hoje se o seu mês fecha no azul ou no vermelho.</p>
+      <span class="lab">Título</span>
+      <p class="titulo">Seu caixa vai fechar no vermelho? Descubra antes.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================= 6 - STORY - Pra onde foi o dinheiro ============================================================= -->
+  <section class="slot">
+    <div class="slot-label">Criativo 06 <span class="tag">Stories / Reels 1080×1920</span></div>
+    <div class="shell shell-story">
+      <div class="scaler scale-story">
+        <div class="cv cv-story" style="padding:110px 90px; display:flex; flex-direction:column; justify-content:space-between; background:radial-gradient(85% 45% at 20% 12%, #0c2a22 0%, #0A0A0A 48%)">
+          <div class="glow glow-green" style="width:500px;height:500px; top:-140px; left:-160px; opacity:.28"></div>
+          <div style="position:relative; text-align:center">
+            <span class="wm" style="font-size:40px"><span class="a">Minhas</span><span class="b">Métricas</span></span>
+          </div>
+          <div style="position:relative">
+            <h2 style="font-size:110px; font-weight:900; line-height:0.98; letter-spacing:-3px">Pra onde foi<br>o dinheiro<br>da sua <span class="b" style="background:linear-gradient(90deg,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent">empresa?</span></h2>
+            <p style="color:var(--muted); font-size:34px; margin-top:30px; line-height:1.35">Todo mês some. O Minhas Métricas mostra exatamente para onde.</p>
+          </div>
+          <!-- visual: ranking de saídas -->
+          <div class="panel" style="position:relative; padding:40px 40px">
+            <div class="panel-title" style="font-size:26px; margin-bottom:28px">Para onde foi — este mês</div>
+            <div style="display:flex; flex-direction:column; gap:24px">
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:26px; font-weight:600; margin-bottom:10px"><span>Fornecedores</span><span class="down">R$ 28.400</span></div>
+                <div style="height:22px; border-radius:999px; background:#1e1e1e; overflow:hidden"><div style="width:92%; height:100%; background:linear-gradient(90deg,#ef5350,#b23b39)"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:26px; font-weight:600; margin-bottom:10px"><span>Impostos</span><span class="down">R$ 11.900</span></div>
+                <div style="height:22px; border-radius:999px; background:#1e1e1e; overflow:hidden"><div style="width:58%; height:100%; background:linear-gradient(90deg,var(--cyan),#0f6f92)"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:26px; font-weight:600; margin-bottom:10px"><span>Marketing</span><span class="down">R$ 6.300</span></div>
+                <div style="height:22px; border-radius:999px; background:#1e1e1e; overflow:hidden"><div style="width:34%; height:100%; background:linear-gradient(90deg,var(--green),#0a7d5a)"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:26px; font-weight:600; margin-bottom:10px"><span>Pró-labore</span><span class="down">R$ 4.800</span></div>
+                <div style="height:22px; border-radius:999px; background:#1e1e1e; overflow:hidden"><div style="width:24%; height:100%; background:#4b5563"></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="position:relative; display:flex; justify-content:center">
+            <div class="cta"><span class="site">minhasmetricas.com</span><span class="dot"></span><span class="price">R$ 49,99/mês</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span class="fmt">Stories / Reels 1080×1920</span>
+      <span class="lab">Texto principal sugerido</span>
+      <p>Entra dinheiro, sai dinheiro, e no fim você se pergunta: cadê? O Minhas Métricas mostra exatamente para onde cada real da sua empresa foi — fornecedor, imposto, marketing, pró-labore. Pare de adivinhar. Veja o destino do seu dinheiro e corte o que está te sangrando.</p>
+      <span class="lab">Título</span>
+      <p class="titulo">Pra onde foi o dinheiro da sua empresa?</p>
+    </div>
+  </section>
+
+</main>
+
+<p class="foot">Minhas Métricas — painel financeiro para donos de PME · minhasmetricas.com · R$ 49,99/mês<br>Kit de 6 criativos (3 Feed 1080×1080 + 3 Stories/Reels 1080×1920) · arquivo único autossuficiente</p>
+
+</body>
+</html>
