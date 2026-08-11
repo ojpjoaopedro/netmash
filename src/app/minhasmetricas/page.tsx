@@ -6,7 +6,7 @@ import {
   Users, Building2, LogOut, Sun, Moon, X,
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
-  ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2, UserPlus,
+  ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2,
   PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake, Lock, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
@@ -735,7 +735,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {view === "painel" && <TelaPainel ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
         {view === "planejamento" && <TelaUpgrade Icon={Compass} titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." preco="R$ 29,90" />}
-        {view === "clientes" && <TelaUpgrade Icon={UserPlus} titulo="Cadastro de clientes" texto="Cadastre e organize seus clientes em um só lugar. Ative este módulo no seu plano para liberar esta tela." preco="R$ 39,90" />}
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} ehDono={ehDono} voltarRef={voltarRef} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} brand={brandObj} ano={Number(anoSel)} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
