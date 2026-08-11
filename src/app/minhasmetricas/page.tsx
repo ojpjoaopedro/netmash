@@ -14,6 +14,7 @@ import GuiaConfiguracao from "@/components/GuiaConfiguracao";
 import { assinarNav, pegarAlvo, navegar } from "@/lib/nav";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { ehSuperadmin } from "@/lib/superadmin";
+import { limparCacheEmpresa } from "@/lib/empresa-atual";
 import { salvarEstadoRemoto, apagarEstadoRemoto, sincronizarEstado, limparDadosLocaisDaConta } from "@/lib/estado-remoto";
 import { reduzirImagem } from "@/lib/imagem";
 import {
@@ -197,7 +198,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
       try {
         const idConta = p?.id || "";
         const ultima = localStorage.getItem("me_conta_atual");
-        if (idConta && ultima && ultima !== idConta) limparDadosLocaisDaConta();
+        if (idConta && ultima && ultima !== idConta) { limparDadosLocaisDaConta(); limparCacheEmpresa(); }
         if (idConta) localStorage.setItem("me_conta_atual", idConta);
       } catch { /* ignore */ }
       setPerfil(p);
@@ -205,6 +206,25 @@ export default function Home({ secao }: { secao?: string } = {}) {
       setCarregando(false);
     })();
   }, [router, carregarDados]);
+
+  // Vigia de troca de conta: se o usuário logado mudar (inclusive por outra aba,
+  // que o Supabase sincroniza por baixo), zera a memória de empresa + o cache local
+  // e recarrega limpo, para a identidade de uma conta não aparecer em outra.
+  useEffect(() => {
+    if (!supabaseReady || !supabase) return;
+    let conhecido: string | null | undefined = undefined;   // ignora o 1º evento (sessão atual)
+    const { data: sub } = supabase.auth.onAuthStateChange((_evento, sessao) => {
+      const uid = sessao?.user?.id ?? null;
+      if (conhecido === undefined) { conhecido = uid; return; }
+      if (uid !== conhecido) {
+        conhecido = uid;
+        limparCacheEmpresa();
+        try { limparDadosLocaisDaConta(); } catch { /* ignore */ }
+        window.location.reload();
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   // chave da foto POR USUÁRIO (cada login tem a sua; antes era por empresa e vazava)
   const fotoKey = perfil?.id ? `me_foto_perfil:${perfil.id}` : "me_foto_perfil";
