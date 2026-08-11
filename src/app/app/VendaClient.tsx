@@ -386,6 +386,16 @@ function DemoPhone({ big = false, float = false }: { big?: boolean; float?: bool
   );
 }
 
+/* Botão que rola suave até a seção do plano (#planos) */
+function CtaPlano({ texto = "Assinar agora", sub }: { texto?: string; sub?: string }) {
+  return (
+    <div style={{ textAlign: "center", marginTop: 34 }}>
+      <a href="#planos" className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 32px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>{texto} <ArrowRight size={18} /></a>
+      {sub && <div style={{ color: C.muted, fontSize: 13, marginTop: 10 }}>{sub}</div>}
+    </div>
+  );
+}
+
 function SectionTitle({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
   return (
     <div style={{ textAlign: "center", maxWidth: 720, margin: "0 auto 42px" }}>
@@ -684,6 +694,10 @@ export default function VendaClient() {
           <p style={{ color: C.muted, fontSize: "clamp(16px,2.4vw,20px)", lineHeight: 1.6, margin: "18px 0 0", maxWidth: 500 }}>
             Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo. <br /><b style={{ color: C.txt }}>Veja o número real do seu negócio.</b>
           </p>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
+            <a href="#planos" className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar por R$ {PRECO}/mês <ArrowRight size={18} /></a>
+            <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.06)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}>Ver o app</a>
+          </div>
         </Reveal>
         <Reveal delay={150}><HeroStats /></Reveal>
       </section>
@@ -772,6 +786,7 @@ export default function VendaClient() {
             )}
           </div>
         </Reveal>
+        <Reveal><CtaPlano texto="Quero esse painel na minha empresa" sub={`A partir de R$ ${PRECO}/mês · cancele quando quiser`} /></Reveal>
       </section>
 
       {/* GRÁFICOS */}
@@ -781,6 +796,7 @@ export default function VendaClient() {
           <Reveal><BarsFaturamento /></Reveal>
           <Reveal delay={120}><DonutCustos /></Reveal>
         </div>
+        <Reveal><CtaPlano texto={`Assinar por R$ ${PRECO}/mês`} /></Reveal>
       </section>
 
       {/* VIRADA */}
@@ -843,6 +859,7 @@ export default function VendaClient() {
       {/* SIMULADOR / TESTE */}
       <section style={{ ...container, padding: "clamp(20px,4vw,44px) 20px" }}>
         <Reveal><Simulador /></Reveal>
+        <Reveal><CtaPlano texto="Ver o plano e assinar" sub="Menos de R$ 1,70 por dia pra ter o controle da sua empresa" /></Reveal>
       </section>
 
       {/* STATS */}
@@ -989,7 +1006,7 @@ export default function VendaClient() {
         .dark-light{ animation: darkToLight 3.6s ease-in-out infinite; }
         @keyframes darkToLight { 0%,100%{ color:#24404a; text-shadow:none } 50%{ color:#22B8F0; text-shadow:0 0 34px rgba(34,184,240,.7) } }
         .range{ accent-color: #22b8f0; height: 6px; cursor: pointer; }
-        html{ scroll-padding-top: 72px; }
+        html{ scroll-behavior: smooth; scroll-padding-top: 72px; }
         @media (max-width: 860px){ .site-hero{ grid-template-columns: 1fr !important; gap: 30px !important; } }
         @media (max-width: 700px){ .cmp{ grid-template-columns: 1fr !important; } }
         @media (max-width: 430px){ .nav-entrar{ display: none; } .nav-logo{ font-size: 15px; } }
