@@ -85,6 +85,25 @@ export async function sincronizarEstado(chaves: string[]): Promise<Record<string
   return valores;
 }
 
+/**
+ * Puxa do banco TODAS as chaves da empresa que começam com um prefixo (ex: "me_folha_").
+ * Serve para grupos de chaves DINÂMICAS (uma por mês/benefício), que não cabem numa
+ * lista fixa. Escreve cada uma no localStorage e retorna as chaves carregadas.
+ */
+export async function sincronizarPorPrefixo(prefixo: string): Promise<string[]> {
+  const carregadas: string[] = [];
+  if (!supabaseReady || !supabase || typeof window === "undefined") return carregadas;
+  const eid = await empresaId(); if (!eid) return carregadas;
+  try {
+    const { data } = await supabase.from("painel_estado").select("chave,dados").eq("empresa_id", eid).like("chave", `${prefixo}%`);
+    for (const r of (data || []) as { chave: string; dados: unknown }[]) {
+      const cru = typeof r.dados === "string" ? r.dados : JSON.stringify(r.dados);
+      try { localStorage.setItem(r.chave, cru); carregadas.push(r.chave); } catch { /* item grande: fica só no banco */ }
+    }
+  } catch { /* ignore */ }
+  return carregadas;
+}
+
 // Prefixos das chaves que são POR EMPRESA (não podem vazar de uma conta pra outra
 // no mesmo navegador). Ao trocar de conta, limpamos tudo isso e recarregamos do banco.
 const PREFIXOS_CONTA = [

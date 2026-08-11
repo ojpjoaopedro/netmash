@@ -4,7 +4,7 @@ import { Wallet, Info, Printer, Users, ArrowUpRight, X, Search, ChevronsUpDown, 
 import { Empresa, Funcionario, getFuncionarios, updateFuncionario } from "@/lib/db";
 import { brl } from "@/lib/format";
 import * as XLSX from "xlsx-js-style";
-import { salvarEstadoRemoto } from "@/lib/estado-remoto";
+import { salvarEstadoRemoto, sincronizarPorPrefixo } from "@/lib/estado-remoto";
 import { navegar } from "@/lib/nav";
 import { MES } from "@/app/minhasmetricas/financas-estrutura";
 import SeletorAno from "./SeletorAno";
@@ -320,6 +320,10 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
   const carregar = () => getFuncionarios().then((f) => { setFuncs(f); setCarregado(true); }).catch(() => setCarregado(true));
   useEffect(() => { carregar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // puxa do banco todas as chaves da folha (mensais, benefícios, colunas) ao abrir, para
+  // a folha montada num aparelho aparecer em outro. As leituras abaixo releem quando hidratar.
+  const [hidratado, setHidratado] = useState(0);
+  useEffect(() => { let vivo = true; sincronizarPorPrefixo("me_folha_").then(() => { if (vivo) setHidratado((h) => h + 1); }); return () => { vivo = false; }; }, []);
   // usuários com login (superadmin + admins) também entram na folha
   useEffect(() => {
     const ler = () => setLoginFuncs(lerLoginComoFuncs(empresa?.id));
@@ -333,11 +337,11 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     const ids = new Set(funcs.map((f) => f.id));
     return [...funcs, ...loginFuncs.filter((l) => !ids.has(l.id))];
   }, [funcs, loginFuncs]);
-  useEffect(() => { setCfg(lerCfg(empresa?.id)); }, [empresa?.id]);
+  useEffect(() => { setCfg(lerCfg(empresa?.id)); }, [empresa?.id, hidratado]);
   useEffect(() => { const d = new Date(); setYm(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`); }, []);
-  useEffect(() => { if (ym) setDadosMes(lerMes(empresa?.id, ym)); }, [empresa?.id, ym]);
-  useEffect(() => { setBenef(lerBenef(empresa?.id)); }, [empresa?.id]);
-  useEffect(() => { setCols(lerCols(empresa?.id)); }, [empresa?.id]);
+  useEffect(() => { if (ym) setDadosMes(lerMes(empresa?.id, ym)); }, [empresa?.id, ym, hidratado]);
+  useEffect(() => { setBenef(lerBenef(empresa?.id)); }, [empresa?.id, hidratado]);
+  useEffect(() => { setCols(lerCols(empresa?.id)); }, [empresa?.id, hidratado]);
 
   const upCols = (c: ColsFolha) => { setCols(c); salvarCols(empresa?.id, c); };
   const addCol = (grupo: "prov" | "desc") => upCols({ ...cols, [grupo]: [...cols[grupo], { id: novoIdCol(), nome: grupo === "prov" ? "Novo provento" : "Novo desconto" }] });
@@ -419,7 +423,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
   // modo (% ou R$) por coluna de benefício (nível da coluna, não por pessoa)
   const [benefModos, setBenefModos] = useState<Record<string, Modo>>({});
-  useEffect(() => { setBenefModos(lerBenefModos(empresa?.id)); }, [empresa?.id]);
+  useEffect(() => { setBenefModos(lerBenefModos(empresa?.id)); }, [empresa?.id, hidratado]);
   const modoDe = (key: string): Modo => benefModos[key] || "fixo";
   const setBenefModo = (key: string, m: Modo) => setBenefModos((prev) => { const n = { ...prev, [key]: m }; salvarBenefModos(empresa?.id, n); return n; });
   // troca % <-> R$ CONVERTENDO o número de cada pessoa (preserva o R$ efetivo). Totais/líquido acompanham.
@@ -458,7 +462,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   };
   // benefícios personalizados (colunas extras: plano de saúde, auxílio, etc.)
   const [benefCols, setBenefCols] = useState<Col[]>([]);
-  useEffect(() => { setBenefCols(lerBenefCols(empresa?.id)); }, [empresa?.id]);
+  useEffect(() => { setBenefCols(lerBenefCols(empresa?.id)); }, [empresa?.id, hidratado]);
   const upBenefCols = (cs: Col[]) => { setBenefCols(cs); salvarBenefCols(empresa?.id, cs); };
   const addBenefCol = () => upBenefCols([...benefCols, { id: novoIdCol(), nome: "Novo benefício" }]);
   const renomearBenefCol = (id: string, nome: string) => upBenefCols(benefCols.map((c) => c.id === id ? { ...c, nome } : c));
