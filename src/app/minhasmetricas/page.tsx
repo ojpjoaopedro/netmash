@@ -723,7 +723,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
             </div>
           </div>
         )}
-        {!estreito && view === "dashboard" && <div style={{ margin: "6px 2px 10px", fontSize: 11.5, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>}
         {!estreito && view === "dashboard" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             {[{ aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays, dica: "Coloque os dados por aqui", stat: "8 a cada 10 empresas preenchem por aqui" },
@@ -742,22 +741,22 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 {/* orbe de brilho */}
                 <span aria-hidden style={{ position: "absolute", right: -40, top: -50, width: 150, height: 150, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, rgba(255,255,255,.28), transparent 68%)" }} />
                 <span aria-hidden style={{ position: "absolute", left: -30, bottom: -50, width: 120, height: 120, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, color-mix(in srgb, var(--brand) 60%, transparent), transparent 70%)" }} />
-                <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                  <span style={{ width: 56, height: 56, borderRadius: 16, display: "grid", placeItems: "center", flexShrink: 0, background: "linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", border: "1px solid rgba(255,255,255,.4)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px -8px rgba(0,0,0,.35)" }}><c.Icon size={28} color="#fff" /></span>
-                  {c.aba === "folha"
-                    ? <span role="button" tabIndex={0} title="Recurso do plano Folha salarial · ver planos"
-                        onClick={(e) => { e.stopPropagation(); playTick(); navegar({ view: "config", aba: "plano" }); }}
-                        style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.22)", border: "1px solid rgba(255,255,255,.4)", cursor: "pointer" }}><Lock size={17} color="#fff" /></span>
-                    : <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>}
+                {/* ícone + seta e, logo abaixo, o título em destaque (no topo) */}
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                    <span style={{ width: 56, height: 56, borderRadius: 16, display: "grid", placeItems: "center", flexShrink: 0, background: "linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", border: "1px solid rgba(255,255,255,.4)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px -8px rgba(0,0,0,.35)" }}><c.Icon size={28} color="#fff" /></span>
+                    {c.aba === "folha"
+                      ? <span role="button" tabIndex={0} title="Recurso do plano Folha salarial · ver planos"
+                          onClick={(e) => { e.stopPropagation(); playTick(); navegar({ view: "config", aba: "plano" }); }}
+                          style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.22)", border: "1px solid rgba(255,255,255,.4)", cursor: "pointer" }}><Lock size={17} color="#fff" /></span>
+                      : <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>}
+                  </div>
+                  <b style={{ display: "block", marginTop: 16, fontSize: 26, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.1 }}>{c.label}</b>
                 </div>
-                {/* dica no topo: onde preencher + o dado sutil */}
+                {/* dica: onde preencher + o dado sutil */}
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.3)", borderRadius: 99, padding: "5px 13px", fontSize: 12, fontWeight: 800, letterSpacing: ".01em" }}>{c.dica}</span>
                   <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 500, color: "rgba(255,255,255,.8)" }}>{c.stat}</div>
-                </div>
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <b style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.02em", display: "block", lineHeight: 1.15 }}>{c.label}</b>
-                  <p style={{ margin: "5px 0 0", fontSize: 12.5, fontWeight: 500, color: "rgba(255,255,255,.82)" }}>{c.sub}</p>
                 </div>
               </button>
             ))}
