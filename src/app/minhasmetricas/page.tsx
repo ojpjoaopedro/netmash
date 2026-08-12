@@ -734,8 +734,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
             {[{ aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays, dica: "Coloque os dados por aqui", stat: "8 a cada 10 empresas preenchem por aqui" },
               { aba: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers, dica: "Coloque os dados por aqui", stat: "2 a cada 10 empresas preenchem por aqui" }].map((c) => (
               <button key={c.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}
-                style={{ position: "relative", overflow: "hidden", minHeight: 168, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 20, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                  padding: "22px 24px", borderRadius: 22, color: "#fff",
+                style={{ position: "relative", overflow: "hidden", minHeight: 128, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                  padding: "16px 20px", borderRadius: 20, color: "#fff",
                   border: "1px solid color-mix(in srgb, var(--brand) 45%, transparent)",
                   background: "linear-gradient(140deg, color-mix(in srgb, var(--brand) 96%, #4bc6ff), color-mix(in srgb, var(--brand-dark) 78%, #06122e))",
                   boxShadow: "0 20px 44px -18px color-mix(in srgb, var(--brand) 70%, transparent), 0 0 30px -10px color-mix(in srgb, var(--brand) 55%, transparent)",
@@ -750,14 +750,14 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 {/* ícone + seta e, logo abaixo, o título em destaque (no topo) */}
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                    <span style={{ width: 56, height: 56, borderRadius: 16, display: "grid", placeItems: "center", flexShrink: 0, background: "linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", border: "1px solid rgba(255,255,255,.4)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px -8px rgba(0,0,0,.35)" }}><c.Icon size={28} color="#fff" /></span>
+                    <span style={{ width: 46, height: 46, borderRadius: 14, display: "grid", placeItems: "center", flexShrink: 0, background: "linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", border: "1px solid rgba(255,255,255,.4)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px -8px rgba(0,0,0,.35)" }}><c.Icon size={24} color="#fff" /></span>
                     {c.aba === "folha"
                       ? <span role="button" tabIndex={0} title="Recurso do plano Folha salarial · ver planos"
                           onClick={(e) => { e.stopPropagation(); playTick(); navegar({ view: "config", aba: "plano" }); }}
                           style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.22)", border: "1px solid rgba(255,255,255,.4)", cursor: "pointer" }}><Lock size={17} color="#fff" /></span>
                       : <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>}
                   </div>
-                  <b style={{ display: "block", marginTop: 16, fontSize: 26, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.1 }}>{c.label}</b>
+                  <b style={{ display: "block", marginTop: 10, fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.1 }}>{c.label}</b>
                 </div>
                 {/* dica: onde preencher + o dado sutil */}
                 <div style={{ position: "relative", zIndex: 1 }}>
@@ -767,7 +767,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
               </button>
             ))}
             {/* informativo: os dois preenchimentos são conectados */}
-            <div style={{ position: "relative", overflow: "hidden", minHeight: 168, borderRadius: 22, padding: "24px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 12,
+            <div style={{ position: "relative", overflow: "hidden", minHeight: 128, borderRadius: 20, padding: "16px 20px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 9,
               background: "linear-gradient(158deg, color-mix(in srgb, var(--brand) 8%, var(--card)), var(--card) 62%)",
               border: "1px solid color-mix(in srgb, var(--brand) 24%, var(--line))",
               boxShadow: "0 18px 44px -30px color-mix(in srgb, var(--brand) 65%, transparent)" }}>
@@ -785,8 +785,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
           </div>
         )}
         {view === "dashboard" && (
-          <div style={{ marginTop: 40 }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 19, fontWeight: 800, letterSpacing: "-.01em", color: "var(--txt)" }}>Indicadores de resultados</h3>
+          <div style={{ marginTop: 24 }}>
+            <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 800, letterSpacing: "-.01em", color: "var(--txt)" }}>Indicadores de resultados</h3>
             <PainelCobrancas ano={Number(anoSel)} semTitulo />
           </div>
         )}
