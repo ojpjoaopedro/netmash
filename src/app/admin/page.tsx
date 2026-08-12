@@ -518,7 +518,7 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 14 }}>
                 <table className="adm-table">
-                  <thead><tr><th style={{ textAlign: "center", width: 34 }}>#</th><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th></tr></thead>
+                  <thead><tr><th style={{ textAlign: "center", width: 34 }}>#</th><th>Criada</th><th style={{ textAlign: "center", width: 56 }}>Logo</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
                     {(() => { const q = buscaEmpresa.trim().toLowerCase(); return data?.empresas.filter((e) => {
                       if (filtroAcesso === "ativos" ? e.acessoCortado : !e.acessoCortado) return false;
@@ -549,6 +549,14 @@ export default function Admin() {
                       <tr key={e.id}>
                         <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 12, color: "#8b93a0", fontWeight: 700 }}>{i + 1}</td>
                         <td className="adm-sub" style={{ verticalAlign: "top", paddingTop: 12 }}>{dataBR(e.criado_em)}</td>
+                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 10 }} title="Logo definida pela própria empresa">
+                          {e.logo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={e.logo_url} alt={e.nome} style={{ width: 38, height: 38, borderRadius: 9, objectFit: "contain", background: "#fff", border: "1px solid var(--line-2,#2a2a2a)", display: "inline-block" }} />
+                          ) : (
+                            <span style={{ width: 38, height: 38, borderRadius: 9, display: "inline-grid", placeItems: "center", background: e.cor || "var(--card-2,#0d0d0d)", color: "#fff", fontWeight: 800, fontSize: 15, border: "1px solid var(--line-2,#2a2a2a)" }}>{(e.nome || "?").trim().charAt(0).toUpperCase()}</span>
+                          )}
+                        </td>
                         <td style={{ verticalAlign: "top", paddingTop: 12 }}><b>{e.nome}</b></td>
                         <td style={{ verticalAlign: "top" }}>
                           {pessoas.length ? pessoas.map((p, i) => (
@@ -594,7 +602,7 @@ export default function Admin() {
                       </tr>
                       );
                     }); })()}
-                    {!data?.empresas.length && <tr><td colSpan={6 + catalogo.length} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={7 + catalogo.length} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
