@@ -616,12 +616,12 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .tint-blue{background:rgba(30,144,255,.15)}
 
 /* ===== Tabela da Equipe (modo Lista): cabeçalho clicável + zebra + hover ===== */
-.eq-tab .eq-th{position:sticky;top:0;text-align:left;padding:12px 10px;font-size:9.5px;font-weight:800;letter-spacing:.03em;
+.eq-tab .eq-th{position:sticky;top:0;text-align:left;padding:7px 8px;font-size:9px;font-weight:800;letter-spacing:.02em;
   text-transform:uppercase;color:var(--muted);white-space:nowrap;cursor:pointer;user-select:none;
   background:color-mix(in srgb,var(--brand) 8%,var(--card));border-bottom:2px solid var(--line);transition:color .15s}
 .eq-tab .eq-th:hover{color:var(--brand)}
-.eq-tab td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:11.5px}
-.eq-tab td input{font-size:11.5px}
+.eq-tab td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:11px}
+.eq-tab td input{font-size:11px}
 .eq-tab tbody tr:last-child td{border-bottom:0}
 .eq-tab .eq-row:nth-child(even){background:color-mix(in srgb,var(--brand) 3%,transparent)}
 .eq-tab .eq-row:hover{background:color-mix(in srgb,var(--brand) 9%,transparent)}

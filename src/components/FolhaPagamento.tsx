@@ -374,12 +374,12 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   };
   // cabeçalhos das colunas extras (nome editável + lixeira que só aparece ao editar) e o botão "+"
   const thsCol = (grupo: "prov" | "desc") => cols[grupo].map((c) => (
-    <th key={c.id} className="eq-th" style={{ textAlign: "right", minWidth: 120 }}>
+    <th key={c.id} className="eq-th" style={{ textAlign: "right", minWidth: 92 }}>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end", whiteSpace: "nowrap", width: "100%" }}>
         <input defaultValue={c.nome} title="Clique para renomear ou excluir a coluna"
           onFocus={() => setColFoco(c.id)}
           onBlur={(e) => { renomearCol(grupo, c.id, e.target.value.trim() || c.nome); setColFoco(null); }}
-          style={{ border: 0, outline: "none", background: "transparent", font: "inherit", color: "inherit", textAlign: "right", width: 84, minWidth: 0, padding: "2px 4px", borderRadius: 6 }} />
+          style={{ border: 0, outline: "none", background: "transparent", font: "inherit", color: "inherit", textAlign: "right", width: 68, minWidth: 0, padding: "2px 4px", borderRadius: 6 }} />
         {colFoco === c.id && (
           <button title="Excluir coluna" onMouseDown={(e) => e.preventDefault()} onClick={() => pedirRemoverCol(grupo, c.id, c.nome)} className="no-print"
             style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", cursor: "pointer", border: 0, background: "rgba(239,68,68,.10)", color: "#EF4444" }}><Trash2 size={11} /></button>
@@ -399,12 +399,13 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const tdsVazias = (grupo: "prov" | "desc") => [...cols[grupo].map((c) => <td key={c.id} />), <td key={`mais-${grupo}`} />];
   const irParaEquipe = () => navegar({ view: "config", aba: "equipe", voltar: { view: "financas", aba: "folha" } });
   // célula do nome: clicar (ou passar o mouse) leva ao cadastro na Equipe
-  const celNome = (f: Funcionario) => (
+  const celNome = (f: Funcionario, n?: number) => (
     <div onClick={() => setPessoaCard(f)} title={f.nome || "—"}
       onMouseEnter={(e) => { (e.currentTarget.querySelector("b") as HTMLElement | null)?.style.setProperty("color", "var(--brand)"); }}
       onMouseLeave={(e) => { (e.currentTarget.querySelector("b") as HTMLElement | null)?.style.removeProperty("color"); }}
-      style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, cursor: "pointer" }}>
-      <b style={{ fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color .12s" }}>{f.nome || "—"}</b>
+      style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, cursor: "pointer" }}>
+      {n != null && <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: "var(--muted)", minWidth: 16, textAlign: "right" }}>{n}</span>}
+      <b style={{ fontSize: 11.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color .12s" }}>{f.nome || "—"}</b>
     </div>
   );
   // link fino de "+ cadastrar" como uma linha da tabela, logo acima do Total (vai direto para a Equipe)
@@ -481,7 +482,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const benefColTemDados = (colId: string) => Object.values(benef).some((b) => valNum(b.extra?.[colId]) > 0);
   // benefícios personalizados (visão Geral): cabeçalho (nome editável + lixeira ao editar), "+", células e totais
   const thsBenef = () => benefCols.map((c) => (
-    <th key={c.id} className="eq-th" style={{ textAlign: "right", minWidth: 130 }}>
+    <th key={c.id} className="eq-th" style={{ textAlign: "right", minWidth: 100 }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end", whiteSpace: "nowrap", maxWidth: "100%" }}>
           <input defaultValue={c.nome} title="Clique para renomear ou excluir o benefício"
@@ -851,9 +852,9 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                 </tr>
               </thead>
               <tbody>
-                {geralView.map(({ f, bruto, inss, irrf, totalDesc, liquido, provisao, fgts, rescisao }) => (
+                {geralView.map(({ f, bruto, inss, irrf, totalDesc, liquido, provisao, fgts, rescisao }, i) => (
                   <tr key={f.id} className="eq-row">
-                    <td className="eq-fix">{celNome(f)}</td>
+                    <td className="eq-fix">{celNome(f, i + 1)}</td>
                     <td><CampoTexto valor={f.departamento || f.cargo || ""} onSalvar={(v) => salvarDepto(f.id, v)} /></td>
                     <td style={{ fontWeight: 700 }}><CampoMoeda valor={bruto} onSalvar={(n) => salvarSalario(f.id, n)} /></td>
                     <td><CampoBenefCel valor={vtNum(f)} modo={modoDe("vt")} salario={bruto} onSalvar={(n) => setBeneficioNum(f.id, "vt", n)} /></td>
@@ -948,9 +949,9 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                 </tr>
               </thead>
               <tbody>
-                {mesView.map(({ f, v, extra, base, proventos, inss, irrf, totalDesc, liquido, provisaoM, fgtsM, rescisaoM }) => (
+                {mesView.map(({ f, v, extra, base, proventos, inss, irrf, totalDesc, liquido, provisaoM, fgtsM, rescisaoM }, i) => (
                   <tr key={`${ym}-${f.id}`} className="eq-row">
-                    <td className="eq-fix">{celNome(f)}</td>
+                    <td className="eq-fix">{celNome(f, i + 1)}</td>
                     <td style={{ fontWeight: 700 }}><CampoMoeda valor={base} onSalvar={(n) => setVar(f.id, "base", n)} /></td>
                     <td><CampoMoeda valor={v.comissao} onSalvar={(n) => setVar(f.id, "comissao", n)} /></td>
                     <td><CampoMoeda valor={v.horaExtra} onSalvar={(n) => setVar(f.id, "horaExtra", n)} /></td>
@@ -1018,9 +1019,9 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                     </tr>
                   </thead>
                   <tbody>
-                    {socioView.map(({ f, extra, base, inss, liquido }) => (
+                    {socioView.map(({ f, extra, base, inss, liquido }, i) => (
                       <tr key={`pl-${ym}-${f.id}`} className="eq-row">
-                        <td className="eq-fix">{celNome(f)}</td>
+                        <td className="eq-fix">{celNome(f, i + 1)}</td>
                         <td style={{ fontWeight: 700 }}><CampoMoeda valor={base} esquerda onSalvar={(n) => setVar(f.id, "base", n)} /></td>
                         {tdsCol("prov", f.id, extra)}
                         <td />
