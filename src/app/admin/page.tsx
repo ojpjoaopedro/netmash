@@ -19,7 +19,7 @@ type Empresa = {
   logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
   planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[] };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 // catálogo de produtos (planos). Vem do banco (planos_catalogo); estes são o
@@ -620,7 +620,19 @@ export default function Admin() {
                   <thead><tr><th style={{ width: 64 }}>Imagem</th><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th><th>Acessos ativos</th><th></th></tr></thead>
                   <tbody>
                     <tr>
-                      <td><span style={{ width: 40, height: 40, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--card-2,#0d0d0d)", border: "1px solid var(--line-2,#2a2a2a)", color: "var(--muted,#888)" }}><ImageIcon size={16} /></span></td>
+                      <td>
+                        <label title={data?.imagemSuperadmin ? "Trocar imagem" : "Enviar imagem"} style={{ cursor: imgProd === "superadmin" ? "wait" : "pointer", display: "inline-block", position: "relative" }}>
+                          <input type="file" accept="image/*" style={{ display: "none" }} disabled={imgProd === "superadmin"}
+                            onChange={(ev) => { const f = ev.target.files?.[0] || null; ev.target.value = ""; trocarImagemProduto("superadmin", f); }} />
+                          {data?.imagemSuperadmin ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={data.imagemSuperadmin} alt="Super Admin" style={{ width: 40, height: 40, borderRadius: 9, objectFit: "cover", border: "1px solid var(--line-2,#2a2a2a)", display: "block", opacity: imgProd === "superadmin" ? 0.5 : 1 }} />
+                          ) : (
+                            <span style={{ width: 40, height: 40, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--card-2,#0d0d0d)", border: "1px dashed var(--line-2,#3a3a3a)", color: "var(--muted,#888)" }}><Plus size={15} /></span>
+                          )}
+                        </label>
+                        {data?.imagemSuperadmin && <button title="Remover imagem" onClick={() => trocarImagemProduto("superadmin", null)} style={{ display: "block", marginTop: 3, fontSize: 10, background: "transparent", border: 0, cursor: "pointer", color: "var(--muted,#888)", fontFamily: "inherit", padding: 0 }}>remover</button>}
+                      </td>
                       <td><b>Super Admin</b><span className="adm-badge" style={{ marginLeft: 8 }}>Principal</span></td>
                       <td className="adm-sub">Acesso principal da empresa (plano base)</td>
                       <td><b>{brlP(precos.superadmin)}</b></td>

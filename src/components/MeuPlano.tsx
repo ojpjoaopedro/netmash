@@ -1,32 +1,42 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Crown, Shield, Check, ArrowUpRight, Compass, Wallet, Lock } from "lucide-react";
+import { Crown, Check, ArrowUpRight, Compass, Wallet, Shield, Lock, Package } from "lucide-react";
 import BotaoOcultar from "./ocultar";
+import { supabase, supabaseReady } from "@/lib/supabase";
 
-// Valores oficiais do modelo de assinatura (mesmos do painel Super Admin)
+// Super Admin é o plano base (fixo, sempre ativo). Os demais módulos vêm do
+// catálogo do Admin (tabela planos_catalogo), com imagem, nome e preço.
 const PRECO_SUPERADMIN = 79.9; // por administrador principal da empresa
 const PRECO_ACESSO = 39.9;     // por acesso adicional (admin)
-const PRECO_PLANEJAMENTO = 29.9; // módulo Planejamento estratégico
-const PRECO_FOLHA = 39.9;        // módulo Folha de pagamento
-const PRECO_ACESSO2 = 9.9;       // 2º acesso (adicional)
 const TEL = "5562994797664";   // WhatsApp do Minhas Métricas
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-function ativarPlanejamento() {
-  const msg = "Olá! Quero ativar o módulo de Planejamento estratégico (R$ 29,90/mês) no Minhas Métricas.";
-  window.open(`https://wa.me/${TEL}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+type Modulo = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null };
+
+// Catálogo de reserva, caso a tabela ainda não responda.
+const CATALOGO_PADRAO: Modulo[] = [
+  { chave: "folha", nome: "Folha de pagamento", descricao: "Salários, benefícios e encargos da equipe em um só lugar.", preco: 39.9, imagem: null },
+  { chave: "acesso2", nome: "2º acesso", descricao: "Mais um login de administrador para a sua equipe.", preco: 9.9, imagem: null },
+  { chave: "planejamento", nome: "Planejamento estratégico", descricao: "Defina metas e pilares e acompanhe o plano da sua empresa.", preco: 29.9, imagem: null },
+];
+
+// Ícone de reserva por módulo (usado quando não há imagem cadastrada).
+function IconeModulo({ chave }: { chave: string }) {
+  if (chave === "folha") return <Wallet size={23} />;
+  if (chave === "acesso2") return <Shield size={23} />;
+  if (chave === "planejamento") return <Compass size={23} />;
+  return <Package size={23} />;
 }
-function ativarFolha() {
-  const msg = "Olá! Quero ativar o módulo de Folha de pagamento (R$ 39,90/mês) no Minhas Métricas.";
-  window.open(`https://wa.me/${TEL}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
-}
-function ativarAcesso2() {
-  const msg = "Olá! Quero ativar um 2º acesso (R$ 9,90/mês) no Minhas Métricas.";
+
+function ativarModulo(m: Modulo) {
+  const msg = `Olá! Quero ativar o módulo de ${m.nome} (${fmt(m.preco)}/mês) no Minhas Métricas.`;
   window.open(`https://wa.me/${TEL}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
 }
 
-export default function MeuPlano() {
+export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<string, boolean> | null } | null }) {
   const [admins, setAdmins] = useState(0);
+  const [catalogo, setCatalogo] = useState<Modulo[]>(CATALOGO_PADRAO);
+
   useEffect(() => {
     const ler = () => {
       try { const s = JSON.parse(localStorage.getItem("me_diretores") || "null"); setAdmins((s?.admins || []).length); } catch { /* ignore */ }
@@ -36,7 +46,18 @@ export default function MeuPlano() {
     return () => window.removeEventListener("me:diretores", ler);
   }, []);
 
+  useEffect(() => {
+    if (!supabaseReady || !supabase) return;
+    let vivo = true;
+    (async () => {
+      const { data } = await supabase!.from("planos_catalogo").select("chave,nome,descricao,preco,imagem").order("ordem", { ascending: true });
+      if (vivo && data && data.length) setCatalogo(data as Modulo[]);
+    })();
+    return () => { vivo = false; };
+  }, []);
+
   const total = PRECO_SUPERADMIN + admins * PRECO_ACESSO;
+  const ativo = (chave: string) => Boolean(empresa?.planos?.[chave]);
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -74,68 +95,42 @@ export default function MeuPlano() {
         </div>
       </div>
 
-      {/* módulo adicional: Folha de pagamento (bloqueado) */}
-      <div className="card" style={{ padding: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-            <span style={{ width: 46, height: 46, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Wallet size={23} /></span>
-            <div style={{ minWidth: 0 }}>
-              <b style={{ fontSize: 16, display: "inline-flex", alignItems: "center", gap: 7 }}>Folha de pagamento <Lock size={14} style={{ color: "var(--muted)" }} /></b>
-              <div className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>Salários, benefícios e encargos da equipe em um só lugar.</div>
+      {/* módulos adicionais (vêm do catálogo do Admin) */}
+      {catalogo.map((m) => {
+        const on = ativo(m.chave);
+        return (
+          <div key={m.chave} className="card" style={{ padding: 22 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+                {m.imagem ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.imagem} alt={m.nome} style={{ width: 46, height: 46, borderRadius: 12, objectFit: "cover", flexShrink: 0, border: "1px solid var(--line-2)" }} />
+                ) : (
+                  <span style={{ width: 46, height: 46, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><IconeModulo chave={m.chave} /></span>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <b style={{ fontSize: 16, display: "inline-flex", alignItems: "center", gap: 7 }}>{m.nome} {!on && <Lock size={14} style={{ color: "var(--muted)" }} />}</b>
+                  {m.descricao && <div className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>{m.descricao}</div>}
+                </div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <b className="oc-num" style={{ fontSize: 22 }}>{fmt(m.preco)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
+                <div style={{ marginTop: 8 }}>
+                  {on ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 800, color: "#10B981", background: "rgba(16,185,129,.14)", padding: "8px 14px", borderRadius: 99 }}>
+                      <Check size={13} /> Ativado
+                    </span>
+                  ) : (
+                    <button className="btn" onClick={() => ativarModulo(m)} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", fontSize: 14 }}>
+                      <ArrowUpRight size={16} /> Ativar
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <b className="oc-num" style={{ fontSize: 22 }}>{fmt(PRECO_FOLHA)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
-            <div style={{ marginTop: 8 }}>
-              <button className="btn" onClick={ativarFolha} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", fontSize: 14 }}>
-                <ArrowUpRight size={16} /> Ativar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* módulo adicional: 2º acesso (bloqueado) */}
-      <div className="card" style={{ padding: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-            <span style={{ width: 46, height: 46, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Shield size={23} /></span>
-            <div style={{ minWidth: 0 }}>
-              <b style={{ fontSize: 16, display: "inline-flex", alignItems: "center", gap: 7 }}>2º acesso <Lock size={14} style={{ color: "var(--muted)" }} /></b>
-              <div className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>Mais um login de administrador para a sua equipe.</div>
-            </div>
-          </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <b className="oc-num" style={{ fontSize: 22 }}>{fmt(PRECO_ACESSO2)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
-            <div style={{ marginTop: 8 }}>
-              <button className="btn" onClick={ativarAcesso2} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", fontSize: 14 }}>
-                <ArrowUpRight size={16} /> Ativar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* módulo adicional: Planejamento estratégico (por último) */}
-      <div className="card" style={{ padding: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-            <span style={{ width: 46, height: 46, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Compass size={23} /></span>
-            <div style={{ minWidth: 0 }}>
-              <b style={{ fontSize: 16 }}>Planejamento estratégico</b>
-              <div className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>Defina metas e pilares e acompanhe o plano da sua empresa.</div>
-            </div>
-          </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <b className="oc-num" style={{ fontSize: 22 }}>{fmt(PRECO_PLANEJAMENTO)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
-            <div style={{ marginTop: 8 }}>
-              <button className="btn" onClick={ativarPlanejamento} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", fontSize: 14 }}>
-                <ArrowUpRight size={16} /> Ativar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+        );
+      })}
 
     </div>
   );

@@ -1199,7 +1199,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
       {aba === "dados" ? <Config secao="tudo" empresa={empresa} reload={reload} brand={brand} saveBrand={saveBrand} />
         : aba === "equipe" ? <Funcionarios funcs={funcs} reload={reload} empresa={empresa} brand={brand} loginEmail={loginEmail} ehDono={ehDono} irParaPlano={() => setAba("plano")} />
         : aba === "beneficios" ? <MeusBeneficios />
-        : aba === "plano" ? <MeuPlano />
+        : aba === "plano" ? <MeuPlano empresa={empresa} />
         : <EmConstrucao titulo={rotulo} />}
       </>
       )}

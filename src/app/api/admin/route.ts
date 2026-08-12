@@ -131,7 +131,11 @@ export async function GET(req: NextRequest) {
   const catRes = await s.from("planos_catalogo").select("chave,nome,descricao,preco,ordem,imagem").order("ordem", { ascending: true });
   const catalogo = (catRes.data as { chave: string; nome: string; descricao: string | null; preco: number; ordem: number; imagem: string | null }[] | null) ?? [];
 
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo });
+  // imagem do Super Admin (plano base, fixo) guardada na tabelinha de textos app_kv.
+  const kvSA = await s.from("app_kv").select("valor").eq("chave", "imagem_superadmin").maybeSingle();
+  const imagemSuperadmin = ((kvSA.data as { valor?: string } | null)?.valor) ?? null;
+
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin });
 }
 
 export async function POST(req: NextRequest) {
@@ -175,9 +179,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, chave });
   }
 
-  // Troca (ou remove) a imagem de um produto do catálogo.
+  // Troca (ou remove) a imagem de um produto do catálogo. O Super Admin é o plano
+  // base (fixo, fora do catálogo): a imagem dele fica na tabelinha app_kv.
   if (action === "plano-img" && body.planoKey) {
-    await s.from("planos_catalogo").update({ imagem: body.imagem || null }).eq("chave", body.planoKey);
+    if (body.planoKey === "superadmin") {
+      await s.from("app_kv").upsert({ chave: "imagem_superadmin", valor: body.imagem || null });
+    } else {
+      await s.from("planos_catalogo").update({ imagem: body.imagem || null }).eq("chave", body.planoKey);
+    }
     return NextResponse.json({ ok: true });
   }
 
