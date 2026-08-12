@@ -489,14 +489,14 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 14 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th></tr></thead>
+                  <thead><tr><th style={{ textAlign: "center", width: 34 }}>#</th><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
                     {(() => { const q = buscaEmpresa.trim().toLowerCase(); return data?.empresas.filter((e) => {
                       if (filtroAcesso === "ativos" ? e.acessoCortado : !e.acessoCortado) return false;
                       if (!q) return true;
                       return (e.nome || "").toLowerCase().includes(q) || (e.dono?.nome || "").toLowerCase().includes(q) || (e.dono?.email || "").toLowerCase().includes(q)
                         || (acessosMap[e.id] || []).some((a) => (a.nome || "").toLowerCase().includes(q) || (a.email || "").toLowerCase().includes(q));
-                    }).map((e) => {
+                    }).map((e, i) => {
                       type P = { key: string; nome: string; email: string | null; dono: boolean; cortado: boolean; toggle: () => void; verP: () => void; reenviar: () => void; editar: () => void; trash: (() => void) | null };
                       const confExcluir = `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`;
                       const donoP: P | null = e.dono ? {
@@ -514,12 +514,13 @@ export default function Admin() {
                         trash: () => acaoAcesso(e.id, "acesso-remover", a.id, `Remover o acesso de ${a.nome || a.email}?`),
                       }));
                       const pessoas: P[] = donoP ? [donoP, ...colabs] : colabs;
-                      const linha: React.CSSProperties = { minHeight: 48, display: "flex", alignItems: "center", padding: "6px 0" };
-                      const spacer = <span style={{ width: 30, height: 30, display: "inline-block", flexShrink: 0 }} />;
+                      const linha: React.CSSProperties = { minHeight: 40, display: "flex", alignItems: "center", padding: "3px 0" };
+                      const spacer = <span style={{ width: 28, height: 28, display: "inline-block", flexShrink: 0 }} />;
                       return (
                       <tr key={e.id}>
-                        <td className="adm-sub" style={{ verticalAlign: "top", paddingTop: 16 }}>{dataBR(e.criado_em)}</td>
-                        <td style={{ verticalAlign: "top", paddingTop: 16 }}><b>{e.nome}</b></td>
+                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 12, color: "#8b93a0", fontWeight: 700 }}>{i + 1}</td>
+                        <td className="adm-sub" style={{ verticalAlign: "top", paddingTop: 12 }}>{dataBR(e.criado_em)}</td>
+                        <td style={{ verticalAlign: "top", paddingTop: 12 }}><b>{e.nome}</b></td>
                         <td style={{ verticalAlign: "top" }}>
                           {pessoas.length ? pessoas.map((p, i) => (
                             <div key={p.key} style={{ ...linha, flexDirection: "column", alignItems: "flex-start", justifyContent: "center", borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
@@ -529,7 +530,7 @@ export default function Admin() {
                           )) : <span className="adm-sub">—</span>}
                         </td>
                         {/* Super Admin: status Ativo/Desativado + ação pequena embaixo */}
-                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 15 }}>
+                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 11 }}>
                           <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                             <span style={{ fontSize: 12, fontWeight: 800, color: e.acessoCortado ? "#94a3b8" : "#10B981" }}>{e.acessoCortado ? "Desativado" : "Ativo"}</span>
                             <button type="button" disabled={!!busy || !e.dono_id} onClick={() => toggleSuperAdmin(e)} title={e.acessoCortado ? "Ativar acesso (Super Admin)" : "Desativar acesso (desliga todos os módulos)"}
@@ -539,7 +540,7 @@ export default function Admin() {
                         {/* módulos: ligam/desligam por empresa (catálogo dinâmico). "acesso2" é automático. */}
                         {catalogo.map((c) => {
                           if (c.chave === "acesso2") { const extra = temAcessoExtra(e); return (
-                            <td key={c.chave} style={{ textAlign: "center", verticalAlign: "top", paddingTop: 14 }}>
+                            <td key={c.chave} style={{ textAlign: "center", verticalAlign: "top", paddingTop: 10 }}>
                               <button type="button" className={"adm-switch" + (extra ? " on" : "")} disabled title={extra ? "Tem acesso extra (login adicional)" : "Sem acesso extra"} style={{ opacity: .85, cursor: "default" }}><span className="adm-switch-knob" /></button>
                             </td>
                           ); }
@@ -564,7 +565,7 @@ export default function Admin() {
                       </tr>
                       );
                     }); })()}
-                    {!data?.empresas.length && <tr><td colSpan={5 + catalogo.length} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={6 + catalogo.length} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -875,11 +876,11 @@ const CSS = `
 .adm-card b{font-size:24px;font-weight:800;display:block;line-height:1}
 .adm-card small{color:#9aa0a6;font-size:13px}
 .adm-tablewrap{background:#121212;border:1px solid #222;border-radius:16px;overflow-x:auto}
-.adm-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:820px}
-.adm-table th{color:#8b93a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:12px 12px;border-bottom:1px solid #2a2a2a;font-weight:800;background:#171717}
+.adm-table{width:100%;border-collapse:collapse;font-size:12px;min-width:820px}
+.adm-table th{color:#8b93a0;font-size:10px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:9px 10px;border-bottom:1px solid #2a2a2a;font-weight:800;background:#171717}
 .adm-table th:first-child{border-top-left-radius:16px}
 .adm-table th:last-child{border-top-right-radius:16px}
-.adm-table td{padding:11px 12px;border-bottom:1px solid #1d1d1d;vertical-align:middle}
+.adm-table td{padding:8px 10px;border-bottom:1px solid #1d1d1d;vertical-align:middle}
 .adm-table th:not(:last-child),.adm-table td:not(:last-child){border-right:1px solid #202020}
 .adm-table tbody tr{transition:background .12s}
 .adm-table tbody tr:hover{background:#161616}
