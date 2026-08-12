@@ -691,8 +691,8 @@ export default function VendaClient() {
           <h1 style={{ fontSize: "clamp(34px,6vw,58px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, margin: "18px 0 0" }}>
             Sua empresa não pode viver <span className="dark-light" style={{ color: C.cyan }}>no escuro.</span>
           </h1>
-          <p style={{ color: C.muted, fontSize: "clamp(14px,3.2vw,19px)", lineHeight: 1.55, margin: "16px 0 0", maxWidth: 460 }}>
-            Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo.<br /><b style={{ color: C.txt }}>Veja o número real do seu negócio.</b>
+          <p style={{ color: "rgba(240,244,250,.92)", fontSize: "clamp(14px,3.2vw,19px)", lineHeight: 1.55, margin: "16px 0 0", maxWidth: 460 }}>
+            <b style={{ color: "#fff", fontWeight: 700 }}>Faturamento, custos e lucro</b> num painel que se monta sozinho. Chega de decidir no achismo.<br /><b style={{ color: C.cyan, fontWeight: 800 }}>Veja o número real do seu negócio.</b>
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
             <a href="#planos" className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar por R$ {PRECO}/mês <ArrowRight size={18} /></a>

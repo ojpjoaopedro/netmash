@@ -658,8 +658,8 @@ export default function SiteClient() {
           <h1 style={{ fontSize: "clamp(34px,6vw,58px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, margin: "18px 0 0" }}>
             Sua empresa não pode viver <span className="dark-light" style={{ color: C.cyan }}>no escuro.</span>
           </h1>
-          <p style={{ color: C.muted, fontSize: "clamp(14px,3.2vw,19px)", lineHeight: 1.55, margin: "16px 0 0", maxWidth: 460 }}>
-            Faturamento, custos e lucro num painel que se monta sozinho. Chega de decidir no achismo.<br /><b style={{ color: C.txt }}>Veja o número real do seu negócio.</b>
+          <p style={{ color: "rgba(240,244,250,.92)", fontSize: "clamp(14px,3.2vw,19px)", lineHeight: 1.55, margin: "16px 0 0", maxWidth: 460 }}>
+            <b style={{ color: "#fff", fontWeight: 700 }}>Faturamento, custos e lucro</b> num painel que se monta sozinho. Chega de decidir no achismo.<br /><b style={{ color: C.cyan, fontWeight: 800 }}>Veja o número real do seu negócio.</b>
           </p>
         </Reveal>
         <Reveal delay={150}><HeroStats /></Reveal>
