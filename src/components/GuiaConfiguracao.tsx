@@ -83,14 +83,17 @@ export default function GuiaConfiguracao({ empresa, brand, funcsCount }: { empre
   useEffect(() => {
     setMin(localStorage.getItem(KEY_MIN) === "1");
     setMontado(true);
+    // Reavalia as etapas por EVENTOS (não mais por timer de 1,5s rodando o tempo
+    // todo): foco na aba, mudanças em outra aba (storage) e os eventos próprios
+    // disparados ao salvar empresa/equipe/estrutura/termos.
     const bump = () => setTick((t) => t + 1);
-    const id = window.setInterval(bump, 1500);
     window.addEventListener("focus", bump);
     window.addEventListener("storage", bump);
+    window.addEventListener("me:empresa", bump);
     window.addEventListener("me:diretores", bump);
     window.addEventListener("me:estrutura", bump);
     window.addEventListener("me:termos", bump);
-    return () => { window.clearInterval(id); window.removeEventListener("focus", bump); window.removeEventListener("storage", bump); window.removeEventListener("me:diretores", bump); window.removeEventListener("me:estrutura", bump); window.removeEventListener("me:termos", bump); };
+    return () => { window.removeEventListener("focus", bump); window.removeEventListener("storage", bump); window.removeEventListener("me:empresa", bump); window.removeEventListener("me:diretores", bump); window.removeEventListener("me:estrutura", bump); window.removeEventListener("me:termos", bump); };
   }, []);
 
   // ── avaliação das etapas (relê o localStorage a cada tick) ──────────────────

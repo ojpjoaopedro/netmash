@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   LayoutDashboard, DollarSign, Compass, Settings,
   Users, Building2, LogOut, Sun, Moon, X,
@@ -30,20 +31,22 @@ import CalendarioRecebimento from "@/components/CalendarioRecebimento";
 import PromoParaVoce from "@/components/PromoParaVoce";
 import CropLogo from "@/components/CropLogo";
 import IndicatorEditor from "@/components/dash/IndicatorEditor";
-import GerarApresentacao from "@/components/dash/GerarApresentacao";
-import Assistente from "@/components/dash/Assistente";
-import Funcionarios from "@/components/Funcionarios";
-import Importar from "@/components/Importar";
-import Config from "@/components/Config";
 import LgpdConsent from "@/components/LgpdConsent";
-import EstruturaFinancas from "./financas-estrutura";
-import RelatoriosFinancas from "@/components/RelatoriosFinancas";
-import FolhaPagamento from "@/components/FolhaPagamento";
-import FinancasDashboard from "@/components/FinancasDashboard";
-import CalendarioPagamentos from "@/components/CalendarioPagamentos";
-import TermosDeUso from "@/components/TermosDeUso";
-import MeusBeneficios from "@/components/MeusBeneficios";
-import MeuPlano from "@/components/MeuPlano";
+// Telas pesadas que só abrem no clique: carregadas sob demanda (code-splitting)
+// para o painel abrir mais rápido. Não entram no bundle inicial da Home.
+const GerarApresentacao = dynamic(() => import("@/components/dash/GerarApresentacao"), { ssr: false });
+const Assistente = dynamic(() => import("@/components/dash/Assistente"), { ssr: false });
+const Funcionarios = dynamic(() => import("@/components/Funcionarios"), { ssr: false });
+const Importar = dynamic(() => import("@/components/Importar"), { ssr: false });
+const Config = dynamic(() => import("@/components/Config"), { ssr: false });
+const EstruturaFinancas = dynamic(() => import("./financas-estrutura"), { ssr: false });
+const RelatoriosFinancas = dynamic(() => import("@/components/RelatoriosFinancas"), { ssr: false });
+const FolhaPagamento = dynamic(() => import("@/components/FolhaPagamento"), { ssr: false });
+const FinancasDashboard = dynamic(() => import("@/components/FinancasDashboard"), { ssr: false });
+const CalendarioPagamentos = dynamic(() => import("@/components/CalendarioPagamentos"), { ssr: false });
+const TermosDeUso = dynamic(() => import("@/components/TermosDeUso"), { ssr: false });
+const MeusBeneficios = dynamic(() => import("@/components/MeusBeneficios"), { ssr: false });
+const MeuPlano = dynamic(() => import("@/components/MeuPlano"), { ssr: false });
 
 type View =
   | "dashboard" | "painel" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
@@ -267,17 +270,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
     });
   }, [empresa]);
 
-  // Carrega logo/cores do banco SEMPRE que a empresa estiver pronta (F5 inclusive),
-  // independente do sync geral acima. É o que garante a marca não sumir ao recarregar.
-  useEffect(() => {
-    if (!supabaseReady || !empresa) return;
-    let vivo = true;
-    void sincronizarEstado(["fin_brand", "fin_theme"]).then((v) => {
-      if (vivo && (v["fin_brand"] || v["fin_theme"])) aplicarBrandRemoto(v["fin_brand"] || null, v["fin_theme"] || null);
-    });
-    return () => { vivo = false; };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [empresa]);
+  // (removido) O sync geral acima já traz fin_brand/fin_theme uma vez na montagem
+  // (F5 remonta), e o effect abaixo aplica logo/cor direto da tabela empresas.
+  // Evita uma 2ª leitura completa de painel_estado a cada mudança de empresa.
 
   // FONTE CONFIÁVEL: logo/cor guardados na própria tabela empresas (carrega sempre, por qualquer usuário)
   useEffect(() => {
@@ -335,7 +330,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
   }
 
   const saldoInicial = empresa?.saldo_inicial ?? 0;
-  const effMetrs = aplicarReais(metrs, lancs, clientes);
+  // memoizado: só recalcula quando métricas/lançamentos/clientes mudam
+  // (antes rodava um cálculo pesado a cada render, inclusive ao abrir popups).
+  const effMetrs = useMemo(() => aplicarReais(metrs, lancs, clientes), [metrs, lancs, clientes]);
   const brandObj = { nome: nomeMarca, logo: brand.logo };
 
   // Controle de acesso: dono vê tudo; colaborador vê só as áreas liberadas.
