@@ -434,11 +434,17 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <Icon size={16} color={corDe(key)} /> {label}
               </button>
             ); })}
-            {/* Folha de pagamento: recurso de plano (bloqueado). Abre um popup de upgrade antes dos Planos. */}
-            <button onClick={() => { playTick(); setFolhaPromo(true); }} title="Folha de pagamento, recurso do plano. Ver planos.">
-              <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
-              <Lock size={13} style={{ marginLeft: "auto", opacity: .65 }} />
-            </button>
+            {/* Folha de pagamento: liberada pelo plano (abre) ou bloqueada (popup de upgrade). */}
+            {empresa?.planos?.folha ? (
+              <button className={view === "financas" && abaFin === "folha" ? "active" : ""} onClick={() => { playTick(); navegar({ view: "financas", aba: "folha" }); setMenuAberto(false); }}>
+                <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
+              </button>
+            ) : (
+              <button onClick={() => { playTick(); setFolhaPromo(true); }} title="Folha de pagamento, recurso do plano. Ver planos.">
+                <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
+                <Lock size={13} style={{ marginLeft: "auto", opacity: .65 }} />
+              </button>
+            )}
             {metricasMaisVis.length > 0 && (maisAberto || maisTemAtivo) && metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
               <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
                 <Icon size={16} color={corDe(key)} /> {label}

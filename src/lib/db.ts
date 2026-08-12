@@ -92,6 +92,7 @@ export type Empresa = {
   saldo_inicial: number;
   logo_url?: string | null;   // marca (logo) guardada na própria empresa: carrega sempre e por qualquer usuário
   cor?: string | null;        // cor de destaque da marca
+  planos?: Record<string, boolean> | null;   // módulos liberados p/ esta empresa (ex: { folha: true })
 };
 
 export type Perfil = {
