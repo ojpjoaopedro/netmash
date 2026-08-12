@@ -844,8 +844,8 @@ function TelaPainel({ ano, setAno }: { ano: number; setAno: (a: number) => void 
 
 // ---- Tutorial guiado das abas de Finanças (+ vídeo) ----
 const PASSOS_FIN: { sel: string; emoji: string; titulo: string; texto: React.ReactNode }[] = [
-  { sel: '[data-aba="estrutura"]', emoji: "🧾", titulo: "Painel financeiro", texto: <>É <b>aqui que você preenche</b> suas <b>receitas</b> e <b>custos</b> e vê o <b>resultado</b> do mês. Tudo começa por aqui.</> },
   { sel: '[data-aba="calendario"]', emoji: "🗓️", titulo: "Calendário", texto: <>Marque as <b>contas a pagar e a receber</b> por data. O que você lança no Calendário <b>aparece automaticamente no Painel financeiro</b>: os dois estão <b>conectados</b>.</> },
+  { sel: '[data-aba="estrutura"]', emoji: "🧾", titulo: "Painel financeiro", texto: <>É <b>aqui que você preenche</b> suas <b>receitas</b> e <b>custos</b> e vê o <b>resultado</b> do mês. Tudo começa por aqui.</> },
   { sel: '[data-tour="video"]', emoji: "▶️", titulo: "Vídeo", texto: <>Quer ver tudo em ação? Assista ao <b>vídeo-tutorial</b> completo.</> },
 ];
 function TutorialFinancas({ onFim }: { onFim: () => void }) {
@@ -977,8 +977,8 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
   });
   // Dashboard e Relatórios saíram das abas: agora são abertos pelos 2 cards da Home.
   const abas: { key: typeof aba; label: string; sub: string; Icon: typeof LayoutDashboard }[] = [
-    { key: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers },
     { key: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
+    { key: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers },
   ];
   // Dashboard/Relatório são abertos pelos atalhos da Home: sem cabeçalho/abas, só um "Voltar".
   const ehAtalhoHome = aba === "dashboard" || aba === "relatorios";
