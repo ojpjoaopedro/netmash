@@ -443,9 +443,9 @@ export default function Admin() {
     || (r.empresaNome || "").toLowerCase().includes(qLgpd));
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
+    { k: "produtos", label: "Produtos", Icon: DollarSign },
     { k: "empresas", label: "Empresas", Icon: Building2 },
     { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
-    { k: "produtos", label: "Produtos", Icon: DollarSign },
   ];
 
   // A empresa "Metricas" (conta minhasmetricas@gmail.com) é o modelo: é dela que
@@ -996,7 +996,7 @@ const CSS = `
 .adm-side-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;border-top:1px solid #1d1d1d;padding-top:12px}
 .adm-side-foot button{display:flex;align-items:center;gap:9px;background:none;border:0;color:#9aa0a6;font-size:13.5px;font-weight:600;padding:9px 12px;border-radius:10px;cursor:pointer;font-family:inherit}
 .adm-side-foot button:hover{color:#f4f5f7;background:#161616}
-.adm-main{flex:1;padding:28px 26px 60px;max-width:1120px;min-width:0}
+.adm-main{flex:1;padding:28px 26px 60px;max-width:1500px;min-width:0}
 .adm-main h1{font-size:25px;font-weight:800;letter-spacing:-.02em}
 .adm-headrow{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
 .adm-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#1AADE2;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;margin-bottom:14px}
