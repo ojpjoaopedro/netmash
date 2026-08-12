@@ -128,8 +128,8 @@ export async function GET(req: NextRequest) {
   }));
 
   // catálogo de produtos (planos). Retorna [] se a tabela ainda não existir.
-  const catRes = await s.from("planos_catalogo").select("chave,nome,descricao,preco,ordem").order("ordem", { ascending: true });
-  const catalogo = (catRes.data as { chave: string; nome: string; descricao: string | null; preco: number; ordem: number }[] | null) ?? [];
+  const catRes = await s.from("planos_catalogo").select("chave,nome,descricao,preco,ordem,imagem").order("ordem", { ascending: true });
+  const catalogo = (catRes.data as { chave: string; nome: string; descricao: string | null; preco: number; ordem: number; imagem: string | null }[] | null) ?? [];
 
   return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo });
 }
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
     precoSuperadmin?: number | string; precoAcesso?: number | string;
     emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
     lgpdId?: string; planoKey?: string; ativo?: boolean; descricao?: string; preco?: number | string;
-    planos?: Record<string, boolean>;
+    planos?: Record<string, boolean>; imagem?: string | null;
   };
   const { action, userId, empresaId } = body;
 
@@ -171,8 +171,14 @@ export async function POST(req: NextRequest) {
     const { data: mx } = await s.from("planos_catalogo").select("ordem").order("ordem", { ascending: false }).limit(1).maybeSingle();
     const ordem = (((mx as { ordem?: number } | null)?.ordem) ?? 0) + 1;
     const preco = Number(String(body.preco ?? "0").replace(/\./g, "").replace(",", ".")) || 0;
-    await s.from("planos_catalogo").insert({ chave, nome, descricao: (body.descricao || "").trim() || null, preco, ordem });
+    await s.from("planos_catalogo").insert({ chave, nome, descricao: (body.descricao || "").trim() || null, preco, ordem, imagem: body.imagem || null });
     return NextResponse.json({ ok: true, chave });
+  }
+
+  // Troca (ou remove) a imagem de um produto do catálogo.
+  if (action === "plano-img" && body.planoKey) {
+    await s.from("planos_catalogo").update({ imagem: body.imagem || null }).eq("chave", body.planoKey);
+    return NextResponse.json({ ok: true });
   }
 
   // Exclui um produto do catálogo.

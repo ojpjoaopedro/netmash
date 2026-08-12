@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
-  FileText, Search, Info,
+  FileText, Search, Info, ImageIcon,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl } from "@/lib/format";
@@ -24,7 +24,7 @@ type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; e
 
 // catálogo de produtos (planos). Vem do banco (planos_catalogo); estes são o
 // fallback quando a tabela ainda não existe. O Super Admin é o plano base (fixo).
-type Plano = { chave: string; nome: string; descricao: string | null; preco: number; ordem?: number };
+type Plano = { chave: string; nome: string; descricao: string | null; preco: number; ordem?: number; imagem?: string | null };
 const CATALOGO_PADRAO: Plano[] = [
   { chave: "folha", nome: "Folha de pagamento", descricao: "Salários, benefícios e encargos da equipe", preco: 39.9 },
   { chave: "acesso2", nome: "2º acesso", descricao: "Login adicional de administrador", preco: 9.9 },
@@ -227,14 +227,42 @@ export default function Admin() {
     await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "planos", empresaId, planoKey, ativo }) });
   }
   // cadastro de produto (plano) no catálogo
-  const [novoProduto, setNovoProduto] = useState<{ nome: string; descricao: string; preco: string } | null>(null);
+  const [novoProduto, setNovoProduto] = useState<{ nome: string; descricao: string; preco: string; imagem: string } | null>(null);
   const [salvProd, setSalvProd] = useState(false);
+  const [imgProd, setImgProd] = useState<string | null>(null); // chave em upload na tabela
   async function salvarProduto() {
     if (!novoProduto || !novoProduto.nome.trim() || !supabase) return;
     setSalvProd(true);
     const { data: sess } = await supabase.auth.getSession();
-    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "plano-add", nome: novoProduto.nome, descricao: novoProduto.descricao, preco: novoProduto.preco }) });
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "plano-add", nome: novoProduto.nome, descricao: novoProduto.descricao, preco: novoProduto.preco, imagem: novoProduto.imagem || null }) });
     setSalvProd(false); setNovoProduto(null); await carregar();
+  }
+  // Lê um arquivo de imagem, reduz e devolve como data URL (base64) para salvar no banco.
+  function lerImagem(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 320; const esc = Math.min(1, max / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.width * esc); c.height = Math.round(img.height * esc);
+          c.getContext("2d")?.drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL("image/webp", 0.85));
+        };
+        img.onerror = reject; img.src = String(r.result);
+      };
+      r.onerror = reject; r.readAsDataURL(file);
+    });
+  }
+  // Troca a imagem de um produto já cadastrado (clicando na miniatura da tabela).
+  async function trocarImagemProduto(chave: string, file: File | null) {
+    if (!supabase) return;
+    setImgProd(chave);
+    const dataUrl = file ? await lerImagem(file) : null;
+    const { data: sess } = await supabase.auth.getSession();
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "plano-img", planoKey: chave, imagem: dataUrl }) });
+    await carregar(); setImgProd(null);
   }
   async function excluirProduto(chave: string, nome: string) {
     if (!window.confirm(`Excluir o produto "${nome}"? Ele some das colunas das empresas.`) || !supabase) return;
@@ -585,13 +613,14 @@ export default function Admin() {
                   <h1>Produtos <span className="adm-sub">(nossos planos)</span></h1>
                   <p className="adm-sub" style={{ marginTop: 4 }}>Cadastrar um produto o adiciona automaticamente (desativado) nas colunas das Empresas.</p>
                 </div>
-                <button className="adm-btn" onClick={() => setNovoProduto({ nome: "", descricao: "", preco: "" })}><Plus size={15} /> Cadastrar produto</button>
+                <button className="adm-btn" onClick={() => setNovoProduto({ nome: "", descricao: "", preco: "", imagem: "" })}><Plus size={15} /> Cadastrar produto</button>
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th><th>Acessos ativos</th><th></th></tr></thead>
+                  <thead><tr><th style={{ width: 64 }}>Imagem</th><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th><th>Acessos ativos</th><th></th></tr></thead>
                   <tbody>
                     <tr>
+                      <td><span style={{ width: 40, height: 40, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--card-2,#0d0d0d)", border: "1px solid var(--line-2,#2a2a2a)", color: "var(--muted,#888)" }}><ImageIcon size={16} /></span></td>
                       <td><b>Super Admin</b><span className="adm-badge" style={{ marginLeft: 8 }}>Principal</span></td>
                       <td className="adm-sub">Acesso principal da empresa (plano base)</td>
                       <td><b>{brlP(precos.superadmin)}</b></td>
@@ -601,6 +630,19 @@ export default function Admin() {
                     </tr>
                     {catalogo.map((c) => (
                       <tr key={c.chave}>
+                        <td>
+                          <label title={c.imagem ? "Trocar imagem" : "Enviar imagem"} style={{ cursor: imgProd === c.chave ? "wait" : "pointer", display: "inline-block", position: "relative" }}>
+                            <input type="file" accept="image/*" style={{ display: "none" }} disabled={imgProd === c.chave}
+                              onChange={(ev) => { const f = ev.target.files?.[0] || null; ev.target.value = ""; trocarImagemProduto(c.chave, f); }} />
+                            {c.imagem ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={c.imagem} alt={c.nome} style={{ width: 40, height: 40, borderRadius: 9, objectFit: "cover", border: "1px solid var(--line-2,#2a2a2a)", display: "block", opacity: imgProd === c.chave ? 0.5 : 1 }} />
+                            ) : (
+                              <span style={{ width: 40, height: 40, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--card-2,#0d0d0d)", border: "1px dashed var(--line-2,#3a3a3a)", color: "var(--muted,#888)" }}><Plus size={15} /></span>
+                            )}
+                          </label>
+                          {c.imagem && <button title="Remover imagem" onClick={() => trocarImagemProduto(c.chave, null)} style={{ display: "block", marginTop: 3, fontSize: 10, background: "transparent", border: 0, cursor: "pointer", color: "var(--muted,#888)", fontFamily: "inherit", padding: 0 }}>remover</button>}
+                        </td>
                         <td><b>{c.nome}</b></td>
                         <td className="adm-sub">{c.descricao || "—"}</td>
                         <td><b>{brlP(c.preco)}</b></td>
@@ -622,7 +664,26 @@ export default function Admin() {
                     </div>
                     <label style={{ display: "block", marginBottom: 10 }}><span className="adm-sub" style={{ display: "block", marginBottom: 5 }}>Nome do produto</span><input value={novoProduto.nome} onChange={(ev) => setNovoProduto({ ...novoProduto, nome: ev.target.value })} placeholder="Ex: Relatórios avançados" style={inp} /></label>
                     <label style={{ display: "block", marginBottom: 10 }}><span className="adm-sub" style={{ display: "block", marginBottom: 5 }}>Descrição</span><input value={novoProduto.descricao} onChange={(ev) => setNovoProduto({ ...novoProduto, descricao: ev.target.value })} placeholder="O que o plano oferece" style={inp} /></label>
-                    <label style={{ display: "block", marginBottom: 16 }}><span className="adm-sub" style={{ display: "block", marginBottom: 5 }}>Preço (R$/mês)</span><input value={novoProduto.preco} onChange={(ev) => setNovoProduto({ ...novoProduto, preco: ev.target.value })} inputMode="decimal" placeholder="19,90" style={inp} /></label>
+                    <label style={{ display: "block", marginBottom: 14 }}><span className="adm-sub" style={{ display: "block", marginBottom: 5 }}>Preço (R$/mês)</span><input value={novoProduto.preco} onChange={(ev) => setNovoProduto({ ...novoProduto, preco: ev.target.value })} inputMode="decimal" placeholder="19,90" style={inp} /></label>
+                    <div style={{ marginBottom: 16 }}>
+                      <span className="adm-sub" style={{ display: "block", marginBottom: 6 }}>Imagem do produto (opcional)</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <label title="Enviar imagem" style={{ cursor: "pointer", flexShrink: 0 }}>
+                          <input type="file" accept="image/*" style={{ display: "none" }}
+                            onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ""; if (f) setNovoProduto({ ...novoProduto, imagem: await lerImagem(f) }); }} />
+                          {novoProduto.imagem ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={novoProduto.imagem} alt="Prévia" style={{ width: 60, height: 60, borderRadius: 12, objectFit: "cover", border: "1px solid var(--line-2,#2a2a2a)", display: "block" }} />
+                          ) : (
+                            <span style={{ width: 60, height: 60, borderRadius: 12, display: "grid", placeItems: "center", background: "var(--card-2,#0d0d0d)", border: "1px dashed var(--line-2,#3a3a3a)", color: "var(--muted,#888)" }}><ImageIcon size={20} /></span>
+                          )}
+                        </label>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <span className="adm-sub" style={{ fontSize: 12 }}>{novoProduto.imagem ? "Clique na imagem para trocar." : "Clique no quadro para enviar. PNG ou JPG."}</span>
+                          {novoProduto.imagem && <button onClick={() => setNovoProduto({ ...novoProduto, imagem: "" })} style={{ alignSelf: "flex-start", background: "transparent", border: 0, cursor: "pointer", color: "var(--muted,#888)", fontFamily: "inherit", fontSize: 12, padding: 0 }}>Remover</button>}
+                        </div>
+                      </div>
+                    </div>
                     <button className="adm-btn" disabled={salvProd || !novoProduto.nome.trim()} onClick={salvarProduto} style={{ width: "100%", justifyContent: "center" }}>{salvProd ? "Salvando…" : "Cadastrar produto"}</button>
                   </div>
                 </div>
