@@ -82,17 +82,17 @@ function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: st
 
 function Painel({ titulo, badge, badgeCor, chart, children }: { titulo: string; badge?: string; badgeCor?: string; chart?: boolean; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "linear-gradient(160deg, rgba(30,41,59,.6), rgba(15,23,42,.35))", border: "1px solid rgba(148,163,184,.14)", borderRadius: 18, padding: 20, boxShadow: "0 20px 50px -30px rgba(0,0,0,.7)" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-        <b style={{ fontSize: 16, color: "#f8fafc", letterSpacing: "-.01em" }}>{titulo}</b>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "linear-gradient(160deg, rgba(30,41,59,.6), rgba(15,23,42,.35))", border: "1px solid rgba(148,163,184,.14)", borderRadius: 16, padding: 14, boxShadow: "0 20px 50px -30px rgba(0,0,0,.7)" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+        <b style={{ fontSize: 14.5, color: "#f8fafc", letterSpacing: "-.01em" }}>{titulo}</b>
         {badge && (
-          <span style={{ textAlign: "right", padding: "7px 14px", borderRadius: 12, background: `${badgeCor}22`, border: `1px solid ${badgeCor}66` }}>
-            <span style={{ display: "block", fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: badgeCor }}>{titulo.includes("Fatur") ? "Total faturado" : "Custos totais"}</span>
-            <span className="oc-num" style={{ display: "block", fontSize: 17, fontWeight: 800, color: "#fff" }}>{badge}</span>
+          <span style={{ textAlign: "right", padding: "6px 12px", borderRadius: 11, background: `${badgeCor}22`, border: `1px solid ${badgeCor}66` }}>
+            <span style={{ display: "block", fontSize: 8.5, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: badgeCor }}>{titulo.includes("Fatur") ? "Total faturado" : "Custos totais"}</span>
+            <span className="oc-num" style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: "#fff" }}>{badge}</span>
           </span>
         )}
       </div>
-      <div style={{ flex: 1, minHeight: chart ? 180 : 0, display: "flex" }}>{children}</div>
+      <div style={{ flex: 1, minHeight: chart ? 140 : 0, display: "flex" }}>{children}</div>
     </div>
   );
 }
@@ -184,7 +184,7 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
       </div>
 
       {/* 4 painéis */}
-      <div className="dash-grid" style={{ display: "grid", gap: 14, flex: full ? 1 : undefined, minHeight: 0,
+      <div className="dash-grid" style={{ display: "grid", gap: 12, flex: full ? 1 : undefined, minHeight: 0,
         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
         gridTemplateRows: full ? "1fr 1fr" : undefined }}>
         <Painel titulo="Faturamento mês a mês" badge={fmtR(calc.totRec)} badgeCor="#10B981" chart>
