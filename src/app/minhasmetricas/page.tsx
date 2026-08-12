@@ -726,8 +726,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {!estreito && view === "dashboard" && <div style={{ margin: "6px 2px 10px", fontSize: 11.5, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>}
         {!estreito && view === "dashboard" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            {[{ aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
-              { aba: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers }].map((c) => (
+            {[{ aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays, dica: "Coloque os dados por aqui", stat: "8 a cada 10 empresas preenchem por aqui" },
+              { aba: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers, dica: "Coloque os dados por aqui", stat: "2 a cada 10 empresas preenchem por aqui" }].map((c) => (
               <button key={c.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}
                 style={{ position: "relative", overflow: "hidden", minHeight: 168, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 20, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                   padding: "22px 24px", borderRadius: 22, color: "#fff",
@@ -750,6 +750,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
                         style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.22)", border: "1px solid rgba(255,255,255,.4)", cursor: "pointer" }}><Lock size={17} color="#fff" /></span>
                     : <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>}
                 </div>
+                {/* dica no topo: onde preencher + o dado sutil */}
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.3)", borderRadius: 99, padding: "5px 13px", fontSize: 12, fontWeight: 800, letterSpacing: ".01em" }}>{c.dica}</span>
+                  <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 500, color: "rgba(255,255,255,.8)" }}>{c.stat}</div>
+                </div>
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <b style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.02em", display: "block", lineHeight: 1.15 }}>{c.label}</b>
                   <p style={{ margin: "5px 0 0", fontSize: 12.5, fontWeight: 500, color: "rgba(255,255,255,.82)" }}>{c.sub}</p>
@@ -757,21 +762,20 @@ export default function Home({ secao }: { secao?: string } = {}) {
               </button>
             ))}
             {/* informativo: os dois preenchimentos são conectados */}
-            <div style={{ minHeight: 168, borderRadius: 22, padding: "22px 24px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14, background: "var(--card)", border: "1px solid var(--line)", boxShadow: "0 12px 34px -24px rgba(15,23,42,.4)" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 13 }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 12%, transparent)", color: "var(--brand)" }}><CalendarDays size={17} /></span>
-                  <span style={{ color: "var(--muted-2)", fontSize: 15, fontWeight: 700 }}>⇄</span>
-                  <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 12%, transparent)", color: "var(--brand)" }}><Layers size={17} /></span>
-                </div>
-                <b style={{ fontSize: 16.5, letterSpacing: "-.01em" }}>Preencha onde preferir</b>
-                <p className="sub" style={{ fontSize: 12.7, lineHeight: 1.6, marginTop: 7 }}>
-                  O que você registra no <b style={{ color: "var(--txt)" }}>Calendário</b> ou no <b style={{ color: "var(--txt)" }}>Painel financeiro</b> vai automaticamente para o outro, e alimenta todas as <b style={{ color: "var(--txt)" }}>dashboards</b> e painéis visuais do app.
-                </p>
+            <div style={{ position: "relative", overflow: "hidden", minHeight: 168, borderRadius: 22, padding: "24px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 12,
+              background: "linear-gradient(158deg, color-mix(in srgb, var(--brand) 8%, var(--card)), var(--card) 62%)",
+              border: "1px solid color-mix(in srgb, var(--brand) 24%, var(--line))",
+              boxShadow: "0 18px 44px -30px color-mix(in srgb, var(--brand) 65%, transparent)" }}>
+              <span aria-hidden style={{ position: "absolute", right: -34, top: -44, width: 138, height: 138, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, color-mix(in srgb, var(--brand) 16%, transparent), transparent 70%)" }} />
+              <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><CalendarDays size={18} /></span>
+                <span style={{ color: "var(--brand)", fontSize: 17, fontWeight: 800, opacity: .85 }}>⇄</span>
+                <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Layers size={18} /></span>
               </div>
-              <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
-                <span className="sub" style={{ fontSize: 11.3, lineHeight: 1.5 }}>Cerca de <b style={{ color: "var(--txt)" }}>8 em cada 10</b> empresas preenchem pelo Calendário, as demais pelo Painel financeiro.</span>
-              </div>
+              <b style={{ position: "relative", zIndex: 1, fontSize: 17.5, letterSpacing: "-.01em" }}>Tudo conectado</b>
+              <p className="sub" style={{ position: "relative", zIndex: 1, fontSize: 12.8, lineHeight: 1.62 }}>
+                O que você registra no <b style={{ color: "var(--txt)" }}>Calendário</b> ou no <b style={{ color: "var(--txt)" }}>Painel financeiro</b> vai automaticamente para o outro, e alimenta todas as <b style={{ color: "var(--txt)" }}>dashboards</b> e painéis visuais do app.
+              </p>
             </div>
           </div>
         )}
