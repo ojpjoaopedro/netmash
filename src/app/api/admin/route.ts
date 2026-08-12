@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
     s.from("clientes").select("empresa_id"),
     s.from("funcionarios").select("empresa_id"),
   ]);
-  const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; cidade?: string | null; estado?: string | null; logo_url?: string | null; cor?: string | null }[];
+  const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; responsavel_cpf?: string | null; cidade?: string | null; estado?: string | null; logo_url?: string | null; cor?: string | null }[];
   const perfis = (per.data ?? []) as { id: string; empresa_id: string; nome: string | null; email: string | null; papel: string }[];
 
   // Status de acesso (banido = acesso cortado)
@@ -96,6 +96,8 @@ export async function GET(req: NextRequest) {
       id: e.id, nome: e.nome, segmento: e.segmento, criado_em: e.criado_em, saldo_inicial: e.saldo_inicial,
       dono_id: e.dono_id,
       dono: dono ? { id: dono.id, nome: dono.nome, email: dono.email } : null,
+      responsavel: e.responsavel ?? dono?.nome ?? null,
+      responsavel_cpf: e.responsavel_cpf ?? null,
       acessoCortado: e.dono_id ? (banido.get(e.dono_id) ?? false) : false,
       plano: e.plano ?? null,
       valor: Number(e.valor ?? 0),
@@ -150,7 +152,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as {
     action?: string; userId?: string; empresaId?: string;
     nomeEmpresa?: string; responsavel?: string; email?: string; senha?: string;
-    cnpj?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string; cor?: string;
+    cnpj?: string; cpf?: string; qtdSuperadmins?: number | string; qtdAcessos?: number | string; logo?: string; slug?: string; cor?: string;
     nome?: string; areas?: string[]; segmento?: string; cidade?: string; estado?: string; saldoInicial?: number | string;
     precoSuperadmin?: number | string; precoAcesso?: number | string;
     emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
@@ -231,7 +233,7 @@ export async function POST(req: NextRequest) {
     const { data: emp } = await s.from("empresas").select("id").eq("dono_id", sa.user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
     // só os módulos marcados como true entram nos planos ativos da empresa
     const planosAtivos = Object.fromEntries(Object.entries(body.planos || {}).filter(([, v]) => v));
-    if (emp?.id) await s.from("empresas").update({ nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null, planos: planosAtivos }).eq("id", emp.id);
+    if (emp?.id) await s.from("empresas").update({ nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null, responsavel_cpf: body.cpf || null, planos: planosAtivos }).eq("id", emp.id);
     // a nova empresa nasce sem estrutura no banco: o painel mostra o MODELO LIMPO
     // (genérico) até a empresa preencher. Assim nenhum dado de exemplo vaza.
     const emails = [emailResp];
@@ -264,7 +266,7 @@ export async function POST(req: NextRequest) {
     const pr = await getPrecos(s);
     const valor = qs * pr.superadmin + qa * pr.acesso;
     const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
-    const patch: Record<string, unknown> = { nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null, segmento: body.segmento || null, saldo_inicial: Number(body.saldoInicial) || 0 };
+    const patch: Record<string, unknown> = { nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null, responsavel_cpf: body.cpf || null, segmento: body.segmento || null, saldo_inicial: Number(body.saldoInicial) || 0 };
     if (body.logo) patch.logo_url = body.logo;
     await s.from("empresas").update(patch).eq("id", empresaId);
     const { data: e } = await s.from("empresas").select("dono_id").eq("id", empresaId).single();

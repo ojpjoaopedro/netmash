@@ -7,7 +7,7 @@ import {
   FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
-import { dataBR, dataHoraBR, brl } from "@/lib/format";
+import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
 import AdminCupons from "@/components/AdminCupons";
 
@@ -15,12 +15,13 @@ type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
   dono_id: string | null; dono: { id: string; nome: string | null; email: string | null } | null;
   acessoCortado: boolean; plano: string | null; valor: number; slug: string | null; cnpj: string | null;
+  responsavel?: string | null; responsavel_cpf?: string | null;
   cidade: string | null; estado: string | null;
   logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
   planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
 };
 type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null };
-type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
+type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; cpf: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 // catálogo de produtos (planos). Vem do banco (planos_catalogo); estes são o
 // fallback quando a tabela ainda não existe. O Super Admin é o plano base (fixo).
@@ -49,7 +50,7 @@ type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
-type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[]; planos: Record<string, boolean> };
+type NovoCliente = { nomeEmpresa: string; cnpj: string; cpf: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[]; planos: Record<string, boolean> };
 
 // Dados de demonstração — usados quando o Supabase não está configurado (localhost),
 // pra você visualizar/ajustar a tela sem precisar de login.
@@ -291,13 +292,13 @@ export default function Admin() {
     await Promise.all(catalogo.filter((c) => e.planos?.[c.chave]).map((c) => togglePlano(e.id, c.chave, false)));
     acao("cortar", { userId: e.dono_id });
   }
-  function abrirCadastro() { setErroNovo(""); setNovo({ nomeEmpresa: "", cnpj: "", responsavel: "", emailResp: "", funcionarios: [], planos: {} }); }
+  function abrirCadastro() { setErroNovo(""); setNovo({ nomeEmpresa: "", cnpj: "", cpf: "", responsavel: "", emailResp: "", funcionarios: [], planos: {} }); }
   async function criarNovo(e: React.FormEvent) {
     e.preventDefault();
     if (!novo || !supabase) return;
     if (!novo.nomeEmpresa.trim() || !novo.emailResp.includes("@")) { setErroNovo("Informe o nome da empresa e o e-mail do responsável."); return; }
     setSalvNovo(true); setErroNovo("");
-    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "criar", nomeEmpresa: novo.nomeEmpresa, cnpj: novo.cnpj, responsavel: novo.responsavel, emailResp: novo.emailResp, funcionarios: novo.funcionarios, planos: novo.planos }) });
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "criar", nomeEmpresa: novo.nomeEmpresa, cnpj: novo.cnpj, cpf: novo.cpf, responsavel: novo.responsavel, emailResp: novo.emailResp, funcionarios: novo.funcionarios, planos: novo.planos }) });
     const j = await res.json().catch(() => ({}));
     setSalvNovo(false);
     if (!res.ok) { setErroNovo(j.error || "Não consegui cadastrar."); return; }
@@ -306,7 +307,7 @@ export default function Admin() {
   function abrirEdicao(e: Empresa) {
     setErroForm("");
     const { qs, qa } = seatsDePlano(e.plano);
-    setForm({ editId: e.id, nomeEmpresa: e.nome, responsavel: e.dono?.nome || "", email: e.dono?.email || "", senha: "", cnpj: e.cnpj || "", segmento: e.segmento || "", saldoInicial: String(e.saldo_inicial ?? 0), qtdSuperadmins: String(qs), qtdAcessos: String(qa), logo: "", slug: e.slug || "" });
+    setForm({ editId: e.id, nomeEmpresa: e.nome, responsavel: e.responsavel || e.dono?.nome || "", email: e.dono?.email || "", senha: "", cnpj: e.cnpj || "", cpf: e.responsavel_cpf || "", segmento: e.segmento || "", saldoInicial: String(e.saldo_inicial ?? 0), qtdSuperadmins: String(qs), qtdAcessos: String(qa), logo: "", slug: e.slug || "" });
   }
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
@@ -317,6 +318,7 @@ export default function Admin() {
       const plano = `${qs} Super Admin${qs > 1 ? "s" : ""} + ${qa} Acesso${qa !== 1 ? "s" : ""}`;
       setData((d) => d ? { ...d, empresas: d.empresas.map((emp) => emp.id === form.editId ? {
         ...emp, nome: form.nomeEmpresa, cnpj: form.cnpj || null, segmento: form.segmento || null,
+        responsavel: form.responsavel || emp.responsavel, responsavel_cpf: form.cpf || null,
         slug: form.slug || emp.slug, valor, plano, logo_url: form.logo || emp.logo_url,
         dono: emp.dono ? { ...emp.dono, nome: form.responsavel || emp.dono.nome, email: form.email || emp.dono.email } : emp.dono,
       } : emp) } : d);
@@ -489,16 +491,20 @@ export default function Admin() {
               <h3 className="adm-h3">Últimos clientes</h3>
               <div className="adm-tablewrap">
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>E-mail de acesso</th><th>Criada</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>Responsável</th><th>E-mail de acesso</th><th>Criada</th></tr></thead>
                   <tbody>
                     {data?.empresas.slice(0, 6).map((e) => (
                       <tr key={e.id}>
                         <td><b>{e.nome}</b>{ehPadrao(e) && <span className="adm-badge-padrao">Padrão</span>}</td>
+                        <td>
+                          <div>{e.responsavel || e.dono?.nome || "—"}</div>
+                          {e.responsavel_cpf && <div className="adm-sub" style={{ fontSize: 11 }}>CPF: {e.responsavel_cpf}</div>}
+                        </td>
                         <td className="adm-sub">{e.dono?.email || "—"}</td>
                         <td className="adm-sub">{dataHoraBR(e.criado_em)}</td>
                       </tr>
                     ))}
-                    {!data?.empresas.length && <tr><td colSpan={3} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={4} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -573,6 +579,7 @@ export default function Admin() {
                             <div key={p.key} style={{ ...linha, flexDirection: "column", alignItems: "flex-start", justifyContent: "center", borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
                               <div style={{ opacity: p.cortado ? .6 : 1 }}>{p.nome}</div>
                               <div className="adm-sub">{p.email}</div>
+                              {p.dono && e.responsavel_cpf && <div className="adm-sub" style={{ fontSize: 11 }}>CPF: {e.responsavel_cpf}</div>}
                             </div>
                           )) : <span className="adm-sub">—</span>}
                         </td>
@@ -849,6 +856,7 @@ export default function Admin() {
               <L label="Nome da empresa"><input value={form.nomeEmpresa} onChange={(ev) => setForm({ ...form, nomeEmpresa: ev.target.value })} required /></L>
               <L label="CNPJ (opcional)"><input value={form.cnpj} onChange={(ev) => setForm({ ...form, cnpj: mascaraCnpj(ev.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" /></L>
               <L label="Responsável"><input value={form.responsavel} onChange={(ev) => setForm({ ...form, responsavel: ev.target.value })} /></L>
+              <L label="CPF do responsável"><input value={form.cpf} onChange={(ev) => setForm({ ...form, cpf: mascararCPF(ev.target.value) })} placeholder="000.000.000-00" inputMode="numeric" /></L>
               <L label="E-mail do responsável"><input type="email" value={form.email} onChange={(ev) => setForm({ ...form, email: ev.target.value })} required /></L>
               <L label={form.editId ? "Nova senha (em branco = manter)" : "Senha de acesso"}><input type="text" value={form.senha} onChange={(ev) => setForm({ ...form, senha: ev.target.value })} required={!form.editId} minLength={6} placeholder={form.editId ? "deixe em branco p/ manter" : "mín. 6 caracteres"} /></L>
               <L label="Endereço da página (slug)"><input value={form.slug} onChange={(ev) => setForm({ ...form, slug: ev.target.value })} placeholder="auto pelo nome" /></L>
@@ -868,6 +876,7 @@ export default function Admin() {
               <L label="Nome da empresa"><input value={novo.nomeEmpresa} onChange={(ev) => setNovo({ ...novo, nomeEmpresa: ev.target.value })} required /></L>
               <L label="CNPJ (opcional)"><input value={novo.cnpj} onChange={(ev) => setNovo({ ...novo, cnpj: mascaraCnpj(ev.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" /></L>
               <L label="Responsável (Super Admin)"><input value={novo.responsavel} onChange={(ev) => setNovo({ ...novo, responsavel: ev.target.value })} /></L>
+              <L label="CPF do responsável"><input value={novo.cpf} onChange={(ev) => setNovo({ ...novo, cpf: mascararCPF(ev.target.value) })} placeholder="000.000.000-00" inputMode="numeric" /></L>
               <L label="E-mail do responsável"><input type="email" value={novo.emailResp} onChange={(ev) => setNovo({ ...novo, emailResp: ev.target.value })} required /></L>
             </div>
             <div style={{ marginTop: 18 }}>
