@@ -856,12 +856,17 @@ const CSS = `
 .adm-card b{font-size:24px;font-weight:800;display:block;line-height:1}
 .adm-card small{color:#9aa0a6;font-size:13px}
 .adm-tablewrap{background:#121212;border:1px solid #222;border-radius:16px;overflow-x:auto}
-.adm-table{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}
-.adm-table th{color:#9aa0a6;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:14px 14px;border-bottom:1px solid #222;font-weight:700}
-.adm-table td{padding:13px 14px;border-bottom:1px solid #1d1d1d;vertical-align:middle}
+.adm-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:820px}
+.adm-table th{color:#8b93a0;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:12px 12px;border-bottom:1px solid #2a2a2a;font-weight:800;background:#171717}
+.adm-table th:first-child{border-top-left-radius:16px}
+.adm-table th:last-child{border-top-right-radius:16px}
+.adm-table td{padding:11px 12px;border-bottom:1px solid #1d1d1d;vertical-align:middle}
+.adm-table th:not(:last-child),.adm-table td:not(:last-child){border-right:1px solid #202020}
+.adm-table tbody tr{transition:background .12s}
+.adm-table tbody tr:hover{background:#161616}
 .adm-table tr:last-child td{border-bottom:0}
 .adm-table .num{text-align:right}
-.adm-sub{color:#9aa0a6;font-size:12.5px;font-weight:400}
+.adm-sub{color:#9aa0a6;font-size:11.5px;font-weight:400}
 .adm-badge{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:99px;border:1px solid}
 .adm-badge.ativo{color:#10B981;border-color:#10B98155;background:#10B9811a}
 .adm-badge.cortado{color:#EF4444;border-color:#EF444455;background:#EF44441a}
@@ -870,7 +875,7 @@ const CSS = `
 .adm-btn:hover{filter:brightness(1.08)}
 .adm-btn:disabled{opacity:.5;cursor:default}
 .adm-btn.sm{padding:6px 11px;font-size:12.5px;font-weight:700}
-.adm-btn.adm-ic{padding:8px;border-radius:10px;line-height:0}
+.adm-btn.adm-ic{padding:7px;border-radius:9px;line-height:0}
 .adm-login{width:100%;max-width:380px;background:#121212;border:1px solid #222;border-radius:20px;padding:30px 28px}
 body.theme-light .adm-login{background:#fff;border-color:rgba(0,0,0,.08);box-shadow:0 10px 40px -12px rgba(0,0,0,.15)}
 .adm-login-l{display:block;font-size:12.5px;font-weight:700;color:#9aa0a6;margin:12px 0 6px}
@@ -1083,9 +1088,10 @@ body.theme-light .adm-card small,
 body.theme-light .adm-sub,
 body.theme-light .adm-table th{color:#52525b}
 body.theme-light .adm-tablewrap{background:#fff;border-color:rgba(0,0,0,.08)}
-body.theme-light .adm-table th{border-bottom-color:rgba(0,0,0,.10)}
+body.theme-light .adm-table th{border-bottom-color:rgba(0,0,0,.10);background:#f6f7f9}
 body.theme-light .adm-table td{border-bottom-color:rgba(0,0,0,.07)}
-body.theme-light .adm-table tr:hover td{background:rgba(0,0,0,.025)}
+body.theme-light .adm-table th:not(:last-child),body.theme-light .adm-table td:not(:last-child){border-right-color:rgba(0,0,0,.06)}
+body.theme-light .adm-table tbody tr:hover{background:rgba(0,0,0,.022)}
 body.theme-light .adm-perm,
 body.theme-light .adm-acbox,
 body.theme-light .adm-aviso,
