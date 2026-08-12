@@ -74,7 +74,7 @@ export default function Admin() {
   const [estado, setEstado] = useState<"carregando" | "semlogin" | "negado" | "ok" | "erro">("carregando");
   const [data, setData] = useState<Resp | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [filtroAcesso, setFiltroAcesso] = useState<"todos" | "ativos" | "desativados">("todos");   // filtro por status do acesso (Super Admin)
+  const [filtroAcesso, setFiltroAcesso] = useState<"ativos" | "desativados">("ativos");   // filtro por status do acesso (Super Admin)
   const [verLink, setVerLink] = useState<{ nome: string; link: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [form, setForm] = useState<Form | null>(null);
@@ -466,26 +466,24 @@ export default function Admin() {
           {aba === "empresas" && (
             <>
               <div className="adm-headrow">
-                <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-                  <h1>Empresas <span className="adm-sub">({t?.empresas ?? 0})</span></h1>
-                  {(() => { const nAtivos = data?.empresas.filter((e) => !e.acessoCortado).length ?? 0; const nDes = data?.empresas.filter((e) => e.acessoCortado).length ?? 0; const OPS: { k: "todos" | "ativos" | "desativados"; label: string }[] = [{ k: "todos", label: `Todos (${(data?.empresas.length ?? 0)})` }, { k: "ativos", label: `Ativos (${nAtivos})` }, { k: "desativados", label: `Desativados (${nDes})` }]; return (
-                    <div style={{ display: "inline-flex", background: "var(--card-2,#0d0d0d)", border: "1px solid var(--line-2,#2a2a2a)", borderRadius: 99, padding: 3 }}>
-                      {OPS.map((o) => (
-                        <button key={o.k} type="button" onClick={() => setFiltroAcesso(o.k)}
-                          style={{ padding: "6px 15px", borderRadius: 99, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, transition: ".12s",
-                            background: filtroAcesso === o.k ? "var(--brand,#1AADE2)" : "transparent",
-                            color: filtroAcesso === o.k ? "#fff" : "var(--muted,#9aa0a6)" }}>{o.label}</button>
-                      ))}
-                    </div>
-                  ); })()}
-                </div>
+                <h1>Empresas <span className="adm-sub">({t?.empresas ?? 0})</span></h1>
                 <button className="adm-btn" onClick={abrirCadastro}><Plus size={15} /> Cadastrar cliente</button>
               </div>
+              {(() => { const nAtivos = data?.empresas.filter((e) => !e.acessoCortado).length ?? 0; const nDes = data?.empresas.filter((e) => e.acessoCortado).length ?? 0; const OPS: { k: "ativos" | "desativados"; label: string }[] = [{ k: "ativos", label: `Ativos (${nAtivos})` }, { k: "desativados", label: `Desativados (${nDes})` }]; return (
+                <div style={{ display: "inline-flex", background: "var(--card-2,#0d0d0d)", border: "1px solid var(--line-2,#2a2a2a)", borderRadius: 99, padding: 3, marginTop: 16 }}>
+                  {OPS.map((o) => (
+                    <button key={o.k} type="button" onClick={() => setFiltroAcesso(o.k)}
+                      style={{ padding: "6px 16px", borderRadius: 99, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, transition: ".12s",
+                        background: filtroAcesso === o.k ? "var(--brand,#1AADE2)" : "transparent",
+                        color: filtroAcesso === o.k ? "#fff" : "var(--muted,#9aa0a6)" }}>{o.label}</button>
+                  ))}
+                </div>
+              ); })()}
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th><th>Plano</th></tr></thead>
+                  <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
-                    {data?.empresas.filter((e) => filtroAcesso === "todos" || (filtroAcesso === "ativos" ? !e.acessoCortado : e.acessoCortado)).map((e) => {
+                    {data?.empresas.filter((e) => filtroAcesso === "ativos" ? !e.acessoCortado : e.acessoCortado).map((e) => {
                       type P = { key: string; nome: string; email: string | null; dono: boolean; cortado: boolean; toggle: () => void; verP: () => void; reenviar: () => void; editar: () => void; trash: (() => void) | null };
                       const confExcluir = `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`;
                       const donoP: P | null = e.dono ? {
@@ -512,14 +510,18 @@ export default function Admin() {
                         <td style={{ verticalAlign: "top" }}>
                           {pessoas.length ? pessoas.map((p, i) => (
                             <div key={p.key} style={{ ...linha, flexDirection: "column", alignItems: "flex-start", justifyContent: "center", borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
-                              <div style={{ textDecoration: p.cortado ? "line-through" : "none", opacity: p.cortado ? .55 : 1 }}>{p.nome}</div>
+                              <div style={{ opacity: p.cortado ? .6 : 1 }}>{p.nome}</div>
                               <div className="adm-sub">{p.email}</div>
                             </div>
                           )) : <span className="adm-sub">—</span>}
                         </td>
-                        {/* Super Admin: liga/desliga o acesso do responsável (login principal) */}
-                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 14 }}>
-                          <button type="button" className={"adm-switch" + (e.acessoCortado ? "" : " on")} disabled={!!busy || !e.dono_id} title={e.acessoCortado ? "Ativar acesso (Super Admin)" : "Desativar acesso (desliga todos os módulos)"} onClick={() => toggleSuperAdmin(e)}><span className="adm-switch-knob" /></button>
+                        {/* Super Admin: status Ativo/Desativado + ação pequena embaixo */}
+                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 15 }}>
+                          <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: e.acessoCortado ? "#94a3b8" : "#10B981" }}>{e.acessoCortado ? "Desativado" : "Ativo"}</span>
+                            <button type="button" disabled={!!busy || !e.dono_id} onClick={() => toggleSuperAdmin(e)} title={e.acessoCortado ? "Ativar acesso (Super Admin)" : "Desativar acesso (desliga todos os módulos)"}
+                              style={{ background: "transparent", border: 0, cursor: e.dono_id ? "pointer" : "not-allowed", fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, color: e.acessoCortado ? "var(--brand,#1AADE2)" : "#ef4444", textDecoration: "underline", padding: 0 }}>{e.acessoCortado ? "ativar" : "desativar"}</button>
+                          </div>
                         </td>
                         {/* módulos: ligam/desligam por empresa (catálogo dinâmico) */}
                         {catalogo.map((c) => { const on = !!e.planos?.[c.chave]; return (
@@ -540,11 +542,10 @@ export default function Admin() {
                             </div>
                           ))}
                         </td>
-                        <td style={{ verticalAlign: "top", paddingTop: 16 }}><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
                       </tr>
                       );
                     })}
-                    {!data?.empresas.length && <tr><td colSpan={6 + catalogo.length} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={5 + catalogo.length} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
