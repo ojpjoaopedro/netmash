@@ -668,7 +668,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
                   "Provisões de 13º, férias e rescisão",
                   "Colunas personalizadas de proventos e descontos",
                   "Tudo entra automático no Painel financeiro (custos e DRE)",
-                  "Holerite pronto para imprimir",
                 ].map((b, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, lineHeight: 1.45 }}>
                     <Check size={16} strokeWidth={3} style={{ color: "var(--brand)", flexShrink: 0, marginTop: 1 }} /> {b}
@@ -1118,8 +1117,8 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
   return (
     <div>
       {/* título — escondido no celular (o cabeçalho azul já mostra "Configurações")
-          e nas telas de Plano/Benefícios (ali esse título e as abas não se aplicam) */}
-      {!estreito && aba !== "plano" && aba !== "beneficios" && (
+          e na tela de Benefícios (acessada só pelo rodapé). Nas abas (Dados/Equipe/Planos) aparece. */}
+      {!estreito && aba !== "beneficios" && (
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
           <Settings size={22} />
