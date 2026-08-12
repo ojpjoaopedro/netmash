@@ -253,7 +253,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
       "me_diretores", "me_func_extra",
       "fin_brand", "fin_theme", ...(perfil?.id ? [`me_foto_perfil:${perfil.id}`] : []),
       "me_termos_aceite", "me_termos_aceite:privacidade", "me_termos_aceite:servicos", "me_termos_aceite:protecao",
-      "me_guia_concluido", "me_guia_min", "me_tour_financas", "me_tut_financas",
+      "me_guia_concluido", "me_guia_min", "me_tour_financas", "me_tut_financas", "me_guia_parabens_visto",
       "me_som", "me_ocultar_valores", "me_bemvindo_fechado",
       "me_empresa_extra:default", ...(eb?.id ? [`me_empresa_extra:${eb.id}`] : []),
     ];
