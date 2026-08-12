@@ -17,9 +17,19 @@ type Empresa = {
   acessoCortado: boolean; plano: string | null; valor: number; slug: string | null; cnpj: string | null;
   cidade: string | null; estado: string | null;
   logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
+  planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[] };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[] };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
+
+// catálogo de produtos (planos). Vem do banco (planos_catalogo); estes são o
+// fallback quando a tabela ainda não existe. O Super Admin é o plano base (fixo).
+type Plano = { chave: string; nome: string; descricao: string | null; preco: number; ordem?: number };
+const CATALOGO_PADRAO: Plano[] = [
+  { chave: "folha", nome: "Folha de pagamento", descricao: "Salários, benefícios e encargos da equipe", preco: 39.9 },
+  { chave: "acesso2", nome: "2º acesso", descricao: "Login adicional de administrador", preco: 9.9 },
+  { chave: "planejamento", nome: "Planejamento estratégico", descricao: "Metas e pilares da empresa", preco: 29.9 },
+];
 
 function seatsDePlano(plano: string | null): { qs: number; qa: number } {
   const m = (plano || "").match(/(\d+)\s*Super Admin.*?(\d+)\s*Acesso/i);
@@ -39,16 +49,16 @@ type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome
 const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
 const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
-type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[] };
+type NovoCliente = { nomeEmpresa: string; cnpj: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[]; planos: Record<string, boolean> };
 
 // Dados de demonstração — usados quando o Supabase não está configurado (localhost),
 // pra você visualizar/ajustar a tela sem precisar de login.
 const DEMO_RESP: Resp = {
   empresas: [
-    { id: "demo-araguaia", nome: "Colégio Araguaia", segmento: "Educação", criado_em: "2026-06-29T12:00:00Z", saldo_inicial: 0, dono_id: "d1", dono: { id: "d1", nome: "Secretaria Araguaia", email: "secretaria@colegioaraguaia.com.br" }, acessoCortado: false, plano: "1 Super Admin + 1 Acesso", valor: 119.8, slug: "colegioaraguaia", cnpj: "33.364.563/0001-18", cidade: "Aparecida de Goiânia", estado: "GO", logo_url: null, cor: "#E11D48", nLanc: 24, nCli: 8, nFunc: 3 },
-    { id: "demo-metricas", nome: "Metricas", segmento: null, criado_em: "2026-06-29T09:00:00Z", saldo_inicial: 0, dono_id: "d2", dono: { id: "d2", nome: "Minhas Métricas", email: "minhasmetricas@gmail.com" }, acessoCortado: false, plano: null, valor: 0, slug: "metricas", cnpj: null, cidade: "Itajaí", estado: "SC", logo_url: null, cor: null, nLanc: 0, nCli: 0, nFunc: 0 },
-    { id: "demo-jp", nome: "JP Contabilidade", segmento: "Serviços", criado_em: "2026-06-20T10:00:00Z", saldo_inicial: 0, dono_id: "d3", dono: { id: "d3", nome: "João Pedro", email: "jp@gmail.com" }, acessoCortado: false, plano: "1 Super Admin + 2 Acessos", valor: 199.6, slug: "jp", cnpj: "12.345.678/0001-90", cidade: "Goiânia", estado: "GO", logo_url: null, cor: "#16A34A", nLanc: 51, nCli: 14, nFunc: 5 },
-    { id: "demo-walk", nome: "Walk Store", segmento: "Comércio", criado_em: "2026-05-26T08:00:00Z", saldo_inicial: 0, dono_id: "d4", dono: { id: "d4", nome: "Pedro Walk", email: "pedro@gmail.com" }, acessoCortado: true, plano: "1 Super Admin", valor: 79.9, slug: "walk", cnpj: null, cidade: "São Paulo", estado: "SP", logo_url: null, cor: null, nLanc: 9, nCli: 3, nFunc: 1 },
+    { id: "demo-araguaia", nome: "Colégio Araguaia", segmento: "Educação", criado_em: "2026-06-29T12:00:00Z", saldo_inicial: 0, dono_id: "d1", dono: { id: "d1", nome: "Secretaria Araguaia", email: "secretaria@colegioaraguaia.com.br" }, acessoCortado: false, plano: "1 Super Admin + 1 Acesso", valor: 119.8, slug: "colegioaraguaia", cnpj: "33.364.563/0001-18", cidade: "Aparecida de Goiânia", estado: "GO", logo_url: null, cor: "#E11D48", nLanc: 24, nCli: 8, nFunc: 3, planos: { folha: true } },
+    { id: "demo-metricas", nome: "Metricas", segmento: null, criado_em: "2026-06-29T09:00:00Z", saldo_inicial: 0, dono_id: "d2", dono: { id: "d2", nome: "Minhas Métricas", email: "minhasmetricas@gmail.com" }, acessoCortado: false, plano: null, valor: 0, slug: "metricas", cnpj: null, cidade: "Itajaí", estado: "SC", logo_url: null, cor: null, nLanc: 0, nCli: 0, nFunc: 0, planos: {} },
+    { id: "demo-jp", nome: "JP Contabilidade", segmento: "Serviços", criado_em: "2026-06-20T10:00:00Z", saldo_inicial: 0, dono_id: "d3", dono: { id: "d3", nome: "João Pedro", email: "jp@gmail.com" }, acessoCortado: false, plano: "1 Super Admin + 2 Acessos", valor: 199.6, slug: "jp", cnpj: "12.345.678/0001-90", cidade: "Goiânia", estado: "GO", logo_url: null, cor: "#16A34A", nLanc: 51, nCli: 14, nFunc: 5, planos: { planejamento: true } },
+    { id: "demo-walk", nome: "Walk Store", segmento: "Comércio", criado_em: "2026-05-26T08:00:00Z", saldo_inicial: 0, dono_id: "d4", dono: { id: "d4", nome: "Pedro Walk", email: "pedro@gmail.com" }, acessoCortado: true, plano: "1 Super Admin", valor: 79.9, slug: "walk", cnpj: null, cidade: "São Paulo", estado: "SP", logo_url: null, cor: null, nLanc: 9, nCli: 3, nFunc: 1, planos: {} },
   ],
   totais: { empresas: 4, usuarios: 11, faturamento: 399.3, ativos: 3 },
   precos: { superadmin: 79.9, acesso: 39.9 },
@@ -64,6 +74,7 @@ export default function Admin() {
   const [estado, setEstado] = useState<"carregando" | "semlogin" | "negado" | "ok" | "erro">("carregando");
   const [data, setData] = useState<Resp | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [filtroAcesso, setFiltroAcesso] = useState<"todos" | "ativos" | "desativados">("todos");   // filtro por status do acesso (Super Admin)
   const [verLink, setVerLink] = useState<{ nome: string; link: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [form, setForm] = useState<Form | null>(null);
@@ -206,13 +217,45 @@ export default function Admin() {
     setBusy(null);
     await carregar();
   }
-  function abrirCadastro() { setErroNovo(""); setNovo({ nomeEmpresa: "", cnpj: "", responsavel: "", emailResp: "", funcionarios: [] }); }
+  // liga/desliga um módulo (plano) de uma empresa, salvando no banco
+  async function togglePlano(empresaId: string, planoKey: string, ativo: boolean) {
+    setData((d) => d ? { ...d, empresas: d.empresas.map((e) => e.id === empresaId ? { ...e, planos: { ...(e.planos || {}), [planoKey]: ativo } } : e) } : d);
+    if (demo || !supabase) return;
+    const { data: sess } = await supabase.auth.getSession();
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "planos", empresaId, planoKey, ativo }) });
+  }
+  // cadastro de produto (plano) no catálogo
+  const [novoProduto, setNovoProduto] = useState<{ nome: string; descricao: string; preco: string } | null>(null);
+  const [salvProd, setSalvProd] = useState(false);
+  async function salvarProduto() {
+    if (!novoProduto || !novoProduto.nome.trim() || !supabase) return;
+    setSalvProd(true);
+    const { data: sess } = await supabase.auth.getSession();
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "plano-add", nome: novoProduto.nome, descricao: novoProduto.descricao, preco: novoProduto.preco }) });
+    setSalvProd(false); setNovoProduto(null); await carregar();
+  }
+  async function excluirProduto(chave: string, nome: string) {
+    if (!window.confirm(`Excluir o produto "${nome}"? Ele some das colunas das empresas.`) || !supabase) return;
+    const { data: sess } = await supabase.auth.getSession();
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "plano-del", planoKey: chave }) });
+    await carregar();
+  }
+  // Super Admin: liga/desliga o acesso do responsável. Ao DESLIGAR, desativa também
+  // todos os módulos (planos) da empresa. Ao religar, só volta o acesso.
+  async function toggleSuperAdmin(e: Empresa) {
+    if (!e.dono_id) return;
+    if (e.acessoCortado) { acao("restaurar", { userId: e.dono_id }); return; }
+    // desligar: apaga os módulos ativos e corta o acesso
+    await Promise.all(catalogo.filter((c) => e.planos?.[c.chave]).map((c) => togglePlano(e.id, c.chave, false)));
+    acao("cortar", { userId: e.dono_id });
+  }
+  function abrirCadastro() { setErroNovo(""); setNovo({ nomeEmpresa: "", cnpj: "", responsavel: "", emailResp: "", funcionarios: [], planos: {} }); }
   async function criarNovo(e: React.FormEvent) {
     e.preventDefault();
     if (!novo || !supabase) return;
     if (!novo.nomeEmpresa.trim() || !novo.emailResp.includes("@")) { setErroNovo("Informe o nome da empresa e o e-mail do responsável."); return; }
     setSalvNovo(true); setErroNovo("");
-    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "criar", nomeEmpresa: novo.nomeEmpresa, cnpj: novo.cnpj, responsavel: novo.responsavel, emailResp: novo.emailResp, funcionarios: novo.funcionarios }) });
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action: "criar", nomeEmpresa: novo.nomeEmpresa, cnpj: novo.cnpj, responsavel: novo.responsavel, emailResp: novo.emailResp, funcionarios: novo.funcionarios, planos: novo.planos }) });
     const j = await res.json().catch(() => ({}));
     setSalvNovo(false);
     if (!res.ok) { setErroNovo(j.error || "Não consegui cadastrar."); return; }
@@ -347,6 +390,8 @@ export default function Admin() {
 
   const t = data?.totais;
   const precos = data?.precos ?? { superadmin: PRECO_SUPERADMIN, acesso: PRECO_ACESSO };
+  // catálogo de produtos (planos): do banco; se vazio/sem tabela, usa o padrão
+  const catalogo: Plano[] = (data?.catalogo && data.catalogo.length) ? data.catalogo : CATALOGO_PADRAO;
   const qLgpd = buscaLgpd.trim().toLowerCase();
   const lgpdLista = (data?.lgpd ?? []).filter((r) => !qLgpd
     || (r.nome || "").toLowerCase().includes(qLgpd)
@@ -421,14 +466,26 @@ export default function Admin() {
           {aba === "empresas" && (
             <>
               <div className="adm-headrow">
-                <h1>Empresas <span className="adm-sub">({t?.empresas ?? 0})</span></h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+                  <h1>Empresas <span className="adm-sub">({t?.empresas ?? 0})</span></h1>
+                  {(() => { const nAtivos = data?.empresas.filter((e) => !e.acessoCortado).length ?? 0; const nDes = data?.empresas.filter((e) => e.acessoCortado).length ?? 0; const OPS: { k: "todos" | "ativos" | "desativados"; label: string }[] = [{ k: "todos", label: `Todos (${(data?.empresas.length ?? 0)})` }, { k: "ativos", label: `Ativos (${nAtivos})` }, { k: "desativados", label: `Desativados (${nDes})` }]; return (
+                    <div style={{ display: "inline-flex", background: "var(--card-2,#0d0d0d)", border: "1px solid var(--line-2,#2a2a2a)", borderRadius: 99, padding: 3 }}>
+                      {OPS.map((o) => (
+                        <button key={o.k} type="button" onClick={() => setFiltroAcesso(o.k)}
+                          style={{ padding: "6px 15px", borderRadius: 99, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, transition: ".12s",
+                            background: filtroAcesso === o.k ? "var(--brand,#1AADE2)" : "transparent",
+                            color: filtroAcesso === o.k ? "#fff" : "var(--muted,#9aa0a6)" }}>{o.label}</button>
+                      ))}
+                    </div>
+                  ); })()}
+                </div>
                 <button className="adm-btn" onClick={abrirCadastro}><Plus size={15} /> Cadastrar cliente</button>
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Acesso</th><th style={{ textAlign: "center" }}>Ações</th><th>Plano</th></tr></thead>
+                  <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th><th>Plano</th></tr></thead>
                   <tbody>
-                    {data?.empresas.map((e) => {
+                    {data?.empresas.filter((e) => filtroAcesso === "todos" || (filtroAcesso === "ativos" ? !e.acessoCortado : e.acessoCortado)).map((e) => {
                       type P = { key: string; nome: string; email: string | null; dono: boolean; cortado: boolean; toggle: () => void; verP: () => void; reenviar: () => void; editar: () => void; trash: (() => void) | null };
                       const confExcluir = `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`;
                       const donoP: P | null = e.dono ? {
@@ -460,13 +517,16 @@ export default function Admin() {
                             </div>
                           )) : <span className="adm-sub">—</span>}
                         </td>
-                        <td style={{ textAlign: "center", verticalAlign: "top" }}>
-                          {pessoas.map((p, i) => (
-                            <div key={p.key} style={{ ...linha, justifyContent: "center", borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
-                              <button type="button" className={"adm-switch" + (p.cortado ? "" : " on")} disabled={!!busy || (p.dono && !e.dono_id)} title={p.cortado ? "Ativar acesso" : "Desativar acesso"} onClick={p.toggle}><span className="adm-switch-knob" /></button>
-                            </div>
-                          ))}
+                        {/* Super Admin: liga/desliga o acesso do responsável (login principal) */}
+                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 14 }}>
+                          <button type="button" className={"adm-switch" + (e.acessoCortado ? "" : " on")} disabled={!!busy || !e.dono_id} title={e.acessoCortado ? "Ativar acesso (Super Admin)" : "Desativar acesso (desliga todos os módulos)"} onClick={() => toggleSuperAdmin(e)}><span className="adm-switch-knob" /></button>
                         </td>
+                        {/* módulos: ligam/desligam por empresa (catálogo dinâmico) */}
+                        {catalogo.map((c) => { const on = !!e.planos?.[c.chave]; return (
+                          <td key={c.chave} style={{ textAlign: "center", verticalAlign: "top", paddingTop: 14 }}>
+                            <button type="button" className={"adm-switch" + (on ? " on" : "")} disabled={!!busy} title={(on ? "Desativar " : "Ativar ") + c.nome} onClick={() => togglePlano(e.id, c.chave, !on)}><span className="adm-switch-knob" /></button>
+                          </td>
+                        ); })}
                         <td style={{ verticalAlign: "top" }}>
                           {pessoas.map((p, i) => (
                             <div key={p.key} style={{ ...linha, justifyContent: "center", gap: 6, borderTop: i ? "1px solid var(--line-2, #2a2a2a)" : undefined }}>
@@ -484,7 +544,7 @@ export default function Admin() {
                       </tr>
                       );
                     })}
-                    {!data?.empresas.length && <tr><td colSpan={8} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={6 + catalogo.length} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -493,33 +553,58 @@ export default function Admin() {
 
           {aba === "produtos" && (() => {
             const clientes = t?.empresas ?? 0;
-            const segundos = Math.max(0, (t?.ativos ?? 0) - clientes);
-            const PLANOS = [
-              { nome: "Super Admin", desc: "Acesso principal da empresa (plano base)", preco: "79,90", tag: "Principal", ativos: clientes },
-              { nome: "Folha de pagamento", desc: "Salários, benefícios e encargos da equipe", preco: "39,90", ativos: 0 },
-              { nome: "2º acesso", desc: "Login adicional de administrador", preco: "9,90", ativos: segundos },
-              { nome: "Planejamento estratégico", desc: "Metas e pilares da empresa", preco: "29,90", ativos: 0 },
-            ];
+            const nMod = (key: string) => (data?.empresas.filter((e) => e.planos?.[key]).length ?? 0);
+            const brlP = (n: number) => `R$ ${Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card-2,#0d0d0d)", color: "inherit", fontSize: 14, fontFamily: "inherit" };
             return (
             <>
-              <h1>Produtos <span className="adm-sub">(nossos planos)</span></h1>
-              <p className="adm-sub" style={{ margin: "4px 0 16px" }}>Os planos que vendemos no Minhas Métricas.</p>
-              <div className="adm-tablewrap">
+              <div className="adm-headrow">
+                <div>
+                  <h1>Produtos <span className="adm-sub">(nossos planos)</span></h1>
+                  <p className="adm-sub" style={{ marginTop: 4 }}>Cadastrar um produto o adiciona automaticamente (desativado) nas colunas das Empresas.</p>
+                </div>
+                <button className="adm-btn" onClick={() => setNovoProduto({ nome: "", descricao: "", preco: "" })}><Plus size={15} /> Cadastrar produto</button>
+              </div>
+              <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th><th>Acessos ativos</th></tr></thead>
+                  <thead><tr><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th><th>Acessos ativos</th><th></th></tr></thead>
                   <tbody>
-                    {PLANOS.map((p) => (
-                      <tr key={p.nome}>
-                        <td><b>{p.nome}</b>{p.tag && <span className="adm-badge" style={{ marginLeft: 8 }}>{p.tag}</span>}</td>
-                        <td className="adm-sub">{p.desc}</td>
-                        <td><b>R$ {p.preco}</b></td>
+                    <tr>
+                      <td><b>Super Admin</b><span className="adm-badge" style={{ marginLeft: 8 }}>Principal</span></td>
+                      <td className="adm-sub">Acesso principal da empresa (plano base)</td>
+                      <td><b>{brlP(precos.superadmin)}</b></td>
+                      <td className="adm-sub">Assinatura · mensal</td>
+                      <td><b>{clientes}</b></td>
+                      <td></td>
+                    </tr>
+                    {catalogo.map((c) => (
+                      <tr key={c.chave}>
+                        <td><b>{c.nome}</b></td>
+                        <td className="adm-sub">{c.descricao || "—"}</td>
+                        <td><b>{brlP(c.preco)}</b></td>
                         <td className="adm-sub">Assinatura · mensal</td>
-                        <td><b>{p.ativos}</b></td>
+                        <td><b>{nMod(c.chave)}</b></td>
+                        <td style={{ textAlign: "right" }}><button className="adm-btn sm danger adm-ic" title="Excluir produto" onClick={() => excluirProduto(c.chave, c.nome)}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+
+              {novoProduto && (
+                <div onClick={() => setNovoProduto(null)} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", padding: 16 }}>
+                  <div onClick={(ev) => ev.stopPropagation()} style={{ width: "100%", maxWidth: 420, background: "var(--card, #141414)", border: "1px solid var(--line-2, #2a2a2a)", borderRadius: 16, padding: 22 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                      <b style={{ fontSize: 16 }}>Cadastrar produto</b>
+                      <button onClick={() => setNovoProduto(null)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "inherit" }}><X size={18} /></button>
+                    </div>
+                    <label style={{ display: "block", marginBottom: 10 }}><span className="adm-sub" style={{ display: "block", marginBottom: 5 }}>Nome do produto</span><input value={novoProduto.nome} onChange={(ev) => setNovoProduto({ ...novoProduto, nome: ev.target.value })} placeholder="Ex: Relatórios avançados" style={inp} /></label>
+                    <label style={{ display: "block", marginBottom: 10 }}><span className="adm-sub" style={{ display: "block", marginBottom: 5 }}>Descrição</span><input value={novoProduto.descricao} onChange={(ev) => setNovoProduto({ ...novoProduto, descricao: ev.target.value })} placeholder="O que o plano oferece" style={inp} /></label>
+                    <label style={{ display: "block", marginBottom: 16 }}><span className="adm-sub" style={{ display: "block", marginBottom: 5 }}>Preço (R$/mês)</span><input value={novoProduto.preco} onChange={(ev) => setNovoProduto({ ...novoProduto, preco: ev.target.value })} inputMode="decimal" placeholder="19,90" style={inp} /></label>
+                    <button className="adm-btn" disabled={salvProd || !novoProduto.nome.trim()} onClick={salvarProduto} style={{ width: "100%", justifyContent: "center" }}>{salvProd ? "Salvando…" : "Cadastrar produto"}</button>
+                  </div>
+                </div>
+              )}
             </>
             );
           })()}
@@ -660,7 +745,18 @@ export default function Admin() {
               <L label="Responsável (Super Admin)"><input value={novo.responsavel} onChange={(ev) => setNovo({ ...novo, responsavel: ev.target.value })} /></L>
               <L label="E-mail do responsável"><input type="email" value={novo.emailResp} onChange={(ev) => setNovo({ ...novo, emailResp: ev.target.value })} required /></L>
             </div>
-            <div className="adm-valor" style={{ marginTop: 14 }}>Plano: <b>{brl(precos.superadmin)}/mês</b> <span>(1 Super Admin)</span></div>
+            <div style={{ marginTop: 16 }}>
+              <div className="adm-sub" style={{ fontWeight: 700, marginBottom: 8 }}>Planos ativos</div>
+              <label style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", opacity: .75 }}>
+                <input type="checkbox" checked disabled /> <span><b>Super Admin</b> <span className="adm-sub">· {brl(precos.superadmin)}/mês (base, sempre ativo)</span></span>
+              </label>
+              {catalogo.map((c) => (
+                <label key={c.chave} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", cursor: "pointer" }}>
+                  <input type="checkbox" checked={!!novo.planos?.[c.chave]} onChange={(ev) => setNovo({ ...novo, planos: { ...(novo.planos || {}), [c.chave]: ev.target.checked } })} />
+                  <span>{c.nome} <span className="adm-sub">· {brl(c.preco)}/mês</span></span>
+                </label>
+              ))}
+            </div>
             <button className="adm-btn" type="submit" disabled={salvNovo} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvNovo ? "Cadastrando…" : "Cadastrar cliente"}</button>
             <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>O responsável recebe um e-mail para <b>criar a senha</b> e acessar.</p>
           </form>

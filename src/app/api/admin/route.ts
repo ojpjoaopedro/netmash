@@ -127,7 +127,11 @@ export async function GET(req: NextRequest) {
     ...r, empresaNome: r.empresa_id ? (nomeEmp.get(r.empresa_id) ?? null) : null,
   }));
 
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd });
+  // catálogo de produtos (planos). Retorna [] se a tabela ainda não existir.
+  const catRes = await s.from("planos_catalogo").select("chave,nome,descricao,preco,ordem").order("ordem", { ascending: true });
+  const catalogo = (catRes.data as { chave: string; nome: string; descricao: string | null; preco: number; ordem: number }[] | null) ?? [];
+
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo });
 }
 
 export async function POST(req: NextRequest) {
@@ -144,9 +148,38 @@ export async function POST(req: NextRequest) {
     nome?: string; areas?: string[]; segmento?: string; cidade?: string; estado?: string; saldoInicial?: number | string;
     precoSuperadmin?: number | string; precoAcesso?: number | string;
     emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
-    lgpdId?: string;
+    lgpdId?: string; planoKey?: string; ativo?: boolean; descricao?: string; preco?: number | string;
+    planos?: Record<string, boolean>;
   };
   const { action, userId, empresaId } = body;
+
+  // Liga/desliga um módulo (plano) de uma empresa. Guarda em empresas.planos (jsonb).
+  if (action === "planos" && empresaId && body.planoKey) {
+    const { data: e } = await s.from("empresas").select("planos").eq("id", empresaId).maybeSingle();
+    const planos = { ...(((e as { planos?: Record<string, boolean> } | null)?.planos) || {}), [body.planoKey]: !!body.ativo };
+    await s.from("empresas").update({ planos }).eq("id", empresaId);
+    return NextResponse.json({ ok: true, planos });
+  }
+
+  // Cadastra um novo produto (plano) no catálogo. Aparece como coluna (off) nas Empresas.
+  if (action === "plano-add") {
+    const nome = (body.nome || "").trim();
+    if (!nome) return NextResponse.json({ error: "Informe o nome do produto." }, { status: 400 });
+    const base = nome.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "plano";
+    let chave = base, n = 1;
+    while ((await s.from("planos_catalogo").select("chave").eq("chave", chave).maybeSingle()).data) chave = `${base}_${++n}`;
+    const { data: mx } = await s.from("planos_catalogo").select("ordem").order("ordem", { ascending: false }).limit(1).maybeSingle();
+    const ordem = (((mx as { ordem?: number } | null)?.ordem) ?? 0) + 1;
+    const preco = Number(String(body.preco ?? "0").replace(/\./g, "").replace(",", ".")) || 0;
+    await s.from("planos_catalogo").insert({ chave, nome, descricao: (body.descricao || "").trim() || null, preco, ordem });
+    return NextResponse.json({ ok: true, chave });
+  }
+
+  // Exclui um produto do catálogo.
+  if (action === "plano-del" && body.planoKey) {
+    await s.from("planos_catalogo").delete().eq("chave", body.planoKey);
+    return NextResponse.json({ ok: true });
+  }
 
   // Cadastrar novo cliente (B2B): cria o responsável (super admin) + os funcionários e dispara e-mails de "crie sua senha".
   if (action === "criar") {
@@ -168,7 +201,9 @@ export async function POST(req: NextRequest) {
     const valor = pr.superadmin + funcs.length * pr.acesso;
     const plano = `1 Super Admin + ${funcs.length} Acesso${funcs.length !== 1 ? "s" : ""}`;
     const { data: emp } = await s.from("empresas").select("id").eq("dono_id", sa.user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
-    if (emp?.id) await s.from("empresas").update({ nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null }).eq("id", emp.id);
+    // só os módulos marcados como true entram nos planos ativos da empresa
+    const planosAtivos = Object.fromEntries(Object.entries(body.planos || {}).filter(([, v]) => v));
+    if (emp?.id) await s.from("empresas").update({ nome: nomeEmpresa, cnpj: body.cnpj || null, plano, valor, slug: slugFinal, responsavel: body.responsavel || null, planos: planosAtivos }).eq("id", emp.id);
     // a nova empresa nasce sem estrutura no banco: o painel mostra o MODELO LIMPO
     // (genérico) até a empresa preencher. Assim nenhum dado de exemplo vaza.
     const emails = [emailResp];
