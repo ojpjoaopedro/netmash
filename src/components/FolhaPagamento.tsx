@@ -745,16 +745,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
   return (
     <div>
-      {/* barra de topo: alternância Geral/Mensal + ações */}
-      <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
-            {(["ativos", "desativados"] as const).map((k) => {
-              const on = filtro === k, cor = k === "ativos" ? "#10B981" : "#EF4444";
-              return <button key={k} onClick={() => setFiltro(k)} style={{ padding: "5px 12px", borderRadius: 99, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: 0, background: on ? `${cor}22` : "transparent", color: on ? cor : "var(--muted)", transition: ".15s" }}>{k === "ativos" ? "Ativos" : "Desativados"}</button>;
-            })}
-          </div>
-        </div>
+      {/* barra de topo: ações (Excel / Imprimir) */}
+      <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <div className="no-print" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
           <div style={{ display: "inline-flex", alignItems: "stretch", border: "1px solid var(--line-2)", borderRadius: 10, overflow: "hidden" }}>
             {modo === "mensal" && !semEquipe && (
@@ -810,6 +802,16 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
       {modo === "mensal" && !semEquipe && soLeitura && (
         <div className="no-print" style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 14px", borderRadius: 10, background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--muted)", fontSize: 12.5, fontWeight: 600 }}>
           <Lock size={14} /> Somente consulta: os valores dos desativados não podem ser alterados.
+        </div>
+      )}
+
+      {/* filtro Ativos/Desativados, logo acima da tabela */}
+      {!semEquipe && (
+        <div className="no-print" style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2, marginBottom: 12 }}>
+          {(["ativos", "desativados"] as const).map((k) => {
+            const on = filtro === k, cor = k === "ativos" ? "#10B981" : "#EF4444";
+            return <button key={k} onClick={() => setFiltro(k)} style={{ padding: "5px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: 0, background: on ? `${cor}22` : "transparent", color: on ? cor : "var(--muted)", transition: ".15s" }}>{k === "ativos" ? "Ativos" : "Desativados"}</button>;
+          })}
         </div>
       )}
 
