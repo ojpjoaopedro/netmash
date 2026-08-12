@@ -7,7 +7,7 @@ import {
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2,
-  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake, Lock, Home as HomeIcon,
+  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake, Lock, Check, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -139,6 +139,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const marcarTutVisto = () => { try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } salvarEstadoRemoto("me_tut_financas", "1"); };
   useEffect(() => { try { if (estreito && localStorage.getItem("me_tut_financas") !== "1") { setTutMobile(true); marcarTutVisto(); } } catch { /* ignore */ } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [estreito]);
   const fecharTutMobile = () => { setTutMobile(false); marcarTutVisto(); };
+  // popup de upgrade da Folha de pagamento (abre antes de levar aos Planos)
+  const [folhaPromo, setFolhaPromo] = useState(false);
   const [politicaAberta, setPoliticaAberta] = useState(false);   // modal da Política de privacidade (rodapé mobile)
   const [niverLogins, setNiverLogins] = useState<{ id: string; nome: string; nascimento: string }[]>([]);
   useEffect(() => {
@@ -432,8 +434,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <Icon size={16} color={corDe(key)} /> {label}
               </button>
             ); })}
-            {/* Folha de pagamento: recurso de plano (bloqueado). Clicar leva para os Planos. */}
-            <button onClick={() => { playTick(); navegar({ view: "config", aba: "plano" }); setMenuAberto(false); }} title="Folha de pagamento — recurso do plano. Ver planos.">
+            {/* Folha de pagamento: recurso de plano (bloqueado). Abre um popup de upgrade antes dos Planos. */}
+            <button onClick={() => { playTick(); setFolhaPromo(true); }} title="Folha de pagamento, recurso do plano. Ver planos.">
               <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
               <Lock size={13} style={{ marginLeft: "auto", opacity: .65 }} />
             </button>
@@ -641,6 +643,46 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <button onClick={() => setPoliticaAberta(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
               </div>
               <div style={{ padding: 18 }}><TermosDeUso /></div>
+            </div>
+          </div>
+        )}
+
+        {/* popup de upgrade da Folha de pagamento */}
+        {folhaPromo && (
+          <div onClick={() => setFolhaPromo(false)} style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", display: "grid", placeItems: "center", padding: 16, overflow: "auto" }}>
+            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 440, padding: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+                <span style={{ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Wallet size={24} /></span>
+                <div>
+                  <b style={{ fontSize: 17 }}>Folha de pagamento</b>
+                  <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Recurso do plano</div>
+                </div>
+              </div>
+              <p className="sub" style={{ fontSize: 13, lineHeight: 1.55, margin: "10px 0 14px" }}>
+                A <b>Folha de pagamento</b> é um módulo do plano. Com ele você tem:
+              </p>
+              <div style={{ display: "grid", gap: 9, marginBottom: 16 }}>
+                {[
+                  "Salários com INSS, FGTS e IRRF calculados automaticamente",
+                  "Benefícios (vale-transporte, vale-alimentação) e descontos",
+                  "Provisões de 13º, férias e rescisão",
+                  "Colunas personalizadas de proventos e descontos",
+                  "Tudo entra automático no Painel financeiro (custos e DRE)",
+                  "Holerite pronto para imprimir",
+                ].map((b, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, lineHeight: 1.45 }}>
+                    <Check size={16} strokeWidth={3} style={{ color: "var(--brand)", flexShrink: 0, marginTop: 1 }} /> {b}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, background: "color-mix(in srgb, var(--brand) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 30%, transparent)", borderRadius: 12, padding: "11px 14px", marginBottom: 18 }}>
+                <Sparkles size={18} style={{ color: "var(--brand)", flexShrink: 0 }} />
+                <span style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.4 }}>Aproveite o <b>desconto de lançamento</b> para adquirir agora.</span>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setFolhaPromo(false)}>Agora não</button>
+                <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => { playTick(); setFolhaPromo(false); setMenuAberto(false); navegar({ view: "config", aba: "plano" }); }}>Continuar <ChevronRight size={16} /></button>
+              </div>
             </div>
           </div>
         )}
