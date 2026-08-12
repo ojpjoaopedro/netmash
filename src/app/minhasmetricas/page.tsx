@@ -314,7 +314,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
     const patch: { logo?: string; cor?: string; nome?: string } = {};
     if (eb.logo_url && eb.logo_url !== brand.logo) patch.logo = eb.logo_url;
     if (eb.cor && eb.cor !== brand.cor) patch.cor = eb.cor;
-    if (eb.nome && eb.nome !== "Minha Empresa" && (!brand.nome || brand.nome === "Minha Empresa")) patch.nome = eb.nome;
+    // a marca do painel segue o nome REAL da empresa (Dados da Empresa); corrige nomes
+    // antigos/errados presos na marca (ex: "Demonstração") e auto-atualiza ao renomear.
+    if (eb.nome && eb.nome !== "Minha Empresa" && eb.nome !== "Minha Empresa (demonstração)" && eb.nome !== brand.nome) patch.nome = eb.nome;
     if (Object.keys(patch).length) saveBrand(patch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresa]);
