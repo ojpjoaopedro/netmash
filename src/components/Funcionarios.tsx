@@ -541,7 +541,6 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
 
       {/* filtros */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
-        <Chave ops={[{ k: "card", txt: "Card" }, { k: "lista", txt: "Lista" }]} valor={modo} onChange={(v) => setModo(v as "card" | "lista")} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
           {opc("ativos", "Ativos")}
           {opc("desativados", "Desativados")}

@@ -971,7 +971,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
   const [tutFin, setTutFin] = useState(false);
   // marca como visto no navegador E no banco (não reabre nem em janela anônima)
   const marcarTutVistoFin = () => { try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } salvarEstadoRemoto("me_tut_financas", "1"); };
-  useEffect(() => { try { if (!estreito && localStorage.getItem("me_tut_financas") !== "1") { setTutFin(true); marcarTutVistoFin(); } } catch { /* ignore */ } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [estreito]);
+  useEffect(() => { try { if (!estreito && aba !== "folha" && localStorage.getItem("me_tut_financas") !== "1") { setTutFin(true); marcarTutVistoFin(); } } catch { /* ignore */ } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [estreito]);
   const fecharTutFin = () => { setTutFin(false); marcarTutVistoFin(); };
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Painel financeiro", folha: "Folha de pagamento",
@@ -991,8 +991,8 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
     { key: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
     { key: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers },
   ];
-  // Dashboard/Relatório são abertos pelos atalhos da Home: sem cabeçalho/abas, só um "Voltar".
-  const ehAtalhoHome = aba === "dashboard" || aba === "relatorios";
+  // Dashboard/Relatório/Folha abrem como tela própria: sem cabeçalho/abas do Finanças, só um "Voltar".
+  const ehAtalhoHome = aba === "dashboard" || aba === "relatorios" || aba === "folha";
   return (
     <div>
       {/* Voltar (só nos atalhos da Home: Dashboard/Relatório) */}
@@ -1020,7 +1020,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
         </button>
       </div>
       )}
-      {tutFin && !estreito && <TutorialFinancas onFim={fecharTutFin} />}
+      {tutFin && !estreito && aba !== "folha" && <TutorialFinancas onFim={fecharTutFin} />}
 
       {/* no celular vai direto pro conteúdo (a navegação é pela barra fixa da Home) */}
       {(
