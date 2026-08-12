@@ -135,8 +135,10 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const [notifAberto, setNotifAberto] = useState(false);
   // tutorial guiado dos 3 cards na home do celular (mesmo do desktop)
   const [tutMobile, setTutMobile] = useState(false);
-  useEffect(() => { try { if (estreito && localStorage.getItem("me_tut_financas") !== "1") setTutMobile(true); } catch { /* ignore */ } }, [estreito]);
-  const fecharTutMobile = () => { setTutMobile(false); try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } };
+  // marca como visto no navegador E no banco (não reabre nem em janela anônima)
+  const marcarTutVisto = () => { try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } salvarEstadoRemoto("me_tut_financas", "1"); };
+  useEffect(() => { try { if (estreito && localStorage.getItem("me_tut_financas") !== "1") { setTutMobile(true); marcarTutVisto(); } } catch { /* ignore */ } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [estreito]);
+  const fecharTutMobile = () => { setTutMobile(false); marcarTutVisto(); };
   const [politicaAberta, setPoliticaAberta] = useState(false);   // modal da Política de privacidade (rodapé mobile)
   const [niverLogins, setNiverLogins] = useState<{ id: string; nome: string; nascimento: string }[]>([]);
   useEffect(() => {
@@ -249,7 +251,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
       "me_diretores", "me_func_extra",
       "fin_brand", "fin_theme", ...(perfil?.id ? [`me_foto_perfil:${perfil.id}`] : []),
       "me_termos_aceite", "me_termos_aceite:privacidade", "me_termos_aceite:servicos", "me_termos_aceite:protecao",
-      "me_guia_concluido", "me_guia_min", "me_tour_financas",
+      "me_guia_concluido", "me_guia_min", "me_tour_financas", "me_tut_financas",
       "me_som", "me_ocultar_valores", "me_bemvindo_fechado",
       "me_empresa_extra:default", ...(eb?.id ? [`me_empresa_extra:${eb.id}`] : []),
     ];
@@ -896,8 +898,10 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
   const [videoTut, setVideoTut] = useState(false);
   // tutorial guiado das 3 abas (+ vídeo); abre 1x sozinho e pelo botão "Tutorial"
   const [tutFin, setTutFin] = useState(false);
-  useEffect(() => { try { if (!estreito && localStorage.getItem("me_tut_financas") !== "1") setTutFin(true); } catch { /* ignore */ } }, [estreito]);
-  const fecharTutFin = () => { setTutFin(false); try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } };
+  // marca como visto no navegador E no banco (não reabre nem em janela anônima)
+  const marcarTutVistoFin = () => { try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } salvarEstadoRemoto("me_tut_financas", "1"); };
+  useEffect(() => { try { if (!estreito && localStorage.getItem("me_tut_financas") !== "1") { setTutFin(true); marcarTutVistoFin(); } } catch { /* ignore */ } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [estreito]);
+  const fecharTutFin = () => { setTutFin(false); marcarTutVistoFin(); };
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Painel financeiro", folha: "Folha de pagamento",
     calendario: "Calendário", relatorios: "Análises financeiras", importar: "Importar planilha",
@@ -1016,7 +1020,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
   loginEmail?: string; ehDono?: boolean; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void;
 }) {
   type AbaCfg = "dados" | "equipe" | "beneficios" | "plano";
-  const [aba, setAba] = useState<AbaCfg>("equipe");
+  const [aba, setAba] = useState<AbaCfg>("dados");
   // no celular Configurações abre num menu de CARDS (igual Finanças); ao tocar, "entra"
   const [estreito, setEstreito] = useState(false);
   const [entrou, setEntrou] = useState(false);
