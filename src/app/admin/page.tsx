@@ -392,6 +392,8 @@ export default function Admin() {
   const precos = data?.precos ?? { superadmin: PRECO_SUPERADMIN, acesso: PRECO_ACESSO };
   // catálogo de produtos (planos): do banco; se vazio/sem tabela, usa o padrão
   const catalogo: Plano[] = (data?.catalogo && data.catalogo.length) ? data.catalogo : CATALOGO_PADRAO;
+  // o "2º acesso" é automático: verde quando a empresa tem um login extra (colaborador)
+  const temAcessoExtra = (e: Empresa) => (acessosMap[e.id] || []).some((a) => a.papel !== "dono" && a.email !== e.dono?.email);
   const qLgpd = buscaLgpd.trim().toLowerCase();
   const lgpdLista = (data?.lgpd ?? []).filter((r) => !qLgpd
     || (r.nome || "").toLowerCase().includes(qLgpd)
@@ -523,8 +525,14 @@ export default function Admin() {
                               style={{ background: "transparent", border: 0, cursor: e.dono_id ? "pointer" : "not-allowed", fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, color: e.acessoCortado ? "var(--brand,#1AADE2)" : "#ef4444", textDecoration: "underline", padding: 0 }}>{e.acessoCortado ? "ativar" : "desativar"}</button>
                           </div>
                         </td>
-                        {/* módulos: ligam/desligam por empresa (catálogo dinâmico) */}
-                        {catalogo.map((c) => { const on = !!e.planos?.[c.chave]; return (
+                        {/* módulos: ligam/desligam por empresa (catálogo dinâmico). "acesso2" é automático. */}
+                        {catalogo.map((c) => {
+                          if (c.chave === "acesso2") { const extra = temAcessoExtra(e); return (
+                            <td key={c.chave} style={{ textAlign: "center", verticalAlign: "top", paddingTop: 14 }}>
+                              <button type="button" className={"adm-switch" + (extra ? " on" : "")} disabled title={extra ? "Tem acesso extra (login adicional)" : "Sem acesso extra"} style={{ opacity: .85, cursor: "default" }}><span className="adm-switch-knob" /></button>
+                            </td>
+                          ); }
+                          const on = !!e.planos?.[c.chave]; return (
                           <td key={c.chave} style={{ textAlign: "center", verticalAlign: "top", paddingTop: 14 }}>
                             <button type="button" className={"adm-switch" + (on ? " on" : "")} disabled={!!busy} title={(on ? "Desativar " : "Ativar ") + c.nome} onClick={() => togglePlano(e.id, c.chave, !on)}><span className="adm-switch-knob" /></button>
                           </td>
@@ -584,7 +592,7 @@ export default function Admin() {
                         <td className="adm-sub">{c.descricao || "—"}</td>
                         <td><b>{brlP(c.preco)}</b></td>
                         <td className="adm-sub">Assinatura · mensal</td>
-                        <td><b>{nMod(c.chave)}</b></td>
+                        <td><b>{c.chave === "acesso2" ? (data?.empresas.filter(temAcessoExtra).length ?? 0) : nMod(c.chave)}</b></td>
                         <td style={{ textAlign: "right" }}><button className="adm-btn sm danger adm-ic" title="Excluir produto" onClick={() => excluirProduto(c.chave, c.nome)}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
@@ -751,7 +759,7 @@ export default function Admin() {
               <label style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", opacity: .75 }}>
                 <input type="checkbox" checked disabled /> <span><b>Super Admin</b> <span className="adm-sub">· {brl(precos.superadmin)}/mês (base, sempre ativo)</span></span>
               </label>
-              {catalogo.map((c) => (
+              {catalogo.filter((c) => c.chave !== "acesso2").map((c) => (
                 <label key={c.chave} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", cursor: "pointer" }}>
                   <input type="checkbox" checked={!!novo.planos?.[c.chave]} onChange={(ev) => setNovo({ ...novo, planos: { ...(novo.planos || {}), [c.chave]: ev.target.checked } })} />
                   <span>{c.nome} <span className="adm-sub">· {brl(c.preco)}/mês</span></span>
