@@ -725,9 +725,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
         )}
         {!estreito && view === "dashboard" && <div style={{ margin: "6px 2px 10px", fontSize: 11.5, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>}
         {!estreito && view === "dashboard" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-            {[{ aba: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers },
-              { aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays }].map((c) => (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            {[{ aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
+              { aba: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers }].map((c) => (
               <button key={c.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}
                 style={{ position: "relative", overflow: "hidden", minHeight: 168, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 20, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                   padding: "22px 24px", borderRadius: 22, color: "#fff",
@@ -756,6 +756,23 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 </div>
               </button>
             ))}
+            {/* informativo: os dois preenchimentos são conectados */}
+            <div style={{ minHeight: 168, borderRadius: 22, padding: "22px 24px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14, background: "var(--card)", border: "1px solid var(--line)", boxShadow: "0 12px 34px -24px rgba(15,23,42,.4)" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 13 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 12%, transparent)", color: "var(--brand)" }}><CalendarDays size={17} /></span>
+                  <span style={{ color: "var(--muted-2)", fontSize: 15, fontWeight: 700 }}>⇄</span>
+                  <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 12%, transparent)", color: "var(--brand)" }}><Layers size={17} /></span>
+                </div>
+                <b style={{ fontSize: 16.5, letterSpacing: "-.01em" }}>Preencha onde preferir</b>
+                <p className="sub" style={{ fontSize: 12.7, lineHeight: 1.6, marginTop: 7 }}>
+                  O que você registra no <b style={{ color: "var(--txt)" }}>Calendário</b> ou no <b style={{ color: "var(--txt)" }}>Painel financeiro</b> vai automaticamente para o outro, e alimenta todas as <b style={{ color: "var(--txt)" }}>dashboards</b> e painéis visuais do app.
+                </p>
+              </div>
+              <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                <span className="sub" style={{ fontSize: 11.3, lineHeight: 1.5 }}>Cerca de <b style={{ color: "var(--txt)" }}>8 em cada 10</b> empresas preenchem pelo Calendário, as demais pelo Painel financeiro.</span>
+              </div>
+            </div>
           </div>
         )}
         {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} semTitulo /></div>}
