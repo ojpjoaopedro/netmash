@@ -13,9 +13,9 @@ import { supabase, supabaseReady } from "@/lib/supabase";
  * O id é guardado em cache na sessão; troque de conta => limparCacheEmpresa().
  */
 let _cache: string | null | undefined;
-let _inflight: Promise<string | null> | null = null;
 
-async function resolver(): Promise<string | null> {
+export async function empresaAtualId(): Promise<string | null> {
+  if (_cache !== undefined) return _cache ?? null;
   if (!supabaseReady || !supabase) { _cache = null; return null; }
   try {
     const { data: auth } = await supabase.auth.getUser();
@@ -31,13 +31,5 @@ async function resolver(): Promise<string | null> {
   } catch { _cache = null; return null; }
 }
 
-export async function empresaAtualId(): Promise<string | null> {
-  if (_cache !== undefined) return _cache ?? null;
-  // Deduplica chamadas simultâneas: no load, vários getters chamam isto em
-  // paralelo antes do cache existir. Uma única resolução atende todos.
-  if (!_inflight) _inflight = resolver().finally(() => { _inflight = null; });
-  return _inflight;
-}
-
 /** Zera o cache (chamar no login/logout, ao trocar de conta). */
-export function limparCacheEmpresa() { _cache = undefined; _inflight = null; }
+export function limparCacheEmpresa() { _cache = undefined; }

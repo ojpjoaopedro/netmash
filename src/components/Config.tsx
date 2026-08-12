@@ -40,7 +40,7 @@ function lerExtra(id?: string | null): DadosExtra {
   try { return { ...EXTRA_VAZIO, ...JSON.parse(localStorage.getItem(chaveExtra(id)) || "{}") }; } catch { return EXTRA_VAZIO; }
 }
 function salvarExtra(id: string | null | undefined, d: DadosExtra) {
-  if (typeof window !== "undefined") { const cru = JSON.stringify(d); localStorage.setItem(chaveExtra(id), cru); salvarEstadoRemoto(chaveExtra(id), cru); window.dispatchEvent(new Event("me:empresa")); }
+  if (typeof window !== "undefined") { const cru = JSON.stringify(d); localStorage.setItem(chaveExtra(id), cru); salvarEstadoRemoto(chaveExtra(id), cru); }
 }
 
 /** Posição para o selinho "Salvo" colar logo após o texto digitado. */
