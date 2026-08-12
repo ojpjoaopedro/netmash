@@ -17,7 +17,7 @@ type Empresa = {
   acessoCortado: boolean; plano: string | null; valor: number; slug: string | null; cnpj: string | null;
   responsavel?: string | null; responsavel_cpf?: string | null; ultimo_acesso?: string | null;
   cidade: string | null; estado: string | null;
-  logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
+  logo_url: string | null; cor: string | null;
   planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
 };
 type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null };
@@ -56,10 +56,10 @@ type NovoCliente = { nomeEmpresa: string; cnpj: string; cpf: string; responsavel
 // pra você visualizar/ajustar a tela sem precisar de login.
 const DEMO_RESP: Resp = {
   empresas: [
-    { id: "demo-araguaia", nome: "Colégio Araguaia", segmento: "Educação", criado_em: "2026-06-29T12:00:00Z", saldo_inicial: 0, dono_id: "d1", dono: { id: "d1", nome: "Secretaria Araguaia", email: "secretaria@colegioaraguaia.com.br" }, acessoCortado: false, plano: "1 Super Admin + 1 Acesso", valor: 119.8, slug: "colegioaraguaia", cnpj: "33.364.563/0001-18", cidade: "Aparecida de Goiânia", estado: "GO", logo_url: null, cor: "#E11D48", nLanc: 24, nCli: 8, nFunc: 3, planos: { folha: true } },
-    { id: "demo-metricas", nome: "Metricas", segmento: null, criado_em: "2026-06-29T09:00:00Z", saldo_inicial: 0, dono_id: "d2", dono: { id: "d2", nome: "Minhas Métricas", email: "minhasmetricas@gmail.com" }, acessoCortado: false, plano: null, valor: 0, slug: "metricas", cnpj: null, cidade: "Itajaí", estado: "SC", logo_url: null, cor: null, nLanc: 0, nCli: 0, nFunc: 0, planos: {} },
-    { id: "demo-jp", nome: "JP Contabilidade", segmento: "Serviços", criado_em: "2026-06-20T10:00:00Z", saldo_inicial: 0, dono_id: "d3", dono: { id: "d3", nome: "João Pedro", email: "jp@gmail.com" }, acessoCortado: false, plano: "1 Super Admin + 2 Acessos", valor: 199.6, slug: "jp", cnpj: "12.345.678/0001-90", cidade: "Goiânia", estado: "GO", logo_url: null, cor: "#16A34A", nLanc: 51, nCli: 14, nFunc: 5, planos: { planejamento: true } },
-    { id: "demo-walk", nome: "Walk Store", segmento: "Comércio", criado_em: "2026-05-26T08:00:00Z", saldo_inicial: 0, dono_id: "d4", dono: { id: "d4", nome: "Pedro Walk", email: "pedro@gmail.com" }, acessoCortado: true, plano: "1 Super Admin", valor: 79.9, slug: "walk", cnpj: null, cidade: "São Paulo", estado: "SP", logo_url: null, cor: null, nLanc: 9, nCli: 3, nFunc: 1, planos: {} },
+    { id: "demo-araguaia", nome: "Colégio Araguaia", segmento: "Educação", criado_em: "2026-06-29T12:00:00Z", saldo_inicial: 0, dono_id: "d1", dono: { id: "d1", nome: "Secretaria Araguaia", email: "secretaria@colegioaraguaia.com.br" }, acessoCortado: false, plano: "1 Super Admin + 1 Acesso", valor: 119.8, slug: "colegioaraguaia", cnpj: "33.364.563/0001-18", cidade: "Aparecida de Goiânia", estado: "GO", logo_url: null, cor: "#E11D48", planos: { folha: true } },
+    { id: "demo-metricas", nome: "Metricas", segmento: null, criado_em: "2026-06-29T09:00:00Z", saldo_inicial: 0, dono_id: "d2", dono: { id: "d2", nome: "Minhas Métricas", email: "minhasmetricas@gmail.com" }, acessoCortado: false, plano: null, valor: 0, slug: "metricas", cnpj: null, cidade: "Itajaí", estado: "SC", logo_url: null, cor: null, planos: {} },
+    { id: "demo-jp", nome: "JP Contabilidade", segmento: "Serviços", criado_em: "2026-06-20T10:00:00Z", saldo_inicial: 0, dono_id: "d3", dono: { id: "d3", nome: "João Pedro", email: "jp@gmail.com" }, acessoCortado: false, plano: "1 Super Admin + 2 Acessos", valor: 199.6, slug: "jp", cnpj: "12.345.678/0001-90", cidade: "Goiânia", estado: "GO", logo_url: null, cor: "#16A34A", planos: { planejamento: true } },
+    { id: "demo-walk", nome: "Walk Store", segmento: "Comércio", criado_em: "2026-05-26T08:00:00Z", saldo_inicial: 0, dono_id: "d4", dono: { id: "d4", nome: "Pedro Walk", email: "pedro@gmail.com" }, acessoCortado: true, plano: "1 Super Admin", valor: 79.9, slug: "walk", cnpj: null, cidade: "São Paulo", estado: "SP", logo_url: null, cor: null, planos: {} },
   ],
   totais: { empresas: 4, usuarios: 11, faturamento: 399.3, ativos: 3 },
   precos: { superadmin: 79.9, acesso: 39.9 },

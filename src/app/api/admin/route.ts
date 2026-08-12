@@ -30,11 +30,6 @@ function slugify(s: string): string {
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "empresa";
 }
 
-function contar<T extends Record<string, unknown>>(arr: T[] | null, key: keyof T): Map<unknown, number> {
-  const m = new Map<unknown, number>();
-  (arr ?? []).forEach((r) => m.set(r[key], (m.get(r[key]) ?? 0) + 1));
-  return m;
-}
 
 async function getPrecos(s: SupabaseClient): Promise<{ superadmin: number; acesso: number }> {
   try {
@@ -64,31 +59,37 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ acessos });
   }
 
-  const [emp, per, lan, cli, fun] = await Promise.all([
+  // NÃO baixamos mais as tabelas lancamentos/clientes/funcionarios inteiras: as
+  // contagens por empresa (nLanc/nCli/nFunc) não eram exibidas em lugar nenhum e
+  // custavam varrer milhões de linhas por request conforme a base cresce.
+  const [emp, per] = await Promise.all([
     s.from("empresas").select("*"),
     s.from("perfis").select("id,empresa_id,nome,email,papel"),
-    s.from("lancamentos").select("empresa_id"),
-    s.from("clientes").select("empresa_id"),
-    s.from("funcionarios").select("empresa_id"),
   ]);
   const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; responsavel_cpf?: string | null; cidade?: string | null; estado?: string | null; logo_url?: string | null; cor?: string | null }[];
   const perfis = (per.data ?? []) as { id: string; empresa_id: string; nome: string | null; email: string | null; papel: string }[];
 
-  // Status de acesso (banido = acesso cortado) + último acesso (last_sign_in_at)
+  // Status de acesso (banido = acesso cortado) + último acesso (last_sign_in_at).
+  // Buscamos SÓ os donos das empresas exibidas (getUserById), em vez de listar
+  // TODOS os usuários do Auth (que estourava em 1000 e crescia com a base toda).
   const banido = new Map<string, boolean>();
   const ultimoAcesso = new Map<string, string | null>();
-  try {
-    const { data: us } = await s.auth.admin.listUsers({ perPage: 1000 });
-    (us?.users ?? []).forEach((u) => {
-      const until = (u as unknown as { banned_until?: string }).banned_until;
-      banido.set(u.id, !!until && new Date(until).getTime() > Date.now());
-      ultimoAcesso.set(u.id, (u as unknown as { last_sign_in_at?: string }).last_sign_in_at ?? null);
-    });
-  } catch { /* segue sem status de ban */ }
+  const donoIds = Array.from(new Set(empresas.map((e) => e.dono_id).filter((x): x is string => !!x)));
+  // em lotes para não disparar centenas de chamadas de uma vez
+  for (let i = 0; i < donoIds.length; i += 25) {
+    const lote = donoIds.slice(i, i + 25);
+    await Promise.all(lote.map(async (uid) => {
+      try {
+        const { data: u } = await s.auth.admin.getUserById(uid);
+        const user = u?.user;
+        if (!user) return;
+        const until = (user as unknown as { banned_until?: string }).banned_until;
+        banido.set(uid, !!until && new Date(until).getTime() > Date.now());
+        ultimoAcesso.set(uid, (user as unknown as { last_sign_in_at?: string }).last_sign_in_at ?? null);
+      } catch { /* segue sem status desse dono */ }
+    }));
+  }
 
-  const cLan = contar(lan.data as { empresa_id: string }[], "empresa_id");
-  const cCli = contar(cli.data as { empresa_id: string }[], "empresa_id");
-  const cFun = contar(fun.data as { empresa_id: string }[], "empresa_id");
   const donoPorEmpresa = new Map<string, typeof perfis[number]>();
   perfis.forEach((p) => { if (p.papel === "dono") donoPorEmpresa.set(p.empresa_id, p); });
 
@@ -110,9 +111,6 @@ export async function GET(req: NextRequest) {
       estado: e.estado ?? null,
       logo_url: e.logo_url ?? null,
       cor: e.cor ?? null,
-      nLanc: (cLan.get(e.id) as number) ?? 0,
-      nCli: (cCli.get(e.id) as number) ?? 0,
-      nFunc: (cFun.get(e.id) as number) ?? 0,
     };
   }).sort((a, b) => (b.criado_em || "").localeCompare(a.criado_em || ""));
 
