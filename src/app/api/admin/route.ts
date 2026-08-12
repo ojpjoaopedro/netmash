@@ -74,13 +74,15 @@ export async function GET(req: NextRequest) {
   const empresas = (emp.data ?? []) as { id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number; dono_id: string | null; plano?: string | null; valor?: number | null; slug?: string | null; responsavel?: string | null; responsavel_cpf?: string | null; cidade?: string | null; estado?: string | null; logo_url?: string | null; cor?: string | null }[];
   const perfis = (per.data ?? []) as { id: string; empresa_id: string; nome: string | null; email: string | null; papel: string }[];
 
-  // Status de acesso (banido = acesso cortado)
+  // Status de acesso (banido = acesso cortado) + último acesso (last_sign_in_at)
   const banido = new Map<string, boolean>();
+  const ultimoAcesso = new Map<string, string | null>();
   try {
     const { data: us } = await s.auth.admin.listUsers({ perPage: 1000 });
     (us?.users ?? []).forEach((u) => {
       const until = (u as unknown as { banned_until?: string }).banned_until;
       banido.set(u.id, !!until && new Date(until).getTime() > Date.now());
+      ultimoAcesso.set(u.id, (u as unknown as { last_sign_in_at?: string }).last_sign_in_at ?? null);
     });
   } catch { /* segue sem status de ban */ }
 
@@ -98,6 +100,7 @@ export async function GET(req: NextRequest) {
       dono: dono ? { id: dono.id, nome: dono.nome, email: dono.email } : null,
       responsavel: e.responsavel ?? dono?.nome ?? null,
       responsavel_cpf: e.responsavel_cpf ?? null,
+      ultimo_acesso: e.dono_id ? (ultimoAcesso.get(e.dono_id) ?? null) : null,
       acessoCortado: e.dono_id ? (banido.get(e.dono_id) ?? false) : false,
       plano: e.plano ?? null,
       valor: Number(e.valor ?? 0),

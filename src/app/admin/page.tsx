@@ -15,7 +15,7 @@ type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
   dono_id: string | null; dono: { id: string; nome: string | null; email: string | null } | null;
   acessoCortado: boolean; plano: string | null; valor: number; slug: string | null; cnpj: string | null;
-  responsavel?: string | null; responsavel_cpf?: string | null;
+  responsavel?: string | null; responsavel_cpf?: string | null; ultimo_acesso?: string | null;
   cidade: string | null; estado: string | null;
   logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
   planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
@@ -491,20 +491,19 @@ export default function Admin() {
               <h3 className="adm-h3">Últimos clientes</h3>
               <div className="adm-tablewrap">
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>Responsável</th><th>E-mail de acesso</th><th>Criada</th></tr></thead>
+                  <thead><tr><th>Criada</th><th>E-mail de acesso</th><th>Nome</th><th>CPF</th><th>Empresa</th><th>Último acesso</th></tr></thead>
                   <tbody>
                     {data?.empresas.slice(0, 6).map((e) => (
                       <tr key={e.id}>
-                        <td><b>{e.nome}</b>{ehPadrao(e) && <span className="adm-badge-padrao">Padrão</span>}</td>
-                        <td>
-                          <div>{e.responsavel || e.dono?.nome || "—"}</div>
-                          {e.responsavel_cpf && <div className="adm-sub" style={{ fontSize: 11 }}>CPF: {e.responsavel_cpf}</div>}
-                        </td>
-                        <td className="adm-sub">{e.dono?.email || "—"}</td>
                         <td className="adm-sub">{dataHoraBR(e.criado_em)}</td>
+                        <td className="adm-sub">{e.dono?.email || "—"}</td>
+                        <td>{e.responsavel || e.dono?.nome || "—"}</td>
+                        <td className="adm-sub">{e.responsavel_cpf || "—"}</td>
+                        <td><b>{e.nome}</b>{ehPadrao(e) && <span className="adm-badge-padrao">Padrão</span>}</td>
+                        <td className="adm-sub">{e.ultimo_acesso ? dataHoraBR(e.ultimo_acesso) : "—"}</td>
                       </tr>
                     ))}
-                    {!data?.empresas.length && <tr><td colSpan={4} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={6} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
