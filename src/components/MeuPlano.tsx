@@ -11,7 +11,7 @@ const PRECO_ACESSO = 39.9;     // por acesso adicional (admin)
 const TEL = "5562994797664";   // WhatsApp do Minhas Métricas
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-type Modulo = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null; link_pagamento?: string | null };
+type Modulo = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null; link_pagamento?: string | null; selo?: string | null };
 
 // Catálogo de reserva, caso a tabela ainda não responda.
 const CATALOGO_PADRAO: Modulo[] = [
@@ -56,7 +56,7 @@ export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<stri
     if (!supabaseReady || !supabase) return;
     let vivo = true;
     (async () => {
-      const { data } = await supabase!.from("planos_catalogo").select("chave,nome,descricao,preco,imagem,link_pagamento").order("ordem", { ascending: true });
+      const { data } = await supabase!.from("planos_catalogo").select("chave,nome,descricao,preco,imagem,link_pagamento,selo").order("ordem", { ascending: true });
       if (vivo && data && data.length) setCatalogo(data as Modulo[]);
     })();
     return () => { vivo = false; };
@@ -115,7 +115,10 @@ export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<stri
                   <span style={{ width: 46, height: 46, borderRadius: 12, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", flexShrink: 0 }}><IconeModulo chave={m.chave} /></span>
                 )}
                 <div style={{ minWidth: 0 }}>
-                  <b style={{ fontSize: 16, display: "inline-flex", alignItems: "center", gap: 7 }}>{m.nome} {!on && <Lock size={14} style={{ color: "var(--muted)" }} />}</b>
+                  <b style={{ fontSize: 16, display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                    {m.nome} {!on && <Lock size={14} style={{ color: "var(--muted)" }} />}
+                    {!on && m.selo && <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".02em", color: "#10B981", background: "rgba(16,185,129,.14)", padding: "3px 9px", borderRadius: 99 }}>{m.selo}</span>}
+                  </b>
                   {m.descricao && <div className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>{m.descricao}</div>}
                 </div>
               </div>
