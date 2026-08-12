@@ -21,7 +21,7 @@ export default function AppPage() {
         t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,
         'script','https://connect.facebook.net/en_US/fbevents.js');
         fbq('init','${PIXEL_ID}');fbq('track','PageView');
-        document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('a[href*="pay.kiwify.com.br"],a[href*="buy.stripe.com"],a[data-checkout]');if(t&&window.fbq)fbq('track','InitiateCheckout');});
+        document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('a[href*="checkout.wiven.com.br"],a[href*="pay.kiwify.com.br"],a[href*="buy.stripe.com"],a[data-checkout]');if(t&&window.fbq)fbq('track','InitiateCheckout');});
       `}</Script>
       <noscript><img height="1" width="1" style={{ display: "none" }} alt=""
         src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`} /></noscript>

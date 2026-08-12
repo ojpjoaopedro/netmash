@@ -11,9 +11,8 @@ import {
 const MARCA = "Minhas Métricas";            // nome que aparece na página
 const PRECO = "49,99";                        // valor da MENSALIDADE (R$/mês)
 const PRECO_DE = "97";                         // preço "cheio" (âncora, riscado)
-// ⚠️ TROQUE pelo link de assinatura R$ 49,99/mês quando o time gerar (Kiwify ou Stripe).
-//    Hoje aponta pro link antigo — o botão funciona, mas cobra o valor antigo.
-const CHECKOUT_URL = "https://pay.kiwify.com.br/ATeuhH5";
+// Link de pagamento (plataforma Wiven). Confirme que a oferta está em R$ 49,99/mês.
+const CHECKOUT_URL = "https://checkout.wiven.com.br/checkout/cmsqaomtj02qo01q4pq9l1fjq?offer=LY7PZUS";
 const ENTRAR_URL = "/login";                // login do app
 const PIXEL_ID = "574774374290188";         // Pixel da Meta (Facebook/Instagram)
 /* ============================================================ */
@@ -81,7 +80,7 @@ export default function Vendas() {
         t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,
         'script','https://connect.facebook.net/en_US/fbevents.js');
         fbq('init','${PIXEL_ID}');fbq('track','PageView');
-        document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('a[href*="pay.kiwify.com.br"],a[href*="buy.stripe.com"],a[data-checkout]');if(t&&window.fbq)fbq('track','InitiateCheckout');});
+        document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('a[href*="checkout.wiven.com.br"],a[href*="pay.kiwify.com.br"],a[href*="buy.stripe.com"],a[data-checkout]');if(t&&window.fbq)fbq('track','InitiateCheckout');});
       `}</Script>
       <noscript><img height="1" width="1" style={{ display: "none" }} alt=""
         src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`} /></noscript>
