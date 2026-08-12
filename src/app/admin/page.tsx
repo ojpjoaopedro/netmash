@@ -101,6 +101,7 @@ export default function Admin() {
   const [logVer, setLogVer] = useState(false);
   const [buscaLgpd, setBuscaLgpd] = useState("");
   const [buscaEmpresa, setBuscaEmpresa] = useState("");
+  const [confirmAcao, setConfirmAcao] = useState<{ titulo: string; texto: string; okTxt: string; onOk: () => void } | null>(null);   // popup de confirmação genérico
   const [lgpdDet, setLgpdDet] = useState<LgpdRow | null>(null);
 
   const carregar = useCallback(async () => {
@@ -533,7 +534,7 @@ export default function Admin() {
                         <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 11 }}>
                           <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                             <span style={{ fontSize: 12, fontWeight: 800, color: e.acessoCortado ? "#94a3b8" : "#10B981" }}>{e.acessoCortado ? "Desativado" : "Ativo"}</span>
-                            <button type="button" disabled={!!busy || !e.dono_id} onClick={() => toggleSuperAdmin(e)} title={e.acessoCortado ? "Ativar acesso (Super Admin)" : "Desativar acesso (desliga todos os módulos)"}
+                            <button type="button" disabled={!!busy || !e.dono_id} onClick={() => setConfirmAcao({ titulo: e.acessoCortado ? "Ativar acesso" : "Desativar acesso", texto: e.acessoCortado ? `Reativar o acesso (Super Admin) de "${e.nome}"? A empresa volta a conseguir entrar no painel.` : `Desativar o acesso (Super Admin) de "${e.nome}"? A empresa deixa de entrar no painel e todos os módulos são desligados.`, okTxt: e.acessoCortado ? "Ativar" : "Desativar", onOk: () => toggleSuperAdmin(e) })} title={e.acessoCortado ? "Ativar acesso (Super Admin)" : "Desativar acesso (desliga todos os módulos)"}
                               style={{ background: "transparent", border: 0, cursor: e.dono_id ? "pointer" : "not-allowed", fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, color: e.acessoCortado ? "var(--brand,#1AADE2)" : "#ef4444", textDecoration: "underline", padding: 0 }}>{e.acessoCortado ? "ativar" : "desativar"}</button>
                           </div>
                         </td>
@@ -545,8 +546,8 @@ export default function Admin() {
                             </td>
                           ); }
                           const on = !!e.planos?.[c.chave]; return (
-                          <td key={c.chave} style={{ textAlign: "center", verticalAlign: "top", paddingTop: 14 }}>
-                            <button type="button" className={"adm-switch" + (on ? " on" : "")} disabled={!!busy} title={(on ? "Desativar " : "Ativar ") + c.nome} onClick={() => togglePlano(e.id, c.chave, !on)}><span className="adm-switch-knob" /></button>
+                          <td key={c.chave} style={{ textAlign: "center", verticalAlign: "top", paddingTop: 10 }}>
+                            <button type="button" className={"adm-switch" + (on ? " on" : "")} disabled={!!busy} title={(on ? "Desativar " : "Ativar ") + c.nome} onClick={() => setConfirmAcao({ titulo: (on ? "Desativar " : "Ativar ") + c.nome, texto: `${on ? "Desativar" : "Ativar"} o módulo "${c.nome}" para "${e.nome}"?${on ? "" : " A empresa passa a ter acesso a esse recurso."}`, okTxt: on ? "Desativar" : "Ativar", onOk: () => togglePlano(e.id, c.chave, !on) })}><span className="adm-switch-knob" /></button>
                           </td>
                         ); })}
                         <td style={{ verticalAlign: "top" }}>
@@ -766,17 +767,26 @@ export default function Admin() {
               <L label="Responsável (Super Admin)"><input value={novo.responsavel} onChange={(ev) => setNovo({ ...novo, responsavel: ev.target.value })} /></L>
               <L label="E-mail do responsável"><input type="email" value={novo.emailResp} onChange={(ev) => setNovo({ ...novo, emailResp: ev.target.value })} required /></L>
             </div>
-            <div style={{ marginTop: 16 }}>
-              <div className="adm-sub" style={{ fontWeight: 700, marginBottom: 8 }}>Planos ativos</div>
-              <label style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", opacity: .75 }}>
-                <input type="checkbox" checked disabled /> <span><b>Super Admin</b> <span className="adm-sub">· {brl(precos.superadmin)}/mês (base, sempre ativo)</span></span>
-              </label>
-              {catalogo.filter((c) => c.chave !== "acesso2").map((c) => (
-                <label key={c.chave} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", cursor: "pointer" }}>
-                  <input type="checkbox" checked={!!novo.planos?.[c.chave]} onChange={(ev) => setNovo({ ...novo, planos: { ...(novo.planos || {}), [c.chave]: ev.target.checked } })} />
-                  <span>{c.nome} <span className="adm-sub">· {brl(c.preco)}/mês</span></span>
+            <div style={{ marginTop: 18 }}>
+              <div className="adm-sub" style={{ fontWeight: 700, marginBottom: 9 }}>Planos ativos</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 11, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card-2,#0d0d0d)", opacity: .8 }}>
+                  <input type="checkbox" checked disabled style={{ width: 17, height: 17, flexShrink: 0 }} />
+                  <b style={{ flex: 1, fontSize: 13.5 }}>Super Admin <span className="adm-sub" style={{ fontWeight: 500 }}>(base)</span></b>
+                  <span className="adm-sub" style={{ flexShrink: 0 }}>{brl(precos.superadmin)}/mês</span>
                 </label>
-              ))}
+                {catalogo.filter((c) => c.chave !== "acesso2").map((c) => {
+                  const on = !!novo.planos?.[c.chave];
+                  return (
+                    <label key={c.chave} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 11, cursor: "pointer",
+                      border: `1px solid ${on ? "var(--brand,#1AADE2)" : "var(--line-2,#2a2a2a)"}`, background: on ? "color-mix(in srgb, var(--brand,#1AADE2) 10%, transparent)" : "var(--card-2,#0d0d0d)", transition: ".12s" }}>
+                      <input type="checkbox" checked={on} onChange={(ev) => setNovo({ ...novo, planos: { ...(novo.planos || {}), [c.chave]: ev.target.checked } })} style={{ width: 17, height: 17, flexShrink: 0 }} />
+                      <b style={{ flex: 1, fontSize: 13.5 }}>{c.nome}</b>
+                      <span className="adm-sub" style={{ flexShrink: 0 }}>{brl(c.preco)}/mês</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
             <button className="adm-btn" type="submit" disabled={salvNovo} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{salvNovo ? "Cadastrando…" : "Cadastrar cliente"}</button>
             <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>O responsável recebe um e-mail para <b>criar a senha</b> e acessar.</p>
@@ -826,6 +836,19 @@ export default function Admin() {
             </div>
             <button className="adm-btn" onClick={salvarEditAcesso} disabled={busy === editAcesso.id} style={{ width: "100%", justifyContent: "center", marginTop: 16 }}>{busy === editAcesso.id ? "Salvando…" : "Salvar alterações"}</button>
             <p className="adm-sub" style={{ marginTop: 10, textAlign: "center" }}>Alterar o e-mail muda o login deste usuário.</p>
+          </div>
+        </div>
+      )}
+
+      {confirmAcao && (
+        <div className="adm-modalbg" onClick={() => setConfirmAcao(null)}>
+          <div className="adm-modal" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className="adm-mhead"><h3>{confirmAcao.titulo}</h3><button type="button" onClick={() => setConfirmAcao(null)}><X size={18} /></button></div>
+            <p className="adm-sub" style={{ lineHeight: 1.55, marginBottom: 18 }}>{confirmAcao.texto}</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="adm-btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setConfirmAcao(null)}>Cancelar</button>
+              <button className="adm-btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => { const f = confirmAcao.onOk; setConfirmAcao(null); f(); }}>{confirmAcao.okTxt}</button>
+            </div>
           </div>
         </div>
       )}
