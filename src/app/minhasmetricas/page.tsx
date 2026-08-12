@@ -434,8 +434,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <Icon size={16} color={corDe(key)} /> {label}
               </button>
             ); })}
-            {/* Folha de pagamento: liberada pelo plano (abre) ou bloqueada (popup de upgrade). */}
-            {empresa?.planos?.folha ? (
+            {/* Folha de pagamento: colaborador só vê se tiver a permissão liberada.
+                Depois, liberada pelo plano (abre) ou bloqueada (popup de upgrade). */}
+            {(ehDono || areasPerm.includes("folha")) && (empresa?.planos?.folha ? (
               <button className={view === "financas" && abaFin === "folha" ? "active" : ""} onClick={() => { playTick(); navegar({ view: "financas", aba: "folha" }); setMenuAberto(false); }}>
                 <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
               </button>
@@ -444,7 +445,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
                 <Lock size={13} style={{ marginLeft: "auto", opacity: .65 }} />
               </button>
-            )}
+            ))}
             {metricasMaisVis.length > 0 && (maisAberto || maisTemAtivo) && metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
               <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
                 <Icon size={16} color={corDe(key)} /> {label}

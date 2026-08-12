@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   User, Phone, Mail, CreditCard, KeyRound, Cake, Trash2, Plus, Power, Search,
   ChevronUp, ChevronDown, ChevronsUpDown, Crown, Shield, Lock, SlidersHorizontal, Eye, EyeOff, Check, X,
-  LayoutDashboard, DollarSign, BarChart3, Sparkles, Settings,
+  LayoutDashboard, DollarSign, BarChart3, Sparkles, Settings, ArrowLeft, Wallet,
 } from "lucide-react";
 import { Funcionario, Empresa, addFuncionario, updateFuncionario, delFuncionario } from "@/lib/db";
 import { Brand } from "@/lib/brand";
@@ -26,6 +26,7 @@ const GRUPOS = [
     { k: "dashboard", label: "Home", Icon: LayoutDashboard },
     { k: "financas", label: "Finanças", Icon: DollarSign },
     { k: "painel", label: "Dashboard", Icon: BarChart3 },
+    { k: "folha", label: "Folha de pagamento", Icon: Wallet },
   ] },
   { titulo: "Operações", itens: [
     { k: "assistente", label: "Assistente", Icon: Sparkles },
@@ -382,7 +383,10 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   const funcTab = sortCol
     ? funcVis.slice().sort((a, b) => { const r = valDe(a, sortCol).localeCompare(valDe(b, sortCol), "pt-BR", { sensitivity: "base", numeric: true }); return sortDir === "asc" ? r : -r; })
     : funcVis;
-  const linhas: Linha[] = soAcesso ? loginVis : [...loginVis, ...funcTab];
+  // "com acesso ao app" = qualquer pessoa com nível de acesso (login), inclusive
+  // funcionários que também são admin (ex: Luciana).
+  const linhasBase: Linha[] = [...loginVis, ...funcTab];
+  const linhas: Linha[] = soAcesso ? linhasBase.filter((l) => l.nivel !== "sem") : linhasBase;
 
   const seta = (k: string) => sortCol !== k
     ? <ChevronsUpDown size={13} style={{ opacity: .4 }} />
@@ -542,17 +546,19 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
 
       {/* filtros */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
-          {opc("ativos", "Ativos")}
-          {opc("desativados", "Desativados")}
-        </div>
-        <button type="button" onClick={() => setSoAcesso((v) => !v)} title="Mostrar só quem tem login/acesso ao app"
+        <button type="button" onClick={() => setSoAcesso((v) => !v)} title={soAcesso ? "Voltar a mostrar todos" : "Mostrar só quem tem login/acesso ao app"}
           style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 15px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
             border: `1px solid ${soAcesso ? "var(--brand)" : "var(--line-2)"}`,
             background: soAcesso ? "var(--brand)" : "transparent",
             color: soAcesso ? "var(--brand-ct,#fff)" : "var(--muted)" }}>
-          <KeyRound size={14} /> Com acesso ao app
+          {soAcesso ? <><ArrowLeft size={14} /> Voltar à tela completa</> : <><KeyRound size={14} /> Com acesso ao app</>}
         </button>
+        {!soAcesso && (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
+            {opc("ativos", "Ativos")}
+            {opc("desativados", "Desativados")}
+          </div>
+        )}
       </div>
 
       {modo === "lista" ? (
@@ -787,7 +793,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
               <button onClick={() => setPermAlvo(null)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, margin: "14px 0" }}>
-              <span className="sub" style={{ fontSize: 12 }}>{permSel.length} de {TODAS.length} itens liberados</span>
+              <span className="sub" style={{ fontSize: 12 }}>{permSel.filter((k) => TODAS.includes(k)).length} de {TODAS.length} itens liberados</span>
               <div style={{ display: "flex", gap: 14 }}>
                 <button onClick={() => setPermSel(TODAS.slice())} style={{ background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12, color: "var(--brand)" }}>Marcar tudo</button>
                 <button onClick={() => setPermSel([])} style={{ background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12, color: "var(--muted)" }}>Limpar</button>
