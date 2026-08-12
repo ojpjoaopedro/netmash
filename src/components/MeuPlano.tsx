@@ -3,11 +3,10 @@ import { useEffect, useState } from "react";
 import { Crown, Check, ArrowUpRight, Compass, Wallet, Shield, Lock, Package } from "lucide-react";
 import BotaoOcultar from "./ocultar";
 import { supabase, supabaseReady } from "@/lib/supabase";
+import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
 
 // Super Admin é o plano base (fixo, sempre ativo). Os demais módulos vêm do
 // catálogo do Admin (tabela planos_catalogo), com imagem, nome e preço.
-const PRECO_SUPERADMIN = 79.9; // por administrador principal da empresa
-const PRECO_ACESSO = 39.9;     // por acesso adicional (admin)
 const TEL = "5562994797664";   // WhatsApp do Minhas Métricas
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 

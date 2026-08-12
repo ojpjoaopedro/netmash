@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { SUPERADMINS as SUPERS } from "@/lib/superadmin";
+import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
@@ -35,8 +36,8 @@ async function getPrecos(s: SupabaseClient): Promise<{ superadmin: number; acess
   try {
     const { data } = await s.from("config_app").select("chave,valor");
     const m = new Map((data ?? []).map((r: { chave: string; valor: number }) => [r.chave, Number(r.valor)]));
-    return { superadmin: m.get("preco_superadmin") ?? 79.9, acesso: m.get("preco_acesso") ?? 39.9 };
-  } catch { return { superadmin: 79.9, acesso: 39.9 }; }
+    return { superadmin: m.get("preco_superadmin") ?? PRECO_SUPERADMIN, acesso: m.get("preco_acesso") ?? PRECO_ACESSO };
+  } catch { return { superadmin: PRECO_SUPERADMIN, acesso: PRECO_ACESSO }; }
 }
 
 export async function GET(req: NextRequest) {

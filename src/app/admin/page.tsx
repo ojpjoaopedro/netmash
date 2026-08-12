@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
+import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
 import { useBrand } from "@/lib/brand";
 import AdminCupons from "@/components/AdminCupons";
 
@@ -47,8 +48,6 @@ function mascaraCnpj(v: string): string {
 type Aba = "visao" | "empresas" | "produtos" | "cupons" | "vendas" | "permissoes" | "config" | "documentos";
 type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null; localizacao?: string | null };
 
-const PRECO_SUPERADMIN = 79.9; // R$ por administrador da empresa
-const PRECO_ACESSO = 39.9;     // R$ por acesso (funcionário)
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
 type NovoCliente = { nomeEmpresa: string; cnpj: string; cpf: string; responsavel: string; emailResp: string; funcionarios: { nome: string; email: string }[]; planos: Record<string, boolean> };
 
@@ -62,7 +61,7 @@ const DEMO_RESP: Resp = {
     { id: "demo-walk", nome: "Walk Store", segmento: "Comércio", criado_em: "2026-05-26T08:00:00Z", saldo_inicial: 0, dono_id: "d4", dono: { id: "d4", nome: "Pedro Walk", email: "pedro@gmail.com" }, acessoCortado: true, plano: "1 Super Admin", valor: 79.9, slug: "walk", cnpj: null, cidade: "São Paulo", estado: "SP", logo_url: null, cor: null, planos: {} },
   ],
   totais: { empresas: 4, usuarios: 11, faturamento: 399.3, ativos: 3 },
-  precos: { superadmin: 79.9, acesso: 39.9 },
+  precos: { superadmin: PRECO_SUPERADMIN, acesso: PRECO_ACESSO },
 };
 
 export default function Admin() {
