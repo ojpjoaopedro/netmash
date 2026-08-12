@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
-  FileText, Search, Info, ImageIcon,
+  FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl } from "@/lib/format";
@@ -19,12 +19,12 @@ type Empresa = {
   logo_url: string | null; cor: string | null; nLanc: number; nCli: number; nFunc: number;
   planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 // catálogo de produtos (planos). Vem do banco (planos_catalogo); estes são o
 // fallback quando a tabela ainda não existe. O Super Admin é o plano base (fixo).
-type Plano = { chave: string; nome: string; descricao: string | null; preco: number; ordem?: number; imagem?: string | null };
+type Plano = { chave: string; nome: string; descricao: string | null; preco: number; ordem?: number; imagem?: string | null; link_pagamento?: string | null };
 const CATALOGO_PADRAO: Plano[] = [
   { chave: "folha", nome: "Folha de pagamento", descricao: "Salários, benefícios e encargos da equipe", preco: 39.9 },
   { chave: "acesso2", nome: "2º acesso", descricao: "Login adicional de administrador", preco: 9.9 },
@@ -230,6 +230,18 @@ export default function Admin() {
   const [novoProduto, setNovoProduto] = useState<{ nome: string; descricao: string; preco: string; imagem: string } | null>(null);
   const [salvProd, setSalvProd] = useState(false);
   const [imgProd, setImgProd] = useState<string | null>(null); // chave em upload na tabela
+  const [linkDraft, setLinkDraft] = useState<Record<string, string>>({}); // rascunho do link por produto
+  const [copiadoLink, setCopiadoLink] = useState<string | null>(null); // chave recém-copiada (feedback)
+  // Salva o link de pagamento de um produto (Super Admin vai no app_kv pela chave "superadmin").
+  async function salvarLinkProduto(chave: string, link: string) {
+    if (!supabase) return;
+    const { data: sess } = await supabase.auth.getSession();
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "plano-link", planoKey: chave, link }) });
+    await carregar();
+  }
+  async function copiarLink(chave: string, link: string) {
+    try { await navigator.clipboard.writeText(link); setCopiadoLink(chave); setTimeout(() => setCopiadoLink((c) => (c === chave ? null : c)), 1500); } catch { /* ignore */ }
+  }
   async function salvarProduto() {
     if (!novoProduto || !novoProduto.nome.trim() || !supabase) return;
     setSalvProd(true);
@@ -612,8 +624,25 @@ export default function Admin() {
           {aba === "produtos" && (() => {
             const clientes = t?.empresas ?? 0;
             const nMod = (key: string) => (data?.empresas.filter((e) => e.planos?.[key]).length ?? 0);
-            const brlP = (n: number) => `R$ ${Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card-2,#0d0d0d)", color: "inherit", fontSize: 14, fontFamily: "inherit" };
+            // célula editável do link de pagamento: input + copiar + abrir em outra aba
+            const celulaLink = (chave: string, stored: string | null | undefined) => {
+              const val = linkDraft[chave] !== undefined ? linkDraft[chave] : (stored || "");
+              const temLink = !!val.trim();
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 220 }}>
+                  <input value={val} placeholder="Colar link do checkout…"
+                    onChange={(ev) => setLinkDraft((d) => ({ ...d, [chave]: ev.target.value }))}
+                    onBlur={() => { if (val.trim() !== (stored || "").trim()) salvarLinkProduto(chave, val.trim()); }}
+                    style={{ flex: 1, minWidth: 0, padding: "7px 10px", borderRadius: 9, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card-2,#0d0d0d)", color: "inherit", fontSize: 12, fontFamily: "inherit" }} />
+                  <button className="adm-btn sm adm-ic" title={copiadoLink === chave ? "Copiado!" : "Copiar link"} disabled={!temLink} onClick={() => copiarLink(chave, val.trim())} style={{ opacity: temLink ? 1 : .4 }}>
+                    {copiadoLink === chave ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                  <a className="adm-btn sm adm-ic" title="Abrir em outra aba" href={temLink ? val.trim() : undefined} target="_blank" rel="noopener noreferrer"
+                    style={{ pointerEvents: temLink ? "auto" : "none", opacity: temLink ? 1 : .4, textDecoration: "none" }}><ExternalLink size={14} /></a>
+                </div>
+              );
+            };
             return (
             <>
               <div className="adm-headrow">
@@ -625,7 +654,7 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th style={{ width: 64 }}>Imagem</th><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th><th>Acessos ativos</th><th></th></tr></thead>
+                  <thead><tr><th style={{ width: 64 }}>Imagem</th><th>Produto</th><th>Descrição</th><th>Link de pagamento</th><th>Acessos ativos</th><th></th></tr></thead>
                   <tbody>
                     <tr>
                       <td>
@@ -643,8 +672,7 @@ export default function Admin() {
                       </td>
                       <td><b>Super Admin</b><span className="adm-badge" style={{ marginLeft: 8 }}>Principal</span></td>
                       <td className="adm-sub">Acesso principal da empresa (plano base)</td>
-                      <td><b>{brlP(precos.superadmin)}</b></td>
-                      <td className="adm-sub">Assinatura · mensal</td>
+                      <td>{celulaLink("superadmin", data?.linkSuperadmin)}</td>
                       <td><b>{clientes}</b></td>
                       <td></td>
                     </tr>
@@ -665,8 +693,7 @@ export default function Admin() {
                         </td>
                         <td><b>{c.nome}</b></td>
                         <td className="adm-sub">{c.descricao || "—"}</td>
-                        <td><b>{brlP(c.preco)}</b></td>
-                        <td className="adm-sub">Assinatura · mensal</td>
+                        <td>{celulaLink(c.chave, c.link_pagamento)}</td>
                         <td><b>{c.chave === "acesso2" ? (data?.empresas.filter(temAcessoExtra).length ?? 0) : nMod(c.chave)}</b></td>
                         <td style={{ textAlign: "right" }}><button className="adm-btn sm danger adm-ic" title="Excluir produto" onClick={() => excluirProduto(c.chave, c.nome)}><Trash2 size={14} /></button></td>
                       </tr>

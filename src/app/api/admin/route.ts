@@ -128,14 +128,16 @@ export async function GET(req: NextRequest) {
   }));
 
   // catálogo de produtos (planos). Retorna [] se a tabela ainda não existir.
-  const catRes = await s.from("planos_catalogo").select("chave,nome,descricao,preco,ordem,imagem").order("ordem", { ascending: true });
-  const catalogo = (catRes.data as { chave: string; nome: string; descricao: string | null; preco: number; ordem: number; imagem: string | null }[] | null) ?? [];
+  const catRes = await s.from("planos_catalogo").select("chave,nome,descricao,preco,ordem,imagem,link_pagamento").order("ordem", { ascending: true });
+  const catalogo = (catRes.data as { chave: string; nome: string; descricao: string | null; preco: number; ordem: number; imagem: string | null; link_pagamento: string | null }[] | null) ?? [];
 
-  // imagem do Super Admin (plano base, fixo) guardada na tabelinha de textos app_kv.
-  const kvSA = await s.from("app_kv").select("valor").eq("chave", "imagem_superadmin").maybeSingle();
-  const imagemSuperadmin = ((kvSA.data as { valor?: string } | null)?.valor) ?? null;
+  // textos do Super Admin (plano base, fixo) guardados na tabelinha app_kv.
+  const kvSA = await s.from("app_kv").select("chave,valor").in("chave", ["imagem_superadmin", "link_superadmin"]);
+  const kvMap = new Map(((kvSA.data as { chave: string; valor: string | null }[] | null) ?? []).map((r) => [r.chave, r.valor]));
+  const imagemSuperadmin = kvMap.get("imagem_superadmin") ?? null;
+  const linkSuperadmin = kvMap.get("link_superadmin") ?? null;
 
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin });
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin, linkSuperadmin });
 }
 
 export async function POST(req: NextRequest) {
@@ -153,7 +155,7 @@ export async function POST(req: NextRequest) {
     precoSuperadmin?: number | string; precoAcesso?: number | string;
     emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
     lgpdId?: string; planoKey?: string; ativo?: boolean; descricao?: string; preco?: number | string;
-    planos?: Record<string, boolean>; imagem?: string | null;
+    planos?: Record<string, boolean>; imagem?: string | null; link?: string | null;
   };
   const { action, userId, empresaId } = body;
 
@@ -186,6 +188,17 @@ export async function POST(req: NextRequest) {
       await s.from("app_kv").upsert({ chave: "imagem_superadmin", valor: body.imagem || null });
     } else {
       await s.from("planos_catalogo").update({ imagem: body.imagem || null }).eq("chave", body.planoKey);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // Define o link de pagamento (checkout) de um produto. O Super Admin guarda no app_kv.
+  if (action === "plano-link" && body.planoKey) {
+    const link = (body.link || "").trim() || null;
+    if (body.planoKey === "superadmin") {
+      await s.from("app_kv").upsert({ chave: "link_superadmin", valor: link });
+    } else {
+      await s.from("planos_catalogo").update({ link_pagamento: link }).eq("chave", body.planoKey);
     }
     return NextResponse.json({ ok: true });
   }

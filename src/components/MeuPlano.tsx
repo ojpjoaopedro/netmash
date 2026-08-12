@@ -11,7 +11,7 @@ const PRECO_ACESSO = 39.9;     // por acesso adicional (admin)
 const TEL = "5562994797664";   // WhatsApp do Minhas Métricas
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-type Modulo = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null };
+type Modulo = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null; link_pagamento?: string | null };
 
 // Catálogo de reserva, caso a tabela ainda não responda.
 const CATALOGO_PADRAO: Modulo[] = [
@@ -29,6 +29,12 @@ function IconeModulo({ chave }: { chave: string }) {
 }
 
 function ativarModulo(m: Modulo) {
+  // Se o produto tem link de pagamento (checkout), vai direto pra ele.
+  if (m.link_pagamento && m.link_pagamento.trim()) {
+    window.open(m.link_pagamento.trim(), "_blank", "noopener");
+    return;
+  }
+  // Sem link cadastrado: cai no WhatsApp como antes.
   const msg = `Olá! Quero ativar o módulo de ${m.nome} (${fmt(m.preco)}/mês) no Minhas Métricas.`;
   window.open(`https://wa.me/${TEL}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
 }
@@ -50,7 +56,7 @@ export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<stri
     if (!supabaseReady || !supabase) return;
     let vivo = true;
     (async () => {
-      const { data } = await supabase!.from("planos_catalogo").select("chave,nome,descricao,preco,imagem").order("ordem", { ascending: true });
+      const { data } = await supabase!.from("planos_catalogo").select("chave,nome,descricao,preco,imagem,link_pagamento").order("ordem", { ascending: true });
       if (vivo && data && data.length) setCatalogo(data as Modulo[]);
     })();
     return () => { vivo = false; };
