@@ -428,6 +428,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <Icon size={16} color={corDe(key)} /> {label}
               </button>
             ); })}
+            {/* Folha de pagamento: recurso de plano (bloqueado). Clicar leva para os Planos. */}
+            <button onClick={() => { playTick(); navegar({ view: "config", aba: "plano" }); setMenuAberto(false); }} title="Folha de pagamento — recurso do plano. Ver planos.">
+              <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
+              <Lock size={13} style={{ marginLeft: "auto", opacity: .65 }} />
+            </button>
             {metricasMaisVis.length > 0 && (maisAberto || maisTemAtivo) && metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
               <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); }}>
                 <Icon size={16} color={corDe(key)} /> {label}
@@ -558,7 +563,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
             <div style={{ padding: "2px 16px 8px", fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>
             <div className="mhome-wgrid" style={{ padding: "0 14px 10px" }}>
-              {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }, { aba: "folha", label: "Folha de pagamento", Icon: Wallet }].map((c) => (
+              {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }].map((c) => (
                 <button key={c.aba} data-aba={c.aba} className="mhome-wcard" style={{ position: "relative" }} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
                   <span className="mhome-wcard-ico"><c.Icon size={22} /></span>
                   <b>{c.label}</b>
@@ -675,10 +680,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
         )}
         {!estreito && view === "dashboard" && <div style={{ margin: "6px 2px 10px", fontSize: 11.5, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>}
         {!estreito && view === "dashboard" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
             {[{ aba: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers },
-              { aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
-              { aba: "folha", label: "Folha de pagamento", sub: "Salários, benefícios e encargos", Icon: Wallet }].map((c) => (
+              { aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays }].map((c) => (
               <button key={c.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}
                 style={{ position: "relative", overflow: "hidden", minHeight: 168, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 20, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                   padding: "22px 24px", borderRadius: 22, color: "#fff",
@@ -1054,6 +1058,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
   const abas: { key: AbaCfg; label: string; Icon: typeof Settings }[] = [
     { key: "dados", label: "Dados da Empresa", Icon: Building2 },
     { key: "equipe", label: "Equipe", Icon: Users },
+    { key: "plano", label: "Planos", Icon: DollarSign },
   ];
   const tab = (ativo: boolean): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
@@ -1080,7 +1085,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
       {/* no celular vai direto pro conteúdo (a navegação é pelo menu ☰ e pela barra fixa) */}
       {(
       <>
-      {!estreito && aba !== "plano" && aba !== "beneficios" && (
+      {!estreito && aba !== "beneficios" && (
       <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: "auto", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         {abas.map((a, i) => (
           <Fragment key={a.key}>
