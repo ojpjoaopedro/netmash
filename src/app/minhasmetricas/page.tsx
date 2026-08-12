@@ -778,7 +778,12 @@ export default function Home({ secao }: { secao?: string } = {}) {
             </div>
           </div>
         )}
-        {view === "dashboard" && <div style={{ marginTop: 16 }}><PainelCobrancas ano={Number(anoSel)} semTitulo /></div>}
+        {view === "dashboard" && (
+          <div style={{ marginTop: 40 }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: 19, fontWeight: 800, letterSpacing: "-.01em", color: "var(--txt)" }}>Indicadores de resultados</h3>
+            <PainelCobrancas ano={Number(anoSel)} semTitulo />
+          </div>
+        )}
         {view === "dashboard" && (
           <div className="cal-promo" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
             <CalendarioRecebimento ano={Number(anoSel)} />
