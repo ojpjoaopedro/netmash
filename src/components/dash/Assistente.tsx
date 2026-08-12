@@ -150,18 +150,18 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
 
   return (
     <>
-      <div className="card" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
-        <span style={{ width: 42, height: 42, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(26,173,226,.18)", flexShrink: 0 }}>
-          <Sparkles size={22} color="var(--accent)" />
+      <div className="card" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, padding: "11px 14px", borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
+        <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "rgba(26,173,226,.18)", flexShrink: 0 }}>
+          <Sparkles size={18} color="var(--accent)" />
         </span>
         <div>
-          <h3 style={{ marginBottom: 2 }}>Assistente</h3>
-          <p className="sub" style={{ fontSize: 12.5 }}>Converse com seus números ou registre lançamentos por texto, voz e planilha.</p>
+          <h3 style={{ margin: 0, fontSize: 15.5 }}>Assistente</h3>
+          <p className="sub" style={{ fontSize: 11.5, marginTop: 1 }}>Converse com seus números ou registre lançamentos por texto, voz e planilha.</p>
         </div>
       </div>
 
       {/* Alternância de modo */}
-      <div className="period" style={{ width: "fit-content", marginBottom: 14 }}>
+      <div className="period" style={{ width: "fit-content", marginBottom: 10 }}>
         <button className={modo === "apresentar" ? "active" : ""} onClick={() => setModo("apresentar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Presentation size={14} /> Apresentação</button>
         <button className={modo === "perguntar" ? "active" : ""} onClick={() => setModo("perguntar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageCircle size={14} /> Perguntar</button>
         <button className={modo === "registrar" ? "active" : ""} onClick={() => setModo("registrar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Registrar</button>
@@ -171,13 +171,13 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
         <GerarApresentacao funcs={funcs} brand={brand} ano={ano} />
       ) : modo === "perguntar" ? (
         <>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
             {msgs.map((m, i) => m.de === "user" ? (
-              <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", background: "var(--accent)", color: "#06222e", padding: "9px 14px", borderRadius: "14px 14px 4px 14px", fontWeight: 600, fontSize: 14 }}>{m.texto}</div>
+              <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", background: "var(--accent)", color: "#06222e", padding: "7px 12px", borderRadius: "14px 14px 4px 14px", fontWeight: 600, fontSize: 13 }}>{m.texto}</div>
             ) : (
-              <div key={i} className="card" style={{ alignSelf: "flex-start", maxWidth: "92%", padding: "14px 18px", borderRadius: "14px 14px 14px 4px" }}>
+              <div key={i} className="card" style={{ alignSelf: "flex-start", maxWidth: "92%", padding: "11px 14px", borderRadius: "14px 14px 14px 4px" }}>
                 {m.resp && <>
-                  <b style={{ fontSize: 15, display: "block", marginBottom: 6 }}>{m.resp.titulo}</b>
+                  <b style={{ fontSize: 14, display: "block", marginBottom: 4 }}>{m.resp.titulo}</b>
                   {m.resp.blocos.map((b, k) => <BlocoView key={k} b={b} />)}
                 </>}
               </div>
@@ -185,25 +185,25 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
             <div ref={fimRef} />
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
             {PERGUNTAS.map((p) => (
               <button key={p.id} className="btn ghost sm" onClick={() => enviar(p.chip)}>{p.chip}</button>
             ))}
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); enviar(txt); }} style={{ display: "flex", gap: 8, position: "sticky", bottom: 0, background: "var(--bg)", paddingTop: 6 }}>
+          <form onSubmit={(e) => { e.preventDefault(); enviar(txt); }} style={{ display: "flex", gap: 6, position: "sticky", bottom: 0, background: "var(--bg)", paddingTop: 6 }}>
             <input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="Pergunte algo… ex: como está meu caixa?"
-              style={{ flex: 1, background: "var(--card)", border: "1px solid var(--line-2)", color: "var(--txt)", borderRadius: 12, padding: "12px 14px", fontSize: 14 }} />
-            <button type="submit" className="btn" style={{ display: "flex", alignItems: "center", gap: 6 }}><Send size={16} /> Enviar</button>
+              style={{ flex: 1, background: "var(--card)", border: "1px solid var(--line-2)", color: "var(--txt)", borderRadius: 12, padding: "9px 13px", fontSize: 13 }} />
+            <button type="submit" className="btn" style={{ display: "flex", alignItems: "center", gap: 6 }}><Send size={15} /> Enviar</button>
           </form>
         </>
       ) : (
         <>
-          <div className="card" style={{ marginBottom: 14 }}>
-            <p className="sub" style={{ marginBottom: 10 }}>Escreva ou fale o que entrou/saiu. Ex.: <i>&ldquo;gastei 150 com gasolina hoje&rdquo;</i>. Eu monto o lançamento e você confirma.</p>
-            <form onSubmit={(e) => { e.preventDefault(); interpretar(entrada); }} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="card" style={{ marginBottom: 10 }}>
+            <p className="sub" style={{ marginBottom: 10, fontSize: 12 }}>Escreva ou fale o que entrou/saiu. Ex.: <i>&ldquo;gastei 150 com gasolina hoje&rdquo;</i>. Eu monto o lançamento e você confirma.</p>
+            <form onSubmit={(e) => { e.preventDefault(); interpretar(entrada); }} style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <input value={entrada} onChange={(e) => setEntrada(e.target.value)} placeholder="Ex: recebi 2 mil de venda hoje"
-                style={{ flex: "1 1 160px", minWidth: 0, background: "var(--card)", border: "1px solid var(--line-2)", color: "var(--txt)", borderRadius: 12, padding: "12px 14px", fontSize: 14 }} />
+                style={{ flex: "1 1 160px", minWidth: 0, background: "var(--card)", border: "1px solid var(--line-2)", color: "var(--txt)", borderRadius: 12, padding: "9px 13px", fontSize: 13 }} />
               <button type="button" onClick={ouvir} className={"btn " + (gravando ? "" : "ghost")} title="Falar" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {gravando ? <MicOff size={16} /> : <Mic size={16} />}{gravando ? "Ouvindo…" : ""}
               </button>
