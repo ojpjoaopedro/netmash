@@ -9,7 +9,6 @@ import {
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
-import AdminProdutos from "@/components/AdminProdutos";
 import AdminCupons from "@/components/AdminCupons";
 
 type Empresa = {
@@ -357,6 +356,7 @@ export default function Admin() {
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "empresas", label: "Empresas", Icon: Building2 },
     { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
+    { k: "produtos", label: "Produtos", Icon: DollarSign },
   ];
 
   // A empresa "Metricas" (conta minhasmetricas@gmail.com) é o modelo: é dela que
@@ -491,7 +491,32 @@ export default function Admin() {
             </>
           )}
 
-          {aba === "produtos" && <AdminProdutos />}
+          {aba === "produtos" && (
+            <>
+              <h1>Produtos <span className="adm-sub">(nossos planos)</span></h1>
+              <p className="adm-sub" style={{ margin: "4px 0 16px" }}>Os planos que vendemos no Minhas Métricas.</p>
+              <div className="adm-tablewrap">
+                <table className="adm-table">
+                  <thead><tr><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th></tr></thead>
+                  <tbody>
+                    {[
+                      { nome: "Super Admin", desc: "Acesso principal da empresa (plano base)", preco: "79,90", tag: "Principal" },
+                      { nome: "Folha de pagamento", desc: "Salários, benefícios e encargos da equipe", preco: "39,90" },
+                      { nome: "2º acesso", desc: "Login adicional de administrador", preco: "9,90" },
+                      { nome: "Planejamento estratégico", desc: "Metas e pilares da empresa", preco: "29,90" },
+                    ].map((p) => (
+                      <tr key={p.nome}>
+                        <td><b>{p.nome}</b>{p.tag && <span className="adm-badge" style={{ marginLeft: 8 }}>{p.tag}</span>}</td>
+                        <td className="adm-sub">{p.desc}</td>
+                        <td><b>R$ {p.preco}</b></td>
+                        <td className="adm-sub">Assinatura · mensal</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
 
           {aba === "cupons" && <AdminCupons />}
 
