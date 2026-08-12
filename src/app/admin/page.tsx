@@ -483,24 +483,22 @@ export default function Admin() {
             <>
               <h1>Visão geral do negócio</h1>
               <div className="adm-kpis" style={{ marginTop: 18 }}>
-                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(16,185,129,.16)", color: "#10B981" }}><DollarSign size={20} /></span><div><b style={{ fontSize: 15, fontStyle: "italic", color: "var(--muted, #9aa0a6)" }}>Integrar com Stripe</b><small>Faturamento (planos)</small></div></div>
                 <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><Building2 size={20} /></span><div><b>{t?.empresas ?? 0}</b><small>Clientes</small></div></div>
                 <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(139,92,246,.16)", color: "#8b5cf6" }}><Users size={20} /></span><div><b>{t?.ativos ?? 0}</b><small>Acessos ativos</small></div></div>
               </div>
               <h3 className="adm-h3">Últimos clientes</h3>
               <div className="adm-tablewrap">
                 <table className="adm-table">
-                  <thead><tr><th>Empresa</th><th>E-mail de acesso</th><th>Plano</th><th>Criada</th></tr></thead>
+                  <thead><tr><th>Empresa</th><th>E-mail de acesso</th><th>Criada</th></tr></thead>
                   <tbody>
                     {data?.empresas.slice(0, 6).map((e) => (
                       <tr key={e.id}>
                         <td><b>{e.nome}</b>{ehPadrao(e) && <span className="adm-badge-padrao">Padrão</span>}</td>
                         <td className="adm-sub">{e.dono?.email || "—"}</td>
-                        <td><span className="adm-sub" style={{ fontStyle: "italic" }}>Integrar com Stripe</span></td>
                         <td className="adm-sub">{dataHoraBR(e.criado_em)}</td>
                       </tr>
                     ))}
-                    {!data?.empresas.length && <tr><td colSpan={4} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
+                    {!data?.empresas.length && <tr><td colSpan={3} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>Nenhuma empresa ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -532,12 +530,12 @@ export default function Admin() {
                 <table className="adm-table">
                   <thead><tr><th style={{ textAlign: "center", width: 34 }}>#</th><th>Criada</th><th style={{ textAlign: "center", width: 92 }}>Logo</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
-                    {(() => { const q = buscaEmpresa.trim().toLowerCase(); return data?.empresas.filter((e) => {
+                    {(() => { const q = buscaEmpresa.trim().toLowerCase(); const arr = (data?.empresas ?? []).filter((e) => {
                       if (filtroAcesso === "ativos" ? e.acessoCortado : !e.acessoCortado) return false;
                       if (!q) return true;
                       return (e.nome || "").toLowerCase().includes(q) || (e.dono?.nome || "").toLowerCase().includes(q) || (e.dono?.email || "").toLowerCase().includes(q)
                         || (acessosMap[e.id] || []).some((a) => (a.nome || "").toLowerCase().includes(q) || (a.email || "").toLowerCase().includes(q));
-                    }).map((e, i) => {
+                    }); return arr.map((e, i) => {
                       type P = { key: string; nome: string; email: string | null; dono: boolean; cortado: boolean; toggle: () => void; verP: () => void; reenviar: () => void; editar: () => void; trash: (() => void) | null };
                       const confExcluir = `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`;
                       const donoP: P | null = e.dono ? {
@@ -559,7 +557,7 @@ export default function Admin() {
                       const spacer = <span style={{ width: 28, height: 28, display: "inline-block", flexShrink: 0 }} />;
                       return (
                       <tr key={e.id}>
-                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 12, color: "#8b93a0", fontWeight: 700 }}>{i + 1}</td>
+                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 12, color: "#8b93a0", fontWeight: 700 }}>{arr.length - i}</td>
                         <td className="adm-sub" style={{ verticalAlign: "top", paddingTop: 12 }}>{dataBR(e.criado_em)}</td>
                         <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: 12 }} title="Logo definida pela própria empresa">
                           {e.logo_url ? (
@@ -645,11 +643,8 @@ export default function Admin() {
             };
             return (
             <>
-              <div className="adm-headrow">
-                <div>
-                  <h1>Produtos <span className="adm-sub">(nossos planos)</span></h1>
-                  <p className="adm-sub" style={{ marginTop: 4 }}>Cadastrar um produto o adiciona automaticamente (desativado) nas colunas das Empresas.</p>
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                <h1 style={{ margin: 0 }}>Produtos</h1>
                 <button className="adm-btn" onClick={() => setNovoProduto({ nome: "", descricao: "", preco: "", imagem: "" })}><Plus size={15} /> Cadastrar produto</button>
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
