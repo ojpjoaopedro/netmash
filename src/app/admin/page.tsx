@@ -100,6 +100,7 @@ export default function Admin() {
   const [logBusy, setLogBusy] = useState(false);
   const [logVer, setLogVer] = useState(false);
   const [buscaLgpd, setBuscaLgpd] = useState("");
+  const [buscaEmpresa, setBuscaEmpresa] = useState("");
   const [lgpdDet, setLgpdDet] = useState<LgpdRow | null>(null);
 
   const carregar = useCallback(async () => {
@@ -481,11 +482,21 @@ export default function Admin() {
                   ))}
                 </div>
               ); })()}
-              <div className="adm-tablewrap" style={{ marginTop: 16 }}>
+              <div style={{ position: "relative", maxWidth: 440, marginTop: 14 }}>
+                <Search size={15} style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: "#9aa0a6" }} />
+                <input value={buscaEmpresa} onChange={(e) => setBuscaEmpresa(e.target.value)} placeholder="Buscar empresa, responsável ou e-mail…"
+                  style={{ width: "100%", padding: "10px 12px 10px 36px", borderRadius: 12, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card-2,#0d0d0d)", color: "inherit", fontSize: 13.5, outline: "none", fontFamily: "inherit" }} />
+              </div>
+              <div className="adm-tablewrap" style={{ marginTop: 14 }}>
                 <table className="adm-table">
                   <thead><tr><th>Criada</th><th>Empresa</th><th>Responsável</th><th style={{ textAlign: "center" }}>Super Admin</th>{catalogo.map((c) => <th key={c.chave} style={{ textAlign: "center" }}>{c.nome}</th>)}<th style={{ textAlign: "center" }}>Ações</th></tr></thead>
                   <tbody>
-                    {data?.empresas.filter((e) => filtroAcesso === "ativos" ? !e.acessoCortado : e.acessoCortado).map((e) => {
+                    {(() => { const q = buscaEmpresa.trim().toLowerCase(); return data?.empresas.filter((e) => {
+                      if (filtroAcesso === "ativos" ? e.acessoCortado : !e.acessoCortado) return false;
+                      if (!q) return true;
+                      return (e.nome || "").toLowerCase().includes(q) || (e.dono?.nome || "").toLowerCase().includes(q) || (e.dono?.email || "").toLowerCase().includes(q)
+                        || (acessosMap[e.id] || []).some((a) => (a.nome || "").toLowerCase().includes(q) || (a.email || "").toLowerCase().includes(q));
+                    }).map((e) => {
                       type P = { key: string; nome: string; email: string | null; dono: boolean; cortado: boolean; toggle: () => void; verP: () => void; reenviar: () => void; editar: () => void; trash: (() => void) | null };
                       const confExcluir = `Excluir a empresa "${e.nome}"? Isso apaga a empresa, o login e todos os dados dela. Não dá para desfazer.`;
                       const donoP: P | null = e.dono ? {
@@ -552,7 +563,7 @@ export default function Admin() {
                         </td>
                       </tr>
                       );
-                    })}
+                    }); })()}
                     {!data?.empresas.length && <tr><td colSpan={5 + catalogo.length} className="adm-sub" style={{ textAlign: "center", padding: 30 }}>Nenhuma empresa cadastrada ainda.</td></tr>}
                   </tbody>
                 </table>
