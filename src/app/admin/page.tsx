@@ -491,32 +491,38 @@ export default function Admin() {
             </>
           )}
 
-          {aba === "produtos" && (
+          {aba === "produtos" && (() => {
+            const clientes = t?.empresas ?? 0;
+            const segundos = Math.max(0, (t?.ativos ?? 0) - clientes);
+            const PLANOS = [
+              { nome: "Super Admin", desc: "Acesso principal da empresa (plano base)", preco: "79,90", tag: "Principal", ativos: clientes },
+              { nome: "Folha de pagamento", desc: "Salários, benefícios e encargos da equipe", preco: "39,90", ativos: 0 },
+              { nome: "2º acesso", desc: "Login adicional de administrador", preco: "9,90", ativos: segundos },
+              { nome: "Planejamento estratégico", desc: "Metas e pilares da empresa", preco: "29,90", ativos: 0 },
+            ];
+            return (
             <>
               <h1>Produtos <span className="adm-sub">(nossos planos)</span></h1>
               <p className="adm-sub" style={{ margin: "4px 0 16px" }}>Os planos que vendemos no Minhas Métricas.</p>
               <div className="adm-tablewrap">
                 <table className="adm-table">
-                  <thead><tr><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th></tr></thead>
+                  <thead><tr><th>Produto</th><th>Descrição</th><th>Preço</th><th>Cobrança</th><th>Acessos ativos</th></tr></thead>
                   <tbody>
-                    {[
-                      { nome: "Super Admin", desc: "Acesso principal da empresa (plano base)", preco: "79,90", tag: "Principal" },
-                      { nome: "Folha de pagamento", desc: "Salários, benefícios e encargos da equipe", preco: "39,90" },
-                      { nome: "2º acesso", desc: "Login adicional de administrador", preco: "9,90" },
-                      { nome: "Planejamento estratégico", desc: "Metas e pilares da empresa", preco: "29,90" },
-                    ].map((p) => (
+                    {PLANOS.map((p) => (
                       <tr key={p.nome}>
                         <td><b>{p.nome}</b>{p.tag && <span className="adm-badge" style={{ marginLeft: 8 }}>{p.tag}</span>}</td>
                         <td className="adm-sub">{p.desc}</td>
                         <td><b>R$ {p.preco}</b></td>
                         <td className="adm-sub">Assinatura · mensal</td>
+                        <td><b>{p.ativos}</b></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </>
-          )}
+            );
+          })()}
 
           {aba === "cupons" && <AdminCupons />}
 
