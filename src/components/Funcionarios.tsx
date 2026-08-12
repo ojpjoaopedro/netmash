@@ -186,6 +186,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   loginEmail?: string; ehDono?: boolean; irParaPlano?: () => void;
 }) {
   const [filtro, setFiltro] = useState<"ativos" | "desativados">("ativos");
+  const [soAcesso, setSoAcesso] = useState(false);   // mostrar só quem tem acesso ao app (login)
   const [modo, setModo] = useState<"card" | "lista">("lista");
   const emailLog = (loginEmail || "").trim().toLowerCase();
   // no celular o botão de apagar fica sempre visível (sem hover)
@@ -381,7 +382,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   const funcTab = sortCol
     ? funcVis.slice().sort((a, b) => { const r = valDe(a, sortCol).localeCompare(valDe(b, sortCol), "pt-BR", { sensitivity: "base", numeric: true }); return sortDir === "asc" ? r : -r; })
     : funcVis;
-  const linhas: Linha[] = [...loginVis, ...funcTab];
+  const linhas: Linha[] = soAcesso ? loginVis : [...loginVis, ...funcTab];
 
   const seta = (k: string) => sortCol !== k
     ? <ChevronsUpDown size={13} style={{ opacity: .4 }} />
@@ -545,6 +546,13 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
           {opc("ativos", "Ativos")}
           {opc("desativados", "Desativados")}
         </div>
+        <button type="button" onClick={() => setSoAcesso((v) => !v)} title="Mostrar só quem tem login/acesso ao app"
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 15px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+            border: `1px solid ${soAcesso ? "var(--brand)" : "var(--line-2)"}`,
+            background: soAcesso ? "var(--brand)" : "transparent",
+            color: soAcesso ? "var(--brand-ct,#fff)" : "var(--muted)" }}>
+          <KeyRound size={14} /> Com acesso ao app
+        </button>
       </div>
 
       {modo === "lista" ? (
@@ -583,13 +591,14 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                 </tr>
               </thead>
               <tbody>
-                {linhas.map((l) => {
+                {linhas.map((l, i) => {
                   const edit = podeEditar(l);
                   const roDica = l.ehSuper ? "Só o superadmin pode editar os próprios dados." : "Só o próprio usuário pode editar estes dados.";
                   return (
                     <tr key={l.chave} className="eq-row" style={{ opacity: l.ativo ? 1 : .6 }}>
                       <td className="eq-fix">
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                          <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: "var(--muted)", minWidth: 18, textAlign: "right" }}>{i + 1}</span>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <Campo valor={l.nome} placeholder="Nome" disabled={!edit} titulo={roDica} onFocar={() => aoFocar(l.chave)} onDesfocar={aoDesfocar}
                               onSalvar={(v, el) => l.origem === "func" ? salvarCampoFunc(l.func!.id, { nome: v.trim() || l.nome }, el) : salvarCampoLogin(l, { nome: v.trim() }, el)}
