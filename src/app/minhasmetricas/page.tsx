@@ -653,7 +653,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <div className="mhome-wgrid" style={{ padding: "14px 16px 0" }}>
               {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "#1AADE2" }, { aba: "calendario", label: "Calendário", Icon: CalendarDays, cor: "#F59E0B" }].map((c) => (
                 <button key={c.aba} data-aba={c.aba} className="mhome-wcard" style={{ "--cor": c.cor } as React.CSSProperties} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
-                  <span className="mhome-wcard-ico"><c.Icon size={24} /></span>
+                  <span className="mhome-wcard-ico"><c.Icon size={30} /></span>
                   <b>{c.label}</b>
                 </button>
               ))}
