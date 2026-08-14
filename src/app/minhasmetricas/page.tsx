@@ -74,8 +74,8 @@ const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard 
 const CONFIG_CARDS = ["dados", "equipe"];
 // atalhos da Home (mesmos no web e no celular, cor fixa)
 const ATALHOS_HOME: { aba: string; label: string; Icon: typeof Layers; cor: string }[] = [
-  { aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "#1AADE2" },
   { aba: "calendario", label: "Calendário", Icon: CalendarDays, cor: "#F59E0B" },
+  { aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "#1AADE2" },
 ];
 // Sub-abas (pílulas) — Empresa e Equipe
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }];
