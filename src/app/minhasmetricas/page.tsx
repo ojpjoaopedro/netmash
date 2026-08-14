@@ -7,7 +7,7 @@ import {
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2,
-  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Lock, Check, Home as HomeIcon,
+  PlayCircle, Play, Bell, Eye, EyeOff, Wallet, Lock, Check, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -25,7 +25,6 @@ import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicado
 import { NOTIF_PADRAO } from "@/lib/notificacoes";
 import AtivarNotificacoes from "@/components/AtivarNotificacoes";
 import { useBrand } from "@/lib/brand";
-import { fraseDoDia } from "@/components/dash/ResumoHome";
 import { useOcultar } from "@/components/ocultar";
 import PainelCobrancas from "@/components/PainelCobrancas";
 import CalendarioRecebimento from "@/components/CalendarioRecebimento";
@@ -116,8 +115,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
     upd(); mq.addEventListener("change", upd);
     return () => mq.removeEventListener("change", upd);
   }, []);
-  const [fraseHome, setFraseHome] = useState<{ t: string; a: string } | null>(null);
-  useEffect(() => setFraseHome(fraseDoDia()), []);
   const { oculto: ocultoHome, toggle: toggleOcultarHome } = useOcultar();
   // back inteligente das telas internas: cada tela registra como voltar 1 nível;
   // se não houver nível interno, o botão azul do topo volta para a Home.
@@ -616,17 +613,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
               </div>
             </div>
 
-            <div className="mhome-quote">
-              <p>{fraseHome ? `“${fraseHome.t.replace(/\.\s*$/, "")}”` : "…"}</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-                <button onClick={async () => { if (!fraseHome) return; const txt = `“${fraseHome.t.replace(/\.\s*$/, "")}”\n\n📊 Pulso do dia · Minhas Métricas`; try { if (navigator.share) { await navigator.share({ text: txt }); } else { await navigator.clipboard.writeText(txt); } } catch { /* ignore */ } }}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", color: "#fff", border: 0, borderRadius: 99, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 18px -8px rgba(220,39,67,.55)" }}>
-                  <Instagram size={15} /> Compartilhar
-                </button>
-              </div>
-            </div>
-
-            <div style={{ padding: "2px 16px 8px", fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>
+            <div style={{ padding: "12px 16px 8px", fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>
             <div className="mhome-wgrid" style={{ padding: "0 14px 10px" }}>
               {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }].map((c) => (
                 <button key={c.aba} data-aba={c.aba} className="mhome-wcard" style={{ position: "relative" }} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
