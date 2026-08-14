@@ -263,6 +263,18 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .field{margin-bottom:13px}
 /* par de campos que fica SEMPRE em 2 colunas (inclusive no celular) */
 .fpair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* card de atalho da Home (mesmo no web e no celular) — escuro, ícone brilhando */
+.card-atalho{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:16px;min-height:132px;padding:16px;border-radius:18px;cursor:pointer;font-family:inherit;text-align:left;color:#eef4f0;background:linear-gradient(150deg,#0f4433 0%,#0a2a20 34%,#070707 66%);border:1px solid rgba(255,255,255,.08);transition:transform .16s ease,border-color .16s ease}
+.card-atalho:hover{transform:translateY(-2px);border-color:rgba(16,185,129,.5)}
+.card-atalho:active{transform:scale(.98)}
+.card-atalho-ico{position:relative;z-index:1;width:58px;height:58px;border-radius:16px;display:grid;place-items:center;color:var(--cor,#1AADE2);background:color-mix(in srgb,var(--cor,#1AADE2) 12%,transparent);border:1px solid color-mix(in srgb,var(--cor,#1AADE2) 26%,transparent);box-shadow:0 0 12px -6px color-mix(in srgb,var(--cor,#1AADE2) 40%,transparent)}
+.card-atalho-ico svg{width:30px;height:30px}
+.card-atalho b{position:relative;z-index:1;font-size:14px;font-weight:700;line-height:1.2;color:#fff}
+/* grade de meses do calendário: 4 por linha no desktop, responsivo abaixo */
+.meses-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1200px){.meses-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:860px){.meses-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.meses-grid{grid-template-columns:1fr}}
 /* formulários compactos (Meus Usuários / Dados da Empresa) */
 .compacto h3{margin-bottom:10px}
 .compacto .field{margin-bottom:8px}
@@ -358,18 +370,17 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 @keyframes drawin{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 /* menu lateral do app (estilo print 1): dark, letras maiores, bem espaçado, Sair no rodapé */
 @media(max-width:900px){
-  .drawer{display:flex;flex-direction:column;padding:calc(18px + env(safe-area-inset-top)) 18px 22px;
+  .drawer{display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 12px 14px;
     background:linear-gradient(180deg,#0e1544 0%,#0a0f30 42%,#070b22 100%);border-right:1px solid rgba(150,180,255,.12)}
-  .drawer .brand{padding:6px 4px 24px;min-height:auto}
+  .drawer .brand{padding:2px 4px 8px;min-height:auto}
   .drawer .navgroup{margin-top:0}
-  .drawer .nav{gap:4px}
-  .drawer .nav a,.drawer .nav button{font-size:16px;font-weight:600;color:#e8ecff;padding:14px 12px;gap:13px;border-radius:13px}
-  .drawer .nav a svg,.drawer .nav button svg{width:20px;height:20px}
+  .drawer .navgroup .gl{font-size:8px;margin-bottom:1px;padding:2px 8px}
+  .drawer .nav{gap:0}
+  .drawer .nav a,.drawer .nav button{font-size:12.5px;font-weight:600;color:#e8ecff;padding:6px 9px;gap:9px;border-radius:9px}
+  .drawer .nav a svg,.drawer .nav button svg{width:16px;height:16px}
   .drawer .nav a:hover,.drawer .nav button:hover,.drawer .nav a:active,.drawer .nav button:active{background:rgba(150,180,255,.12);color:#fff}
-  /* último grupo = Sair: empurra pro rodapé e pinta de vermelho */
-  .drawer .navgroup:last-child{margin-top:auto;padding-top:14px;border-top:1px solid rgba(150,180,255,.12)}
-  .drawer .navgroup:last-child button{color:#ff6b6b;font-weight:700}
-  .drawer .navgroup:last-child button svg{color:#ff6b6b}
+  /* rodapé "Você" empurrado pro fundo do menu */
+  .drawer .side-foot{margin-top:auto;padding-top:10px}
 }
 .bottomnav{display:none}
 @media(max-width:900px){
@@ -702,13 +713,15 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
    ============================================================ */
 .mesbar{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
 .mesbar-meses,.mesbar-acoes{display:contents}
+/* botões "Marcar todos" / "Só mês atual": fundo vermelho claro sutil */
+.mesbar-acoes>button{background:color-mix(in srgb,#ef4444 9%,transparent) !important;border:1px solid color-mix(in srgb,#ef4444 26%,transparent) !important}
 @media (max-width:640px){
   .mesbar{display:grid;grid-template-columns:1fr;gap:10px;width:100%}
   .mesbar-ano{width:100%}
   .mesbar-meses{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
   .mesbar-meses>button{width:100% !important;padding:6px 0 !important;font-size:11px !important;border-radius:7px !important}
-  .mesbar-acoes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .mesbar-acoes>button{width:100% !important;padding:8px 0 !important;font-size:12px !important}
+  .mesbar-acoes{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:50%}
+  .mesbar-acoes>button{width:auto !important;padding:8px 4px !important;font-size:11px !important}
   .mesbar-sep{display:none !important}
 }
 

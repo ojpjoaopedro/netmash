@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { UserPlus, Wallet, Zap, Share2, Send, X, ChevronDown, Lock } from "lucide-react";
+import { navegar } from "@/lib/nav";
 
 const APP = "Minhas Métricas";
 const LINHA = (Icon: typeof UserPlus, txt: string) => ({ Icon, txt });
@@ -33,11 +34,12 @@ export default function MeusBeneficios() {
 
   if (!liberado) {
     return (
-      <div className="card" style={{ padding: 34, textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
+      <div className="card" style={{ position: "relative", padding: 34, textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
+        <button onClick={() => navegar({ view: "dashboard" })} title="Voltar" style={{ position: "absolute", top: 12, right: 12, width: 30, height: 30, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--bg-2)", border: "1px solid var(--line-2)", cursor: "pointer", color: "var(--muted)" }}><X size={17} /></button>
         <span style={{ width: 60, height: 60, borderRadius: 18, display: "grid", placeItems: "center", margin: "0 auto 16px", background: "var(--bg-2)", color: "var(--muted)" }}><Lock size={28} /></span>
         <b style={{ fontSize: 18 }}>Seus benefícios estão quase liberados</b>
         <p className="sub" style={{ margin: "10px 0 0", lineHeight: 1.6 }}>
-          Complete o <b>Guia de configuração</b> (canto inferior direito da tela) para desbloquear o programa <b>Indique e Ganhe</b> como recompensa. Assim que terminar as etapas, os benefícios aparecem aqui automaticamente. 🎁
+          Complete o <b>Guia de configuração</b> (canto inferior direito da tela) para desbloquear os seus benefícios. 🎁
         </p>
       </div>
     );

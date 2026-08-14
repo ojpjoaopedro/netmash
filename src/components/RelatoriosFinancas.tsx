@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { FileText, BarChart3, LineChart, FileSpreadsheet } from "lucide-react";
+import { FileText, LineChart, FileSpreadsheet } from "lucide-react";
 import { Empresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import BotaoGerarDRE from "./GerarDRE";
@@ -33,21 +33,18 @@ export default function RelatoriosFinancas({ empresa, brand, ano, setAno }: { em
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <b style={{ fontSize: 17 }}>Análise financeira</b>
-          <p className="sub" style={{ margin: "8px 0 6px", lineHeight: 1.6 }}>Acompanhe várias informações financeiras em um só lugar para decidir com mais clareza.</p>
         </div>
         {setAno && <SeletorAno ano={ano} setAno={setAno} />}
       </div>
 
-      <Item Icon={LineChart} titulo="Gráficos" descricao="Gráficos financeiros detalhados por categoria e por vencimento." onClick={() => setView("graficos")} />
+      <Item Icon={LineChart} titulo="Gráficos" descricao="Gráficos financeiros detalhados." onClick={() => setView("graficos")} />
 
       {/* Gerar DRE — abre a pré-visualização do DRE */}
       <BotaoGerarDRE ano={ano} empresa={empresa} brand={brand}
-        trigger={(abrir) => <Item Icon={FileText} titulo="Gerar DRE" descricao="Demonstração do Resultado do Exercício (reduzida ou completa), pronta para imprimir ou salvar em PDF." onClick={abrir} />} />
-
-      <Item Icon={BarChart3} titulo="Análise Receita x Custos" descricao="Composição do faturamento e dos custos no período, com lucro, margem e EBITDA." onClick={() => setView("analise")} />
+        trigger={(abrir) => <Item Icon={FileText} titulo="Gerar DRE" descricao="Demonstração do Resultado do Exercício (reduzida ou completa)." onClick={abrir} />} />
 
       {/* Exportar a planilha completa (mesma do Importar), pronta para editar no Excel */}
-      <Item Icon={FileSpreadsheet} titulo="Exportar planilha completa" descricao="Baixa a Estrutura de Receitas e Custos em Excel (.xlsx), já preenchida, pronta para editar e subir de volta." onClick={() => baixarPlanilhaCompleta(empresa, brand)} />
+      <Item Icon={FileSpreadsheet} titulo="Exportar planilha" descricao="Baixa a Estrutura de Receitas e Custos em Excel." onClick={() => baixarPlanilhaCompleta(empresa, brand)} />
     </div>
   );
 }

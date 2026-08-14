@@ -76,7 +76,6 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
 
   return (
     <div className="card" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
-      <b style={{ fontSize: 16, marginBottom: 12 }}>Calendário financeiro</b>
 
       {/* legenda */}
       <div style={{ display: "flex", gap: 18, marginBottom: 10, flexWrap: "wrap" }}>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pencil, Trash2, Plus, X, Check, ChevronDown, ChevronRight } from "lucide-react";
-import BotaoOcultar from "./ocultar";
+import BarraMeses from "./BarraMeses";
 import { AnimNum } from "./AnimNum";
 import { carregarEstrutura, salvarEstrutura, Bloco, Freq, datasDaDespesa, ocConfirmada, valorDaOcorrencia } from "@/app/minhasmetricas/financas-estrutura";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
@@ -255,6 +255,8 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   const cfg = CFG[ambos ? "pagamentos" : tipo];
   const cfgDe = (o?: Despesa["origem"]) => CFG[o === "receita" ? "recebimentos" : "pagamentos"];
   const [ano, setAno] = useState(ANOS.includes(anoInicial) ? anoInicial : 2026);
+  // padrão igual ao Painel financeiro: mês atual + os 2 meses seguintes
+  const [sel, setSel] = useState<Set<number>>(() => { const m = new Date().getMonth(); return new Set([m, m + 1, m + 2].filter((x) => x <= 11)); });
   const [desps, setDesps] = useState<Despesa[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [modal, setModal] = useState<{ mes: number; dia: number } | null>(null);
@@ -428,35 +430,17 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
 
   return (
     <div>
-      {/* seletor de ano + legenda */}
-      <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", padding: "14px 18px", marginBottom: 16 }}>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-          <select value={ano} onChange={(e) => setAno(Number(e.target.value))} style={{ width: "auto", padding: "6px 10px" }}>
-            {ANOS.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </label>
-        {/* título destacado no centro */}
-        <b style={{ flex: "1 1 auto", display: "flex", justifyContent: "center" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 18px", borderRadius: 10, background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", fontWeight: 800, fontSize: 14.5, whiteSpace: "nowrap" }}>
-            {ambos ? "Calendário financeiro" : tipo === "pagamentos" ? "Calendário de Pagamentos" : "Calendário de Recebimentos"}
-          </span>
-        </b>
-        <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 12, color: "var(--muted)", flexWrap: "wrap" }}>
-          {ambos && <>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: VERMELHO, display: "inline-block" }} /> Despesa</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: VERDE, display: "inline-block" }} /> Receita</span>
-          </>}
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: AMBAR, display: "inline-block" }} /> Feriado nacional</span>
-          <BotaoOcultar />
-        </div>
+      {/* mesma barra do Painel financeiro (ano + meses + ações + ocultar) */}
+      <div style={{ marginBottom: 12 }}>
+        <BarraMeses ano={ano} setAno={(a) => setAno(a)} sel={sel} setSel={setSel} />
       </div>
 
-      {/* 12 meses */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: 14 }}>
-        {MES_NOME.map((nome, m) => (
-          <div key={m} className="card" style={{ padding: 16 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
-              <b style={{ fontSize: 15 }}>{nome}</b>
+      {/* meses (só os selecionados) — 4 por linha no desktop, responsivo no celular */}
+      <div className="meses-grid">
+        {MES_NOME.map((nome, m) => sel.has(m) && (
+          <div key={m} className="card" style={{ padding: 12 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
+              <b style={{ fontSize: 13.5 }}>{nome}</b>
               {ambos ? (
                 (somaMes(m, false, false) > 0 || somaMes(m, true, false) > 0) ? (
                   <div style={{ display: "flex", gap: 14, textAlign: "right" }}>
@@ -517,6 +501,15 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
             </div>
           </div>
         ))}
+      </div>
+
+      {/* legenda (abaixo do calendário) */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 18, fontSize: 12, color: "var(--muted)", flexWrap: "wrap", marginTop: 14 }}>
+        {ambos && <>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: VERMELHO, display: "inline-block" }} /> Despesa</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: VERDE, display: "inline-block" }} /> Receita</span>
+        </>}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: AMBAR, display: "inline-block" }} /> Feriado nacional</span>
       </div>
 
       {/* modal do dia */}

@@ -65,7 +65,7 @@ export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<stri
   const ativo = (chave: string) => Boolean(empresa?.planos?.[chave]);
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
+    <div style={{ display: "grid", gap: 16, maxWidth: 720 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}><BotaoOcultar /></div>
       {/* plano atual */}
       <div style={{ position: "relative", overflow: "hidden", borderRadius: 18, padding: "26px 28px", color: "#fff", background: "linear-gradient(120deg, var(--brand-dark), var(--brand))" }}>

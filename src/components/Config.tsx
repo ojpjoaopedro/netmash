@@ -139,8 +139,10 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
         </div>
       )}
 
-      {/* dois lados: à esquerda os dados da empresa, à direita a identidade */}
-      <div className="cfg-grid" style={{ display: "grid", gridTemplateColumns: secao === "tudo" ? "1.15fr .85fr" : "1fr", gap: 16, alignItems: "start" }}>
+      {/* dois lados: à esquerda os dados da empresa, à direita a identidade.
+          Em "dados" (só form) mantém a MESMA largura da esquerda (direita vazia);
+          em "identidade" (só logo) usa uma coluna focada. */}
+      <div className="cfg-grid" style={{ display: "grid", gridTemplateColumns: secao === "identidade" ? "minmax(0, 560px)" : "1.15fr .85fr", gap: 16, alignItems: "start" }}>
         {/* Dados da empresa — cada campo salva sozinho ao sair (auto-save) */}
         {secao !== "identidade" && (
         <div className="card compacto">

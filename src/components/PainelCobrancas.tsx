@@ -133,8 +133,6 @@ export default function PainelCobrancas({ ano, semTitulo = false }: { ano: numbe
         { rotulo: "A pagar", m: dados.pagAPagar, cor: AMBAR },
         { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO },
       ] },
-    { tipo: "barras", titulo: "Vencidos", dica: "Vencidos e ainda não confirmados: faturamento em atraso comparado a despesas em atraso.",
-      a: { rotulo: "Faturamento em atraso", m: dados.recAtraso, cor: VERMELHO }, b: { rotulo: "Despesas em atraso", m: dados.pagAtraso, cor: VERMELHO } },
   ];
 
   const abrirFiltro = () => { setPresetTmp(preset); setDeTmp(de); setAteTmp(ate); setFiltroAberto(true); };
@@ -149,7 +147,7 @@ export default function PainelCobrancas({ ano, semTitulo = false }: { ano: numbe
   return (
     <div className={semTitulo ? undefined : "card"} style={{ padding: semTitulo ? 0 : 20, background: semTitulo ? "transparent" : undefined, border: semTitulo ? 0 : undefined, boxShadow: semTitulo ? "none" : undefined }}>
       {/* cabeçalho: título + toggle gráfico + filtro por data */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 26 }}>
         {semTitulo ? <span /> : <b style={{ fontSize: 17 }}>Situação das cobranças</b>}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {/* alternar card / gráfico */}
@@ -201,8 +199,8 @@ export default function PainelCobrancas({ ano, semTitulo = false }: { ano: numbe
           <CaixaCard key={i} titulo={it.titulo} dica={it.dica} aberto={infoAberto === i} onInfo={() => setInfoAberto(infoAberto === i ? null : i)} onFechar={() => setInfoAberto(null)}>
             {modo === "card"
               ? (it.tipo === "canal" ? <CanalLista canal={it.canal} /> : it.tipo === "lista" ? <ListaLados lados={it.lados} /> : <DoisLados a={it.a} b={it.b} />)
-              : (it.tipo === "canal" ? <PizzaCanal canal={it.canal} vazio="Nenhum faturamento no período." />
-                  : it.tipo === "lista" ? <PizzaCanal canal={it.lados.map((l) => ({ nome: l.rotulo, valor: l.m.valor, cor: l.cor }))} vazio="Nenhuma despesa no período." />
+              : (it.tipo === "canal" ? <PizzaCanal canal={it.canal} />
+                  : it.tipo === "lista" ? <PizzaCanal canal={it.lados.map((l) => ({ nome: l.rotulo, valor: l.m.valor, cor: l.cor }))} />
                   : <Barras c={it} />)}
           </CaixaCard>
         ))}
@@ -286,7 +284,7 @@ function ListaLados({ lados }: { lados: Lado[] }) {
 /** Modo card: faturamento por canal (lista com barra de participação). */
 function CanalLista({ canal }: { canal: Canal[] }) {
   const total = canal.reduce((s, c) => s + c.valor, 0);
-  if (!total) return <p className="sub" style={{ fontSize: 12.5 }}>Nenhum faturamento no período.</p>;
+  if (!total) return <p className="sub" style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 600 }}>Comece preenchendo pelo Calendário ou Painel financeiro.</p>;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
       {canal.map((c, i) => (
@@ -308,16 +306,14 @@ function CanalLista({ canal }: { canal: Canal[] }) {
 }
 
 /** Modo gráfico: pizza de várias fatias (SVG), com % em cada fatia. */
-function PizzaCanal({ canal, vazio = "Nenhum dado no período." }: { canal: Canal[]; vazio?: string }) {
+function PizzaCanal({ canal, vazio = "Comece preenchendo pelo Calendário ou Painel financeiro." }: { canal: Canal[]; vazio?: string }) {
   const dados = canal.filter((c) => c.valor > 0.005);
   const total = dados.reduce((s, c) => s + c.valor, 0);
   if (total <= 0) return (
-    <>
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-        <div style={{ width: 150, height: 150, borderRadius: "50%", background: "conic-gradient(var(--line) 0 100%)" }} />
-      </div>
-      <p className="sub" style={{ fontSize: 12.5 }}>{vazio}</p>
-    </>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: 176, gap: 10, padding: "0 8px" }}>
+      <div style={{ fontSize: 26, opacity: .9 }}>📊</div>
+      <p className="sub" style={{ fontSize: 13, lineHeight: 1.5, margin: 0, maxWidth: 230, fontWeight: 600 }}>{vazio}</p>
+    </div>
   );
   const cx = 100, cy = 100, r = 82, expl = 5;
   let a0 = -Math.PI / 2;
