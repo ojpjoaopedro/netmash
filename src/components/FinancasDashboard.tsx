@@ -184,13 +184,14 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
       </div>
 
       {/* 4 painéis */}
-      <div className="dash-grid" style={{ display: "grid", columnGap: 12, rowGap: 36, flex: full ? 1 : undefined, minHeight: 0,
+      <div className="dash-grid" style={{ display: "grid", columnGap: 12, rowGap: full ? 36 : 18, flex: full ? 1 : undefined, minHeight: 0,
         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
         gridTemplateRows: full ? "1fr 1fr" : undefined }}>
         <Painel titulo="Faturamento mês a mês" badge={fmtR(calc.totRec)} badgeCor="#10B981" chart>
           <LinhaChart meses={calc.meses} valores={calc.recMes} cor={AZUL} alto={full} />
         </Painel>
         <Painel titulo="Composição por canal"><Barras itens={calc.canais} alto={full} /></Painel>
+        {!full && <div aria-hidden style={{ gridColumn: "1 / -1", height: 1, background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 32%, transparent), transparent)" }} />}
         <Painel titulo="Despesas mês a mês" badge={fmtR(calc.totCus)} badgeCor={VERMELHO} chart>
           <LinhaChart meses={calc.meses} valores={calc.cusMes} cor={VERMELHO} alto={full} />
         </Painel>
