@@ -646,11 +646,11 @@ export default function Home({ secao }: { secao?: string } = {}) {
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "26px 16px 0" }}>
               <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
               <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
             </div>
-            <div className="mhome-wgrid" style={{ padding: "12px 16px 0" }}>
+            <div className="mhome-wgrid" style={{ padding: "14px 16px 0" }}>
               {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "#1AADE2" }, { aba: "calendario", label: "Calendário", Icon: CalendarDays, cor: "#F59E0B" }].map((c) => (
                 <button key={c.aba} data-aba={c.aba} className="mhome-wcard" style={{ "--cor": c.cor } as React.CSSProperties} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
                   <span className="mhome-wcard-ico"><c.Icon size={24} /></span>
@@ -660,9 +660,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
             </div>
 
             {/* card de ativar notificações no celular (some depois de ativado) */}
-            <div style={{ padding: "18px 16px 0" }}><AtivarNotificacoes como="card" /></div>
+            <div style={{ padding: "30px 16px 0" }}><AtivarNotificacoes como="card" /></div>
 
-            <div className="mhome-gray" style={{ marginTop: 18 }}>
+            <div className="mhome-gray" style={{ marginTop: 32 }}>
               <div style={{ marginTop: 4 }}><PainelCobrancas ano={Number(anoSel)} semTitulo /></div>
             </div>
 
