@@ -1166,8 +1166,10 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
     { key: "equipe", label: "Equipe", Icon: Users },
   ];
   const tab = (ativo: boolean): React.CSSProperties => ({
-    display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
-    padding: "11px 15px", marginBottom: -1, fontSize: 13.5, fontWeight: 700,
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+    flex: estreito ? "1 1 0" : "0 0 auto", minWidth: 0,
+    padding: estreito ? "11px 4px" : "11px 15px", marginBottom: -1,
+    fontSize: estreito ? 12.5 : 13.5, fontWeight: 700,
     cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
     background: "transparent", border: 0,
     borderBottom: `2px solid ${ativo ? "var(--brand)" : "transparent"}`,
@@ -1191,13 +1193,13 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
       {(
       <>
       {aba !== "beneficios" && aba !== "plano" && (
-      <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: "auto", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
+      <div className="abas-scroll" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: estreito ? "hidden" : "auto", borderBottom: "1px solid var(--line)", marginBottom: 18 }}>
         {abas.map((a, i) => (
           <Fragment key={a.key}>
-            {i > 0 && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px", flexShrink: 0 }} />}
+            {i > 0 && !estreito && <span style={{ width: 1, height: 18, background: "var(--line-2)", alignSelf: "center", margin: "0 4px", flexShrink: 0 }} />}
             <button onClick={() => setAba(a.key)} style={tab(aba === a.key)}
               className={a.key === "beneficios" && destaqueBenef ? "destaque-benef" : undefined}>
-              <a.Icon size={16} /> {a.label}
+              {!estreito && <a.Icon size={16} />} {a.label}
             </button>
           </Fragment>
         ))}

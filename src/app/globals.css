@@ -443,7 +443,7 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
     background:linear-gradient(180deg,#182a72 0%,#0c1338 300px,#080c22 660px)}
   /* Home */
   /* a Home do app segue o TEMA do app: preto (escuro) ou branco (claro). */
-  .mhome{width:100%;max-width:100%;overflow-x:clip;padding-bottom:120px;min-height:100vh;color:var(--txt);background:var(--bg)}
+  .mhome{width:100%;max-width:100%;overflow-x:clip;padding-bottom:96px;min-height:100dvh;color:var(--txt);background:var(--bg)}
   .main{overflow-x:clip}
   .mhome-top{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 8px;background:transparent}
   .mhome-top button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);cursor:pointer;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;transition:background .15s,transform .1s}
