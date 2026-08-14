@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import {
   Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
-  FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check,
+  FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check, Bell,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
 import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
+import { NOTIFICACOES } from "@/lib/notificacoes";
 import { useBrand } from "@/lib/brand";
 import AdminCupons from "@/components/AdminCupons";
 
@@ -21,7 +22,7 @@ type Empresa = {
   logo_url: string | null; cor: string | null;
   planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null; notificacoes?: Record<string, boolean> };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; cpf: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 // catálogo de produtos (planos). Vem do banco (planos_catalogo); estes são o
@@ -45,7 +46,7 @@ function mascaraCnpj(v: string): string {
   if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return d;
 }
-type Aba = "visao" | "empresas" | "produtos" | "cupons" | "vendas" | "permissoes" | "config" | "documentos";
+type Aba = "visao" | "empresas" | "produtos" | "notificacoes" | "cupons" | "vendas" | "permissoes" | "config" | "documentos";
 type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null; localizacao?: string | null };
 
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
@@ -225,6 +226,13 @@ export default function Admin() {
     if (demo || !supabase) return;
     const { data: sess } = await supabase.auth.getSession();
     await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "planos", empresaId, planoKey, ativo }) });
+  }
+  // Liga/desliga um tipo de notificação do cliente (seção Notificações).
+  async function toggleNotif(chave: string, ligado: boolean) {
+    setData((d) => d ? { ...d, notificacoes: { ...(d.notificacoes || {}), [chave]: ligado } } : d);
+    if (demo || !supabase) return;
+    const { data: sess } = await supabase.auth.getSession();
+    await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: "notif-toggle", notifChave: chave, notifLigado: ligado }) });
   }
   // cadastro de produto (plano) no catálogo
   const [novoProduto, setNovoProduto] = useState<{ nome: string; descricao: string; preco: string; imagem: string } | null>(null);
@@ -446,6 +454,7 @@ export default function Admin() {
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "produtos", label: "Produtos", Icon: DollarSign },
     { k: "empresas", label: "Empresas", Icon: Building2 },
+    { k: "notificacoes", label: "Notificações", Icon: Bell },
     { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
   ];
 
@@ -738,6 +747,35 @@ export default function Admin() {
             </>
             );
           })()}
+
+          {aba === "notificacoes" && (
+            <>
+              <div>
+                <h1 style={{ margin: 0 }}>Notificações</h1>
+                <p className="adm-sub" style={{ marginTop: 6, maxWidth: 640 }}>Escolha quais avisos aparecem no sininho do painel do cliente. Desligue os que não quiser mostrar. Vale para todos os clientes.</p>
+              </div>
+              <div style={{ display: "grid", gap: 12, marginTop: 18, maxWidth: 760 }}>
+                {NOTIFICACOES.map((n) => {
+                  const ligado = data?.notificacoes?.[n.chave] ?? n.defaultOn;
+                  return (
+                    <div key={n.chave} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "16px 18px", borderRadius: 14, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card,#141414)" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 13, minWidth: 0 }}>
+                        <span style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", background: ligado ? "color-mix(in srgb, var(--brand,#1AADE2) 16%, transparent)" : "var(--card-2,#0d0d0d)", color: ligado ? "var(--brand,#1AADE2)" : "var(--muted,#888)" }}><Bell size={18} /></span>
+                        <div style={{ minWidth: 0 }}>
+                          <b style={{ fontSize: 14.5 }}>{n.titulo}</b>
+                          <div className="adm-sub" style={{ fontSize: 12.5, marginTop: 2, lineHeight: 1.45 }}>{n.descricao}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                        <span className="adm-sub" style={{ fontSize: 12, fontWeight: 700, color: ligado ? "#10B981" : "var(--muted,#888)" }}>{ligado ? "Ligada" : "Desligada"}</span>
+                        <button type="button" className={"adm-switch" + (ligado ? " on" : "")} title={ligado ? "Desligar notificação" : "Ligar notificação"} onClick={() => toggleNotif(n.chave, !ligado)}><span className="adm-switch-knob" /></button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {aba === "cupons" && <AdminCupons />}
 

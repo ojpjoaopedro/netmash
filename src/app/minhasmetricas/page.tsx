@@ -7,7 +7,7 @@ import {
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2,
-  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Cake, Lock, Check, Home as HomeIcon,
+  PlayCircle, Play, Bell, Eye, EyeOff, Instagram, Wallet, Lock, Check, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -22,6 +22,7 @@ import {
   Perfil, Empresa, Lancamento, Funcionario, Cliente,
 } from "@/lib/db";
 import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
+import { NOTIF_PADRAO } from "@/lib/notificacoes";
 import { useBrand } from "@/lib/brand";
 import { fraseDoDia } from "@/components/dash/ResumoHome";
 import { useOcultar } from "@/components/ocultar";
@@ -165,6 +166,55 @@ export default function Home({ secao }: { secao?: string } = {}) {
     const todos = [...ativos, ...niverLogins.filter((p) => { const n = (p.nome || "").trim().toLowerCase(); return !vistos.has(n) && !inativos.has(n); })];
     return todos.filter((p) => mesDe(p.nascimento) === mes).sort((a, b) => a.nascimento.slice(8, 10).localeCompare(b.nascimento.slice(8, 10)));
   }, [funcs, niverLogins]);
+
+  // Config das notificações (liga/desliga por tipo, definida no Admin). Lê uma
+  // vez do banco (leitura pública); se falhar, usa os padrões do catálogo.
+  const [notifConfig, setNotifConfig] = useState<Record<string, boolean>>(NOTIF_PADRAO);
+  const notifLidas = useRef(false);
+  useEffect(() => {
+    if (notifLidas.current || !supabaseReady || !supabase) return;
+    notifLidas.current = true;
+    let vivo = true;
+    (async () => {
+      const { data } = await supabase!.from("notificacoes_config").select("chave,ligado");
+      if (!vivo || !data) return;
+      const cfg: Record<string, boolean> = { ...NOTIF_PADRAO };
+      (data as { chave: string; ligado: boolean }[]).forEach((r) => { cfg[r.chave] = r.ligado; });
+      setNotifConfig(cfg);
+    })();
+    return () => { vivo = false; };
+  }, []);
+  const notifOn = (chave: string) => notifConfig[chave] ?? NOTIF_PADRAO[chave] ?? false;
+
+  // Avisos do sininho: só os tipos LIGADos no Admin e cuja condição bate com os
+  // dados da empresa. Cada aviso tem ícone (emoji), título e detalhe.
+  const avisos = useMemo(() => {
+    const lista: { chave: string; icone: string; titulo: string; detalhe: string; nav?: import("@/lib/nav").AlvoNav }[] = [];
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const emDias = (d: number) => { const x = new Date(hoje); x.setDate(x.getDate() + d); return x; };
+    const dtVenc = (l: Lancamento) => { const v = l.vencimento || l.data_competencia; return v ? new Date(v + "T00:00:00") : null; };
+
+    if (notifOn("aniversarios") && niverMes.length > 0)
+      lista.push({ chave: "aniversarios", icone: "🎂", titulo: niverMes.length === 1 ? "1 aniversariante no mês" : `${niverMes.length} aniversariantes no mês`, detalhe: niverMes.slice(0, 3).map((p) => p.nome.split(" ")[0]).join(", ") + (niverMes.length > 3 ? "…" : "") });
+
+    if (notifOn("contas_vencidas")) {
+      const vencidas = lancs.filter((l) => !l.pago && (() => { const d = dtVenc(l); return d && d < hoje; })());
+      if (vencidas.length > 0) lista.push({ chave: "contas_vencidas", icone: "🔴", titulo: vencidas.length === 1 ? "1 conta vencida" : `${vencidas.length} contas vencidas`, detalhe: "Contas que passaram do vencimento e não foram pagas.", nav: { view: "financas", aba: "estrutura" } });
+    }
+    if (notifOn("contas_vencer")) {
+      const limite = emDias(7);
+      const aVencer = lancs.filter((l) => !l.pago && (() => { const d = dtVenc(l); return d && d >= hoje && d <= limite; })());
+      if (aVencer.length > 0) lista.push({ chave: "contas_vencer", icone: "🟡", titulo: aVencer.length === 1 ? "1 conta a vencer" : `${aVencer.length} contas a vencer`, detalhe: "Vencem nos próximos 7 dias.", nav: { view: "financas", aba: "estrutura" } });
+    }
+    if (notifOn("onboarding")) {
+      try { if (localStorage.getItem("me_guia_concluido") !== "1") lista.push({ chave: "onboarding", icone: "⚙️", titulo: "Configuração incompleta", detalhe: "Termine o cadastro: dados da empresa, logomarca e equipe.", nav: { view: "config", aba: "dados" } }); } catch { /* ignore */ }
+    }
+    if (notifOn("fechamento_mes") && hoje.getDate() >= 25)
+      lista.push({ chave: "fechamento_mes", icone: "🗓️", titulo: "Fechamento do mês", detalhe: "Confira se todos os lançamentos do mês estão em dia.", nav: { view: "financas", aba: "estrutura" } });
+
+    return lista;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [niverMes, lancs, notifConfig]);
   // nome do Super Admin (definido em Configurações › Meus Usuários) para o rodapé
   const [superNome, setSuperNome] = useState("");
   useEffect(() => {
@@ -560,7 +610,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button onClick={() => setTutMobile(true)} title="Tutorial guiado"><Sparkles size={22} color="#79d6f7" /></button>
                 <button onClick={toggleOcultarHome} title={ocultoHome ? "Mostrar valores" : "Ocultar valores"}>{ocultoHome ? <EyeOff size={22} color="#79d6f7" /> : <Eye size={22} color="#79d6f7" />}</button>
-                <button onClick={() => setNotifAberto((v) => !v)} title="Aniversariantes do mês" style={{ position: "relative" }}><Bell size={22} color="#79d6f7" />{niverMes.length > 0 && <span className="mhome-dot" />}</button>
+                <button onClick={() => setNotifAberto((v) => !v)} title="Notificações" style={{ position: "relative" }}><Bell size={22} color="#79d6f7" />{avisos.length > 0 && <span className="mhome-dot" />}</button>
               </div>
             </div>
 
@@ -622,19 +672,23 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {/* notificações: aniversariantes do mês (sino do topo, mobile e desktop) */}
         {notifAberto && (
           <div onClick={() => setNotifAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(15,23,42,.4)", backdropFilter: "blur(1px)", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", padding: "62px 16px 0" }}>
-            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 340, padding: 16, boxShadow: "0 18px 44px -18px rgba(0,0,0,.5)" }}>
+            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 344, padding: 16, boxShadow: "0 18px 44px -18px rgba(0,0,0,.5)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Cake size={15} /></span>
-                <b style={{ fontSize: 14, textTransform: "capitalize" }}>Aniversariantes de {new Date().toLocaleDateString("pt-BR", { month: "long" })}</b>
+                <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)", flexShrink: 0 }}><Bell size={15} /></span>
+                <b style={{ fontSize: 14 }}>Notificações</b>
               </div>
-              {niverMes.length === 0
-                ? <p className="sub" style={{ fontStyle: "italic", fontSize: 13, margin: 0 }}>Nenhum aniversariante neste mês.</p>
-                : <div style={{ display: "grid", gap: 9 }}>
-                    {niverMes.map((p) => (
-                      <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                        <span title={p.nome} style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</span>
-                        <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 12%, transparent)", padding: "3px 10px", borderRadius: 99 }}>🎈 {p.nascimento.slice(8, 10)}/{p.nascimento.slice(5, 7)}</span>
-                      </div>
+              {avisos.length === 0
+                ? <p className="sub" style={{ fontStyle: "italic", fontSize: 13, margin: 0 }}>Nenhuma notificação por enquanto.</p>
+                : <div style={{ display: "grid", gap: 8 }}>
+                    {avisos.map((a) => (
+                      <button key={a.chave} onClick={() => { playTick(); setNotifAberto(false); if (a.nav) navegar(a.nav); }} disabled={!a.nav}
+                        style={{ display: "flex", alignItems: "flex-start", gap: 10, textAlign: "left", width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 12, padding: "10px 12px", cursor: a.nav ? "pointer" : "default", fontFamily: "inherit" }}>
+                        <span style={{ fontSize: 17, lineHeight: 1.2, flexShrink: 0 }}>{a.icone}</span>
+                        <span style={{ minWidth: 0 }}>
+                          <b style={{ fontSize: 13.5, display: "block", color: "var(--txt)" }}>{a.titulo}</b>
+                          <span className="sub" style={{ fontSize: 12, lineHeight: 1.4, display: "block", marginTop: 1 }}>{a.detalhe}</span>
+                        </span>
+                      </button>
                     ))}
                   </div>}
             </div>
@@ -702,8 +756,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
           <button className="btn ghost sm desk-only" onClick={toggleTheme}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}</button>
           <button className="btn ghost sm desk-only" onClick={toggleSom} title={som ? "Desligar sons" : "Ligar sons"}>{som ? <Volume2 size={14} /> : <VolumeX size={14} />}</button>
           {view === "dashboard" && (
-            <button className="btn ghost sm desk-only" onClick={() => setNotifAberto((v) => !v)} title="Aniversariantes do mês" style={{ position: "relative" }}>
-              <Bell size={15} />{niverMes.length > 0 && <span style={{ position: "absolute", top: 3, right: 5, width: 7, height: 7, borderRadius: "50%", background: "#EF4444" }} />}
+            <button className="btn ghost sm desk-only" onClick={() => setNotifAberto((v) => !v)} title="Notificações" style={{ position: "relative" }}>
+              <Bell size={15} />{avisos.length > 0 && <span style={{ position: "absolute", top: 3, right: 5, width: 7, height: 7, borderRadius: "50%", background: "#EF4444" }} />}
             </button>
           )}
         </div>

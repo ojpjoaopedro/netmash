@@ -141,7 +141,12 @@ export async function GET(req: NextRequest) {
   const imagemSuperadmin = kvMap.get("imagem_superadmin") ?? null;
   const linkSuperadmin = kvMap.get("link_superadmin") ?? null;
 
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin, linkSuperadmin });
+  // configuração das notificações do cliente (liga/desliga por tipo)
+  const notifRes = await s.from("notificacoes_config").select("chave,ligado");
+  const notificacoes: Record<string, boolean> = {};
+  ((notifRes.data as { chave: string; ligado: boolean }[] | null) ?? []).forEach((r) => { notificacoes[r.chave] = r.ligado; });
+
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin, linkSuperadmin, notificacoes });
 }
 
 export async function POST(req: NextRequest) {
@@ -160,6 +165,7 @@ export async function POST(req: NextRequest) {
     emailResp?: string; funcionarios?: { nome?: string; email?: string }[];
     lgpdId?: string; planoKey?: string; ativo?: boolean; descricao?: string; preco?: number | string;
     planos?: Record<string, boolean>; imagem?: string | null; link?: string | null;
+    notifChave?: string; notifLigado?: boolean;
   };
   const { action, userId, empresaId } = body;
 
@@ -193,6 +199,12 @@ export async function POST(req: NextRequest) {
     } else {
       await s.from("planos_catalogo").update({ imagem: body.imagem || null }).eq("chave", body.planoKey);
     }
+    return NextResponse.json({ ok: true });
+  }
+
+  // Liga/desliga um tipo de notificação do cliente (seção Notificações do Admin).
+  if (action === "notif-toggle" && body.notifChave) {
+    await s.from("notificacoes_config").upsert({ chave: body.notifChave, ligado: !!body.notifLigado, atualizado_em: new Date().toISOString() });
     return NextResponse.json({ ok: true });
   }
 
