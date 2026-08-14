@@ -1,4 +1,4 @@
-/* Service worker do Minhas Métricas (PWA + Web Push).
+/* Service worker do Métricas (PWA + Web Push).
    Instala o app na tela do celular e recebe as notificações push. */
 
 // Ativa a nova versão imediatamente (sem esperar fechar todas as abas).
@@ -9,9 +9,9 @@ self.addEventListener("activate", (event) => { event.waitUntil(self.clients.clai
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; }
-  catch { data = { title: "Minhas Métricas", body: event.data ? event.data.text() : "" }; }
+  catch { data = { title: "Métricas", body: event.data ? event.data.text() : "" }; }
 
-  const title = data.title || "Minhas Métricas";
+  const title = data.title || "Métricas";
   const options = {
     body: data.body || "",
     icon: data.icon || "/icon-192.png",

@@ -3,11 +3,11 @@ import "./globals.css";
 import PwaRegister from "@/components/PwaRegister";
 
 export const metadata: Metadata = {
-  title: "Minhas Métricas — Gestão financeira",
+  title: "Métricas · Gestão financeira",
   description:
     "A gestão da sua empresa num app: dashboards, fluxo de caixa, projeção, clientes, equipe e relatórios.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Minhas Métricas", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Métricas", statusBarStyle: "black-translucent" },
   icons: {
     icon: [
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },

@@ -81,7 +81,7 @@ function PulsoDoDia() {
     setFrase(FRASES_PULSO[Math.floor(dia / 3) % FRASES_PULSO.length]);
   }, []);
 
-  const texto = frase ? `"${frase.t.replace(/\.\s*$/, "")}"${frase.a ? ` — ${frase.a}` : ""}\n\n📊 Pulso do dia · Minhas Métricas` : "";
+  const texto = frase ? `"${frase.t.replace(/\.\s*$/, "")}"${frase.a ? `, ${frase.a}` : ""}\n\n📊 Pulso do dia · Métricas` : "";
 
   /** Gera a imagem no tamanho de story (1080x1920) e compartilha (ou baixa). */
   async function instagram() {

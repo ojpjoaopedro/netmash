@@ -1,7 +1,7 @@
 {
-  "name": "Minhas Métricas — Gestão financeira",
-  "short_name": "Minhas Métricas",
-  "description": "Dashboards, fluxo de caixa, projeção, clientes e equipe — a gestão da sua empresa num app.",
+  "name": "Métricas · Gestão financeira",
+  "short_name": "Métricas",
+  "description": "Dashboards, fluxo de caixa, projeção, clientes e equipe: a gestão da sua empresa num app.",
   "id": "/dashboard/home",
   "start_url": "/dashboard/home",
   "scope": "/",

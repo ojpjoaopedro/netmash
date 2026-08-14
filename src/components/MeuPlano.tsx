@@ -34,7 +34,7 @@ function ativarModulo(m: Modulo) {
     return;
   }
   // Sem link cadastrado: cai no WhatsApp como antes.
-  const msg = `Olá! Quero ativar o módulo de ${m.nome} (${fmt(m.preco)}/mês) no Minhas Métricas.`;
+  const msg = `Olá! Quero ativar o módulo de ${m.nome} (${fmt(m.preco)}/mês) no Métricas.`;
   window.open(`https://wa.me/${TEL}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
 }
 

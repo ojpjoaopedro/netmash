@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { UserPlus, Wallet, Zap, Share2, Send, X, ChevronDown, Lock } from "lucide-react";
 import { navegar } from "@/lib/nav";
 
-const APP = "Minhas Métricas";
+const APP = "Métricas";
 const LINHA = (Icon: typeof UserPlus, txt: string) => ({ Icon, txt });
 const BENEFICIOS = [
   LINHA(UserPlus, "A cada empresa que você indicar, ganha 50% de desconto por 2 meses."),
