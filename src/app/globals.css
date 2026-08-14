@@ -261,6 +261,8 @@ input:not(.mba-scope *),select:not(.mba-scope *),textarea:not(.mba-scope *){widt
   padding:10px 12px;border-radius:10px;font-size:14px;font-family:inherit;outline:none}
 input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-scope *):focus{border-color:var(--brand)}
 .field{margin-bottom:13px}
+/* par de campos que fica SEMPRE em 2 colunas (inclusive no celular) */
+.fpair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 /* formulários compactos (Meus Usuários / Dados da Empresa) */
 .compacto h3{margin-bottom:10px}
 .compacto .field{margin-bottom:8px}

@@ -8,17 +8,6 @@ import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { reduzirImagem } from "@/lib/imagem";
 
 
-/* Principais segmentos de mercado (setores da economia brasileira). O último
-   é "Outro", que libera um campo livre para digitar. */
-const SEGMENTOS = [
-  "Comércio (varejo/atacado)", "Serviços", "Indústria", "Educação", "Saúde",
-  "Agronegócio", "Tecnologia / TI", "Construção Civil", "Alimentação e Bebidas",
-  "Beleza e Estética", "Turismo e Hotelaria", "Transporte e Logística",
-  "Finanças e Seguros", "Imobiliário", "Marketing e Publicidade",
-  "Moda e Vestuário", "Automotivo", "Energia", "Comunicação e Mídia",
-  "Entretenimento e Eventos", "Consultoria", "Contabilidade", "Jurídico",
-  "ONG / Terceiro Setor",
-];
 
 /* Dados fiscais/bancários extras da empresa. Ficam por empresa no navegador
    (não exigem coluna nova no banco). Chaveado pelo id da empresa. */
@@ -62,10 +51,8 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
   secao?: "tudo" | "dados" | "identidade";
 }) {
   const nome = empresa?.nome ?? brand.nome ?? "";
-  const [segmento, setSegmento] = useState(empresa?.segmento ?? "");
-  // "Outro" só liga quando a pessoa escolhe digitar. Segmento salvo que não
-  // está na lista aparece como opção selecionada no próprio menu (abaixo).
-  const [segOutro, setSegOutro] = useState(false);
+  // segmento não é mais editável no formulário; mantém o valor atual ao salvar.
+  const [segmento] = useState(empresa?.segmento ?? "");
   const cnpj = empresa?.cnpj ?? "";
   const [cor, setCor] = useState(brand.cor ?? "#1AADE2");
   const [extra, setExtra] = useState<DadosExtra>(() => lerExtra(empresa?.id));
@@ -158,39 +145,22 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
         {secao !== "identidade" && (
         <div className="card compacto">
           <h3>🏢 Dados da empresa</h3>
-          {/* Nome, Segmento e CNPJ na mesma linha */}
-          <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 14 }}>
+          {/* Nome e CNPJ (não editáveis, definidos no cadastro) */}
+          <div className="fpair" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
             <div className="field"><label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Nome da empresa <Lock size={11} style={{ opacity: .6 }} /></label><input value={nome} readOnly title="Definido no cadastro, não editável" style={{ opacity: .8, cursor: "default" }} /></div>
-            <div className="field">
-              <label className="f">Segmento</label>
-              {segOutro ? (
-                <input autoFocus value={segmento} onChange={(e) => setSegmento(e.target.value)} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Digite o segmento" />
-              ) : (
-                <select value={segmento} onChange={(e) => {
-                  if (e.target.value === "__outro__") { setSegOutro(true); setSegmento(""); }
-                  else setSegmento(e.target.value);
-                }} onBlur={(e) => salvarCampo(e.currentTarget)}>
-                  <option value="">Selecione…</option>
-                  {segmento && !SEGMENTOS.includes(segmento) && <option value={segmento}>{segmento}</option>}
-                  {SEGMENTOS.map((s) => <option key={s} value={s}>{s}</option>)}
-                  <option value="__outro__">Outro (digitar)</option>
-                </select>
-              )}
-            </div>
             <div className="field"><label className="f" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>CNPJ <Lock size={11} style={{ opacity: .6 }} /></label><input value={cnpj} readOnly title="Definido no cadastro, não editável" style={{ opacity: .8, cursor: "default" }} inputMode="numeric" /></div>
           </div>
-          {/* E-mail (maior) primeiro, depois Contato e Inscrição Estadual */}
-          <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 14 }}>
+          {/* E-mail e Contato */}
+          <div className="fpair" style={{ gridTemplateColumns: "1.5fr 1fr" }}>
             <div className="field"><label className="f">E-mail principal</label>
               <input value={extra.email} onChange={(e) => { upExtra({ email: e.target.value }); if (emailErro) setEmailErro(""); }}
                 onBlur={(e) => { const v = e.currentTarget.value.trim(); if (v && !emailValido(v)) { setEmailErro("E-mail inválido. Use o formato nome@empresa.com."); upExtra({ email: "" }); e.currentTarget.value = ""; salvarCampo(e.currentTarget); return; } setEmailErro(""); salvarCampo(e.currentTarget); }} inputMode="email" />
               {emailErro && <span style={{ color: "var(--red)", fontSize: 11.5, marginTop: 4, display: "block" }}>{emailErro}</span>}
             </div>
             <div className="field"><label className="f">Contato</label><input value={extra.contato} onChange={(e) => upExtra({ contato: mascararTelefone(e.target.value) })} onBlur={(e) => salvarCampo(e.currentTarget)} inputMode="tel" /></div>
-            <div className="field"><label className="f">Inscrição Estadual</label><input value={extra.ie} onChange={(e) => upExtra({ ie: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} placeholder="Opcional" /></div>
           </div>
-          {/* Endereço: CEP primeiro (preenche rua, bairro, cidade e estado automaticamente) */}
-          <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "0.8fr 1.6fr 0.7fr", gap: 14 }}>
+          {/* CEP e Rua na mesma linha (o CEP preenche o resto automaticamente) */}
+          <div className="fpair" style={{ gridTemplateColumns: "1fr 1.6fr" }}>
             <div className="field">
               <label className="f">CEP</label>
               <input value={extra.cep}
@@ -200,11 +170,16 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
               {cepMsg && <span style={{ fontSize: 11.5, marginTop: 5, display: "inline-block", color: cepMsg.tipo === "erro" ? "var(--red)" : "var(--muted)" }}>{cepMsg.texto}</span>}
             </div>
             <div className="field"><label className="f">Rua</label><input value={extra.rua} onChange={(e) => upEndereco({ rua: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
-            <div className="field"><label className="f">Número</label><input value={extra.numero} onChange={(e) => upEndereco({ numero: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
           </div>
-          <div className="fgrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 0.5fr", gap: 14 }}>
+          {/* Número e Complemento na mesma linha */}
+          <div className="fpair">
+            <div className="field"><label className="f">Número</label><input value={extra.numero} onChange={(e) => upEndereco({ numero: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
             <div className="field"><label className="f">Complemento</label><input value={extra.complemento} onChange={(e) => upEndereco({ complemento: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
-            <div className="field"><label className="f">Bairro</label><input value={extra.bairro} onChange={(e) => upEndereco({ bairro: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
+          </div>
+          {/* Bairro */}
+          <div className="field"><label className="f">Bairro</label><input value={extra.bairro} onChange={(e) => upEndereco({ bairro: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
+          {/* Cidade e Estado na mesma linha */}
+          <div className="fpair" style={{ gridTemplateColumns: "1.7fr 0.6fr" }}>
             <div className="field"><label className="f">Cidade</label><input value={extra.cidade} onChange={(e) => upEndereco({ cidade: e.target.value })} onBlur={(e) => salvarCampo(e.currentTarget)} /></div>
             <div className="field"><label className="f">Estado</label><input value={extra.uf} onChange={(e) => upEndereco({ uf: e.target.value.toUpperCase().slice(0, 2) })} onBlur={(e) => salvarCampo(e.currentTarget)} maxLength={2} /></div>
           </div>
