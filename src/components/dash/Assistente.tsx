@@ -150,7 +150,7 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
 
   return (
     <>
-      <div className="card" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, padding: "11px 14px", borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
+      <div className="card" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22, padding: "11px 14px", borderColor: "rgba(26,173,226,.35)", background: "linear-gradient(135deg, rgba(26,173,226,.10), transparent)" }}>
         <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "rgba(26,173,226,.18)", flexShrink: 0 }}>
           <Sparkles size={18} color="var(--accent)" />
         </span>
@@ -161,7 +161,7 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
       </div>
 
       {/* Alternância de modo */}
-      <div className="period" style={{ width: "fit-content", marginBottom: 10 }}>
+      <div className="period" style={{ width: "fit-content", marginBottom: 22 }}>
         <button className={modo === "apresentar" ? "active" : ""} onClick={() => setModo("apresentar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Presentation size={14} /> Apresentação</button>
         <button className={modo === "perguntar" ? "active" : ""} onClick={() => setModo("perguntar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageCircle size={14} /> Perguntar</button>
         <button className={modo === "registrar" ? "active" : ""} onClick={() => setModo("registrar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Registrar</button>

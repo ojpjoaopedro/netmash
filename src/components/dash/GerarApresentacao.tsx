@@ -36,7 +36,7 @@ export default function GerarApresentacao(props: Props) {
       <SecHead
         icon="Sparkles"
         titulo="Gerar apresentação"
-        sub="Monte uma apresentação dos seus números para mostrar e compartilhar"
+        sub=""
         cor="#8b5cf6"
         right={
           <div className="period" style={{ flexWrap: "wrap" }}>
@@ -57,9 +57,8 @@ export default function GerarApresentacao(props: Props) {
       )}
 
       {/* O que incluir */}
-      <div className="card" style={{ marginTop: 14 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>O que mostrar na apresentação</h3>
-        <p className="sub" style={{ marginBottom: 12 }}>Marque as áreas que você quer apresentar.</p>
+      <div className="card" style={{ marginTop: 31 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>O que mostrar na apresentação</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
           {SECOES.map((s) => {
             const on = secoes[s.key];
@@ -78,24 +77,22 @@ export default function GerarApresentacao(props: Props) {
         </div>
       </div>
 
-      <div className="grid two" style={{ marginTop: 16 }}>
+      <div className="grid two" style={{ marginTop: 35 }}>
         <div className="card">
           <h3 style={{ fontSize: 16, fontWeight: 800 }}>🎬 Apresentação em slides</h3>
           <p className="sub" style={{ marginTop: 6, lineHeight: 1.5 }}>
-            Abre numa nova aba como uma apresentação de slides — passe com as setas (ou deslizando no celular) e mostre em tela cheia (tecla F).
+            Abre numa nova aba como uma apresentação de slides.
           </p>
           <button className="btn" style={{ marginTop: 14 }} onClick={onDeck} disabled={!valido}>🎬 Abrir apresentação</button>
         </div>
         <div className="card">
           <h3 style={{ fontSize: 16, fontWeight: 800 }}>📄 Relatório de uma página</h3>
           <p className="sub" style={{ marginTop: 6, lineHeight: 1.5 }}>
-            Abre tudo em uma página só — fácil de mostrar, mandar para alguém ou salvar/imprimir pelo navegador.
+            Abre tudo em uma página só.
           </p>
           <button className="btn ghost" style={{ marginTop: 14 }} onClick={onRelatorio} disabled={!valido}>📄 Abrir relatório</button>
         </div>
       </div>
-
-      <p className="sub" style={{ marginTop: 14 }}>Ao clicar, abre numa nova aba — funciona no computador e no celular.</p>
     </div>
   );
 }
