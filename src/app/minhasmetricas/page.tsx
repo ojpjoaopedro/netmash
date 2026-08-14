@@ -191,26 +191,27 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const avisos = useMemo(() => {
     const lista: { chave: string; icone: string; titulo: string; detalhe: string; nav?: import("@/lib/nav").AlvoNav }[] = [];
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-    const emDias = (d: number) => { const x = new Date(hoje); x.setDate(x.getDate() + d); return x; };
+    const dia = hoje.getDate();
     const dtVenc = (l: Lancamento) => { const v = l.vencimento || l.data_competencia; return v ? new Date(v + "T00:00:00") : null; };
 
-    if (notifOn("aniversarios") && niverMes.length > 0)
-      lista.push({ chave: "aniversarios", icone: "🎂", titulo: niverMes.length === 1 ? "1 aniversariante no mês" : `${niverMes.length} aniversariantes no mês`, detalhe: niverMes.slice(0, 3).map((p) => p.nome.split(" ")[0]).join(", ") + (niverMes.length > 3 ? "…" : "") });
+    // Aniversários DO DIA (hoje): entre os do mês, os que fazem aniversário hoje.
+    const niverHoje = niverMes.filter((p) => Number(p.nascimento.slice(8, 10)) === dia);
+    if (notifOn("aniversarios") && niverHoje.length > 0)
+      lista.push({ chave: "aniversarios", icone: "🎂", titulo: niverHoje.length === 1 ? "Aniversário hoje!" : `${niverHoje.length} aniversários hoje`, detalhe: niverHoje.map((p) => p.nome.split(" ")[0]).join(", ") });
 
+    // Vencidas: a partir de 1 dia após o vencimento (vencimento anterior a hoje), não pagas.
     if (notifOn("contas_vencidas")) {
-      const vencidas = lancs.filter((l) => !l.pago && (() => { const d = dtVenc(l); return d && d < hoje; })());
-      if (vencidas.length > 0) lista.push({ chave: "contas_vencidas", icone: "🔴", titulo: vencidas.length === 1 ? "1 conta vencida" : `${vencidas.length} contas vencidas`, detalhe: "Contas que passaram do vencimento e não foram pagas.", nav: { view: "financas", aba: "estrutura" } });
+      const vencidas = lancs.filter((l) => !l.pago && (() => { const d = dtVenc(l); return d && d.getTime() < hoje.getTime(); })());
+      if (vencidas.length > 0) lista.push({ chave: "contas_vencidas", icone: "🔴", titulo: vencidas.length === 1 ? "1 conta vencida" : `${vencidas.length} contas vencidas`, detalhe: "Passaram do vencimento e não foram pagas.", nav: { view: "financas", aba: "estrutura" } });
     }
+    // A vencer HOJE (vencimento é hoje), não pagas.
     if (notifOn("contas_vencer")) {
-      const limite = emDias(7);
-      const aVencer = lancs.filter((l) => !l.pago && (() => { const d = dtVenc(l); return d && d >= hoje && d <= limite; })());
-      if (aVencer.length > 0) lista.push({ chave: "contas_vencer", icone: "🟡", titulo: aVencer.length === 1 ? "1 conta a vencer" : `${aVencer.length} contas a vencer`, detalhe: "Vencem nos próximos 7 dias.", nav: { view: "financas", aba: "estrutura" } });
+      const aVencer = lancs.filter((l) => !l.pago && (() => { const d = dtVenc(l); return d && d.getTime() === hoje.getTime(); })());
+      if (aVencer.length > 0) lista.push({ chave: "contas_vencer", icone: "🟡", titulo: aVencer.length === 1 ? "1 conta vence hoje" : `${aVencer.length} contas vencem hoje`, detalhe: "Contas a pagar ou receber com vencimento hoje.", nav: { view: "financas", aba: "estrutura" } });
     }
     if (notifOn("onboarding")) {
       try { if (localStorage.getItem("me_guia_concluido") !== "1") lista.push({ chave: "onboarding", icone: "⚙️", titulo: "Configuração incompleta", detalhe: "Termine o cadastro: dados da empresa, logomarca e equipe.", nav: { view: "config", aba: "dados" } }); } catch { /* ignore */ }
     }
-    if (notifOn("fechamento_mes") && hoje.getDate() >= 25)
-      lista.push({ chave: "fechamento_mes", icone: "🗓️", titulo: "Fechamento do mês", detalhe: "Confira se todos os lançamentos do mês estão em dia.", nav: { view: "financas", aba: "estrutura" } });
 
     return lista;
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -10,11 +10,10 @@ export type TipoNotificacao = {
 };
 
 export const NOTIFICACOES: TipoNotificacao[] = [
-  { chave: "aniversarios",    titulo: "Aniversariantes do mês", descricao: "Avisa sobre os aniversários da equipe no mês atual.", defaultOn: true },
-  { chave: "contas_vencer",   titulo: "Contas a vencer",        descricao: "Avisa quando há contas a pagar ou receber vencendo nos próximos 7 dias.", defaultOn: true },
-  { chave: "contas_vencidas", titulo: "Contas vencidas",        descricao: "Avisa quando há contas em atraso (venceram e não foram pagas).", defaultOn: true },
+  { chave: "aniversarios",    titulo: "Aniversariantes do dia", descricao: "Avisa sobre os aniversários da equipe no dia (hoje).", defaultOn: true },
+  { chave: "contas_vencer",   titulo: "Contas a vencer",        descricao: "Avisa quando há contas a pagar ou receber vencendo hoje.", defaultOn: true },
+  { chave: "contas_vencidas", titulo: "Contas vencidas",        descricao: "Avisa quando há contas em atraso (a partir de 1 dia após o vencimento, não pagas).", defaultOn: true },
   { chave: "onboarding",      titulo: "Configuração incompleta", descricao: "Lembra o cliente de terminar o cadastro inicial (dados, logomarca e equipe).", defaultOn: true },
-  { chave: "fechamento_mes",  titulo: "Fechamento do mês",       descricao: "A partir do dia 25, lembra de conferir os lançamentos do mês.", defaultOn: false },
 ];
 
 // Mapa chave -> padrão (usado quando o banco ainda não tem a linha).
