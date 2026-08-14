@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useRef, useMemo, Fragment } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, DollarSign, Compass, Settings,
@@ -889,11 +890,13 @@ export default function Home({ secao }: { secao?: string } = {}) {
         </>
         )}
 
-        {/* seta de voltar (celular, em todas as telas internas). Expande ao tocar. */}
-        {estreito && view !== "dashboard" && (
+        {/* seta de voltar (celular, todas as telas internas). Vai direto no body
+            (portal) pra ficar REALMENTE fixa ao rolar. Expande ao tocar. */}
+        {estreito && view !== "dashboard" && typeof document !== "undefined" && createPortal(
           <button className="mback" title="Voltar" onClick={() => { playTick(); if (voltarRef.current && voltarRef.current()) return; setView("dashboard"); }}>
-            <ChevronLeft size={24} strokeWidth={2.4} />
-          </button>
+            <ChevronLeft size={22} strokeWidth={2.4} />
+          </button>,
+          document.body,
         )}
         {/* Conteúdo das telas (desktop e mobile-sub); no mobile ganha padding próprio */}
         <div className={estreito && view !== "dashboard" ? "msub-body" : undefined} style={estreito && view === "dashboard" ? { display: "none" } : undefined}>
