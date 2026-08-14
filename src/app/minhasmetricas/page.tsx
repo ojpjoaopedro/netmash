@@ -7,7 +7,7 @@ import {
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2,
-  PlayCircle, Play, Bell, Eye, EyeOff, Wallet, Lock, Check, Home as HomeIcon,
+  Bell, Wallet, Lock, Check, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -25,7 +25,6 @@ import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicado
 import { NOTIF_PADRAO } from "@/lib/notificacoes";
 import AtivarNotificacoes from "@/components/AtivarNotificacoes";
 import { useBrand } from "@/lib/brand";
-import { useOcultar } from "@/components/ocultar";
 import PainelCobrancas from "@/components/PainelCobrancas";
 import CalendarioRecebimento from "@/components/CalendarioRecebimento";
 import PromoParaVoce from "@/components/PromoParaVoce";
@@ -115,7 +114,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
     upd(); mq.addEventListener("change", upd);
     return () => mq.removeEventListener("change", upd);
   }, []);
-  const { oculto: ocultoHome, toggle: toggleOcultarHome } = useOcultar();
   // back inteligente das telas internas: cada tela registra como voltar 1 nível;
   // se não houver nível interno, o botão azul do topo volta para a Home.
   const voltarRef = useRef<(() => boolean) | null>(null);
@@ -454,14 +452,50 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <span style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>{marcaInterna}</span>
               <button className="iconbtn" onClick={() => setMenuAberto(false)}><X size={18} /></button>
             </div>
-            <div className="navgroup"><nav className="nav">
-              <button onClick={() => { playTick(); setView("assistente"); setMenuAberto(false); }}><Sparkles size={16} color="var(--brand)" /> Assistente</button>
-              <button onClick={() => { playTick(); navegar({ view: "config", aba: "dados" }); setMenuAberto(false); }}><Building2 size={16} color="var(--brand)" /> Dados da empresa</button>
-              <button onClick={() => { playTick(); navegar({ view: "config", aba: "equipe" }); setMenuAberto(false); }}><Users size={16} color="var(--brand)" /> Equipe</button>
-            </nav></div>
-            <div className="navgroup"><nav className="nav">
-              <button onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={18} /> Sair</button>
-            </nav></div>
+            {/* mesmo menu do desktop: Métricas + Operações */}
+            <div className="navgroup">
+              <div className="gl">Métricas</div>
+              <nav className="nav">
+                {metricasVis.map(({ key, label, Icon }) => { const at = key === "analises" ? (view === "financas" && abaFin === "relatorios") : grupoDe(view) === key; return (
+                  <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); if (key === "analises") navegar({ view: "financas", aba: "relatorios" }); else setView(key as View); setMenuAberto(false); }}>
+                    <Icon size={16} color={corDe(key)} /> {label}
+                  </button>
+                ); })}
+                {(ehDono || areasPerm.includes("folha")) && (empresa?.planos?.folha ? (
+                  <button className={view === "financas" && abaFin === "folha" ? "active" : ""} onClick={() => { playTick(); navegar({ view: "financas", aba: "folha" }); setMenuAberto(false); }}>
+                    <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
+                  </button>
+                ) : (
+                  <button onClick={() => { playTick(); setFolhaPromo(true); setMenuAberto(false); }} title="Folha de pagamento, recurso do plano. Ver planos.">
+                    <Wallet size={16} color={corDe("folha")} /> Folha de pagamento
+                    <Lock size={13} style={{ marginLeft: "auto", opacity: .65 }} />
+                  </button>
+                ))}
+                {metricasMaisVis.map(({ key, label, Icon }) => { const at = grupoDe(view) === key; return (
+                  <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); setMenuAberto(false); }}>
+                    <Icon size={16} color={corDe(key)} /> {label}
+                  </button>
+                ); })}
+              </nav>
+            </div>
+            <div className="navgroup">
+              <div className="gl">Operações</div>
+              <nav className="nav">
+                {[...opsCore, ...opsSistema].map(({ key, label, Icon }) => { const at = view === key; return (
+                  <button key={key} className={at ? "active" : ""} onClick={() => { playTick(); setView(key as View); setMenuAberto(false); }}>
+                    <Icon size={16} color={corDe(key)} /> {label}
+                  </button>
+                ); })}
+              </nav>
+            </div>
+            <div className="side-foot">
+              <span className="av">{fotoPerfil ? <img src={fotoPerfil} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <User size={20} />}</span>
+              <div className="who">
+                <b>{(perfil?.nome || "").trim().split(" ")[0] || superNome.trim().split(" ")[0] || saudacaoNome || nomeMarca}</b>
+                <small>{nomeMarca !== "Minha Empresa" ? nomeMarca : (marcaPainel ? "Painel demonstrativo" : nomeMarca)}</small>
+              </div>
+              <button className="iconbtn" title={supabaseReady ? "Sair" : "Login"} onClick={async () => { await logout(); router.replace("/login"); }}><LogOut size={17} /></button>
+            </div>
           </div>
         </div>
       )}
@@ -605,30 +639,30 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {estreito && view === "dashboard" && (
           <div className="mhome">
             <div className="mhome-top">
-              <button onClick={() => setMenuAberto(true)} title="Menu"><Menu size={24} color="#79d6f7" /></button>
+              <button onClick={() => setMenuAberto(true)} title="Menu"><Menu size={22} color="var(--brand)" /></button>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button onClick={() => setTutMobile(true)} title="Tutorial guiado"><Sparkles size={22} color="#79d6f7" /></button>
-                <button onClick={toggleOcultarHome} title={ocultoHome ? "Mostrar valores" : "Ocultar valores"}>{ocultoHome ? <EyeOff size={22} color="#79d6f7" /> : <Eye size={22} color="#79d6f7" />}</button>
-                <button onClick={() => setNotifAberto((v) => !v)} title="Notificações" style={{ position: "relative" }}><Bell size={22} color="#79d6f7" />{avisos.length > 0 && <span className="mhome-dot" />}</button>
+                <button onClick={toggleTheme} title={theme === "dark" ? "Tema claro" : "Tema escuro"}>{theme === "dark" ? <Sun size={21} color="var(--brand)" /> : <Moon size={21} color="var(--brand)" />}</button>
+                <button onClick={() => setNotifAberto((v) => !v)} title="Notificações" style={{ position: "relative" }}><Bell size={21} color="var(--brand)" />{avisos.length > 0 && <span className="mhome-dot" />}</button>
               </div>
             </div>
 
-            <div style={{ padding: "12px 16px 8px", fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Escolha aqui o melhor lugar para preencher seus dados</div>
-            <div className="mhome-wgrid" style={{ padding: "0 14px 10px" }}>
-              {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers }, { aba: "calendario", label: "Calendário", Icon: CalendarDays }].map((c) => (
-                <button key={c.aba} data-aba={c.aba} className="mhome-wcard" style={{ position: "relative" }} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
-                  <span className="mhome-wcard-ico"><c.Icon size={22} /></span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 0" }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
+              <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
+            </div>
+            <div className="mhome-wgrid" style={{ padding: "12px 16px 0" }}>
+              {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "#1AADE2" }, { aba: "calendario", label: "Calendário", Icon: CalendarDays, cor: "#F59E0B" }].map((c) => (
+                <button key={c.aba} data-aba={c.aba} className="mhome-wcard" style={{ "--cor": c.cor } as React.CSSProperties} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
+                  <span className="mhome-wcard-ico"><c.Icon size={24} /></span>
                   <b>{c.label}</b>
-                  {c.aba === "folha" && (
-                    <span role="button" tabIndex={0} title="Recurso do plano Folha salarial · ver planos"
-                      onClick={(e) => { e.stopPropagation(); playTick(); navegar({ view: "config", aba: "plano" }); }}
-                      style={{ position: "absolute", top: 8, right: 8, width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 16%, transparent)", color: "var(--brand)", border: "1px solid var(--line-2)", cursor: "pointer" }}><Lock size={14} /></span>
-                  )}
                 </button>
               ))}
             </div>
 
-            <div className="mhome-gray">
+            {/* card de ativar notificações no celular (some depois de ativado) */}
+            <div style={{ padding: "18px 16px 0" }}><AtivarNotificacoes como="card" /></div>
+
+            <div className="mhome-gray" style={{ marginTop: 18 }}>
               <div style={{ marginTop: 4 }}><PainelCobrancas ano={Number(anoSel)} semTitulo /></div>
             </div>
 
@@ -900,11 +934,10 @@ function TelaPainel({ ano, setAno }: { ano: number; setAno: (a: number) => void 
   return <FinancasDashboard ano={ano} setAno={setAno} />;
 }
 
-// ---- Tutorial guiado das abas de Finanças (+ vídeo) ----
+// ---- Tutorial guiado das abas de Finanças ----
 const PASSOS_FIN: { sel: string; emoji: string; titulo: string; texto: React.ReactNode }[] = [
   { sel: '[data-aba="calendario"]', emoji: "🗓️", titulo: "Calendário", texto: <>Marque as <b>contas a pagar e a receber</b> por data. O que você lança no Calendário <b>aparece automaticamente no Painel financeiro</b>: os dois estão <b>conectados</b>.</> },
   { sel: '[data-aba="estrutura"]', emoji: "🧾", titulo: "Painel financeiro", texto: <>É <b>aqui que você preenche</b> suas <b>receitas</b> e <b>custos</b> e vê o <b>resultado</b> do mês. Tudo começa por aqui.</> },
-  { sel: '[data-tour="video"]', emoji: "▶️", titulo: "Vídeo", texto: <>Quer ver tudo em ação? Assista ao <b>vídeo-tutorial</b> completo.</> },
 ];
 function TutorialFinancas({ onFim }: { onFim: () => void }) {
   const [step, setStep] = useState(0);
@@ -1012,9 +1045,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
   // informa a aba atual à página (para destacar Dashboard/Análises na barra fixa)
   useEffect(() => { onAba?.(aba); }, [aba, onAba]);
 
-  // pop-up do vídeo-tutorial (ainda não gravado)
-  const [videoTut, setVideoTut] = useState(false);
-  // tutorial guiado das 3 abas (+ vídeo); abre 1x sozinho e pelo botão "Tutorial"
+  // tutorial guiado das abas de Finanças; abre 1x sozinho e pelo botão "Tutorial"
   const [tutFin, setTutFin] = useState(false);
   // marca como visto no navegador E no banco (não reabre nem em janela anônima)
   const marcarTutVistoFin = () => { try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } salvarEstadoRemoto("me_tut_financas", "1"); };
@@ -1070,10 +1101,6 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
           <DollarSign size={22} />
         </span>
         <h2 style={{ margin: 0, fontSize: "clamp(21px, 6vw, 27px)", fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
-        <button data-tour="video" onClick={() => setVideoTut(true)} title="Assistir ao vídeo-tutorial"
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "6px 12px", borderRadius: 99 }}>
-          <PlayCircle size={18} /> Vídeo
-        </button>
         <button onClick={() => setTutFin(true)} title="Fazer o tutorial guiado"
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "6px 12px", borderRadius: 99 }}>
           <Sparkles size={16} /> Tutorial
@@ -1116,29 +1143,6 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
       )}
 
 
-      {videoTut && (
-        <div onClick={() => setVideoTut(false)} style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", background: "rgba(15,23,42,.6)", backdropFilter: "blur(3px)", padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 640, background: "var(--card)", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,.35)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid var(--line)" }}>
-              <b style={{ fontSize: 15 }}>Vídeo-tutorial · Finanças</b>
-              <button onClick={() => setVideoTut(false)} title="Fechar" style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: 2 }}><X size={20} /></button>
-            </div>
-            {/* tela do player (16:9) */}
-            <div style={{ position: "relative", aspectRatio: "16 / 9", background: "radial-gradient(120% 120% at 50% 40%, #1f2937, #0b1220)", display: "grid", placeItems: "center" }}>
-              <span style={{ width: 76, height: 76, borderRadius: "50%", display: "grid", placeItems: "center", background: "rgba(255,255,255,.14)", border: "2px solid rgba(255,255,255,.55)", color: "#fff", backdropFilter: "blur(2px)" }}>
-                <Play size={34} fill="#fff" strokeWidth={0} style={{ marginLeft: 4 }} />
-              </span>
-              {/* barra de progresso decorativa */}
-              <div style={{ position: "absolute", left: 16, right: 16, bottom: 14, height: 4, borderRadius: 99, background: "rgba(255,255,255,.22)" }}>
-                <div style={{ width: "0%", height: "100%", borderRadius: 99, background: "#fff" }} />
-              </div>
-            </div>
-            <div style={{ padding: "16px 18px 20px", textAlign: "center" }}>
-              <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "var(--txt)" }}>Tutorial será enviado em breve</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

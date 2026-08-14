@@ -429,15 +429,13 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
     --line:rgba(150,180,255,.14);--line-2:rgba(150,180,255,.26);
     background:linear-gradient(180deg,#182a72 0%,#0c1338 300px,#080c22 660px)}
   /* Home */
-  .mhome{width:100%;max-width:100%;overflow-x:clip;padding-bottom:110px;min-height:100vh;color:#eaf0ff;
-    /* tema DARK/NEON só na home do app: redefine as variáveis -> tudo abaixo vira escuro automaticamente */
-    --card:#141c40;--card-2:#1b2559;--bg-2:#0f1638;
-    --txt:#eaf0ff;--txt-2:#c4d0f2;--muted:#9db0ea;--muted-2:#6f80bd;
-    --line:rgba(150,180,255,.14);--line-2:rgba(150,180,255,.26);
-    background:radial-gradient(135% 95% at 50% -12%,#1d2b74 0%,#0d1440 45%,#070b24 100%)}
+  /* a Home do app segue o TEMA do app: preto (escuro) ou branco (claro). */
+  .mhome{width:100%;max-width:100%;overflow-x:clip;padding-bottom:120px;min-height:100vh;color:var(--txt);background:var(--bg)}
   .main{overflow-x:clip}
   .mhome-top{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 8px;background:transparent}
-  .mhome-top button{background:transparent;border:0;cursor:pointer;display:grid;place-items:center;width:38px;height:38px;border-radius:10px}
+  .mhome-top button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);cursor:pointer;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;transition:background .15s,transform .1s}
+  .mhome-top button:active{transform:scale(.92);background:rgba(255,255,255,.12)}
+  body.theme-light .mhome-top button{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08)}
   .mhome-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#EF4444}
   .mhome-quote{margin:6px 14px 12px;padding:14px;border-radius:16px;background:linear-gradient(158deg,color-mix(in srgb,var(--brand) 12%,var(--card)),var(--card));border:1px solid var(--line-2);box-shadow:0 16px 40px -18px rgba(0,0,0,.6),0 0 24px -10px color-mix(in srgb,var(--brand) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.06)}
   .mhome-quote-ico{width:36px;height:36px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand)}
@@ -458,23 +456,20 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   .mhome-bcard-ico svg{width:21px;height:21px}
   .mhome-bcard>span:last-child{position:relative;z-index:1;font-size:14px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
   .mhome-gray{background:transparent;border-radius:20px 20px 0 0;padding:8px 14px 20px;margin-top:2px}
-  .mhome-wgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
-  .mhome-wcard{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:14px;min-height:120px;padding:13px;border-radius:18px;
-    cursor:pointer;font-family:inherit;text-align:left;color:#fff;
-    border:1px solid color-mix(in srgb,var(--brand) 50%,transparent);
-    background:linear-gradient(150deg,color-mix(in srgb,var(--brand) 94%,#4bc6ff),color-mix(in srgb,var(--brand-dark) 70%,#081b3f));
-    box-shadow:0 16px 34px -16px color-mix(in srgb,var(--brand) 70%,transparent),0 0 24px -8px color-mix(in srgb,var(--brand) 55%,transparent),inset 0 1px 0 rgba(255,255,255,.25);
-    transition:transform .16s ease,box-shadow .16s ease}
-  .mhome-wcard:active{transform:translateY(1px) scale(.96)}
-  /* orbe de brilho (tech) */
-  .mhome-wcard::before{content:"";position:absolute;right:-24px;top:-28px;width:92px;height:92px;border-radius:50%;pointer-events:none;
-    background:radial-gradient(circle,rgba(255,255,255,.30),transparent 66%)}
-  .mhome-wcard-ico{position:relative;z-index:1;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#fff;
-    background:linear-gradient(150deg,rgba(255,255,255,.30),rgba(255,255,255,.10));
-    border:1px solid rgba(255,255,255,.42);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 18px -8px rgba(0,0,0,.4)}
-  .mhome-wcard-ico svg{width:23px;height:23px}
-  .mhome-wcard b{position:relative;z-index:1;font-size:12px;font-weight:800;line-height:1.2;color:#fff}
+  .mhome-wgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  /* card escuro com ícone "brilhando" na cor (estilo app) — a cor vem de --cor */
+  .mhome-wcard{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:124px;padding:16px 12px;border-radius:18px;
+    cursor:pointer;font-family:inherit;text-align:center;color:var(--txt);
+    background:linear-gradient(160deg,color-mix(in srgb,var(--card) 80%,#000),var(--card));
+    border:1px solid var(--line-2);transition:transform .16s ease}
+  .mhome-wcard:active{transform:scale(.96)}
+  .mhome-wcard-ico{position:relative;z-index:1;width:52px;height:52px;border-radius:15px;display:grid;place-items:center;
+    color:var(--cor,var(--brand));
+    background:color-mix(in srgb,var(--cor,var(--brand)) 13%,transparent);
+    border:1px solid color-mix(in srgb,var(--cor,var(--brand)) 38%,transparent);
+    box-shadow:0 0 22px -4px color-mix(in srgb,var(--cor,var(--brand)) 55%,transparent),inset 0 0 14px -6px color-mix(in srgb,var(--cor,var(--brand)) 55%,transparent)}
+  .mhome-wcard-ico svg{width:24px;height:24px}
+  .mhome-wcard b{position:relative;z-index:1;font-size:13px;font-weight:700;line-height:1.2;color:var(--txt)}
   /* barra fixa no rodapé (efeito vidro), estilo app */
   .mhome-tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:60;
     width:calc(100% - 24px);max-width:520px;display:flex;justify-content:space-around;gap:4px;padding:8px;border-radius:22px;
