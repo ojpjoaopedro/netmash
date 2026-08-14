@@ -6,7 +6,7 @@ import {
   Users, Building2, LogOut, Sun, Moon, X,
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
-  ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, Trash2,
+  ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, ChevronLeft, Trash2,
   Bell, Wallet, Lock, Check, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
@@ -650,7 +650,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
               <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
             </div>
-            <div className="mhome-wgrid" style={{ padding: "14px 16px 0" }}>
+            <div className="mhome-wgrid" style={{ padding: "14px 26px 0" }}>
               {[{ aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "#1AADE2" }, { aba: "calendario", label: "Calendário", Icon: CalendarDays, cor: "#F59E0B" }].map((c) => (
                 <button key={c.aba} data-aba={c.aba} className="mhome-wcard" style={{ "--cor": c.cor } as React.CSSProperties} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}>
                   <span className="mhome-wcard-ico"><c.Icon size={30} /></span>
@@ -889,6 +889,12 @@ export default function Home({ secao }: { secao?: string } = {}) {
         </>
         )}
 
+        {/* seta de voltar (celular, em todas as telas internas). Expande ao tocar. */}
+        {estreito && view !== "dashboard" && (
+          <button className="mback" title="Voltar" onClick={() => { playTick(); if (voltarRef.current && voltarRef.current()) return; setView("dashboard"); }}>
+            <ChevronLeft size={24} strokeWidth={2.4} />
+          </button>
+        )}
         {/* Conteúdo das telas (desktop e mobile-sub); no mobile ganha padding próprio */}
         <div className={estreito && view !== "dashboard" ? "msub-body" : undefined} style={estreito && view === "dashboard" ? { display: "none" } : undefined}>
         {/* telas ainda em construção — o conteúdo o Diogo define depois */}
