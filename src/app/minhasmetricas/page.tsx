@@ -812,12 +812,18 @@ export default function Home({ secao }: { secao?: string } = {}) {
           </div>
         )}
         {!estreito && view === "dashboard" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            {[{ aba: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays, dica: "Coloque os dados por aqui", stat: "8 a cada 10 empresas preenchem por aqui" },
-              { aba: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers, dica: "Coloque os dados por aqui", stat: "2 a cada 10 empresas preenchem por aqui" }].map((c) => (
+          <>
+          {/* mesmo título do app */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
+            <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {[{ aba: "calendario", label: "Calendário", Icon: CalendarDays },
+              { aba: "estrutura", label: "Painel financeiro", Icon: Layers }].map((c) => (
               <button key={c.aba} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }}
                 style={{ position: "relative", overflow: "hidden", minHeight: 108, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                  padding: "14px 18px", borderRadius: 18, color: "#fff",
+                  padding: "16px 18px", borderRadius: 18, color: "#fff",
                   border: "1px solid color-mix(in srgb, var(--brand) 45%, transparent)",
                   background: "linear-gradient(140deg, color-mix(in srgb, var(--brand) 96%, #4bc6ff), color-mix(in srgb, var(--brand-dark) 78%, #06122e))",
                   boxShadow: "0 20px 44px -18px color-mix(in srgb, var(--brand) 70%, transparent), 0 0 30px -10px color-mix(in srgb, var(--brand) 55%, transparent)",
@@ -829,46 +835,21 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 {/* orbe de brilho */}
                 <span aria-hidden style={{ position: "absolute", right: -40, top: -50, width: 150, height: 150, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, rgba(255,255,255,.28), transparent 68%)" }} />
                 <span aria-hidden style={{ position: "absolute", left: -30, bottom: -50, width: 120, height: 120, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, color-mix(in srgb, var(--brand) 60%, transparent), transparent 70%)" }} />
-                {/* ícone + seta e, logo abaixo, o título em destaque (no topo) */}
+                {/* ícone + seta e, logo abaixo, o título em destaque */}
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                     <span style={{ width: 42, height: 42, borderRadius: 13, display: "grid", placeItems: "center", flexShrink: 0, background: "linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", border: "1px solid rgba(255,255,255,.4)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px -8px rgba(0,0,0,.35)" }}><c.Icon size={22} color="#fff" /></span>
-                    {c.aba === "folha"
-                      ? <span role="button" tabIndex={0} title="Recurso do plano Folha salarial · ver planos"
-                          onClick={(e) => { e.stopPropagation(); playTick(); navegar({ view: "config", aba: "plano" }); }}
-                          style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.22)", border: "1px solid rgba(255,255,255,.4)", cursor: "pointer" }}><Lock size={17} color="#fff" /></span>
-                      : <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>}
+                    <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.28)" }}><ChevronRight size={18} color="#fff" /></span>
                   </div>
                   <b style={{ display: "block", marginTop: 8, fontSize: 20, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.1 }}>{c.label}</b>
                 </div>
-                {/* dica: onde preencher + o dado sutil */}
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.3)", borderRadius: 99, padding: "5px 13px", fontSize: 12, fontWeight: 800, letterSpacing: ".01em" }}>{c.dica}</span>
-                  <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 500, color: "rgba(255,255,255,.8)" }}>{c.stat}</div>
-                </div>
               </button>
             ))}
-            {/* informativo: os dois preenchimentos são conectados */}
-            <div style={{ position: "relative", overflow: "hidden", minHeight: 108, borderRadius: 18, padding: "14px 18px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 7,
-              background: "linear-gradient(158deg, color-mix(in srgb, var(--brand) 8%, var(--card)), var(--card) 62%)",
-              border: "1px solid color-mix(in srgb, var(--brand) 24%, var(--line))",
-              boxShadow: "0 18px 44px -30px color-mix(in srgb, var(--brand) 65%, transparent)" }}>
-              <span aria-hidden style={{ position: "absolute", right: -34, top: -44, width: 138, height: 138, borderRadius: "50%", pointerEvents: "none", background: "radial-gradient(circle, color-mix(in srgb, var(--brand) 16%, transparent), transparent 70%)" }} />
-              <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><CalendarDays size={18} /></span>
-                <span style={{ color: "var(--brand)", fontSize: 17, fontWeight: 800, opacity: .85 }}>⇄</span>
-                <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Layers size={18} /></span>
-              </div>
-              <b style={{ position: "relative", zIndex: 1, fontSize: 17.5, letterSpacing: "-.01em" }}>Tudo conectado</b>
-              <p className="sub" style={{ position: "relative", zIndex: 1, fontSize: 12.8, lineHeight: 1.62 }}>
-                O que você registra no <b style={{ color: "var(--txt)" }}>Calendário</b> ou no <b style={{ color: "var(--txt)" }}>Painel financeiro</b> vai automaticamente para o outro, e alimenta todas as <b style={{ color: "var(--txt)" }}>dashboards</b> e painéis visuais do app.
-              </p>
-            </div>
           </div>
+          </>
         )}
         {view === "dashboard" && (
           <div style={{ marginTop: 24 }}>
-            <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 800, letterSpacing: "-.01em", color: "var(--txt)" }}>Indicadores de resultados</h3>
             <PainelCobrancas ano={Number(anoSel)} semTitulo />
           </div>
         )}
@@ -1041,11 +1022,13 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
       // Dashboard e Relatórios são abertos pelos atalhos da Home (não são cards do menu de Finanças):
       // o voltar deles vai direto pra Home. Os cards do menu voltam pro menu de cards.
       const abaCard = aba !== "dashboard" && aba !== "relatorios";
-      if (entrou && abaCard) { setEntrou(false); return true; }
+      // no celular a pessoa entra no card direto pela Home: o voltar vai reto
+      // pra Home (1 clique). No desktop, volta pro menu de cards primeiro.
+      if (!estreito && entrou && abaCard) { setEntrou(false); return true; }
       return false;
     };
     return () => { if (voltarRef) voltarRef.current = null; };
-  }, [calSub, entrou, aba, voltarRef]);
+  }, [calSub, entrou, aba, estreito, voltarRef]);
   // rótulo do voltar no topo: nos cards internos volta para "Finanças"; nos atalhos da Home, "Home"
   useEffect(() => {
     const abaCard = aba !== "dashboard" && aba !== "relatorios";
@@ -1187,9 +1170,9 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
   // Termos/Benefícios/Plano vêm do MENU do topo (não são cards), então voltam pra Home.
   useEffect(() => {
     if (!voltarRef) return;
-    voltarRef.current = () => { if (entrou && CONFIG_CARDS.includes(aba)) { setEntrou(false); return true; } return false; };
+    voltarRef.current = () => { if (!estreito && entrou && CONFIG_CARDS.includes(aba)) { setEntrou(false); return true; } return false; };
     return () => { if (voltarRef) voltarRef.current = null; };
-  }, [entrou, aba, voltarRef]);
+  }, [entrou, aba, estreito, voltarRef]);
   useEffect(() => { onNivel?.(entrou && CONFIG_CARDS.includes(aba) ? "Configurações" : "Home"); }, [entrou, aba, onNivel]);
   // destaca a aba Meus Benefícios por 5s APÓS o usuário fechar o recado de parabéns
   const [destaqueBenef, setDestaqueBenef] = useState(false);

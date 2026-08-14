@@ -751,9 +751,9 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                 <p className="sub" style={{ margin: "2px 0 0", fontSize: 12.5 }}>{baixaPrim.item} · {fmtR(baixaPrim.valor)} · {isoParaBR(baixaPrim.iso)}</p>
               </div>
             </div>
-            <p className="sub" style={{ fontSize: 12.5, marginTop: 12, lineHeight: 1.5 }}>{baixaPrim.recorrente ? "Conta cadastrada. Quer dar baixa na primeira parcela agora? As próximas você confirma na data de cada uma." : "Lançamento cadastrado. Quer dar baixa agora? Você também pode confirmar depois, na data."}</p>
+            <p className="sub" style={{ fontSize: 12.5, marginTop: 12, lineHeight: 1.5 }}>{baixaPrim.recorrente ? "Conta cadastrada. Quer dar baixa na primeira parcela agora?" : "Lançamento cadastrado. Quer dar baixa agora? Você também pode confirmar depois, na data."}</p>
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setBaixaPrim(null)}>Agora não</button>
+              <button className="btn ghost" style={{ flex: 1, justifyContent: "center", color: VERMELHO, borderColor: "color-mix(in srgb, " + VERMELHO + " 45%, transparent)" }} onClick={() => setBaixaPrim(null)}>{(ambos ? baixaPrim.origem === "receita" : tipo === "recebimentos") ? "Ainda não recebido" : "Ainda não está pago"}</button>
               <button className="btn" style={{ flex: 1, justifyContent: "center", background: VERDE }} onClick={confirmarBaixaPrim}><Check size={15} /> {(ambos ? baixaPrim.origem === "receita" : tipo === "recebimentos") ? "Confirmar recebimento" : "Confirmar pagamento"}</button>
             </div>
           </div>
