@@ -46,7 +46,7 @@ export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: 
         <ChevronDown size={15} style={{ flexShrink: 0, color: "var(--muted)", transform: aberto ? "rotate(180deg)" : "none", transition: ".15s" }} />
       </button>
       {aberto && (
-        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxWidth: "calc(100vw - 24px)", maxHeight: pos.maxH, overflowY: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
+        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxWidth: "calc(100vw - 24px)", maxHeight: pos.maxH, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
           {blocos.map((b, bi) => (
             <div key={bi}>
               <div style={{ padding: "8px 8px 4px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)" }}>{b.nome}</div>
@@ -147,7 +147,7 @@ export function SeletorReceita({ canais, item, onSelecionar, onRenomear }: { can
         <ChevronDown size={15} style={{ flexShrink: 0, color: "var(--muted)", transform: aberto ? "rotate(180deg)" : "none", transition: ".15s" }} />
       </button>
       {aberto && (
-        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxWidth: "calc(100vw - 24px)", maxHeight: pos.maxH, overflowY: "auto", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
+        <div style={{ position: "fixed", zIndex: 120, top: pos.top, left: pos.left, width: 300, maxWidth: "calc(100vw - 24px)", maxHeight: pos.maxH, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 10, boxShadow: "0 18px 44px -12px rgba(0,0,0,.5)", padding: 6 }}>
           <div style={{ padding: "8px 8px 4px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)" }}>Canais de receita</div>
           {canais.map((c, i) => editI === i ? (
             <div key={i} style={{ display: "flex", gap: 6, padding: "3px 4px" }}>
@@ -258,6 +258,14 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   const [desps, setDesps] = useState<Despesa[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [modal, setModal] = useState<{ mes: number; dia: number } | null>(null);
+  // Trava a rolagem do fundo enquanto o modal do dia está aberto (senão, no
+  // celular, o toque rola a tela de trás em vez do conteúdo do modal).
+  useEffect(() => {
+    if (!modal || typeof document === "undefined") return;
+    const b = document.body.style.overflow, h = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden"; document.documentElement.style.overflow = "hidden";
+    return () => { document.body.style.overflow = b; document.documentElement.style.overflow = h; };
+  }, [modal]);
   const [form, setForm] = useState<{ editId?: string; descricao: string; valor: string; recorrente: boolean; freq: Freq; grupo: string; item: string; origem?: "despesa" | "receita" } | null>(null);
   const [hover, setHover] = useState<{ mes: number; dia: number; x: number; y: number } | null>(null);
   const fecharHoverT = useRef<number | undefined>(undefined);   // atraso para o tooltip não sumir ao levar o mouse até ele
@@ -518,7 +526,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
         const total = ocs.reduce((s, o) => s + (o.confirmado ? o.valor : 0), 0);   // total = só confirmados
         return (
           <div onClick={() => { setModal(null); setForm(null); }} style={{ position: "fixed", inset: 0, zIndex: 90, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
-            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 22 }}>
+            <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 22, maxHeight: "calc(100dvh - 40px)", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
                 <div>
                   <b style={{ fontSize: 17 }}>{modal.dia} de {MES_NOME[modal.mes]} · {ano}</b>
