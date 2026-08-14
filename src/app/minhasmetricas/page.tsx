@@ -23,6 +23,7 @@ import {
 } from "@/lib/db";
 import { getIndicadores, aplicarReais, Metrica, Categoria } from "@/lib/indicadores";
 import { NOTIF_PADRAO } from "@/lib/notificacoes";
+import AtivarNotificacoes from "@/components/AtivarNotificacoes";
 import { useBrand } from "@/lib/brand";
 import { fraseDoDia } from "@/components/dash/ResumoHome";
 import { useOcultar } from "@/components/ocultar";
@@ -692,6 +693,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
                       </button>
                     ))}
                   </div>}
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+                <AtivarNotificacoes />
+              </div>
             </div>
           </div>
         )}
