@@ -25,12 +25,6 @@ export default function CheckoutProduto() {
   const [cpf, setCpf] = useState("");
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
 
-  const [cupom, setCupom] = useState("");
-  const [mostrarCupom, setMostrarCupom] = useState(false);
-  const [cupomOk, setCupomOk] = useState<{ codigo: string; percentual: number } | null>(null);
-  const [cupomMsg, setCupomMsg] = useState("");
-  const [validando, setValidando] = useState(false);
-
   const [erro, setErro] = useState("");
   const [indo, setIndo] = useState(false);
   const cancelado = search.get("cancelado") === "1";
@@ -49,19 +43,6 @@ export default function CheckoutProduto() {
 
   function trocarTema() { setTema((t) => { const n = t === "light" ? "dark" : "light"; localStorage.setItem("ck_theme", n); return n; }); }
 
-  async function aplicarCupom() {
-    const c = cupom.trim();
-    if (!c) return;
-    setValidando(true); setCupomMsg("");
-    try {
-      const res = await fetch(`/api/cupom?codigo=${encodeURIComponent(c)}`);
-      const j = await res.json();
-      if (j.valido) { setCupomOk({ codigo: j.codigo, percentual: j.percentual }); setCupomMsg(""); }
-      else { setCupomOk(null); setCupomMsg("Cupom inválido ou expirado."); }
-    } catch { setCupomMsg("Não foi possível validar o cupom."); }
-    setValidando(false);
-  }
-
   async function pagar() {
     setErro("");
     if (!email.trim() || !email.includes("@")) { setErro("Informe um e-mail válido."); return; }
@@ -69,7 +50,7 @@ export default function CheckoutProduto() {
     setIndo(true);
     try {
       const nomeCompleto = `${nome.trim()} ${sobrenome.trim()}`.trim();
-      const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, email: email.trim(), nome: nomeCompleto, telefone, cpf, cupom: cupomOk?.codigo || "" }) });
+      const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, email: email.trim(), nome: nomeCompleto, telefone, cpf }) });
       const j = await res.json();
       if (!res.ok || !j.url) throw new Error(j.error || "Não foi possível iniciar o pagamento.");
       window.location.href = j.url;
@@ -82,7 +63,6 @@ export default function CheckoutProduto() {
   const isAssin = prod?.modo === "assinatura";
   const sufixo = isAssin ? (prod?.intervalo === "year" ? "/ano" : "/mês") : "";
   const precoBase = Number(prod?.preco || 0);
-  const precoFinal = cupomOk ? precoBase * (1 - cupomOk.percentual / 100) : precoBase;
 
   return (
     <div className={"ck" + (tema === "light" ? " ck-light" : "")}>
@@ -108,22 +88,7 @@ export default function CheckoutProduto() {
               </div>
             </div>
 
-            {!cupomOk ? (
-              <>
-                <button type="button" className="ck-cuplink" onClick={() => setMostrarCupom((v) => !v)}>aplicar cupom?</button>
-                {mostrarCupom && (
-                  <div className="ck-cupom">
-                    <input placeholder="Código do cupom" value={cupom} onChange={(e) => setCupom(e.target.value.toUpperCase())} />
-                    <button type="button" onClick={aplicarCupom} disabled={validando || !cupom.trim()}>{validando ? "…" : "Aplicar"}</button>
-                  </div>
-                )}
-                {cupomMsg && <div className="ck-cupom-erro">{cupomMsg}</div>}
-              </>
-            ) : (
-              <div className="ck-cupom-ok">🎟️ <b>{cupomOk.codigo}</b> · {cupomOk.percentual}% OFF <button type="button" onClick={() => { setCupomOk(null); setCupom(""); setMostrarCupom(false); }}>remover</button></div>
-            )}
-
-            <div className="ck-total">Total: <b>{brl(precoFinal)}{sufixo}</b></div>
+            <div className="ck-total">Total: <b>{brl(precoBase)}{sufixo}</b></div>
             <div className="ck-by">Powered by <b>Minhas Métricas</b></div>
           </div>
 
@@ -150,7 +115,7 @@ export default function CheckoutProduto() {
             {cancelado && <div className="ck-aviso">Pagamento cancelado. Tente de novo quando quiser. 🙂</div>}
             {erro && <div className="ck-erro">{erro}</div>}
 
-            <button className="ck-pagar" onClick={pagar} disabled={indo}>{indo ? "Redirecionando…" : <>PAGAR {brl(precoFinal)} <Lock size={16} /></>}</button>
+            <button className="ck-pagar" onClick={pagar} disabled={indo}>{indo ? "Redirecionando…" : <>PAGAR {brl(precoBase)} <Lock size={16} /></>}</button>
             <div className="ck-seg"><Lock size={13} /> Suas informações estão seguras · Cartão e Pix</div>
             <div className="ck-foot2">Após o pagamento você recebe um e-mail para criar sua senha e acessar o app.</div>
           </div>
@@ -177,13 +142,6 @@ const CSS = `
 .ck-itxt b{font-size:17px;font-weight:800;display:block}
 .ck-itxt p{color:var(--mut);font-size:14px;margin:4px 0 8px;line-height:1.5}
 .ck-ipreco{font-size:15px;font-weight:700}
-.ck-cuplink{background:none;border:0;color:var(--acc);font-size:14px;cursor:pointer;font-family:inherit;padding:0;margin-top:22px;display:block}
-.ck-cupom{display:flex;gap:8px;margin-top:10px;max-width:320px}
-.ck-cupom input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;color:var(--tx);font-size:14px;font-family:inherit;outline:none}
-.ck-cupom button{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer;font-family:inherit}
-.ck-cupom-erro{color:#ef4444;font-size:13px;margin-top:8px}
-.ck-cupom-ok{margin-top:18px;color:#10B981;font-size:14px;font-weight:600}
-.ck-cupom-ok button{background:none;border:0;color:var(--mut);text-decoration:underline;cursor:pointer;font-size:12.5px;margin-left:8px;font-family:inherit}
 .ck-total{margin-top:30px;font-size:26px;font-weight:800;letter-spacing:-.02em}
 .ck-total b{color:var(--acc)}
 .ck-by{margin-top:40px;color:var(--mut);font-size:12px}

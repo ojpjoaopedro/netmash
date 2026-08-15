@@ -123,12 +123,11 @@ O sistema tem **duas áreas bem separadas**, cada uma com seu login e sua URL:
 ### B) Área interna (admin) — `/admin`
 
 Usada **só pela equipe Minhas Métricas** (superadmin) para cadastrar e gerir as empresas clientes,
-usuários, planos e cupons. **O cliente não acessa isso.**
+usuários e planos. **O cliente não acessa isso.**
 
 | Tela | Arquivo principal |
 |---|---|
 | Painel de administração (empresas, clientes, usuários, planos) | `src/app/admin/page.tsx` |
-| Cupons de desconto | `components/AdminCupons.tsx` |
 | Endpoints de servidor (cadastro, admin, push, checkout, webhooks) | `src/app/api/` |
 
 ---

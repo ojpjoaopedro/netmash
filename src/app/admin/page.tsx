@@ -17,7 +17,6 @@ import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
 import { NOTIFICACOES } from "@/lib/notificacoes";
 import { useBrand } from "@/lib/brand";
 import { enviarLogo } from "@/lib/imagem";
-import AdminCupons from "@/components/AdminCupons";
 
 type Empresa = {
   id: string; nome: string; segmento: string | null; criado_em: string; saldo_inicial: number;
@@ -52,7 +51,7 @@ function mascaraCnpj(v: string): string {
   if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return d;
 }
-type Aba = "visao" | "empresas" | "produtos" | "notificacoes" | "cupons" | "vendas" | "permissoes" | "config" | "documentos" | "docdev";
+type Aba = "visao" | "empresas" | "produtos" | "notificacoes" | "vendas" | "permissoes" | "config" | "documentos" | "docdev";
 type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null; localizacao?: string | null };
 
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
@@ -798,7 +797,6 @@ export default function Admin() {
             </>
           )}
 
-          {aba === "cupons" && <AdminCupons />}
 
           {aba === "documentos" && (
             <>
