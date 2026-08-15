@@ -93,8 +93,15 @@ public/                # PWA: sw.js (service worker), manifest, ícones
 
 ## Mapa de telas → arquivos
 
-O painel do cliente é **um componente** (`Home`) em `src/app/minhasmetricas/page.tsx`, que troca
-de "view" conforme a navegação. Cada área é montada por estes componentes:
+O sistema tem **duas áreas bem separadas**, cada uma com seu login e sua URL:
+
+- **Painel do cliente** (a empresa que usa o Métricas): rota **`/dashboard`**.
+- **Área interna** (equipe Dynamis / superadmin, para gerir os clientes): rota **`/admin`**.
+
+### A) Telas do cliente (empresa) — `/dashboard`
+
+É o que a empresa contratante vê. Tudo parte de **um componente** (`Home`) em
+`src/app/minhasmetricas/page.tsx`, que troca de "view" conforme a navegação. Cada área é montada por:
 
 | Tela | Arquivo principal |
 |---|---|
@@ -110,7 +117,17 @@ de "view" conforme a navegação. Cada área é montada por estes componentes:
 | Configurações (Dados / Logomarca) | `components/Config.tsx` |
 | Plano / Benefícios / Guia | `components/MeuPlano.tsx`, `components/MeusBeneficios.tsx`, `components/GuiaConfiguracao.tsx` |
 | Importar planilha (Excel/CSV) | `components/Importar.tsx` (+ `lib/lancParser.ts`) |
-| Admin interno | `src/app/admin/` (+ `components/AdminCupons.tsx`, rotas em `src/app/api/`) |
+
+### B) Área interna (admin) — `/admin`
+
+Usada **só pela equipe Dynamis** (superadmin) para cadastrar e gerir as empresas clientes,
+usuários, planos e cupons. **O cliente não acessa isso.**
+
+| Tela | Arquivo principal |
+|---|---|
+| Painel de administração (empresas, clientes, usuários, planos) | `src/app/admin/page.tsx` |
+| Cupons de desconto | `components/AdminCupons.tsx` |
+| Endpoints de servidor (cadastro, admin, push, checkout, webhooks) | `src/app/api/` |
 
 ---
 
