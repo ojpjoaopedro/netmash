@@ -821,14 +821,14 @@ export default function Home({ secao }: { secao?: string } = {}) {
           </>
         )}
         {view === "dashboard" && (
-          <div style={{ marginTop: 44, maxWidth: "70%" }}>
-            <PainelCobrancas ano={Number(anoSel)} semTitulo />
-          </div>
-        )}
-        {view === "dashboard" && (
-          <div className="cal-promo" style={{ marginTop: 16, maxWidth: "70%", display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.05fr)", gap: 16, alignItems: "start" }}>
-            <CalendarioRecebimento ano={Number(anoSel)} />
-            <PromoParaVoce />
+          <div style={{ maxWidth: "70%" }}>
+            <div style={{ marginTop: 44 }}>
+              <PainelCobrancas ano={Number(anoSel)} semTitulo />
+            </div>
+            <div className="cal-promo" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.05fr)", gap: 16, alignItems: "start" }}>
+              <CalendarioRecebimento ano={Number(anoSel)} />
+              <PromoParaVoce />
+            </div>
           </div>
         )}
         {!estreito && view === "dashboard" && (() => { const link: React.CSSProperties = { background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--muted)", padding: 0 }; return (
