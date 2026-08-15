@@ -1,4 +1,8 @@
 "use client";
+/**
+ * Página de vendas (landing) do produto: apresenta o app e leva ao checkout.
+ * É página de marketing, não faz parte do painel do cliente.
+ */
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {

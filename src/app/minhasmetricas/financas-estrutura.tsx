@@ -1,4 +1,9 @@
 "use client";
+/**
+ * Tela "Estrutura de Receitas e Custos" + o motor de dados das finanças:
+ * receitas/custos por grupo e item, recorrência e ocorrências mês a mês.
+ * Daqui saem os números do Painel financeiro, do Calendário e das Análises.
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingUp, Layers, Wallet, ChevronDown, ChevronRight, Plus, Trash2, Pencil, Info, Check, X, GripVertical, Lock } from "lucide-react";
 import BotaoOcultar from "@/components/ocultar";

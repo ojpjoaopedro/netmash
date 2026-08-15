@@ -1,4 +1,8 @@
 "use client";
+/**
+ * Painel interno (superadmin): gestão de empresas/clientes, usuários e acessos
+ * da plataforma. NÃO é a tela do cliente (essa fica em minhasmetricas/page.tsx).
+ */
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {

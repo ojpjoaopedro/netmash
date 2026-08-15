@@ -1,4 +1,8 @@
 "use client";
+/**
+ * Tela "Folha de pagamento": cadastro de colaboradores, salários e benefícios,
+ * cálculo do custo total da folha e exportação em Excel.
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Wallet, Info, Printer, Users, ArrowUpRight, X, Search, ChevronsUpDown, ChevronUp, ChevronDown, Plus, Trash2, Lock } from "lucide-react";
 import { Empresa, Funcionario, getFuncionarios, updateFuncionario } from "@/lib/db";

@@ -1,4 +1,9 @@
 "use client";
+/**
+ * Casca do painel do cliente (componente Home), renderizado pela rota /dashboard.
+ * Cuida da navegação, menu, topo, home (mobile e desktop) e do PWA; troca de "view"
+ * e monta cada área a partir dos componentes (ver o mapa de telas no README).
+ */
 import { useEffect, useState, useCallback, useRef, useMemo, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
