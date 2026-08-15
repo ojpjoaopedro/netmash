@@ -9,7 +9,7 @@ import {
   Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
   FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check, Bell,
-  Code2, BookOpen, Database, KeyRound, Globe, Mail, ShoppingBag, Server,
+  Code2, BookOpen, Database, KeyRound,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
@@ -478,13 +478,6 @@ export default function Admin() {
     { titulo: ".env.example", desc: "Todas as variáveis de ambiente que o sistema usa.", url: `${REPO}/blob/main/.env.example`, Icon: KeyRound },
     { titulo: "Banco de dados (migrations)", desc: "Scripts SQL do Supabase, com um README explicando cada um.", url: `${REPO}/tree/main/migrations`, Icon: Database },
   ];
-  const FERRAMENTAS: LinkDev[] = [
-    { titulo: "Supabase", desc: "Banco de dados, login (Auth) e armazenamento de imagens (Storage) de produção.", url: "https://supabase.com/dashboard/project/gaormginkujgisardsjk", Icon: Database },
-    { titulo: "Domínio (minhasmetricas.com)", desc: "Consulta o registrador e o DNS do domínio.", url: "https://www.whois.com/whois/minhasmetricas.com", Icon: Globe },
-    { titulo: "Resend", desc: "Envio dos e-mails do sistema (acesso e recuperação de senha).", url: "https://resend.com", Icon: Mail },
-    { titulo: "Dokploy", desc: "Onde o app é publicado (deploy automático no push da main).", url: "https://dokploy.com", Icon: Server },
-    { titulo: "Wiven", desc: "Links de pagamento dos produtos (checkout).", url: "https://wiven.com.br", Icon: ShoppingBag },
-  ];
   const cardDev = (l: LinkDev) => (
     <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="adm-card"
       style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 18, textDecoration: "none", color: "inherit" }}>
@@ -865,13 +858,8 @@ export default function Admin() {
                   <h1>Documentação técnica</h1>
                 </div>
               </div>
-              <h3 style={{ fontSize: 14, fontWeight: 800, margin: "0 0 12px", opacity: .7 }}>Código e documentação</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
                 {DOCS_DEV.map(cardDev)}
-              </div>
-              <h3 style={{ fontSize: 14, fontWeight: 800, margin: "34px 0 12px", opacity: .7 }}>Ferramentas e serviços</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
-                {FERRAMENTAS.map(cardDev)}
               </div>
             </>
           )}
