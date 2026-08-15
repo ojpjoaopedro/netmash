@@ -37,8 +37,12 @@ manual. Portanto: **rode `npm run build` antes de subir** e evite quebrar a `mai
 
 ## Arquitetura em 1 minuto
 
-- O painel do cliente é **um componente** (`Home` em `src/app/minhasmetricas/page.tsx`) que troca
-  de "view"; cada área é montada por um componente em `src/components/` (ver o mapa no README).
+- **Duas áreas bem separadas** (cada uma com seu login e URL):
+  - **Painel do cliente** (a empresa que usa o Métricas), rota **`/dashboard`**: é **um componente**
+    (`Home` em `src/app/minhasmetricas/page.tsx`) que troca de "view"; cada área é montada por um
+    componente em `src/components/` (ver o mapa de telas no README).
+  - **Área interna** (equipe Minhas Métricas / superadmin), rota **`/admin`** (`src/app/admin/page.tsx`):
+    cadastro e gestão das empresas clientes, planos e cupons. O cliente NÃO acessa isso.
 - `src/lib/` concentra a lógica sem UI: `db.ts` (dados), `calc.ts` (cálculos), `indicadores.ts`,
   `brand.ts` (marca white-label), `estado-remoto.ts`, `apresentacao.ts`, etc.
 - **Modo demonstração:** sem as chaves do Supabase, o app roda com dados de exemplo no
