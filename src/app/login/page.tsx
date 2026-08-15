@@ -62,6 +62,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [verSenha, setVerSenha] = useState(false);   // olho do campo de senha do login
+  const [lembrar, setLembrar] = useState(true);      // "Lembrar de mim": mantém a sessão neste aparelho
   const [senha2, setSenha2] = useState("");
   const [nome, setNome] = useState("");
   const [empresa, setEmpresa] = useState("");
@@ -74,8 +75,12 @@ export default function LoginPage() {
   // Veio do link de e-mail (definir senha de 1º acesso / recuperação)?
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // pré-preenche o e-mail do último acesso
-    try { const ultimo = localStorage.getItem("me_ultimo_email"); if (ultimo) setEmail(ultimo); } catch { /* ignore */ }
+    // "Lembrar de mim" + pré-preenche o e-mail do último acesso (só se estiver marcado)
+    try {
+      const lembra = localStorage.getItem("me_lembrar") !== "0";
+      setLembrar(lembra);
+      if (lembra) { const ultimo = localStorage.getItem("me_ultimo_email"); if (ultimo) setEmail(ultimo); }
+    } catch { /* ignore */ }
     const hash = window.location.hash || "";
     const q = new URLSearchParams(window.location.search);
     if (hash.includes("type=recovery") || q.get("nova") === "1") { setModo("novasenha"); return; }
@@ -92,8 +97,13 @@ export default function LoginPage() {
     setErro(""); setMsg(""); setCarregando(true);
     try {
       if (modo === "login") {
+        // grava a preferência ANTES do login, para a sessão ir pro lugar certo (local x sessão)
+        try { localStorage.setItem("me_lembrar", lembrar ? "1" : "0"); } catch { /* ignore */ }
         await login(email.trim(), senha);
-        try { localStorage.setItem("me_ultimo_email", email.trim()); } catch { /* ignore */ }
+        try {
+          if (lembrar) localStorage.setItem("me_ultimo_email", email.trim());
+          else localStorage.removeItem("me_ultimo_email");
+        } catch { /* ignore */ }
         setEntrando("/dashboard/home");
       } else if (modo === "cadastro") {
         await cadastrarComCodigo(nome.trim(), empresa.trim(), email.trim(), senha, codigo.trim());
@@ -172,6 +182,19 @@ export default function LoginPage() {
             <div className="field"><label className="f">Código de acesso</label><input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="O código que você recebeu na compra" required /></div>
           )}
 
+          {modo === "login" && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, margin: "2px 0 14px", flexWrap: "wrap" }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "var(--txt-2, #c4d0f2)" }}>
+                <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--accent)", cursor: "pointer" }} />
+                Lembrar de mim
+              </label>
+              <button type="button" onClick={() => { setModo("reset"); setErro(""); setMsg(""); }}
+                style={{ background: "none", border: 0, color: "var(--accent)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
+                Esqueci minha senha
+              </button>
+            </div>
+          )}
+
           {modo === "novasenha" && (
             <>
               <div className="field"><label className="f">Nova senha</label><input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6} /></div>
@@ -183,13 +206,6 @@ export default function LoginPage() {
             {carregando ? "Aguarde…" : modo === "login" ? "Entrar" : modo === "cadastro" ? "Criar conta" : modo === "reset" ? "Enviar link" : "Salvar senha"}
           </button>
         </form>
-
-        {modo === "login" && (
-          <button type="button" onClick={() => { setModo("reset"); setErro(""); setMsg(""); }}
-            style={{ marginTop: 12, background: "none", border: 0, color: "var(--accent)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
-            Esqueci minha senha
-          </button>
-        )}
 
         <div className="auth-switch">
           {modo === "cadastro" && <>Já tem conta? <button onClick={() => { setModo("login"); setErro(""); }}>Entrar</button></>}
