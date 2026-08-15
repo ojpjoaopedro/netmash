@@ -147,7 +147,7 @@ export default function PainelCobrancas({ ano, semTitulo = false }: { ano: numbe
   return (
     <div className={semTitulo ? undefined : "card"} style={{ padding: semTitulo ? 0 : 20, background: semTitulo ? "transparent" : undefined, border: semTitulo ? 0 : undefined, boxShadow: semTitulo ? "none" : undefined }}>
       {/* cabeçalho: título + toggle gráfico + filtro por data */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
         {semTitulo ? <span /> : <b style={{ fontSize: 17 }}>Situação das cobranças</b>}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {/* alternar card / gráfico */}
