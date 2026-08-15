@@ -198,6 +198,8 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
         <Painel titulo="Composição dos custos"><Barras itens={calc.custos.slice(0, 6)} alto={full} /></Painel>
       </div>
 
+      {!full && <div aria-hidden style={{ height: 1, margin: "4px 0", background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 32%, transparent), transparent)" }} />}
+
       {/* resumo receita x custo */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
         <Resumo icone={<TrendingUp size={22} color="#10B981" />} rotulo="Resultado no período" valor={fmtR(res)} cor={res >= 0 ? "#10B981" : VERMELHO} borda="rgba(16,185,129,.3)" fundo="rgba(16,185,129,.1)" />
