@@ -32,3 +32,22 @@ export async function reduzirImagem(src: string, maxDim = 256, quality = 0.82): 
     img.src = src;
   });
 }
+
+/**
+ * Sobe a logo para o Storage (cofre de imagens) via /api/logo-upload e devolve a
+ * URL pública. Se falhar (sem banco, offline, imagem inválida), devolve null para
+ * o chamador cair no fallback de guardar a imagem embutida. Roda só no navegador.
+ */
+export async function enviarLogo(dataUrl: string, empresaId?: string | null): Promise<string | null> {
+  if (typeof window === "undefined" || !dataUrl.startsWith("data:image/")) return null;
+  try {
+    const r = await fetch("/api/logo-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataUrl, empresaId: empresaId || undefined }),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return typeof j?.url === "string" ? j.url : null;
+  } catch { return null; }
+}

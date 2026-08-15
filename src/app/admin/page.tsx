@@ -15,6 +15,7 @@ import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
 import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
 import { NOTIFICACOES } from "@/lib/notificacoes";
 import { useBrand } from "@/lib/brand";
+import { enviarLogo } from "@/lib/imagem";
 import AdminCupons from "@/components/AdminCupons";
 
 type Empresa = {
@@ -338,8 +339,11 @@ export default function Admin() {
     }
     if (!supabase) return;
     setSalvando(true); setErroForm("");
+    // se veio uma logo nova (imagem embutida), sobe pro cofre e manda só o link
+    let logo = form.logo;
+    if (logo && logo.startsWith("data:")) { const u = await enviarLogo(logo, form.editId || undefined); if (u) logo = u; }
     const { data: sess } = await supabase.auth.getSession();
-    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: form.editId ? "editar" : "criar", empresaId: form.editId || undefined, ...form }) });
+    const res = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.session?.access_token}` }, body: JSON.stringify({ action: form.editId ? "editar" : "criar", empresaId: form.editId || undefined, ...form, logo }) });
     const j = await res.json().catch(() => ({}));
     setSalvando(false);
     if (!res.ok) { setErroForm(j.error || "Não consegui salvar."); return; }

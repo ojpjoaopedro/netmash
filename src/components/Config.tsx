@@ -5,7 +5,7 @@ import { Empresa, updateEmpresa } from "@/lib/db";
 import { Brand } from "@/lib/brand";
 import { mascararTelefone, emailValido } from "@/lib/format";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
-import { reduzirImagem } from "@/lib/imagem";
+import { reduzirImagem, enviarLogo } from "@/lib/imagem";
 
 
 
@@ -106,8 +106,11 @@ export default function Config({ empresa, reload, brand, saveBrand, secao = "tud
     reader.onload = async () => {
       // reduz/comprime automaticamente (o logo entra bem pequeno, sem estourar armazenamento)
       const reduzido = await reduzirImagem(String(reader.result), 256, 0.82);
-      saveBrand({ logo: reduzido });
-      void updateEmpresa({ logo_url: reduzido });   // guarda na própria empresa (carrega sempre, p/ todos)
+      // sobe para o cofre de imagens (Storage) e guarda só o link; se falhar, usa a imagem embutida
+      const enviado = await enviarLogo(reduzido, empresa?.id);
+      const valor = enviado || reduzido;
+      saveBrand({ logo: valor });
+      void updateEmpresa({ logo_url: valor });   // guarda na própria empresa (carrega sempre, p/ todos)
     };
     reader.readAsDataURL(file);
   }
