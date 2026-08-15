@@ -800,16 +800,15 @@ export default function Admin() {
 
           {aba === "documentos" && (
             <>
-              <div className="adm-headrow">
+              <div className="adm-headrow" style={{ marginBottom: 16 }}>
                 <div>
                   <h1>Documentos · Consentimentos LGPD</h1>
-                  <p className="adm-sub" style={{ marginTop: 4 }}>Registro de quem aceitou a proteção de dados ao entrar na plataforma. {(data?.lgpd?.length ?? 0)} aceite(s).</p>
                 </div>
-                <div style={{ position: "relative" }}>
-                  <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9aa0a6" }} />
-                  <input value={buscaLgpd} onChange={(e) => setBuscaLgpd(e.target.value)} placeholder="Buscar por nome, e-mail ou empresa…"
-                    style={{ width: 320, maxWidth: "60vw", padding: "10px 12px 10px 34px", borderRadius: 12, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card-2,#0d0d0d)", color: "inherit", fontSize: 13.5, outline: "none" }} />
-                </div>
+              </div>
+              <div style={{ position: "relative", marginBottom: 22 }}>
+                <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9aa0a6" }} />
+                <input value={buscaLgpd} onChange={(e) => setBuscaLgpd(e.target.value)} placeholder="Buscar por nome, e-mail ou empresa…"
+                  style={{ width: 320, maxWidth: "100%", padding: "10px 12px 10px 34px", borderRadius: 12, border: "1px solid var(--line-2,#2a2a2a)", background: "var(--card-2,#0d0d0d)", color: "inherit", fontSize: 13.5, outline: "none" }} />
               </div>
               {(!data?.lgpd || data.lgpd.length === 0) ? (
                 <div className="adm-card" style={{ padding: 22 }}>Nenhum consentimento registrado ainda. Assim que os usuários aceitarem a LGPD no app, os registros aparecem aqui.</div>
@@ -1077,7 +1076,7 @@ const CSS = `
 .adm-side-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;border-top:1px solid #1d1d1d;padding-top:12px}
 .adm-side-foot button{display:flex;align-items:center;gap:9px;background:none;border:0;color:#9aa0a6;font-size:13.5px;font-weight:600;padding:9px 12px;border-radius:10px;cursor:pointer;font-family:inherit}
 .adm-side-foot button:hover{color:#f4f5f7;background:#161616}
-.adm-main{flex:1;padding:28px 26px 60px;max-width:1500px;min-width:0}
+.adm-main{flex:1;padding:28px 26px 60px;max-width:1200px;min-width:0}
 .adm-main h1{font-size:25px;font-weight:800;letter-spacing:-.02em}
 .adm-headrow{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:40px}
 .adm-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#1AADE2;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;margin-bottom:14px}
