@@ -9,7 +9,7 @@ import {
   Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
   FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check, Bell,
-  Code2, BookOpen, Database, KeyRound,
+  Code2, BookOpen, Database, KeyRound, Globe, Mail, CreditCard, ShoppingBag, Server,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
@@ -469,14 +469,33 @@ export default function Admin() {
 
   // Links principais para o time de desenvolvimento (abrem a página completa em nova aba).
   const REPO = "https://github.com/ojpjoaopedro/netmash";
-  const LINKS_DEV: { titulo: string; desc: string; url: string; Icon: typeof Code2 }[] = [
+  type LinkDev = { titulo: string; desc: string; url: string; Icon: typeof Code2 };
+  const DOCS_DEV: LinkDev[] = [
     { titulo: "Repositório (código)", desc: "Todo o código-fonte do projeto no GitHub.", url: REPO, Icon: Code2 },
     { titulo: "README", desc: "Visão geral, como rodar e o mapa de telas → arquivos (cliente x admin).", url: `${REPO}/blob/main/README.md`, Icon: BookOpen },
     { titulo: "CLAUDE.md", desc: "Regras e convenções do projeto (deploy, idioma, multiempresa).", url: `${REPO}/blob/main/CLAUDE.md`, Icon: FileText },
     { titulo: ".env.example", desc: "Todas as variáveis de ambiente que o sistema usa.", url: `${REPO}/blob/main/.env.example`, Icon: KeyRound },
     { titulo: "Banco de dados (migrations)", desc: "Scripts SQL do Supabase, com um README explicando cada um.", url: `${REPO}/tree/main/migrations`, Icon: Database },
-    { titulo: "Painel do Supabase", desc: "Banco de dados de produção (tabelas, RLS, Storage).", url: "https://supabase.com/dashboard/project/gaormginkujgisardsjk", Icon: Database },
   ];
+  const FERRAMENTAS: LinkDev[] = [
+    { titulo: "Supabase", desc: "Banco de dados, login (Auth) e armazenamento de imagens (Storage) de produção.", url: "https://supabase.com/dashboard/project/gaormginkujgisardsjk", Icon: Database },
+    { titulo: "Domínio (minhasmetricas.com)", desc: "Consulta o registrador e o DNS do domínio.", url: "https://www.whois.com/whois/minhasmetricas.com", Icon: Globe },
+    { titulo: "Resend", desc: "Envio dos e-mails do sistema (acesso e recuperação de senha).", url: "https://resend.com", Icon: Mail },
+    { titulo: "Stripe", desc: "Pagamentos e assinaturas do checkout.", url: "https://dashboard.stripe.com", Icon: CreditCard },
+    { titulo: "Dokploy", desc: "Onde o app é publicado (deploy automático no push da main).", url: "https://dokploy.com", Icon: Server },
+    { titulo: "Kiwify", desc: "Plataforma de vendas integrada (webhook de compras).", url: "https://kiwify.com.br", Icon: ShoppingBag },
+    { titulo: "Wiven", desc: "Links de pagamento dos produtos (checkout).", url: "https://wiven.com.br", Icon: ShoppingBag },
+  ];
+  const cardDev = (l: LinkDev) => (
+    <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="adm-card"
+      style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 18, textDecoration: "none", color: "inherit" }}>
+      <span style={{ width: 40, height: 40, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand,#1AADE2) 16%, transparent)", color: "var(--brand,#1AADE2)" }}><l.Icon size={20} /></span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <b style={{ display: "flex", alignItems: "center", gap: 6 }}>{l.titulo} <ExternalLink size={13} style={{ opacity: .6, flexShrink: 0 }} /></b>
+        <p className="adm-sub" style={{ marginTop: 3 }}>{l.desc}</p>
+      </div>
+    </a>
+  );
 
   // A empresa "Metricas" (conta minhasmetricas@gmail.com) é o modelo: é dela que
   // as outras devem herdar. Aqui só a marcamos; a herança em si é decisão à parte.
@@ -847,17 +866,13 @@ export default function Admin() {
                   <h1>Documentação técnica</h1>
                 </div>
               </div>
+              <h3 style={{ fontSize: 14, fontWeight: 800, margin: "0 0 12px", opacity: .7 }}>Código e documentação</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
-                {LINKS_DEV.map((l) => (
-                  <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="adm-card"
-                    style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 18, textDecoration: "none", color: "inherit" }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand,#1AADE2) 16%, transparent)", color: "var(--brand,#1AADE2)" }}><l.Icon size={20} /></span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <b style={{ display: "flex", alignItems: "center", gap: 6 }}>{l.titulo} <ExternalLink size={13} style={{ opacity: .6, flexShrink: 0 }} /></b>
-                      <p className="adm-sub" style={{ marginTop: 3 }}>{l.desc}</p>
-                    </div>
-                  </a>
-                ))}
+                {DOCS_DEV.map(cardDev)}
+              </div>
+              <h3 style={{ fontSize: 14, fontWeight: 800, margin: "34px 0 12px", opacity: .7 }}>Ferramentas e serviços</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+                {FERRAMENTAS.map(cardDev)}
               </div>
             </>
           )}
