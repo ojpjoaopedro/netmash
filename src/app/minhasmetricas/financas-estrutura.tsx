@@ -111,7 +111,7 @@ export function carregarEstrutura(ano: number = 2026): Dados {
       const legado = localStorage.getItem(CHAVE);
       if (legado) return garantirBeneficiosSalarios(limparGruposLegado(JSON.parse(legado)));
       // conta real (banco): empresa nova começa com o MODELO LIMPO (genérico).
-      // No modo demonstração, mostra o exemplo com dados da Dynamis (PADRAO).
+      // No modo demonstração, mostra o exemplo (PADRAO).
       return supabaseReady ? MODELO_LIMPO : PADRAO;
     }
     return zerarValores(carregarEstrutura(2026));
@@ -474,7 +474,7 @@ export const PADRAO: Dados = {
 /**
  * Template LIMPO para empresas reais (clientes). Mesma organização do modelo,
  * porém com nomes genéricos e valores zerados — cada empresa preenche o seu.
- * (O PADRAO acima, com dados da Dynamis, fica só como demonstração no modo demo.)
+ * (O PADRAO acima fica só como demonstração no modo demo.)
  */
 export const MODELO_LIMPO: Dados = {
   receitas: [

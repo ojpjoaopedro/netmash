@@ -96,7 +96,7 @@ public/                # PWA: sw.js (service worker), manifest, ícones
 O sistema tem **duas áreas bem separadas**, cada uma com seu login e sua URL:
 
 - **Painel do cliente** (a empresa que usa o Métricas): rota **`/dashboard`**.
-- **Área interna** (equipe Dynamis / superadmin, para gerir os clientes): rota **`/admin`**.
+- **Área interna** (equipe Minhas Métricas / superadmin, para gerir os clientes): rota **`/admin`**.
 
 ### A) Telas do cliente (empresa) — `/dashboard`
 
@@ -120,7 +120,7 @@ O sistema tem **duas áreas bem separadas**, cada uma com seu login e sua URL:
 
 ### B) Área interna (admin) — `/admin`
 
-Usada **só pela equipe Dynamis** (superadmin) para cadastrar e gerir as empresas clientes,
+Usada **só pela equipe Minhas Métricas** (superadmin) para cadastrar e gerir as empresas clientes,
 usuários, planos e cupons. **O cliente não acessa isso.**
 
 | Tela | Arquivo principal |

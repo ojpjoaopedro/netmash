@@ -116,7 +116,7 @@ function Relatorio({ funcs, empresa, brand, diretores = [], onFechar }: { funcs:
 
           {/* rodapé: data da impressão + número da página (o número se repete a cada página no PDF) */}
           <div className="relatorio-rodape">
-            <span>Documento gerado pelo Hub Dynamis em {dataImp}.</span>
+            <span>Documento gerado pelo Minhas Métricas em {dataImp}.</span>
             <span className="relatorio-pag" />
           </div>
         </div>

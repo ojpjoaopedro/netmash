@@ -10,7 +10,7 @@ export type Brand = {
   nome: string;
   logo: string | null;   // data URL ou URL
   cor: string;           // accent (hex)
-  saudacao: string;      // ex: "Time Dynamis" / nome do dono
+  saudacao: string;      // ex: "Time Financeiro" / nome do dono
   logoTamanho: number;   // altura da logo na barra lateral (px)
 };
 
