@@ -110,11 +110,10 @@ function blocoAniversarios(funcs: Funcionario[]): string {
   const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
   const nome1 = (n: string) => (n || "").trim().split(/\s+/).slice(0, 2).join(" ");
   const niver = funcs.filter((f) => f.ativo && f.nascimento && Number(f.nascimento.slice(5, 7)) === mA);
-  const admis = funcs.filter((f) => f.ativo && f.admissao && Number(f.admissao.slice(5, 7)) === mA);
-  const lista = (arr: Funcionario[], campo: "nascimento" | "admissao") => arr.length
-    ? `<div class="grid g2" style="margin-top:14px">${arr.map((f) => `<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-weight:700">${esc(nome1(f.nome))}</span><span class="chip" style="color:var(--accent);border-color:${ACCENT}55;background:${ACCENT}1a">${esc(dm((f[campo] as string)))}</span></div>`).join("")}</div>`
+  const lista = (arr: Funcionario[]) => arr.length
+    ? `<div class="grid g2" style="margin-top:14px">${arr.map((f) => `<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-weight:700">${esc(nome1(f.nome))}</span><span class="chip" style="color:var(--accent);border-color:${ACCENT}55;background:${ACCENT}1a">${esc(dm((f.nascimento as string)))}</span></div>`).join("")}</div>`
     : `<p class="muted" style="margin-top:10px">Ninguém neste mês.</p>`;
-  return `<h3 class="sub2">🎂 Aniversário</h3>${lista(niver, "nascimento")}<h3 class="sub2" style="margin-top:26px">🏆 Aniversário de casa (admissão)</h3>${lista(admis, "admissao")}`;
+  return `<h3 class="sub2">🎂 Aniversário</h3>${lista(niver)}`;
 }
 
 /* ---------- totais e slides ---------- */

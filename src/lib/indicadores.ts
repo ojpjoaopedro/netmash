@@ -155,25 +155,6 @@ export function serieMes(metrs: Metrica[], key: string): { period: string; value
     .map((m) => ({ period: m.period, value: m.value, target: m.target }));
 }
 
-/** YTD: soma (sum) ou último valor (last). Retorna {value, meta(ano), pct}. */
-export function ytd(metrs: Metrica[], key: string): { value: number; meta: number; pct: number } {
-  const d = def(key);
-  if (!d) return { value: 0, meta: 0, pct: 0 };
-  const serie = serieMes(metrs, key);
-  const value = d.agg === "sum" ? serie.reduce((a, s) => a + s.value, 0) : (serie.at(-1)?.value ?? 0);
-  const meta = d.metaAno;
-  const pct = meta ? Math.round((value / meta) * 100) : 0;
-  return { value, meta, pct };
-}
-
-/** Status em relação à meta. invert = menor é melhor (churn, CAC, custos). */
-export function statusMeta(pct: number, invert?: boolean): "ok" | "warn" | "bad" {
-  if (invert) return pct <= 100 ? "ok" : pct <= 120 ? "warn" : "bad";
-  if (pct >= 95) return "ok";
-  if (pct >= 60) return "warn";
-  return "bad";
-}
-
 // ============================================================
 // DADOS REAIS: sobrepõe os indicadores financeiros com os valores
 // calculados dos lançamentos (faturamento/custos/lucro/margem/ebitda).

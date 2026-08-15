@@ -7,7 +7,7 @@ import {
   Users, Building2, LogOut, Sun, Moon, X,
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
-  ArrowLeft, ArrowUpCircle, ArrowDownCircle, ChevronRight, ChevronLeft, Trash2,
+  ArrowLeft, ArrowUpCircle, ChevronRight, ChevronLeft, Trash2,
   Bell, Wallet, Lock, Check, Home as HomeIcon,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
@@ -95,12 +95,6 @@ const OPERACOES = [
   { key: "assistente", label: "Assistente", Icon: Sparkles },
   { key: "config", label: "Configurações", Icon: Settings },
 ] as const;
-
-// trava por empresa: o Colégio Araguaia não exibe "Meus Benefícios" nem "Plano"
-const soDigitos = (s?: string | null) => (s || "").replace(/\D/g, "");
-function ehColegioAraguaia(empresa?: { nome?: string | null; cnpj?: string | null } | null) {
-  return soDigitos(empresa?.cnpj) === "33364563000118" || (empresa?.nome || "").toLowerCase().includes("araguaia");
-}
 
 export default function Home({ secao }: { secao?: string } = {}) {
   const router = useRouter();

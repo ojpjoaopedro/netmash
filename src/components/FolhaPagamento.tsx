@@ -185,7 +185,7 @@ function lerLoginComoFuncs(empresaId: string | null | undefined): Funcionario[] 
       .filter((d: { nome?: string }) => (d?.nome || "").trim())
       .map((d: { id?: string; nome: string; area?: string; telefone?: string; email?: string; cpf?: string; pix?: string; nascimento?: string }) => ({
         id: d.id || "super", empresa_id: empresaId || "default", nome: d.nome, cargo: d.area || "Funcionário",
-        departamento: null, salario: 0, beneficios: 0, admissao: null, ativo: true,
+        departamento: null, salario: 0, beneficios: 0, ativo: true,
         contato: d.telefone || null, email: d.email || null, cpf: d.cpf || null, pix: d.pix || null, nascimento: d.nascimento || null,
       }));
   } catch { return []; }

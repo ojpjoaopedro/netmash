@@ -15,7 +15,6 @@ const PRECO = "49,99";      // mensalidade (R$/mês)
 const PRECO_DE = "97";       // preço "cheio" (âncora)
 // Link de pagamento (plataforma Wiven). Confirme que a oferta está em R$ 49,99/mês.
 const CHECKOUT_URL = "https://checkout.wiven.com.br/checkout/cmsqaomtj02qo01q4pq9l1fjq?offer=LY7PZUS";
-const PLANOS_URL = CHECKOUT_URL;
 /* Quando tiver um screencast do app, coloque o caminho aqui (ex.: "/videos/app-demo.mp4")
    e a seção "Veja em ação" passa a tocar o vídeo real no lugar da demo animada. */
 const DEMO_VIDEO = "";

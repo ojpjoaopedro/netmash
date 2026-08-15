@@ -130,24 +130,6 @@ function LinhaEdit({ icone, prefixo, prefixoClaro, valor, placeholder, tipo, dis
   );
 }
 
-/** Chave de opções (segmented) em tom neutro da marca. */
-function Chave({ ops, valor, onChange }: { ops: { k: string; txt: string }[]; valor: string; onChange: (v: string) => void }) {
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 99, padding: 2 }}>
-      {ops.map((o) => {
-        const on = valor === o.k;
-        return (
-          <button key={o.k} onClick={() => onChange(o.k)}
-            style={{ padding: "4px 11px", borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: 0,
-              background: on ? "color-mix(in srgb, var(--brand) 14%, transparent)" : "transparent", color: on ? "var(--brand)" : "var(--muted)", transition: ".15s" }}>
-            {o.txt}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 /** Seletor de tipo da pessoa: Funcionário ou Sócio (guardado no campo cargo/área). */
 function TipoSelect({ valor, disabled, onSalvar }: { valor: string; disabled?: boolean; onSalvar: (v: string, el: HTMLElement) => void }) {
   const atual = valor === "Sócio" ? "Sócio" : "Funcionário";
@@ -255,7 +237,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
     try {
       await addFuncionario({
         nome: "", cargo: null, departamento: null, salario: 0, beneficios: 0,
-        admissao: null, ativo: true, contato: null, foto: null, email: null, cpf: null, pix: null, nascimento: null,
+        ativo: true, contato: null, foto: null, email: null, cpf: null, pix: null, nascimento: null,
       });
       await reload();
     } finally { setCriando(false); }

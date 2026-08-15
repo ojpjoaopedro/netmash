@@ -43,7 +43,6 @@ export type Funcionario = {
   departamento: string | null;
   salario: number;
   beneficios: number;
-  admissao: string | null;
   ativo: boolean;
   contato: string | null;
   // campos opcionais do cartão completo (guardados localmente no modelo demo)
@@ -57,7 +56,7 @@ export type Funcionario = {
 
 // Colunas que existem na tabela do banco. Os campos extras do cartão
 // (foto/email/cpf/pix/nascimento) ficam só no navegador para não quebrar o insert.
-const COLS_FUNC = ["nome", "cargo", "departamento", "salario", "beneficios", "admissao", "ativo", "contato"] as const;
+const COLS_FUNC = ["nome", "cargo", "departamento", "salario", "beneficios", "ativo", "contato"] as const;
 function soColunas<T extends Record<string, unknown>>(f: T): Partial<T> {
   const out: Record<string, unknown> = {};
   for (const k of COLS_FUNC) if (k in f) out[k] = f[k];
@@ -104,13 +103,6 @@ export type Perfil = {
   areas: string[] | null;
 };
 
-// Categorias sugeridas (free-text, mas com atalhos)
-export const CATEGORIAS_RECEITA = ["Vendas", "Serviços", "Juros/Rendimentos", "Outras receitas"];
-export const CATEGORIAS_DESPESA = [
-  "Fornecedores", "Folha de pagamento", "Aluguel", "Impostos", "Marketing",
-  "Energia/Água/Internet", "Pró-labore", "Software/Assinaturas", "Logística", "Outras despesas",
-];
-export const FORMAS = ["pix", "dinheiro", "cartão", "boleto", "transferência"];
 
 // ============================================================
 // MODO DEMO (localStorage) — funciona sem Supabase configurado
@@ -192,9 +184,9 @@ function seedDemo() {
     { id: uid(), empresa_id: DEMO_EMP, tipo: "despesa", descricao: "Imposto (DAS/Simples)", categoria: "Impostos", valor: 2750, data_competencia: `${ymA}-20`, vencimento: `${ymP}-20`, pago: false, data_pagamento: null, forma: "boleto", contato: null, origem: "manual" },
   );
   const func: Funcionario[] = [
-    { id: uid(), empresa_id: DEMO_EMP, nome: "Ana Souza", cargo: "Gerente", departamento: "Administrativo", salario: 4500, beneficios: 600, admissao: "2023-02-01", ativo: true, contato: "(62) 99999-0001", foto: null, email: "ana.souza@empresa.com", cpf: "000.000.000-01", pix: "ana.souza@empresa.com", nascimento: "1990-02-13" },
-    { id: uid(), empresa_id: DEMO_EMP, nome: "Carlos Lima", cargo: "Vendedor", departamento: "Comercial", salario: 2400, beneficios: 400, admissao: "2024-06-15", ativo: true, contato: "(62) 99999-0002", foto: null, email: "carlos.lima@empresa.com", cpf: "000.000.000-02", pix: "(62) 99999-0002", nascimento: "1995-05-10" },
-    { id: uid(), empresa_id: DEMO_EMP, nome: "Bruna Reis", cargo: "Atendente", departamento: "Operação", salario: 1800, beneficios: 350, admissao: "2025-01-10", ativo: true, contato: "(62) 99999-0003", foto: null, email: "bruna.reis@empresa.com", cpf: "000.000.000-03", pix: "000.000.000-03", nascimento: "2000-11-20" },
+    { id: uid(), empresa_id: DEMO_EMP, nome: "Ana Souza", cargo: "Gerente", departamento: "Administrativo", salario: 4500, beneficios: 600, ativo: true, contato: "(62) 99999-0001", foto: null, email: "ana.souza@empresa.com", cpf: "000.000.000-01", pix: "ana.souza@empresa.com", nascimento: "1990-02-13" },
+    { id: uid(), empresa_id: DEMO_EMP, nome: "Carlos Lima", cargo: "Vendedor", departamento: "Comercial", salario: 2400, beneficios: 400, ativo: true, contato: "(62) 99999-0002", foto: null, email: "carlos.lima@empresa.com", cpf: "000.000.000-02", pix: "(62) 99999-0002", nascimento: "1995-05-10" },
+    { id: uid(), empresa_id: DEMO_EMP, nome: "Bruna Reis", cargo: "Atendente", departamento: "Operação", salario: 1800, beneficios: 350, ativo: true, contato: "(62) 99999-0003", foto: null, email: "bruna.reis@empresa.com", cpf: "000.000.000-03", pix: "000.000.000-03", nascimento: "2000-11-20" },
   ];
   lsSet(K.emp, emp);
   lsSet(K.lanc, lanc);
@@ -304,18 +296,6 @@ export async function addLancamento(l: Omit<Lancamento, "id" | "empresa_id">): P
   }
   const emp = await getEmpresa();
   await supabase.from("lancamentos").insert({ ...l, empresa_id: emp?.id });
-}
-
-export async function addLancamentosLote(ls_: Omit<Lancamento, "id" | "empresa_id">[]): Promise<void> {
-  if (!ls_.length) return;
-  if (!supabaseReady || !supabase) {
-    const arr = ls<Lancamento[]>(K.lanc, []);
-    for (const l of ls_) arr.unshift({ ...l, id: uid(), empresa_id: DEMO_EMP });
-    lsSet(K.lanc, arr);
-    return;
-  }
-  const emp = await getEmpresa();
-  await supabase.from("lancamentos").insert(ls_.map((l) => ({ ...l, empresa_id: emp?.id })));
 }
 
 // ============================================================
