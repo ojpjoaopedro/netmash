@@ -9,6 +9,7 @@ import {
   Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
   FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check, Bell,
+  Code2, BookOpen, Database, KeyRound,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
@@ -51,7 +52,7 @@ function mascaraCnpj(v: string): string {
   if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return d;
 }
-type Aba = "visao" | "empresas" | "produtos" | "notificacoes" | "cupons" | "vendas" | "permissoes" | "config" | "documentos";
+type Aba = "visao" | "empresas" | "produtos" | "notificacoes" | "cupons" | "vendas" | "permissoes" | "config" | "documentos" | "docdev";
 type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null; localizacao?: string | null };
 
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
@@ -464,6 +465,18 @@ export default function Admin() {
     { k: "empresas", label: "Empresas", Icon: Building2 },
     { k: "notificacoes", label: "Notificações", Icon: Bell },
     { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
+    { k: "docdev", label: "Documentação técnica", Icon: Code2 },
+  ];
+
+  // Links principais para o time de desenvolvimento (abrem a página completa em nova aba).
+  const REPO = "https://github.com/ojpjoaopedro/netmash";
+  const LINKS_DEV: { titulo: string; desc: string; url: string; Icon: typeof Code2 }[] = [
+    { titulo: "Repositório (código)", desc: "Todo o código-fonte do projeto no GitHub.", url: REPO, Icon: Code2 },
+    { titulo: "README", desc: "Visão geral, como rodar e o mapa de telas → arquivos (cliente x admin).", url: `${REPO}/blob/main/README.md`, Icon: BookOpen },
+    { titulo: "CLAUDE.md", desc: "Regras e convenções do projeto (deploy, idioma, multiempresa).", url: `${REPO}/blob/main/CLAUDE.md`, Icon: FileText },
+    { titulo: ".env.example", desc: "Todas as variáveis de ambiente que o sistema usa.", url: `${REPO}/blob/main/.env.example`, Icon: KeyRound },
+    { titulo: "Banco de dados (migrations)", desc: "Scripts SQL do Supabase, com um README explicando cada um.", url: `${REPO}/tree/main/migrations`, Icon: Database },
+    { titulo: "Painel do Supabase", desc: "Banco de dados de produção (tabelas, RLS, Storage).", url: "https://supabase.com/dashboard/project/gaormginkujgisardsjk", Icon: Database },
   ];
 
   // A empresa "Metricas" (conta minhasmetricas@gmail.com) é o modelo: é dela que
@@ -827,6 +840,29 @@ export default function Admin() {
                   </table>
                 </div>
               )}
+            </>
+          )}
+
+          {aba === "docdev" && (
+            <>
+              <div className="adm-headrow">
+                <div>
+                  <h1>Documentação técnica</h1>
+                  <p className="adm-sub" style={{ marginTop: 4 }}>Os principais links para o time de desenvolvimento entender tudo que está sendo feito. Cada card abre a página completa numa nova aba.</p>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+                {LINKS_DEV.map((l) => (
+                  <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="adm-card"
+                    style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 18, textDecoration: "none", color: "inherit" }}>
+                    <span style={{ width: 40, height: 40, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand,#1AADE2) 16%, transparent)", color: "var(--brand,#1AADE2)" }}><l.Icon size={20} /></span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <b style={{ display: "flex", alignItems: "center", gap: 6 }}>{l.titulo} <ExternalLink size={13} style={{ opacity: .6, flexShrink: 0 }} /></b>
+                      <p className="adm-sub" style={{ marginTop: 3 }}>{l.desc}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
             </>
           )}
 
