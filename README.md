@@ -1,5 +1,7 @@
 # Métricas
 
+_Última atualização: 14/08/2026_
+
 Plataforma de **gestão financeira para empresários**: visão completa da empresa num app só
 (fluxo de caixa, DRE/lucro, contas a pagar e receber, indicadores, calendário financeiro,
 equipe/folha, relatórios e apresentações). É **white-label** e **multiempresa**: cada cliente

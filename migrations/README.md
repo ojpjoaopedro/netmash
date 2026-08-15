@@ -1,5 +1,7 @@
 # migrations/
 
+_Última atualização: 14/08/2026_
+
 Scripts SQL do Supabase deste projeto, reunidos num lugar só (antes ficavam soltos na raiz).
 
 São rodados **manualmente** no SQL Editor do Supabase (o app não os importa em tempo de execução). Estão aqui como histórico e para montar um banco novo do zero.

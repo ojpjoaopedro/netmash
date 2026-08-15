@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+_Última atualização: 14/08/2026_
+
 Guia para IAs (e devs) trabalharem neste repositório. Comece pelo `README.md`, que tem a visão
 geral, o mapa de telas → arquivos e a estrutura de pastas. Este arquivo cobre as **regras e
 convenções** do projeto.
