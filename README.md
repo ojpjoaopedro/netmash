@@ -37,7 +37,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=chave-publica
 SUPABASE_SERVICE_KEY=chave-de-servico   # usada só nas rotas de API (servidor)
 ```
 
-As demais (pagamentos Stripe/Kiwify, Web Push/VAPID, superadmins) estão comentadas no
+As demais (Web Push/VAPID, superadmins) estão comentadas no
 `.env.example`. Detalhe: em produção as **chaves VAPID do push** ficam na tabela `app_kv`
 do banco (não no ambiente), porque o time não tem acesso ao painel de deploy.
 
@@ -68,9 +68,9 @@ src/
     dashboard/         # rota do painel do cliente  -> renderiza minhasmetricas/page.tsx
     minhasmetricas/    # o painel do cliente (tela principal)
     admin/             # painel interno (superadmin)
-    api/               # endpoints de servidor (cadastro, admin, push, checkout, webhooks)
+    api/               # endpoints de servidor (cadastro, admin, push, upload de logo, etc.)
     login/ senha/      # acesso
-    site/ vendas/ app/ # páginas de marketing e checkout
+    site/ vendas/ app/ # páginas de marketing
   components/          # componentes de tela
     dash/              # blocos do dashboard, assistente e apresentação
   lib/                 # regras de negócio, dados e utilitários (sem UI)
@@ -89,7 +89,7 @@ public/                # PWA: sw.js (service worker), manifest, ícones
   `painel_estado` no banco, para persistir entre dispositivos.
 - `supabase.ts` — cliente do Supabase. `superadmin.ts` — lista de superadmins.
 - `nav.ts` — navegação entre as telas. `apresentacao.ts` — gera o HTML do relatório/slides.
-- `push-server.ts` / `notificacoes.ts` — Web Push. `stripe.ts` / `precos.ts` — pagamentos/preços.
+- `push-server.ts` / `notificacoes.ts` — Web Push. `precos.ts` — preços dos planos.
 
 ---
 
@@ -128,7 +128,7 @@ usuários e planos. **O cliente não acessa isso.**
 | Tela | Arquivo principal |
 |---|---|
 | Painel de administração (empresas, clientes, usuários, planos) | `src/app/admin/page.tsx` |
-| Endpoints de servidor (cadastro, admin, push, checkout, webhooks) | `src/app/api/` |
+| Endpoints de servidor (cadastro, admin, push, upload de logo, etc.) | `src/app/api/` |
 
 ---
 

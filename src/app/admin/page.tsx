@@ -9,7 +9,7 @@ import {
   Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
   FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check, Bell,
-  Code2, BookOpen, Database, KeyRound, Globe, Mail, CreditCard, ShoppingBag, Server,
+  Code2, BookOpen, Database, KeyRound, Globe, Mail, ShoppingBag, Server,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
@@ -473,6 +473,7 @@ export default function Admin() {
   const DOCS_DEV: LinkDev[] = [
     { titulo: "Repositório (código)", desc: "Todo o código-fonte do projeto no GitHub.", url: REPO, Icon: Code2 },
     { titulo: "README", desc: "Visão geral, como rodar e o mapa de telas → arquivos (cliente x admin).", url: `${REPO}/blob/main/README.md`, Icon: BookOpen },
+    { titulo: "Como o app foi feito", desc: "Linguagens, ferramentas e o porquê de cada escolha (resumo técnico).", url: `${REPO}/blob/main/docs/como-o-app-foi-feito.md`, Icon: Info },
     { titulo: "CLAUDE.md", desc: "Regras e convenções do projeto (deploy, idioma, multiempresa).", url: `${REPO}/blob/main/CLAUDE.md`, Icon: FileText },
     { titulo: ".env.example", desc: "Todas as variáveis de ambiente que o sistema usa.", url: `${REPO}/blob/main/.env.example`, Icon: KeyRound },
     { titulo: "Banco de dados (migrations)", desc: "Scripts SQL do Supabase, com um README explicando cada um.", url: `${REPO}/tree/main/migrations`, Icon: Database },
@@ -481,9 +482,7 @@ export default function Admin() {
     { titulo: "Supabase", desc: "Banco de dados, login (Auth) e armazenamento de imagens (Storage) de produção.", url: "https://supabase.com/dashboard/project/gaormginkujgisardsjk", Icon: Database },
     { titulo: "Domínio (minhasmetricas.com)", desc: "Consulta o registrador e o DNS do domínio.", url: "https://www.whois.com/whois/minhasmetricas.com", Icon: Globe },
     { titulo: "Resend", desc: "Envio dos e-mails do sistema (acesso e recuperação de senha).", url: "https://resend.com", Icon: Mail },
-    { titulo: "Stripe", desc: "Pagamentos e assinaturas do checkout.", url: "https://dashboard.stripe.com", Icon: CreditCard },
     { titulo: "Dokploy", desc: "Onde o app é publicado (deploy automático no push da main).", url: "https://dokploy.com", Icon: Server },
-    { titulo: "Kiwify", desc: "Plataforma de vendas integrada (webhook de compras).", url: "https://kiwify.com.br", Icon: ShoppingBag },
     { titulo: "Wiven", desc: "Links de pagamento dos produtos (checkout).", url: "https://wiven.com.br", Icon: ShoppingBag },
   ];
   const cardDev = (l: LinkDev) => (
