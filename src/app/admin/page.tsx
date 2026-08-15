@@ -848,7 +848,6 @@ export default function Admin() {
               <div className="adm-headrow">
                 <div>
                   <h1>Documentação técnica</h1>
-                  <p className="adm-sub" style={{ marginTop: 4 }}>Os principais links para o time de desenvolvimento entender tudo que está sendo feito. Cada card abre a página completa numa nova aba.</p>
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
@@ -1082,7 +1081,7 @@ const CSS = `
 .adm-side-foot button:hover{color:#f4f5f7;background:#161616}
 .adm-main{flex:1;padding:28px 26px 60px;max-width:1500px;min-width:0}
 .adm-main h1{font-size:25px;font-weight:800;letter-spacing:-.02em}
-.adm-headrow{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.adm-headrow{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:40px}
 .adm-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#1AADE2;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;margin-bottom:14px}
 .adm-h3{font-size:15px;font-weight:700;margin:26px 0 12px}
 .adm-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:8px}
