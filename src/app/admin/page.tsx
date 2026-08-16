@@ -536,7 +536,7 @@ export default function Admin() {
           <div className="adm-brand"><img src="/logos/fundo%20transparente.png" alt="Minhas Métricas" style={{ height: 40, width: "auto", maxWidth: "100%", objectFit: "contain" }} /></div>
           <nav className="adm-nav">
             {NAV.map(({ k, label, Icon }) => (
-              <button key={k} className={aba === k ? "on" : ""} onClick={() => setAba(k)}><Icon size={18} /> {label}</button>
+              <button key={k} className={aba === k ? "on" : ""} onClick={() => setAba(k)}><Icon size={16} /> {label}</button>
             ))}
           </nav>
           <div className="adm-side-foot">
@@ -579,10 +579,10 @@ export default function Admin() {
           {aba === "empresas" && (
             <>
               <div className="adm-headrow">
-                <h1>Empresas <span className="adm-sub">({t?.empresas ?? 0})</span></h1>
+                <h1>Empresas</h1>
                 <button className="adm-btn" onClick={abrirCadastro}><Plus size={15} /> Cadastrar cliente</button>
               </div>
-              {(() => { const nAtivos = data?.empresas.filter((e) => !e.acessoCortado).length ?? 0; const nDes = data?.empresas.filter((e) => e.acessoCortado).length ?? 0; const OPS: { k: "ativos" | "desativados"; label: string }[] = [{ k: "ativos", label: `Ativos (${nAtivos})` }, { k: "desativados", label: `Desativados (${nDes})` }]; return (
+              {(() => { const OPS: { k: "ativos" | "desativados"; label: string }[] = [{ k: "ativos", label: "Ativos" }, { k: "desativados", label: "Desativados" }]; return (
                 <div style={{ display: "inline-flex", background: "var(--card-2,#0d0d0d)", border: "1px solid var(--line-2,#2a2a2a)", borderRadius: 99, padding: 3, marginTop: 16 }}>
                   {OPS.map((o) => (
                     <button key={o.k} type="button" onClick={() => setFiltroAcesso(o.k)}
@@ -810,7 +810,6 @@ export default function Admin() {
             <>
               <div>
                 <h1 style={{ margin: 0 }}>Notificações</h1>
-                <p className="adm-sub" style={{ marginTop: 6, maxWidth: 640 }}>Escolha quais avisos aparecem no sininho do painel do cliente. Desligue os que não quiser mostrar. Vale para todos os clientes.</p>
               </div>
               <div style={{ display: "grid", gap: 12, marginTop: 18, maxWidth: 760 }}>
                 {NOTIFICACOES.map((n) => {
@@ -1130,10 +1129,10 @@ const CSS = `
 .adm{min-height:100vh;background:#0A0A0A;color:#f4f5f7;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .adm-wrap{max-width:1140px;margin:0 auto;padding:28px 22px 60px}
 .adm-shell{display:flex;min-height:100vh}
-.adm-side{width:240px;flex-shrink:0;background:#0d0d0d;border-right:1px solid #1d1d1d;padding:22px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.adm-side{width:210px;flex-shrink:0;background:#0d0d0d;border-right:1px solid #1d1d1d;padding:16px 10px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
 .adm-brand{display:flex;align-items:center;gap:8px;color:#1AADE2;font-weight:800;font-size:16px;padding:6px 8px 18px}
-.adm-nav{display:flex;flex-direction:column;gap:4px}
-.adm-nav button{display:flex;align-items:center;gap:11px;background:none;border:0;color:#cfd3d8;font-weight:600;font-size:14.5px;padding:11px 12px;border-radius:11px;cursor:pointer;font-family:inherit;text-align:left;width:100%}
+.adm-nav{display:flex;flex-direction:column;gap:2px}
+.adm-nav button{display:flex;align-items:center;gap:9px;background:none;border:0;color:#cfd3d8;font-weight:600;font-size:13px;padding:8px 10px;border-radius:9px;cursor:pointer;font-family:inherit;text-align:left;width:100%}
 .adm-nav button:hover{background:#161616}
 .adm-nav button.on{background:#16242b;color:#1AADE2}
 .adm-side-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;border-top:1px solid #1d1d1d;padding-top:12px}
