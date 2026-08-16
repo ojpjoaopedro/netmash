@@ -9,7 +9,7 @@ import {
   Building2, Users, Trash2, LogOut, Plus, X, DollarSign,
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
   FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check, Bell,
-  Code2, BookOpen, Database, KeyRound,
+  Code2, BookOpen, Database, KeyRound, Megaphone, Wallet, TrendingUp, Percent, Target,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
@@ -51,7 +51,7 @@ function mascaraCnpj(v: string): string {
   if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return d;
 }
-type Aba = "visao" | "empresas" | "produtos" | "notificacoes" | "vendas" | "permissoes" | "config" | "documentos" | "docdev";
+type Aba = "visao" | "empresas" | "produtos" | "notificacoes" | "vendas" | "permissoes" | "config" | "documentos" | "docdev" | "marketing";
 type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null; localizacao?: string | null };
 
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
@@ -465,6 +465,18 @@ export default function Admin() {
     { k: "notificacoes", label: "Notificações", Icon: Bell },
     { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
     { k: "docdev", label: "Documentação técnica", Icon: Code2 },
+    { k: "marketing", label: "Análise de marketing", Icon: Megaphone },
+  ];
+
+  // Indicadores de marketing (números de exemplo; depois ligamos aos dados reais).
+  const MKT: { label: string; valor: string; sub: string; Icon: typeof Wallet; cor: string }[] = [
+    { label: "Valor investido", valor: "R$ 12.000", sub: "Total aplicado em anúncios", Icon: Wallet, cor: "#1AADE2" },
+    { label: "Vendas", valor: "R$ 60.000", sub: "Receita gerada pelas campanhas", Icon: DollarSign, cor: "#10B981" },
+    { label: "CPL", valor: "R$ 40", sub: "Custo por lead", Icon: UserPlus, cor: "#8b5cf6" },
+    { label: "CPM", valor: "R$ 30", sub: "Custo por mil impressões", Icon: Eye, cor: "#F59E0B" },
+    { label: "Conversão", valor: "15%", sub: "Leads que viraram venda", Icon: Percent, cor: "#EC4899" },
+    { label: "ROI", valor: "400%", sub: "Retorno sobre o investimento", Icon: TrendingUp, cor: "#10B981" },
+    { label: "ROAS", valor: "5,0x", sub: "Retorno sobre gasto em anúncios", Icon: Target, cor: "#1AADE2" },
   ];
 
   // Links principais para o time de desenvolvimento (abrem a página completa em nova aba).
@@ -483,7 +495,7 @@ export default function Admin() {
       style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 18, textDecoration: "none", color: "inherit" }}>
       <span style={{ width: 40, height: 40, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand,#1AADE2) 16%, transparent)", color: "var(--brand,#1AADE2)" }}><l.Icon size={20} /></span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <b style={{ display: "flex", alignItems: "center", gap: 6 }}>{l.titulo} <ExternalLink size={13} style={{ opacity: .6, flexShrink: 0 }} /></b>
+        <b style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 15 }}>{l.titulo} <ExternalLink size={13} style={{ opacity: .6, flexShrink: 0 }} /></b>
         <p className="adm-sub" style={{ marginTop: 3 }}>{l.desc}</p>
       </div>
     </a>
@@ -860,6 +872,31 @@ export default function Admin() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
                 {DOCS_DEV.map(cardDev)}
+              </div>
+            </>
+          )}
+
+          {aba === "marketing" && (
+            <>
+              <div className="adm-headrow"><div><h1>Análise de marketing</h1></div></div>
+              <div style={{ background: "linear-gradient(165deg, #0d1526, #080d18)", border: "1px solid rgba(148,163,184,.16)", borderRadius: 20, padding: "clamp(16px, 3vw, 28px)", boxShadow: "0 24px 60px -30px rgba(0,0,0,.6)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#1AADE2,#0e7ba6)", color: "#fff", flexShrink: 0 }}><Megaphone size={20} /></span>
+                  <div>
+                    <b style={{ color: "#eaf2ff", fontSize: 15 }}>Desempenho das campanhas</b>
+                    <div style={{ color: "#9db0d6", fontSize: 12 }}>Principais indicadores de mídia paga</div>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 14 }}>
+                  {MKT.map((k) => (
+                    <div key={k.label} style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(148,163,184,.14)", borderRadius: 16, padding: 18 }}>
+                      <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: `color-mix(in srgb, ${k.cor} 20%, transparent)`, color: k.cor, marginBottom: 12 }}><k.Icon size={19} /></span>
+                      <div style={{ color: "#9db0d6", fontSize: 11, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase" }}>{k.label}</div>
+                      <div style={{ color: "#f4f8ff", fontSize: 23, fontWeight: 800, letterSpacing: "-.02em", marginTop: 4 }}>{k.valor}</div>
+                      <div style={{ color: "#6f80bd", fontSize: 12, marginTop: 4 }}>{k.sub}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
