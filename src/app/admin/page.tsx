@@ -87,6 +87,12 @@ export default function Admin() {
   const [salvando, setSalvando] = useState(false);
   const [erroForm, setErroForm] = useState("");
   const [aba, setAba] = useState<Aba>("visao");
+  const [mktMes, setMktMes] = useState(0);   // mês selecionado na Análise de marketing
+  const [mkt, setMkt] = useState<Record<string, Record<string, string>>>({});  // valores por mês, preenchidos à mão
+  useEffect(() => {
+    setMktMes(new Date().getMonth());
+    try { const raw = localStorage.getItem("me_mkt"); if (raw) setMkt(JSON.parse(raw)); } catch { /* ignore */ }
+  }, []);
   const [permEmpresa, setPermEmpresa] = useState("");
   const [acessos, setAcessos] = useState<Acesso[] | null>(null);
   const [novoAcesso, setNovoAcesso] = useState<{ nome: string; email: string; senha: string; areas: string[] }>({ nome: "", email: "", senha: "", areas: [] });
@@ -468,16 +474,25 @@ export default function Admin() {
     { k: "marketing", label: "Análise de marketing", Icon: Megaphone },
   ];
 
-  // Indicadores de marketing (números de exemplo; depois ligamos aos dados reais).
-  const MKT: { label: string; valor: string; sub: string; Icon: typeof Wallet; cor: string }[] = [
-    { label: "Valor investido", valor: "R$ 12.000", sub: "Total aplicado em anúncios", Icon: Wallet, cor: "#1AADE2" },
-    { label: "Vendas", valor: "R$ 60.000", sub: "Receita gerada pelas campanhas", Icon: DollarSign, cor: "#10B981" },
-    { label: "CPL", valor: "R$ 40", sub: "Custo por lead", Icon: UserPlus, cor: "#8b5cf6" },
-    { label: "CPM", valor: "R$ 30", sub: "Custo por mil impressões", Icon: Eye, cor: "#F59E0B" },
-    { label: "Conversão", valor: "15%", sub: "Leads que viraram venda", Icon: Percent, cor: "#EC4899" },
-    { label: "ROI", valor: "400%", sub: "Retorno sobre o investimento", Icon: TrendingUp, cor: "#10B981" },
-    { label: "ROAS", valor: "5,0x", sub: "Retorno sobre gasto em anúncios", Icon: Target, cor: "#1AADE2" },
+  // Indicadores de marketing preenchidos à mão, por mês (salvos no navegador).
+  const MES3 = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const MKT: { key: string; label: string; sub: string; Icon: typeof Wallet; cor: string; hint: string }[] = [
+    { key: "investido", label: "Valor investido", sub: "Total aplicado em anúncios", Icon: Wallet, cor: "#1AADE2", hint: "R$" },
+    { key: "vendas", label: "Vendas", sub: "Receita gerada pelas campanhas", Icon: DollarSign, cor: "#10B981", hint: "R$" },
+    { key: "cpl", label: "CPL", sub: "Custo por lead", Icon: UserPlus, cor: "#8b5cf6", hint: "R$" },
+    { key: "cpm", label: "CPM", sub: "Custo por mil impressões", Icon: Eye, cor: "#F59E0B", hint: "R$" },
+    { key: "conversao", label: "Conversão", sub: "Leads que viraram venda", Icon: Percent, cor: "#EC4899", hint: "%" },
+    { key: "roi", label: "ROI", sub: "Retorno sobre o investimento", Icon: TrendingUp, cor: "#10B981", hint: "%" },
+    { key: "roas", label: "ROAS", sub: "Retorno sobre gasto em anúncios", Icon: Target, cor: "#1AADE2", hint: "x" },
   ];
+  const setMktVal = (key: string, val: string) => {
+    setMkt((m) => {
+      const mesKey = String(mktMes);
+      const next = { ...m, [mesKey]: { ...(m[mesKey] || {}), [key]: val } };
+      try { localStorage.setItem("me_mkt", JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   // Links principais para o time de desenvolvimento (abrem a página completa em nova aba).
   const REPO = "https://github.com/ojpjoaopedro/netmash";
@@ -880,11 +895,19 @@ export default function Admin() {
             <>
               <div className="adm-headrow"><div><h1>Análise de marketing</h1></div></div>
               <div style={{ background: "linear-gradient(165deg, #0d1526, #080d18)", border: "1px solid rgba(148,163,184,.16)", borderRadius: 20, padding: "clamp(16px, 3vw, 28px)", boxShadow: "0 24px 60px -30px rgba(0,0,0,.6)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#1AADE2,#0e7ba6)", color: "#fff", flexShrink: 0 }}><Megaphone size={20} /></span>
-                  <div>
-                    <b style={{ color: "#eaf2ff", fontSize: 15 }}>Desempenho das campanhas</b>
-                    <div style={{ color: "#9db0d6", fontSize: 12 }}>Principais indicadores de mídia paga</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#1AADE2,#0e7ba6)", color: "#fff", flexShrink: 0 }}><Megaphone size={20} /></span>
+                    <div>
+                      <b style={{ color: "#eaf2ff", fontSize: 15 }}>Desempenho das campanhas</b>
+                      <div style={{ color: "#9db0d6", fontSize: 12 }}>Preencha os números do mês selecionado</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                    {MES3.map((m, i) => (
+                      <button key={m} onClick={() => setMktMes(i)} style={{ padding: "6px 11px", borderRadius: 8, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                        background: mktMes === i ? "#1AADE2" : "rgba(255,255,255,.06)", color: mktMes === i ? "#fff" : "#9db0d6" }}>{m}</button>
+                    ))}
                   </div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 14 }}>
@@ -892,8 +915,9 @@ export default function Admin() {
                     <div key={k.label} style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(148,163,184,.14)", borderRadius: 16, padding: 18 }}>
                       <span style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", background: `color-mix(in srgb, ${k.cor} 20%, transparent)`, color: k.cor, marginBottom: 12 }}><k.Icon size={19} /></span>
                       <div style={{ color: "#9db0d6", fontSize: 11, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase" }}>{k.label}</div>
-                      <div style={{ color: "#f4f8ff", fontSize: 23, fontWeight: 800, letterSpacing: "-.02em", marginTop: 4 }}>{k.valor}</div>
-                      <div style={{ color: "#6f80bd", fontSize: 12, marginTop: 4 }}>{k.sub}</div>
+                      <input value={mkt[String(mktMes)]?.[k.key] ?? ""} onChange={(e) => setMktVal(k.key, e.target.value)} placeholder={k.hint}
+                        style={{ width: "100%", background: "transparent", border: 0, borderBottom: "1px solid rgba(148,163,184,.20)", outline: "none", color: "#f4f8ff", fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", margin: "4px 0", padding: "2px 0", fontFamily: "inherit" }} />
+                      <div style={{ color: "#6f80bd", fontSize: 12, marginTop: 2 }}>{k.sub}</div>
                     </div>
                   ))}
                 </div>
