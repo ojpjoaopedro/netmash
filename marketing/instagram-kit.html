@@ -59,8 +59,8 @@
   /* scale wrappers give the shrunken preview a real footprint */
   .prev-profile{width:346px;height:346px}                 /* 1080 * .32 */
   .prev-profile .canvas{transform:scale(.32);transform-origin:top left}
-  .prev-post{width:367px;height:367px}                    /* 1080 * .34 */
-  .prev-post .canvas{transform:scale(.34);transform-origin:top left}
+  .prev-post{width:367px;height:459px}                    /* 1080x1350 * .34 (retrato 4:5) */
+  .prev-post .canvas{transform:scale(.34);transform-origin:top left;height:1350px}
 
   /* ---------- Profile section ---------- */
   .profile-row{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start}
@@ -330,7 +330,7 @@ Você sabe qual é o seu? Descobre no link da bio.</div>
             <div class="p-pad" style="justify-content:center;align-items:center;text-align:center;gap:40px">
               <div style="font-size:200px;line-height:.6;color:#1AADE2;font-weight:900;opacity:.5">&ldquo;</div>
               <div class="p-title" style="font-size:110px">Quem não mede,<br>não gerencia.</div>
-              <div class="p-sub" style="font-size:36px;color:#71717a">— e quem não gerencia, torce.</div>
+              <div class="p-sub" style="font-size:36px;color:#71717a">E quem não gerencia, torce.</div>
             </div>
             <div class="p-site left" style="right:56px;left:auto">@minhasmetricas</div>
           </div>
