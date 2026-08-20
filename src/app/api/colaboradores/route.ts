@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { motivoLimiteAcessos, podeAdicionarAcesso, type PlanosEmpresa } from "@/lib/planos";
 
 export const runtime = "nodejs";
 
@@ -42,6 +43,18 @@ export async function POST(req: NextRequest) {
   const { nome, email, senha, areas } = (await req.json()) as { nome?: string; email?: string; senha?: string; areas?: string[] };
   const emailL = (email || "").trim();
   if (!emailL.includes("@")) return NextResponse.json({ error: "Informe um e-mail válido." }, { status: 400 });
+
+  // Quantos logins a empresa pode ter é o que ela contratou: o plano base traz o
+  // dono, e cada "2º acesso" comprado soma mais um. A conta é feita aqui no
+  // servidor porque esconder o botão na tela não impede ninguém de chamar a API.
+  const [{ data: emp }, { count: usados }] = await Promise.all([
+    s.from("empresas").select("planos").eq("id", dono.empresaId).maybeSingle(),
+    s.from("perfis").select("id", { count: "exact", head: true }).eq("empresa_id", dono.empresaId),
+  ]);
+  const planos = ((emp as { planos?: PlanosEmpresa } | null)?.planos) ?? null;
+  if (!podeAdicionarAcesso(planos, usados ?? 0)) {
+    return NextResponse.json({ error: motivoLimiteAcessos(planos), plano: "acesso2" }, { status: 402 });
+  }
   // Senha opcional: se não vier, gera uma temporária e envia convite por e-mail para a pessoa criar a própria senha.
   const comConvite = !(senha && senha.length >= 6);
   const senhaFinal = comConvite ? crypto.randomBytes(9).toString("base64url") : senha!;

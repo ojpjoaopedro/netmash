@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { Crown, Check, ArrowUpRight, Compass, Wallet, Shield, Lock, Package } from "lucide-react";
 import BotaoOcultar from "./ocultar";
-import { supabase, supabaseReady } from "@/lib/supabase";
 import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
 
 // Super Admin é o plano base (fixo, sempre ativo). Os demais módulos vêm do
@@ -10,7 +9,7 @@ import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
 const TEL = "5562994797664";   // WhatsApp do Minhas Métricas
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-type Modulo = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null; link_pagamento?: string | null; selo?: string | null };
+type Modulo = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null; selo?: string | null; primeiraCobranca?: number | null; base?: boolean };
 
 // Catálogo de reserva, caso a tabela ainda não responda.
 const CATALOGO_PADRAO: Modulo[] = [
@@ -28,12 +27,12 @@ function IconeModulo({ chave }: { chave: string }) {
 }
 
 function ativarModulo(m: Modulo) {
-  // Se o produto tem link de pagamento (checkout), vai direto pra ele.
-  if (m.link_pagamento && m.link_pagamento.trim()) {
-    window.open(m.link_pagamento.trim(), "_blank", "noopener");
+  // Página de compra: pega os dados, leva ao checkout e liga o módulo sozinho
+  // quando o pagamento é confirmado. Sem preço cadastrado, cai no WhatsApp.
+  if (m.preco > 0) {
+    window.open(`/assinar?plano=${encodeURIComponent(m.chave)}`, "_blank", "noopener");
     return;
   }
-  // Sem link cadastrado: cai no WhatsApp como antes.
   const msg = `Olá! Quero ativar o módulo de ${m.nome} (${fmt(m.preco)}/mês) no Métricas.`;
   window.open(`https://wa.me/${TEL}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
 }
@@ -41,6 +40,7 @@ function ativarModulo(m: Modulo) {
 export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<string, boolean> | null } | null }) {
   const [admins, setAdmins] = useState(0);
   const [catalogo, setCatalogo] = useState<Modulo[]>(CATALOGO_PADRAO);
+  const [planoBase, setPlanoBase] = useState<Modulo | null>(null);
 
   useEffect(() => {
     const ler = () => {
@@ -51,17 +51,25 @@ export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<stri
     return () => window.removeEventListener("me:diretores", ler);
   }, []);
 
+  // Os preços são os dos produtos cadastrados na Wiven: /api/checkout lê de lá
+  // (com o valor do banco como reserva) e devolve o catálogo já pronto.
   useEffect(() => {
-    if (!supabaseReady || !supabase) return;
     let vivo = true;
     (async () => {
-      const { data } = await supabase!.from("planos_catalogo").select("chave,nome,descricao,preco,imagem,link_pagamento,selo").order("ordem", { ascending: true });
-      if (vivo && data && data.length) setCatalogo(data as Modulo[]);
+      try {
+        const res = await fetch("/api/checkout");
+        const j = (await res.json()) as { planos?: (Modulo & { base?: boolean })[] };
+        if (!vivo) return;
+        const extras = (j.planos ?? []).filter((p) => !p.base);
+        if (extras.length) setCatalogo(extras);
+        setPlanoBase((j.planos ?? []).find((p) => p.base) ?? null);
+      } catch { /* fica com o catálogo de reserva */ }
     })();
     return () => { vivo = false; };
   }, []);
 
-  const total = PRECO_SUPERADMIN + admins * PRECO_ACESSO;
+  const precoBase = planoBase?.preco ?? PRECO_SUPERADMIN;
+  const total = precoBase + admins * PRECO_ACESSO;
   const ativo = (chave: string) => Boolean(empresa?.planos?.[chave]);
 
   return (
@@ -91,7 +99,7 @@ export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<stri
             <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(245,158,11,.16)", color: "#F59E0B", flexShrink: 0 }}><Crown size={22} /></span>
             <div>
               <div className="sub" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Super Admin</div>
-              <b className="oc-num" style={{ fontSize: 20 }}>{fmt(PRECO_SUPERADMIN)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
+              <b className="oc-num" style={{ fontSize: 20 }}>{fmt(precoBase)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
             </div>
             <span style={{ marginLeft: "auto", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 800, color: "#10B981", background: "rgba(16,185,129,.14)", padding: "6px 12px", borderRadius: 99 }}>
               <Check size={13} /> Ativado
@@ -122,7 +130,8 @@ export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<stri
                 </div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <b className="oc-num" style={{ fontSize: 22 }}>{fmt(m.preco)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
+                <b className="oc-num" style={{ fontSize: 22 }}>{fmt(m.primeiraCobranca ?? m.preco)}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}> / mês</span></b>
+                {m.primeiraCobranca != null && <div className="sub" style={{ fontSize: 11.5 }}>na 1ª cobrança, depois {fmt(m.preco)}</div>}
                 <div style={{ marginTop: 8 }}>
                   {on ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 800, color: "#10B981", background: "rgba(16,185,129,.14)", padding: "8px 14px", borderRadius: 99 }}>

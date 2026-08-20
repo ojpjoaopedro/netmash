@@ -11,6 +11,7 @@ import { mascararTelefone, mascararCPF, cpfValido, emailValido, isoParaBR, masca
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import BotaoRelatorioEquipe from "./RelatorioEquipe";
+import { motivoLimiteAcessos, podeAdicionarAcesso } from "@/lib/planos";
 
 const VERMELHO = "#EF4444", VERDE = "#10B981", AMARELO = "#F59E0B", AZUL = "#1AADE2", AMBAR = "#F59E0B";
 const hojeISO = () => new Date().toISOString().slice(0, 10);
@@ -246,7 +247,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
   const [aDesativar, setADesativar] = useState<{ f: Funcionario; data: string } | null>(null);
   const [aAtivar, setAAtivar] = useState<Funcionario | null>(null);
   const [aExcluir, setAExcluir] = useState<{ nome: string; onOk: () => void } | null>(null);
-  const [aviso, setAviso] = useState<{ titulo: string; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<{ titulo: string; texto: string; plano?: boolean } | null>(null);
 
   // Salva CPF/e-mail. Se estiver inválido: avisa, NÃO salva e limpa o campo.
   const salvarCpf = (id: string, v: string, el: HTMLElement) => {
@@ -393,6 +394,7 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
     try {
       const r = await fetch("/api/colaboradores", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ nome: l.nome ? l.nome.toUpperCase() : email, email, areas: [] }) });
       const j = await r.json().catch(() => ({}));
+      if (r.status === 402) { setAviso({ titulo: "Limite de acessos do seu plano", texto: (j as { error?: string }).error || motivoLimiteAcessos(empresa?.planos), plano: true }); return; }
       if (!r.ok) { setAviso({ titulo: "Não consegui dar o acesso", texto: (j as { error?: string }).error || "Tente novamente." }); return; }
       await recarregarColab();
       setAviso({ titulo: "Acesso de Admin criado", texto: `Enviamos um e-mail para ${email} criar a senha. Depois de criar a senha, ele entra como Admin. Ajuste as permissões pelo botão “Permissões”.` });
@@ -421,6 +423,11 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
     if (novo === "admin") {
       const email = (l.email || "").trim();
       if (!emailValido(email)) { setAviso({ titulo: "Falta o e-mail", texto: "Preencha um e-mail válido nesta pessoa antes de dar acesso de Admin. É para lá que vai o convite." }); return; }
+      // Quantos logins cabem é o que a empresa contratou (dono + cada 2º acesso).
+      if (supabaseReady && !podeAdicionarAcesso(empresa?.planos, 1 + dir.admins.length)) {
+        setAviso({ titulo: "Limite de acessos do seu plano", texto: motivoLimiteAcessos(empresa?.planos), plano: true });
+        return;
+      }
       setConfirmarAdmin(l);   // pede confirmação (envia e-mail + atualiza o plano)
     }
     else if (novo === "sem") setARemover(l);
@@ -895,8 +902,15 @@ export default function Funcionarios({ funcs, reload, empresa = null, brand, log
                 <p className="sub" style={{ marginTop: 4, lineHeight: 1.5 }}>{aviso.texto}</p>
               </div>
             </div>
-            <div style={{ display: "flex", marginTop: 18 }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+              {aviso.plano && irParaPlano ? (
+                <>
+                  <button className="btn ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setAviso(null)}>Agora não</button>
+                  <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setAviso(null); irParaPlano(); }}>Ver planos</button>
+                </>
+              ) : (
               <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setAviso(null)}>Entendi</button>
+              )}
             </div>
           </div>
         </div>

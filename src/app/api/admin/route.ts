@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { SUPERADMINS as SUPERS } from "@/lib/superadmin";
 import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
+import { lerOfertaDoLink } from "@/lib/wiven-catalogo";
+import { FEATURES, quantidadeDoPlano, type PlanosEmpresa } from "@/lib/planos";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
@@ -141,12 +143,25 @@ export async function GET(req: NextRequest) {
   const imagemSuperadmin = kvMap.get("imagem_superadmin") ?? null;
   const linkSuperadmin = kvMap.get("link_superadmin") ?? null;
 
+  // Preço que está valendo na Wiven para cada produto (lido do link de checkout).
+  // Serve para a equipe conferir se o valor do banco bate com o do gateway.
+  const links: { chave: string; link: string | null }[] = [
+    { chave: "superadmin", link: linkSuperadmin },
+    ...catalogo.map((c) => ({ chave: c.chave, link: c.link_pagamento })),
+  ];
+  const ofertas = await Promise.all(links.map((l) => (l.link ? lerOfertaDoLink(l.link) : Promise.resolve(null))));
+  const precosWiven: Record<string, { preco: number; primeiraCobranca: number | null; produto: string | null }> = {};
+  links.forEach((l, i) => {
+    const o = ofertas[i];
+    if (o) precosWiven[l.chave] = { preco: o.preco, primeiraCobranca: o.primeiraCobranca, produto: o.produtoNome };
+  });
+
   // configuração das notificações do cliente (liga/desliga por tipo)
   const notifRes = await s.from("notificacoes_config").select("chave,ligado");
   const notificacoes: Record<string, boolean> = {};
   ((notifRes.data as { chave: string; ligado: boolean }[] | null) ?? []).forEach((r) => { notificacoes[r.chave] = r.ligado; });
 
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin, linkSuperadmin, notificacoes });
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin, linkSuperadmin, precosWiven, notificacoes });
 }
 
 export async function POST(req: NextRequest) {
@@ -172,7 +187,13 @@ export async function POST(req: NextRequest) {
   // Liga/desliga um módulo (plano) de uma empresa. Guarda em empresas.planos (jsonb).
   if (action === "planos" && empresaId && body.planoKey) {
     const { data: e } = await s.from("empresas").select("planos").eq("id", empresaId).maybeSingle();
-    const planos = { ...(((e as { planos?: Record<string, boolean> } | null)?.planos) || {}), [body.planoKey]: !!body.ativo };
+    const atuais = (((e as { planos?: PlanosEmpresa } | null)?.planos) || {}) as Record<string, boolean | number>;
+    // Item de limite (2º acesso) pode ter quantidade: ligar de novo não pode
+    // derrubar para 1 quem já comprou dois. Desligar zera do mesmo jeito.
+    const ehLimite = FEATURES.find((f) => f.chave === body.planoKey)?.tipo === "limite";
+    const qtd = quantidadeDoPlano(atuais, body.planoKey);
+    const valor = !body.ativo ? false : ehLimite ? Math.max(1, qtd) : true;
+    const planos = { ...atuais, [body.planoKey]: valor };
     await s.from("empresas").update({ planos }).eq("id", empresaId);
     return NextResponse.json({ ok: true, planos });
   }

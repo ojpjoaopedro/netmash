@@ -10,6 +10,7 @@ import {
 
 const ENTRAR_URL = "/login";
 const PLANOS_URL = "/login";
+const CADASTRO_URL = "/assinar";   // página de compra: leva direto ao checkout
 const MARCA = "Minhas Métricas";
 /* Quando tiver um screencast do app, coloque o caminho aqui (ex.: "/videos/app-demo.mp4")
    e a seção "Veja em ação" passa a tocar o vídeo real no lugar da demo animada. */
@@ -646,7 +647,8 @@ export default function SiteClient() {
             Minhas <span style={{ color: C.cyan }}>Métricas</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Link href={ENTRAR_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "9px 18px", borderRadius: 99, boxShadow: "0 8px 20px -8px rgba(34,184,240,.6)" }}>Entrar <ArrowRight size={15} /></Link>
+            <Link href={ENTRAR_URL} style={{ display: "inline-flex", alignItems: "center", fontSize: 14, fontWeight: 700, color: C.txt, padding: "9px 6px" }}>Entrar</Link>
+            <Link href={CADASTRO_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "9px 18px", borderRadius: 99, boxShadow: "0 8px 20px -8px rgba(34,184,240,.6)" }}>Cadastro <ArrowRight size={15} /></Link>
           </div>
         </div>
       </header>

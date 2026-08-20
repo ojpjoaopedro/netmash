@@ -554,7 +554,7 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .auth-card h1{text-align:center;font-size:22px;margin:14px 0 4px}
 .auth-card .muted{text-align:center;color:var(--muted);font-size:14px;margin-bottom:20px}
 .auth-switch{text-align:center;margin-top:16px;color:var(--muted);font-size:13.5px}
-.auth-switch button{background:none;border:0;color:var(--brand);font-weight:700;cursor:pointer}
+.auth-switch button,.auth-switch a{background:none;border:0;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:none}
 
 /* ===== KPI cards legados (telas operacionais) ===== */
 .grid.cols-3{grid-template-columns:repeat(3,1fr)}

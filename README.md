@@ -127,8 +127,53 @@ usuários e planos. **O cliente não acessa isso.**
 
 | Tela | Arquivo principal |
 |---|---|
-| Painel de administração (empresas, clientes, usuários, planos) | `src/app/admin/page.tsx` |
+| Painel de administração (empresas, clientes, usuários, planos, vendas) | `src/app/admin/page.tsx` |
 | Endpoints de servidor (cadastro, admin, push, upload de logo, etc.) | `src/app/api/` |
+
+### C) Compra / checkout (público)
+
+Como uma empresa vira cliente: ela compra na landing, e a conta nasce sozinha
+quando o pagamento é confirmado.
+
+| Tela / peça | Arquivo principal |
+|---|---|
+| Landing de compra (escolhe o plano e preenche os dados) | `src/app/assinar/` |
+| Página de retorno do checkout (espera a confirmação) | `src/app/obrigado/` |
+| Cria a venda e devolve o link de pagamento | `src/app/api/checkout/route.ts` |
+| Status da venda (usado pela página de retorno) | `src/app/api/checkout/status/route.ts` |
+| Recebe os avisos da Wiven e libera o acesso | `src/app/api/webhooks/wiven/route.ts` |
+| Regras de venda (criar empresa, ligar módulo) | `src/lib/vendas.ts` |
+| Cliente da API da Wiven | `src/lib/wiven.ts` |
+| Vendas no Admin | aba **Vendas** em `src/app/admin/page.tsx` + `src/app/api/vendas-admin/route.ts` |
+
+Fluxo: `/assinar` → venda **pendente** no banco (com a senha cifrada) → checkout
+da Wiven → webhook `TRANSACTION_PAID` → cria a empresa e o acesso (ou liga o
+módulo, se o e-mail já é cliente) → o cliente entra em `/login` com a senha que
+escolheu. Reembolso e chargeback marcam a venda como "precisa de atenção" no
+Admin; o corte de acesso continua manual.
+
+**Preços:** quem manda é o produto cadastrado na **Wiven**. O app lê o preço (e a
+promoção da 1ª cobrança) da página do link de checkout de cada produto, em
+`src/lib/wiven-catalogo.ts`, com cache de 10 minutos; o valor guardado no banco
+(`planos_catalogo.preco` / `config_app.preco_superadmin`) só entra como reserva
+se a leitura falhar. A API da Wiven não tem rota para listar produtos, por isso a
+leitura é feita pela página pública do checkout. O preço que está valendo aparece
+na coluna **Preço na Wiven** da aba Produtos do Admin.
+
+**Por que o link vem antes da API:** os produtos na Wiven já estão configurados
+como assinatura mensal (com promoção na 1ª cobrança e itens adicionais). O
+`POST /gateway/checkout` da API monta uma oferta avulsa, sem campos de
+recorrência, então o app usa o link cadastrado sempre que existir e só recorre à
+API quando o produto não tem link.
+
+**Configuração:** o link de checkout de cada produto cadastrado no Admin (aba
+Produtos), `WIVEN_WEBHOOK_TOKEN` e `CHECKOUT_SECRET` (ver `.env.example`; também
+aceitam ficar na tabela `app_kv`), a migration
+`migrations/supabase-vendas-checkout.sql` e o webhook apontando para
+`https://SEU-DOMINIO/api/webhooks/wiven` no painel da Wiven. As chaves
+`WIVEN_PUBLIC_KEY` / `WIVEN_SECRET_KEY` são opcionais: servem para conferir a
+transação ao receber o webhook e para criar checkout pela API quando um produto
+não tiver link.
 
 ---
 

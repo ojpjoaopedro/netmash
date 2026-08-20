@@ -15,6 +15,7 @@ São rodados **manualmente** no SQL Editor do Supabase (o app não os importa em
 - `supabase-painel-estado.sql` — tabela `painel_estado` + RLS.
 - `supabase-planos-catalogo.sql` — tabela `planos_catalogo` + seed inicial.
 - `supabase-push-subscriptions.sql` — tabela `push_subscriptions` + RLS.
+- `supabase-vendas-checkout.sql` — tabela `vendas` (compras da landing `/assinar`) e `vendas_eventos` (o que a Wiven avisou), sem policy: só o servidor lê.
 
 ## Ajustes aplicados depois (ALTER / policies / índices / seeds)
 - `supabase-empresas-planos.sql` — coluna `planos` (jsonb) em empresas.

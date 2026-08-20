@@ -51,6 +51,7 @@ import TermosDeUso from "@/components/TermosDeUso";
 import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
 import CardAtalho from "@/components/CardAtalho";
+import { temPlano } from "@/lib/planos";
 
 type View =
   | "dashboard" | "painel" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
@@ -857,11 +858,13 @@ export default function Home({ secao }: { secao?: string } = {}) {
         {view === "financas" && <TelaFinancas empresa={empresa} brand={brand} ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} reload={carregarDados} voltarRef={voltarRef} onAba={setAbaFin} />}
         {view === "painel" && <TelaPainel ano={Number(anoSel)} setAno={(a) => setAnoSel(String(a))} />}
         {view === "marketing" && <EmConstrucao titulo="Marketing" />}
-        {view === "planejamento" && <TelaUpgrade Icon={Compass} titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." preco="R$ 29,90" />}
+        {view === "planejamento" && (temPlano(empresa?.planos, "planejamento")
+          ? <EmConstrucao titulo="Planejamento estratégico" />
+          : <TelaUpgrade Icon={Compass} chave="planejamento" titulo="Planejamento estratégico" texto="Defina metas, pilares e o rumo da sua empresa em um só lugar. Avance no seu plano ativando este módulo." />)}
         {view === "config" && <TelaConfig empresa={empresa} funcs={funcs} reload={carregarDados} brand={brand} saveBrand={saveBrand} loginEmail={perfil?.email || ""} ehDono={ehDono} voltarRef={voltarRef} />}
         {view === "assistente" && <Assistente metrs={effMetrs} lancs={lancs} clientes={clientes} funcs={funcs} saldoInicial={saldoInicial} nome={saudacaoNome} reload={carregarDados} brand={brandObj} ano={Number(anoSel)} />}
         {view === "apresentacao" && <GerarApresentacao funcs={funcs} brand={brandObj} ano={Number(anoSel)} />}
-        {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} empresa={empresa} brand={brand} loginEmail={perfil?.email || ""} ehDono={ehDono} />}
+        {view === "equipe" && <Funcionarios funcs={funcs} reload={carregarDados} empresa={empresa} brand={brand} loginEmail={perfil?.email || ""} ehDono={ehDono} irParaPlano={() => navegar({ view: "config", aba: "plano" })} />}
         {view === "importar" && <Importar reload={carregarDados} empresa={empresa} brand={brand} />}
         {view === "empresa" && <Config empresa={empresa} reload={carregarDados} brand={brand} saveBrand={saveBrand} />}
         </div>
@@ -1097,7 +1100,9 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
       {!estreito && !ehAtalhoHome && <AvisoFinancas />}
 
       {aba === "estrutura" ? <EstruturaFinancas ano={ano} setAno={setAno} />
-        : aba === "folha" ? <FolhaPagamento empresa={empresa} />
+        : aba === "folha" ? (temPlano(empresa?.planos, "folha")
+            ? <FolhaPagamento empresa={empresa} />
+            : <TelaUpgrade Icon={Wallet} chave="folha" titulo="Folha de pagamento" texto="Salários, benefícios, encargos e provisões da equipe, com tudo entrando automático nos custos e no DRE." />)
         : aba === "dashboard" ? <FinancasDashboard ano={ano} setAno={setAno} />
         : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} tipo="ambos" />
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} setAno={setAno} />
@@ -1233,7 +1238,23 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
 
 /** Tela ainda sem conteúdo definido — placeholder padrão de "em construção". */
 /** Tela de módulo bloqueado: convida a fazer upgrade e leva ao Plano. */
-function TelaUpgrade({ Icon, titulo, texto, preco }: { Icon: typeof Compass; titulo: string; texto: string; preco: string }) {
+function TelaUpgrade({ Icon, titulo, texto, chave }: { Icon: typeof Compass; titulo: string; texto: string; chave: string }) {
+  // O preço mostrado aqui é o do produto na Wiven (mesma fonte do checkout),
+  // para nunca prometer um valor diferente do que o cliente vai pagar.
+  const [preco, setPreco] = useState<{ preco: number; primeiraCobranca: number | null } | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/checkout");
+        const j = (await r.json()) as { planos?: { chave: string; preco: number; primeiraCobranca: number | null }[] };
+        const p = (j.planos ?? []).find((x) => x.chave === chave);
+        if (vivo && p) setPreco({ preco: p.preco, primeiraCobranca: p.primeiraCobranca });
+      } catch { /* sem preço, a tela continua funcionando */ }
+    })();
+    return () => { vivo = false; };
+  }, [chave]);
+  const emReais = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden", borderRadius: 18 }}>
       <div style={{ padding: "44px 32px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, background: "linear-gradient(140deg, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%)" }}>
@@ -1247,7 +1268,13 @@ function TelaUpgrade({ Icon, titulo, texto, preco }: { Icon: typeof Compass; tit
         <button className="btn" onClick={() => navegar({ view: "config", aba: "plano" })} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", fontSize: 14.5, marginTop: 4 }}>
           <ArrowUpCircle size={18} /> Fazer upgrade
         </button>
-        <p className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>A partir de {preco} / mês.</p>
+        {preco && (
+          <p className="sub" style={{ fontSize: 12.5, marginTop: 2 }}>
+            {preco.primeiraCobranca != null
+              ? <>{emReais(preco.primeiraCobranca)} na 1ª cobrança, depois {emReais(preco.preco)} / mês.</>
+              : <>{emReais(preco.preco)} / mês.</>}
+          </p>
+        )}
       </div>
     </div>
   );

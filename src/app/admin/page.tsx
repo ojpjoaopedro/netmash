@@ -10,6 +10,7 @@ import {
   LayoutDashboard, Pencil, Eye, EyeOff, Send, UserPlus,
   FileText, Search, Info, ImageIcon, Copy, ExternalLink, Check, Bell,
   Code2, BookOpen, Database, KeyRound, Megaphone, Wallet, Percent, Target,
+  ShoppingCart, RotateCw, CircleAlert, Clock3,
 } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { dataBR, dataHoraBR, brl, mascararCPF } from "@/lib/format";
@@ -27,7 +28,7 @@ type Empresa = {
   logo_url: string | null; cor: string | null;
   planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null; notificacoes?: Record<string, boolean> };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null; notificacoes?: Record<string, boolean>; precosWiven?: Record<string, { preco: number; primeiraCobranca: number | null; produto: string | null }> };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; cpf: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 // catálogo de produtos (planos). Vem do banco (planos_catalogo); estes são o
@@ -52,6 +53,16 @@ function mascaraCnpj(v: string): string {
   return d;
 }
 type Aba = "visao" | "empresas" | "produtos" | "notificacoes" | "vendas" | "permissoes" | "config" | "documentos" | "docdev" | "marketing";
+type VendaAdm = {
+  id: string; identifier: string; criado_em: string; pago_em: string | null;
+  nome: string | null; empresa: string | null; email: string; telefone: string | null;
+  plano_chave: string; plano_nome: string | null; valor: number;
+  status: string; origem: string | null; alerta: boolean; erro: string | null;
+  empresa_id: string | null; user_id: string | null; wiven_transaction_id: string | null;
+};
+type TotaisVendas = { recebido: number; vendas: number; pendentes: number; reembolsos: number; chargebacks: number; clientes: number; alertas: number };
+type VendasResp = { vendas: VendaAdm[]; totais: TotaisVendas; aviso?: string };
+type FiltroVenda = "todas" | "pago" | "pendente" | "alerta";
 type LgpdRow = { id: string; user_id?: string | null; email: string | null; nome: string | null; empresa_id: string | null; empresaNome?: string | null; aceito_em: string; versao: string | null; user_agent?: string | null; localizacao?: string | null };
 
 type Acesso = { id: string; nome: string | null; email: string | null; papel: string; areas: string[] | null; cortado?: boolean };
@@ -68,6 +79,16 @@ const DEMO_RESP: Resp = {
   ],
   totais: { empresas: 4, usuarios: 11, faturamento: 399.3, ativos: 3 },
   precos: { superadmin: PRECO_SUPERADMIN, acesso: PRECO_ACESSO },
+};
+
+// Vendas de exemplo (só aparecem no modo demonstração, sem Supabase).
+const DEMO_VENDAS: VendasResp = {
+  vendas: [
+    { id: "v1", identifier: "mm_demo1", criado_em: "2026-08-16T14:20:00Z", pago_em: "2026-08-16T14:23:00Z", nome: "João Pedro", empresa: "JP Contabilidade", email: "jp@gmail.com", telefone: "(62) 99999-0001", plano_chave: "superadmin", plano_nome: "Minhas Métricas", valor: 79.9, status: "pago", origem: "api", alerta: false, erro: null, empresa_id: "demo-jp", user_id: "d3", wiven_transaction_id: "tx_demo1" },
+    { id: "v2", identifier: "mm_demo2", criado_em: "2026-08-16T10:02:00Z", pago_em: null, nome: "Marina Alves", empresa: "Studio Marina", email: "marina@studio.com.br", telefone: "(11) 98888-0002", plano_chave: "superadmin", plano_nome: "Minhas Métricas", valor: 79.9, status: "pendente", origem: "link", alerta: false, erro: null, empresa_id: null, user_id: null, wiven_transaction_id: null },
+    { id: "v3", identifier: "mm_demo3", criado_em: "2026-08-14T09:40:00Z", pago_em: "2026-08-14T09:41:00Z", nome: "Pedro Walk", empresa: "Walk Store", email: "pedro@gmail.com", telefone: "(11) 97777-0003", plano_chave: "folha", plano_nome: "Folha de pagamento", valor: 39.9, status: "reembolsado", origem: "api", alerta: true, erro: null, empresa_id: "demo-walk", user_id: "d4", wiven_transaction_id: "tx_demo3" },
+  ],
+  totais: { recebido: 79.9, vendas: 1, pendentes: 1, reembolsos: 1, chargebacks: 0, clientes: 1, alertas: 1 },
 };
 
 export default function Admin() {
@@ -112,6 +133,10 @@ export default function Admin() {
   const [logErro, setLogErro] = useState("");
   const [logBusy, setLogBusy] = useState(false);
   const [logVer, setLogVer] = useState(false);
+  // Vendas (aba Vendas): compras feitas na landing /assinar, confirmadas pelo webhook da Wiven.
+  const [vendas, setVendas] = useState<VendasResp | null>(null);
+  const [vendaBusy, setVendaBusy] = useState<string | null>(null);
+  const [filtroVenda, setFiltroVenda] = useState<FiltroVenda>("todas");
   const [buscaLgpd, setBuscaLgpd] = useState("");
   const [buscaEmpresa, setBuscaEmpresa] = useState("");
   const [confirmAcao, setConfirmAcao] = useState<{ titulo: string; texto: string; okTxt: string; onOk: () => void } | null>(null);   // popup de confirmação genérico
@@ -379,6 +404,29 @@ export default function Admin() {
   async function entrarComOutra() { if (supabase) await supabase.auth.signOut(); router.push("/login"); }
 
   async function tokenH() { const { data: sess } = await supabase!.auth.getSession(); return { Authorization: `Bearer ${sess.session?.access_token}` }; }
+
+  // ── Vendas ────────────────────────────────────────────────────────────────
+  async function carregarVendas() {
+    if (demo) { setVendas(DEMO_VENDAS); return; }
+    if (!supabase) return;
+    try {
+      const res = await fetch("/api/vendas-admin", { headers: await tokenH() });
+      if (res.ok) setVendas(await res.json());
+    } catch { /* ignore */ }
+  }
+  useEffect(() => { if (aba === "vendas" && !vendas) carregarVendas(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [aba]);
+  // "resolver" tira o aviso de uma venda; "liberar" tenta de novo criar o acesso.
+  async function acaoVenda(id: string, action: "resolver" | "liberar") {
+    if (demo || !supabase) return;
+    setVendaBusy(id);
+    try {
+      const res = await fetch("/api/vendas-admin", { method: "POST", headers: { "Content-Type": "application/json", ...(await tokenH()) }, body: JSON.stringify({ action, id }) });
+      const j = (await res.json()) as { error?: string };
+      if (!res.ok) window.alert(j.error || "Não consegui concluir.");
+      await carregarVendas();
+    } catch { /* ignore */ }
+    setVendaBusy(null);
+  }
   async function selecionarEmpresa(id: string) {
     setPermEmpresa(id); setErroAcesso(""); setOkAcesso(""); setNovoAcesso({ nome: "", email: "", senha: "", areas: [] }); setAcessos(null);
     if (!id) return;
@@ -468,6 +516,7 @@ export default function Admin() {
   const NAV: { k: Aba; label: string; Icon: typeof Building2 }[] = [
     { k: "visao", label: "Visão geral", Icon: LayoutDashboard },
     { k: "produtos", label: "Produtos", Icon: DollarSign },
+    { k: "vendas", label: "Vendas", Icon: ShoppingCart },
     { k: "empresas", label: "Empresas", Icon: Building2 },
     { k: "notificacoes", label: "Notificações", Icon: Bell },
     { k: "documentos", label: "Documentos (LGPD)", Icon: FileText },
@@ -713,6 +762,18 @@ export default function Admin() {
                 </div>
               );
             };
+            // Preço que vale é o do produto cadastrado na Wiven (lido do link).
+            const celulaPreco = (chave: string) => {
+              const p = data?.precosWiven?.[chave];
+              if (!p) return <span className="adm-sub">—</span>;
+              return (
+                <div style={{ whiteSpace: "nowrap" }}>
+                  <b>{brl(p.preco)}</b><span className="adm-sub"> / mês</span>
+                  {p.primeiraCobranca != null && <div className="adm-sub" style={{ fontSize: 11.5 }}>1ª cobrança {brl(p.primeiraCobranca)}</div>}
+                  {p.produto && <div className="adm-sub" style={{ fontSize: 11 }}>{p.produto}</div>}
+                </div>
+              );
+            };
             return (
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -721,7 +782,7 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th style={{ width: 64 }}>Imagem</th><th>Produto</th><th>Descrição</th><th>Link de pagamento</th><th>Acessos ativos</th><th></th></tr></thead>
+                  <thead><tr><th style={{ width: 64 }}>Imagem</th><th>Produto</th><th>Descrição</th><th>Link de pagamento</th><th>Preço na Wiven</th><th>Acessos ativos</th><th></th></tr></thead>
                   <tbody>
                     <tr>
                       <td>
@@ -740,6 +801,7 @@ export default function Admin() {
                       <td><b>Super Admin</b><span className="adm-badge" style={{ marginLeft: 8 }}>Principal</span></td>
                       <td className="adm-sub">Acesso principal da empresa (plano base)</td>
                       <td>{celulaLink("superadmin", data?.linkSuperadmin)}</td>
+                      <td>{celulaPreco("superadmin")}</td>
                       <td><b>{clientes}</b></td>
                       <td></td>
                     </tr>
@@ -761,6 +823,7 @@ export default function Admin() {
                         <td><b>{c.nome}</b></td>
                         <td className="adm-sub">{c.descricao || "—"}</td>
                         <td>{celulaLink(c.chave, c.link_pagamento)}</td>
+                        <td>{celulaPreco(c.chave)}</td>
                         <td><b>{c.chave === "acesso2" ? (data?.empresas.filter(temAcessoExtra).length ?? 0) : nMod(c.chave)}</b></td>
                         <td style={{ textAlign: "right" }}><button className="adm-btn sm danger adm-ic" title="Excluir produto" onClick={() => excluirProduto(c.chave, c.nome)}><Trash2 size={14} /></button></td>
                       </tr>
@@ -802,6 +865,96 @@ export default function Admin() {
                   </div>
                 </div>
               )}
+            </>
+            );
+          })()}
+
+          {aba === "vendas" && (() => {
+            const tv = vendas?.totais;
+            const lista = (vendas?.vendas ?? []).filter((v) =>
+              filtroVenda === "todas" ? true : filtroVenda === "alerta" ? v.alerta : v.status === filtroVenda);
+            const CORES: Record<string, { fundo: string; cor: string; label: string }> = {
+              pago:        { fundo: "rgba(16,185,129,.14)",  cor: "#10B981", label: "Pago" },
+              pendente:    { fundo: "rgba(245,158,11,.16)",  cor: "#F59E0B", label: "Aguardando" },
+              reembolsado: { fundo: "rgba(239,68,68,.14)",   cor: "#ef4444", label: "Reembolsado" },
+              chargeback:  { fundo: "rgba(239,68,68,.14)",   cor: "#ef4444", label: "Chargeback" },
+              cancelado:   { fundo: "rgba(148,163,184,.16)", cor: "#94a3b8", label: "Cancelado" },
+              falhou:      { fundo: "rgba(239,68,68,.14)",   cor: "#ef4444", label: "Falhou" },
+            };
+            const selo = (s: string) => {
+              const c = CORES[s] || { fundo: "rgba(148,163,184,.16)", cor: "#94a3b8", label: s };
+              return <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 99, fontSize: 11.5, fontWeight: 800, background: c.fundo, color: c.cor }}>{c.label}</span>;
+            };
+            const FILTROS: { k: FiltroVenda; label: string }[] = [
+              { k: "todas", label: "Todas" }, { k: "pago", label: "Pagas" },
+              { k: "pendente", label: "Aguardando" }, { k: "alerta", label: "Precisam de atenção" },
+            ];
+            return (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                <h1 style={{ margin: 0 }}>Vendas</h1>
+                <button className="adm-btn" onClick={carregarVendas}><RotateCw size={15} /> Atualizar</button>
+              </div>
+
+              {vendas?.aviso && (
+                <div className="adm-card" style={{ marginTop: 14, padding: 14, display: "flex", gap: 10, alignItems: "center", color: "#F59E0B" }}>
+                  <CircleAlert size={17} /> <span style={{ fontSize: 13.5 }}>{vendas.aviso}</span>
+                </div>
+              )}
+
+              <div className="adm-kpis" style={{ marginTop: 18 }}>
+                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(16,185,129,.16)", color: "#10B981" }}><Wallet size={20} /></span><div><b>{brl(tv?.recebido ?? 0)}</b><small>Recebido</small></div></div>
+                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(26,173,226,.16)", color: "#1AADE2" }}><ShoppingCart size={20} /></span><div><b>{tv?.vendas ?? 0}</b><small>Vendas pagas</small></div></div>
+                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(245,158,11,.16)", color: "#F59E0B" }}><Clock3 size={20} /></span><div><b>{tv?.pendentes ?? 0}</b><small>Aguardando</small></div></div>
+                <div className="adm-card"><span className="adm-ico" style={{ background: "rgba(239,68,68,.16)", color: "#ef4444" }}><CircleAlert size={20} /></span><div><b>{(tv?.reembolsos ?? 0) + (tv?.chargebacks ?? 0)}</b><small>Reembolsos e chargebacks</small></div></div>
+              </div>
+
+              <div style={{ display: "inline-flex", background: "var(--card-2,#0d0d0d)", border: "1px solid var(--line-2,#2a2a2a)", borderRadius: 99, padding: 3, marginTop: 18, flexWrap: "wrap" }}>
+                {FILTROS.map((o) => (
+                  <button key={o.k} type="button" onClick={() => setFiltroVenda(o.k)}
+                    style={{ padding: "6px 16px", borderRadius: 99, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, transition: ".12s",
+                      background: filtroVenda === o.k ? "var(--brand,#1AADE2)" : "transparent",
+                      color: filtroVenda === o.k ? "#fff" : "var(--muted,#9aa0a6)" }}>
+                    {o.label}{o.k === "alerta" && (tv?.alertas ?? 0) > 0 ? ` (${tv?.alertas})` : ""}
+                  </button>
+                ))}
+              </div>
+
+              <div className="adm-tablewrap" style={{ marginTop: 14 }}>
+                <table className="adm-table">
+                  <thead><tr><th>Quando</th><th>Cliente</th><th>Empresa</th><th>Plano</th><th style={{ textAlign: "right" }}>Valor</th><th style={{ textAlign: "center" }}>Status</th><th>Conta</th><th style={{ textAlign: "right" }}>Ações</th></tr></thead>
+                  <tbody>
+                    {lista.map((v) => (
+                      <tr key={v.id} style={v.alerta ? { background: "rgba(239,68,68,.05)" } : undefined}>
+                        <td className="adm-sub">{dataHoraBR(v.criado_em)}</td>
+                        <td><b>{v.nome || "—"}</b><div className="adm-sub" style={{ fontSize: 12 }}>{v.email}</div></td>
+                        <td>{v.empresa || "—"}</td>
+                        <td className="adm-sub">{v.plano_nome || v.plano_chave}</td>
+                        <td style={{ textAlign: "right" }}><b>{brl(v.valor)}</b></td>
+                        <td style={{ textAlign: "center" }}>{selo(v.status)}</td>
+                        <td className="adm-sub">
+                          {v.user_id ? "Criada" : v.status === "pago" ? "Pendente" : "—"}
+                          {v.erro && <div style={{ color: "#ef4444", fontSize: 11.5, marginTop: 3 }}>{v.erro}</div>}
+                        </td>
+                        <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                          {v.status === "pago" && !v.user_id && (
+                            <button className="adm-btn sm" disabled={vendaBusy === v.id} onClick={() => acaoVenda(v.id, "liberar")} style={{ marginRight: 6 }}>
+                              {vendaBusy === v.id ? "…" : "Liberar acesso"}
+                            </button>
+                          )}
+                          {v.alerta && (
+                            <button className="adm-btn sm" disabled={vendaBusy === v.id} onClick={() => acaoVenda(v.id, "resolver")}>Resolvido</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {!lista.length && <tr><td colSpan={8} className="adm-sub" style={{ textAlign: "center", padding: 26 }}>{vendas ? "Nenhuma venda neste filtro." : "Carregando…"}</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+              <p className="adm-sub" style={{ marginTop: 12, fontSize: 12.5 }}>
+                As vendas entram pela página <b>/assinar</b> e são confirmadas pelo webhook da Wiven. Reembolso e chargeback aparecem aqui como aviso: o corte de acesso continua sendo feito à mão, na aba Empresas.
+              </p>
             </>
             );
           })()}

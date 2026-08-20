@@ -11,8 +11,10 @@ import {
 const MARCA = "Minhas Métricas";            // nome que aparece na página
 const PRECO = "49,99";                        // valor da MENSALIDADE (R$/mês)
 const PRECO_DE = "97";                         // preço "cheio" (âncora, riscado)
-// Link de pagamento (plataforma Wiven). Confirme que a oferta está em R$ 49,99/mês.
-const CHECKOUT_URL = "https://checkout.wiven.com.br/checkout/cmsqaomtj02qo01q4pq9l1fjq?offer=LY7PZUS";
+// Página de compra: pega os dados da empresa, leva ao checkout da Wiven e cria
+// a conta sozinha quando o pagamento é confirmado. Para voltar ao link direto do
+// checkout, é só trocar esta constante pela URL da Wiven.
+const CHECKOUT_URL = "/assinar";
 const ENTRAR_URL = "/login";                // login do app
 const PIXEL_ID = "574774374290188";         // Pixel da Meta (Facebook/Instagram)
 /* ============================================================ */

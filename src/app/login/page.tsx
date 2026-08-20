@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { login, cadastrarComCodigo, enviarReset, definirSenha } from "@/lib/db";
 import { supabaseReady } from "@/lib/supabase";
+import Link from "next/link";
 
 type Modo = "login" | "cadastro" | "reset" | "novasenha";
 
@@ -208,6 +209,9 @@ export default function LoginPage() {
         </form>
 
         <div className="auth-switch">
+          {/* Quem ainda não é cliente vai para a página de compra: a conta nasce
+              sozinha quando o pagamento é confirmado, sem código de acesso. */}
+          {modo === "login" && <>Ainda não tem conta? <Link href="/assinar">Fazer cadastro</Link></>}
           {modo === "cadastro" && <>Já tem conta? <button onClick={() => { setModo("login"); setErro(""); }}>Entrar</button></>}
           {(modo === "reset" || modo === "novasenha") && <>Lembrou? <button onClick={() => { setModo("login"); setErro(""); setMsg(""); }}>Voltar ao login</button></>}
         </div>
