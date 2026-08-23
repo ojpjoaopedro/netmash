@@ -219,6 +219,7 @@ const rotuloFreq = (d: Despesa) => FREQ_LABEL[d.freq || (d.recorrente ? "mensal"
 
 const MES_NOME = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const SEM = ["D", "S", "T", "Q", "Q", "S", "S"];
+const SEM_FULL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const ANOS = [2026, 2027, 2028];
 const BRAND = "#1AADE2", VERDE = "#10B981", AMBAR = "#F59E0B", VERMELHO = "#EF4444";
 const fmtR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -492,7 +493,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       {/* meses (só os selecionados) — 4 por linha no desktop, responsivo no celular */}
       <div className="meses-grid" style={compacto ? { gridTemplateColumns: "1fr", maxWidth: "100%" } : undefined}>
         {MES_NOME.map((nome, m) => sel.has(m) && (
-          <div key={m} className="card" style={{ padding: 12 }}>
+          <div key={m} className="card" style={compacto ? { padding: 16, background: "linear-gradient(160deg, rgba(26,173,226,.12), rgba(129,140,248,.07) 55%, var(--card))" } : { padding: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
               {compacto && <button className="iconbtn" onClick={() => setSel(new Set([Math.max(0, m - 1)]))} disabled={m === 0} title="Mês anterior"><ChevronLeft size={18} /></button>}
               <b style={{ fontSize: compacto ? 14 : 13.5, ...(compacto ? { flex: 1, textAlign: "center" as const } : {}) }}>{compacto ? `${nome} ${ano}` : nome}</b>
@@ -525,7 +526,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
               ) : <span style={{ fontSize: 13, fontWeight: 800, color: "var(--muted)" }} className="oc-num">–</span>)}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
-              {SEM.map((s, i) => <div key={i} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "var(--muted-2)", paddingBottom: 4 }}>{s}</div>)}
+              {(compacto ? SEM_FULL : SEM).map((s, i) => <div key={i} style={{ textAlign: "center", fontSize: compacto ? 12 : 10, fontWeight: 700, color: compacto ? "var(--muted)" : "var(--muted-2)", paddingBottom: compacto ? 6 : 4 }}>{s}</div>)}
               {Array.from({ length: new Date(ano, m, 1).getDay() }).map((_, i) => <div key={`b${i}`} />)}
               {Array.from({ length: new Date(ano, m + 1, 0).getDate() }, (_, i) => i + 1).map((dia) => {
                 const dt = new Date(ano, m, dia);
@@ -540,18 +541,22 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                     onMouseEnter={(e) => { if (temDesp) { window.clearTimeout(fecharHoverT.current); const r = e.currentTarget.getBoundingClientRect(); setHover({ mes: m, dia, x: r.left + r.width / 2, y: r.top }); } }}
                     onMouseMove={(e) => { if (temDesp) { window.clearTimeout(fecharHoverT.current); if (!hover || hover.mes !== m || hover.dia !== dia) { const r = e.currentTarget.getBoundingClientRect(); setHover({ mes: m, dia, x: r.left + r.width / 2, y: r.top }); } } }}
                     onMouseLeave={() => { fecharHoverT.current = window.setTimeout(() => setHover(null), 420); }}
-                    style={{ position: "relative", aspectRatio: "1", display: "grid", placeItems: "center", cursor: "pointer", border: 0, fontFamily: "inherit",
-                      borderRadius: "50%",
-                      background: temDesp ? (soPendente ? "rgba(147,197,253,.22)" : "rgba(26,173,226,.16)") : "transparent",
-                      color: "var(--txt)", fontSize: 11.5, fontWeight: ehHoje || temDesp ? 700 : 500 }}>
+                    style={{ position: "relative", display: "grid", placeItems: "center", cursor: "pointer", border: 0, fontFamily: "inherit",
+                      ...(compacto ? { height: 42, borderRadius: 10, fontSize: 14.5 } : { aspectRatio: "1", borderRadius: "50%", fontSize: 11.5 }),
+                      background: temDesp
+                        ? (compacto
+                            ? (soPendente ? "linear-gradient(145deg, rgba(147,197,253,.32), rgba(147,197,253,.12))" : "linear-gradient(145deg, rgba(26,173,226,.32), rgba(129,140,248,.16))")
+                            : (soPendente ? "rgba(147,197,253,.22)" : "rgba(26,173,226,.16)"))
+                        : "transparent",
+                      color: "var(--txt)", fontWeight: ehHoje || temDesp ? 700 : 500 }}>
                     {ehHoje ? <span style={{ borderBottom: "2px solid var(--muted-2)", paddingBottom: 1, lineHeight: 1 }}>{dia}</span> : dia}
                     {fer && <i style={{ position: "absolute", top: 3, right: 6, width: 5, height: 5, borderRadius: 99, background: AMBAR }} />}
                     {ambos
-                      ? (temDesp && <span style={{ position: "absolute", bottom: 2, display: "flex", gap: 3 }}>
-                          {ocs.some((o) => o.d.origem !== "receita") && <i style={{ width: 5, height: 5, borderRadius: 99, background: VERMELHO }} />}
-                          {ocs.some((o) => o.d.origem === "receita") && <i style={{ width: 5, height: 5, borderRadius: 99, background: VERDE }} />}
+                      ? (temDesp && <span style={{ position: "absolute", bottom: compacto ? 6 : 2, display: "flex", gap: compacto ? 4 : 3 }}>
+                          {ocs.some((o) => o.d.origem !== "receita") && <i style={{ width: compacto ? 7 : 5, height: compacto ? 7 : 5, borderRadius: 99, background: VERMELHO }} />}
+                          {ocs.some((o) => o.d.origem === "receita") && <i style={{ width: compacto ? 7 : 5, height: compacto ? 7 : 5, borderRadius: 99, background: VERDE }} />}
                         </span>)
-                      : (temDesp && <i style={{ position: "absolute", bottom: 2, width: 5, height: 5, borderRadius: 99, background: soPendente ? CLARO : BRAND }} />)}
+                      : (temDesp && <i style={{ position: "absolute", bottom: compacto ? 6 : 2, width: compacto ? 7 : 5, height: compacto ? 7 : 5, borderRadius: 99, background: soPendente ? CLARO : BRAND }} />)}
                   </button>
                 );
               })}
