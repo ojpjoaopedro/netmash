@@ -13,6 +13,7 @@ import { SeletorCusto } from "@/components/CalendarioPagamentos";
 import { folhaTotais, categoriaDoItem } from "@/lib/folha-totais";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { supabase, supabaseReady } from "@/lib/supabase";
+import { ehSuperadmin } from "@/lib/superadmin";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { empresaAtualId } from "@/lib/empresa-atual";
 import { createPortal } from "react-dom";
@@ -570,12 +571,30 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   const pularSalvar = useRef(false);   // evita gravar os dados de um ano na chave de outro ao trocar
   const [sel, setSel] = useState<Set<number>>(new Set()); // meses exibidos (vazio só antes de carregar)
   const [estreito, setEstreito] = useState(false);        // tela de celular: colunas mais compactas
+  const [ehSuper, setEhSuper] = useState(false);          // só superadmin vê o "Restaurar padrão"
+  const [confReset, setConfReset] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
     const upd = () => setEstreito(mq.matches);
     upd(); mq.addEventListener("change", upd);
     return () => mq.removeEventListener("change", upd);
   }, []);
+  useEffect(() => {
+    (async () => {
+      if (!supabaseReady || !supabase) return;
+      try { const { data } = await supabase.auth.getUser(); setEhSuper(ehSuperadmin(data.user?.email)); } catch { /* ignore */ }
+    })();
+  }, []);
+  // Restaura a empresa ao modelo padrão de empresa nova: zera valores/lançamentos e volta grupos/itens.
+  const restaurarPadrao = () => {
+    [2026, 2027, 2028].forEach((a) => salvarEstrutura(a, structuredClone(MODELO_LIMPO)));
+    salvarPagamentos([]);
+    salvarRecebimentos([]);
+    pularSalvar.current = true;
+    setD(structuredClone(MODELO_LIMPO));
+    setConfReset(false);
+    window.dispatchEvent(new Event("me:estrutura"));
+  };
   const [abertos, setAbertos] = useState<Set<string>>(new Set()); // grupos expandidos
   const [blocosFechados, setBlocosFechados] = useState<Set<number>>(new Set()); // blocos recolhidos
   const toggleBloco = (bi: number) => setBlocosFechados((p) => { const n = new Set(p); if (n.has(bi)) n.delete(bi); else n.add(bi); return n; });
@@ -1048,9 +1067,31 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {ehSuper && (
+            <button onClick={() => setConfReset(true)} title="Restaurar a estrutura padrão de empresa nova (apaga os valores)"
+              style={{ padding: "6px 11px", borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid color-mix(in srgb,#ef4444 30%,transparent)", background: "color-mix(in srgb,#ef4444 8%,transparent)", color: "#ef4444" }}>Restaurar padrão</button>
+          )}
           <BotaoOcultar />
         </div>
       </div>
+
+      {confReset && (
+        <div onClick={() => setConfReset(false)} style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 440, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb,#ef4444 12%,transparent)", color: "#ef4444" }}><Trash2 size={20} /></span>
+              <div>
+                <b style={{ fontSize: 16 }}>Restaurar padrão de empresa nova?</b>
+                <p className="sub" style={{ marginTop: 6, lineHeight: 1.5 }}>Isso apaga <b>todos os valores e lançamentos</b> desta empresa e volta os grupos e itens para o modelo padrão. Não dá pra desfazer.</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 20, justifyContent: "flex-end" }}>
+              <button className="btn ghost" onClick={() => setConfReset(false)}>Cancelar</button>
+              <button className="btn" style={{ background: "#ef4444" }} onClick={restaurarPadrao}>Restaurar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* COMPOSIÇÃO DAS RECEITAS */}
       <div className="card tabela-full" style={{ padding: 0, overflow: "hidden" }}>

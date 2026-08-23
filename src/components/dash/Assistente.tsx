@@ -53,7 +53,7 @@ function criarSR(): SR | null {
 
 export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial, nome, reload, brand, ano }: Ctx & { nome: string; reload?: () => void; brand: { nome: string; logo: string | null }; ano: number }) {
   const ctx: Ctx = { metrs, lancs, clientes, funcs, saldoInicial };
-  const [modo, setModo] = useState<"perguntar" | "registrar" | "apresentar">("perguntar");
+  const [modo, setModo] = useState<"perguntar" | "registrar" | "apresentar">("registrar");
 
   // ---- modo PERGUNTAR ----
   const [msgs, setMsgs] = useState<Msg[]>([
@@ -162,9 +162,9 @@ export default function Assistente({ metrs, lancs, clientes, funcs, saldoInicial
 
       {/* Alternância de modo */}
       <div className="period" style={{ width: "fit-content", marginBottom: 22 }}>
-        <button className={modo === "apresentar" ? "active" : ""} onClick={() => setModo("apresentar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Presentation size={14} /> Apresentação</button>
-        <button className={modo === "perguntar" ? "active" : ""} onClick={() => setModo("perguntar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageCircle size={14} /> Perguntar</button>
         <button className={modo === "registrar" ? "active" : ""} onClick={() => setModo("registrar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Registrar</button>
+        <button className={modo === "perguntar" ? "active" : ""} onClick={() => setModo("perguntar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageCircle size={14} /> Perguntar</button>
+        <button className={modo === "apresentar" ? "active" : ""} onClick={() => setModo("apresentar")} style={{ display: "flex", alignItems: "center", gap: 6 }}><Presentation size={14} /> Apresentação</button>
       </div>
 
       {modo === "apresentar" ? (

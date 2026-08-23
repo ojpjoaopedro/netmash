@@ -571,8 +571,37 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 }
 
 /* ===== Auth ===== */
-.auth-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}
-.auth-card{width:100%;max-width:410px}
+.auth-wrap{position:relative;min-height:100vh;display:grid;place-items:center;padding:20px;overflow:hidden;isolation:isolate;background:radial-gradient(95% 75% at 50% 32%, #0f1826, #07090f 76%)}
+/* aura discreta e colada ao card (não espalha pela tela) */
+.auth-wrap::before{content:"";position:absolute;top:50%;left:50%;width:560px;height:560px;transform:translate(-50%,-50%);z-index:-1;pointer-events:none;border-radius:50%;
+  background:conic-gradient(from 0deg, #1AADE2, #10B981, #8b5cf6, #38BDF8, #1AADE2);
+  filter:blur(80px);opacity:.28;
+  animation:authAura 15s ease-in-out infinite alternate, authHue 18s ease-in-out infinite alternate}
+@keyframes authAura{0%{transform:translate(-52%,-52%) scale(1)}100%{transform:translate(-48%,-48%) scale(1.14)}}
+@keyframes authHue{from{filter:blur(80px) hue-rotate(-16deg)}to{filter:blur(80px) hue-rotate(20deg)}}
+.auth-card{width:100%;max-width:410px;position:relative;overflow:hidden;isolation:isolate;animation:authGlow 11s ease-in-out infinite}
+/* borda fina animada (1px) */
+.auth-card::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:3;
+  background:conic-gradient(from var(--ang,0deg), #1AADE2, #10B981, #8b5cf6, #38BDF8, #1AADE2);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:authBorderSpin 10s linear infinite}
+/* animação de cores DENTRO do card (sutil, atrás do conteúdo) */
+.auth-card::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(60% 55% at 18% 0%, color-mix(in srgb, var(--brand) 24%, transparent), transparent 62%),
+    radial-gradient(55% 55% at 92% 100%, rgba(139,92,246,.20), transparent 62%),
+    radial-gradient(60% 60% at 60% 45%, rgba(16,185,129,.14), transparent 62%);
+  background-size:200% 200%;
+  animation:authInner 16s ease-in-out infinite alternate}
+@keyframes authInner{0%{background-position:0% 0%}100%{background-position:100% 100%}}
+@property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes authBorderSpin{to{--ang:360deg}}
+@keyframes authGlow{
+  0%,100%{box-shadow:0 0 26px -10px rgba(26,173,226,.5)}
+  33%{box-shadow:0 0 30px -10px rgba(16,185,129,.5)}
+  66%{box-shadow:0 0 30px -10px rgba(139,92,246,.5)}}
+@media(prefers-reduced-motion:reduce){.auth-wrap::before,.auth-card,.auth-card::before,.auth-card::after{animation:none}}
 .auth-card .brand{justify-content:center;margin-bottom:6px}
 .auth-card h1{text-align:center;font-size:22px;margin:14px 0 4px}
 .auth-card .muted{text-align:center;color:var(--muted);font-size:14px;margin-bottom:20px}
@@ -724,6 +753,39 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
 .splash-frase{position:relative;z-index:1;margin:0;max-width:15ch;font-size:clamp(24px,6.4vw,44px);font-weight:800;letter-spacing:-.02em;line-height:1.22;
   color:#0f172a;transition:opacity .55s ease,transform .55s ease}
 @media(prefers-color-scheme:dark){.splash-frase{color:#f1f5f9}}
+
+/* ===== Dashboard financeiro: gráficos dinâmicos (efeitos e vibração) ===== */
+.dash-panel{transition:transform .18s ease, box-shadow .22s ease}
+.dash-panel:hover{transform:translateY(-3px);box-shadow:0 30px 66px -30px rgba(15,23,42,.42)}
+body:not(.theme-light) .dash-panel:hover{box-shadow:0 30px 66px -22px rgba(0,0,0,.85)}
+.dash-bar-fill{transform-origin:left center;animation:dashBarGrow .6s cubic-bezier(.2,.85,.25,1) both, dashBarFlow 3.4s linear infinite}
+@keyframes dashBarGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes dashBarFlow{to{background-position:200% 0}}
+/* Gráfico de linha: leve shimmer de cor em loop */
+.dash-chart-hue{animation:dashChartHue 6s ease-in-out infinite}
+@keyframes dashChartHue{0%,100%{filter:hue-rotate(-8deg)}50%{filter:hue-rotate(12deg)}}
+/* Cartões ultramodernos: fio fino no topo + brilho de degradê em loop imperceptível */
+.dash-panel{position:relative;overflow:hidden}
+.dash-panel::after{content:"";position:absolute;top:0;left:14px;right:14px;height:1px;pointer-events:none;z-index:1;
+  background:linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 55%, transparent), transparent)}
+.dash-panel::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;
+  background:linear-gradient(115deg, transparent 34%, color-mix(in srgb, var(--brand) 6%, transparent) 50%, transparent 66%);
+  background-size:260% 100%;animation:dashSheen 11s ease-in-out infinite}
+@keyframes dashSheen{0%{background-position:130% 0}100%{background-position:-30% 0}}
+.dash-divider{background-size:220% 100% !important;animation:dashDivFlow 7s linear infinite}
+@keyframes dashDivFlow{to{background-position:220% 0}}
+@media(prefers-reduced-motion:reduce){.dash-bar-fill,.dash-chart-hue,.dash-panel::before,.dash-divider{animation:none}}
+.dash-dot-halo{animation:dashPulse 2.2s ease-out infinite}
+@keyframes dashPulse{0%{r:4;opacity:.5}70%,100%{r:12;opacity:0}}
+@media(prefers-reduced-motion:reduce){.dash-bar-fill{animation:none}.dash-dot-halo{display:none}}
+/* Barras: brilho que passa (shimmer de cor) */
+.dash-bar-fill{position:relative;overflow:hidden}
+.dash-bar-fill::after{content:"";position:absolute;inset:0;border-radius:8px;background:linear-gradient(90deg,transparent 15%,rgba(255,255,255,.42),transparent 85%);transform:translateX(-130%);animation:dashShine 3.6s ease-in-out infinite}
+@keyframes dashShine{0%{transform:translateX(-130%)}60%,100%{transform:translateX(260%)}}
+/* Linha: brilho que respira */
+.dash-line-glow{animation:dashLinePulse 3s ease-in-out infinite}
+@keyframes dashLinePulse{0%,100%{stroke-width:3px;opacity:.9}50%{stroke-width:3.9px;opacity:1}}
+@media(prefers-reduced-motion:reduce){.dash-bar-fill::after,.dash-line-glow{animation:none}}
 .splash-frase.saindo{opacity:0;transform:translateY(-18px)}
 .splash-palavra{display:inline-block;white-space:nowrap}
 .splash-letra{display:inline-block;opacity:0;transform:translateY(18px) scale(.96);

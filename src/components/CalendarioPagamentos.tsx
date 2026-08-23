@@ -8,7 +8,7 @@ import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 
 /** Dropdown em árvore igual à Estrutura de Custos: blocos, grupos (bolinha + seta) e itens, com cadastrar. */
-export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: { blocos: Bloco[]; grupo: string; item: string; onSelecionar: (g: string, i: string) => void; onRenomear?: (grupo: string, antigo: string, novo: string) => void }) {
+export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear, onNovoGrupo, onRenomearGrupo }: { blocos: Bloco[]; grupo: string; item: string; onSelecionar: (g: string, i: string) => void; onRenomear?: (grupo: string, antigo: string, novo: string) => void; onNovoGrupo?: (bloco: string, nome: string) => void; onRenomearGrupo?: (bloco: string, antigo: string, novo: string) => void }) {
   const [aberto, setAberto] = useState(false);
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [novoEm, setNovoEm] = useState<string | null>(null);
@@ -17,6 +17,12 @@ export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: 
   const [editItem, setEditItem] = useState<string | null>(null);
   const [editNome, setEditNome] = useState("");
   const salvarEdicao = (g: string, antigo: string) => { const nv = editNome.trim(); setEditItem(null); if (nv && nv !== antigo) onRenomear?.(g, antigo, nv); };
+  const [hoverGrupo, setHoverGrupo] = useState<string | null>(null);
+  const [editGrupo, setEditGrupo] = useState<string | null>(null);
+  const [editGrupoNome, setEditGrupoNome] = useState("");
+  const [novoGrupoEm, setNovoGrupoEm] = useState<number | null>(null);
+  const [novoGrupoNome, setNovoGrupoNome] = useState("");
+  const salvarEdGrupo = (bloco: string, antigo: string) => { const nv = editGrupoNome.trim(); setEditGrupo(null); if (nv && nv !== antigo) onRenomearGrupo?.(bloco, antigo, nv); };
   const [pos, setPos] = useState<{ top: number; left: number; maxH: number }>({ top: 0, left: 0, maxH: 400 });
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -54,13 +60,27 @@ export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: 
                 const k = `${bi}-${gi}`; const exp = expandidos.has(k);
                 return (
                   <div key={gi}>
-                    <button type="button" onClick={() => toggle(k)}
-                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "7px 8px", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left", borderRadius: 8 }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-2)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-                      {exp ? <ChevronDown size={13} style={{ color: "var(--muted)", flexShrink: 0 }} /> : <ChevronRight size={13} style={{ color: "var(--muted)", flexShrink: 0 }} />}
-                      <i style={{ width: 8, height: 8, borderRadius: 99, background: g.cor, flexShrink: 0 }} />
-                      <span style={{ fontSize: 12.5, fontWeight: 700 }}>{g.nome}</span>
-                    </button>
+                    {editGrupo === k ? (
+                      <div style={{ display: "flex", gap: 6, padding: "3px 8px" }}>
+                        <input autoFocus value={editGrupoNome} onChange={(e) => setEditGrupoNome(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") salvarEdGrupo(b.nome, g.nome); if (e.key === "Escape") setEditGrupo(null); }}
+                          onBlur={() => salvarEdGrupo(b.nome, g.nome)} style={{ flex: 1, fontSize: 12.5 }} />
+                      </div>
+                    ) : (
+                      <div onMouseEnter={() => setHoverGrupo(k)} onMouseLeave={() => setHoverGrupo(null)}
+                        style={{ display: "flex", alignItems: "center", gap: 2, borderRadius: 8, background: hoverGrupo === k ? "var(--bg-2)" : "transparent" }}>
+                        <button type="button" onClick={() => toggle(k)}
+                          style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                          {exp ? <ChevronDown size={13} style={{ color: "var(--muted)", flexShrink: 0 }} /> : <ChevronRight size={13} style={{ color: "var(--muted)", flexShrink: 0 }} />}
+                          <i style={{ width: 8, height: 8, borderRadius: 99, background: g.cor, flexShrink: 0 }} />
+                          <span style={{ fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.nome}</span>
+                        </button>
+                        {onRenomearGrupo && hoverGrupo === k && (
+                          <button type="button" title="Renomear categoria" onClick={(e) => { e.stopPropagation(); setEditGrupo(k); setEditGrupoNome(g.nome); }}
+                            style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)", padding: "2px 6px", flexShrink: 0 }}><Pencil size={12} /></button>
+                        )}
+                      </div>
+                    )}
                     {exp && (
                       <div style={{ paddingLeft: 26 }}>
                         {g.itens.map((it, ii) => {
@@ -102,6 +122,16 @@ export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear }: 
                   </div>
                 );
               })}
+              {onNovoGrupo && (novoGrupoEm === bi ? (
+                <div style={{ display: "flex", gap: 6, padding: "4px 8px 8px" }}>
+                  <input autoFocus value={novoGrupoNome} onChange={(e) => setNovoGrupoNome(e.target.value)} placeholder="Nome da categoria"
+                    onKeyDown={(e) => { if (e.key === "Enter" && novoGrupoNome.trim()) { onNovoGrupo(b.nome, novoGrupoNome.trim()); setNovoGrupoEm(null); setNovoGrupoNome(""); } if (e.key === "Escape") setNovoGrupoEm(null); }} style={{ flex: 1 }} />
+                  <button type="button" className="btn sm" onClick={() => { if (novoGrupoNome.trim()) { onNovoGrupo(b.nome, novoGrupoNome.trim()); setNovoGrupoEm(null); setNovoGrupoNome(""); } }} disabled={!novoGrupoNome.trim()}>OK</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => { setNovoGrupoEm(bi); setNovoGrupoNome(""); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 8px 10px", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12, color: "var(--brand)", fontWeight: 700 }}>+ Nova categoria</button>
+              ))}
             </div>
           ))}
         </div>
@@ -319,6 +349,28 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
     if (it) { it.nome = novo; salvarEstrutura(ano, est); window.dispatchEvent(new Event("me:estrutura")); }
     setDesps((xs) => xs.map((x) => (x.grupo === grupo && x.item === antigo) ? { ...x, item: novo, descricao: novo } : x));
     setForm((f) => (f && f.grupo === grupo && f.item === antigo) ? { ...f, item: novo } : f);
+    setEstruturaVersao((v) => v + 1);
+  };
+  // cria uma nova categoria (grupo) na Estrutura, direto pelo seletor
+  const CORES_GRUPO = ["#EC4899", "#10B981", "#8b5cf6", "#F59E0B", "#38BDF8", "#F43F5E", "#14B8A6", "#A855F7"];
+  const novoGrupo = (bloco: string, nome: string) => {
+    const est = carregarEstrutura(ano);
+    const b = est.custos.find((x) => x.nome === bloco);
+    if (b && !b.grupos.some((g) => g.nome.toLowerCase() === nome.toLowerCase())) {
+      const total = est.custos.reduce((s, x) => s + x.grupos.length, 0);
+      b.grupos.push({ nome, cor: CORES_GRUPO[total % CORES_GRUPO.length], itens: [] });
+      salvarEstrutura(ano, est); window.dispatchEvent(new Event("me:estrutura"));
+    }
+    setForm((f) => f ? { ...f, grupo: nome, item: "" } : f);
+    setEstruturaVersao((v) => v + 1);
+  };
+  // renomeia uma categoria (grupo) na Estrutura e mantém os pagamentos ligados
+  const renomearGrupo = (bloco: string, antigo: string, novo: string) => {
+    const est = carregarEstrutura(ano);
+    const g = est.custos.find((x) => x.nome === bloco)?.grupos.find((x) => x.nome === antigo);
+    if (g) { g.nome = novo; salvarEstrutura(ano, est); window.dispatchEvent(new Event("me:estrutura")); }
+    setDesps((xs) => xs.map((x) => x.grupo === antigo ? { ...x, grupo: novo } : x));
+    setForm((f) => (f && f.grupo === antigo) ? { ...f, grupo: novo } : f);
     setEstruturaVersao((v) => v + 1);
   };
   // canais de receita (para os recebimentos), com os já criados pelos próprios recebimentos
@@ -589,7 +641,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                         style={{ display: "inline-grid", placeItems: "center", width: 15, height: 15, borderRadius: "50%", background: "var(--bg-2)", border: "1px solid var(--line-2)", color: "var(--muted)", fontSize: 10, fontWeight: 800, cursor: "help" }}>?</span>
                     </label>
                     {ehDesp
-                      ? <SeletorCusto blocos={custosBlocos} grupo={form.grupo} item={form.item} onSelecionar={(g, i) => setForm({ ...form, grupo: g, item: i })} onRenomear={renomearItem} />
+                      ? <SeletorCusto blocos={custosBlocos} grupo={form.grupo} item={form.item} onSelecionar={(g, i) => setForm({ ...form, grupo: g, item: i })} onRenomear={renomearItem} onNovoGrupo={novoGrupo} onRenomearGrupo={renomearGrupo} />
                       : <SeletorReceita canais={canaisReceita} item={form.item} onSelecionar={(i) => setForm({ ...form, grupo: "", item: i })} onRenomear={renomearCanal} />}
                   </div>
                   <div className="field"><label className="f">Valor (R$)</label><input value={form.valor} onChange={(e) => setForm({ ...form, valor: mascaraMoeda(e.target.value) })} placeholder="0,00" inputMode="decimal" /></div>

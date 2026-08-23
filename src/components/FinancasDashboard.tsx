@@ -36,18 +36,24 @@ function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: n
   const area = pts.length >= 2 ? `${linha} L${pts[pts.length - 1][0].toFixed(1)},${H - padBot} L${pts[0][0].toFixed(1)},${H - padBot} Z` : "";
   const id = `g-${cor.replace("#", "")}-${alto ? "b" : "s"}`;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
+    <svg className="dash-chart-hue" viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={cor} stopOpacity="0.32" />
+          <stop offset="0%" stopColor={cor} stopOpacity="0.46" />
+          <stop offset="55%" stopColor={cor} stopOpacity="0.14" />
           <stop offset="100%" stopColor={cor} stopOpacity="0" />
         </linearGradient>
+        <filter id={`glow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="3.4" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
       </defs>
       {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={pad} x2={W - pad} y1={padTop + f * (H - padTop - padBot)} y2={padTop + f * (H - padTop - padBot)} stroke="rgba(148,163,184,.13)" strokeDasharray="4 6" />)}
       {area && <path d={area} fill={`url(#${id})`} />}
-      {pts.length >= 2 && <path d={linha} fill="none" stroke={cor} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />}
+      {pts.length >= 2 && <path className="dash-line-glow" d={linha} fill="none" stroke={cor} strokeWidth={3.2} strokeLinejoin="round" strokeLinecap="round" filter={`url(#glow-${id})`} />}
       {pts.map((p, i) => (
         <g key={i}>
+          <circle className="dash-dot-halo" cx={p[0]} cy={p[1]} r={5} fill={cor} />
           <circle cx={p[0]} cy={p[1]} r={4.5} fill={cor} strokeWidth={2.5} style={{ stroke: "var(--dash-dot-stroke)" }} />
           <text className="oc-num" x={p[0]} y={p[1] - 12} textAnchor="middle" fontSize="14" fontWeight="800" style={{ fill: "var(--dash-num)" }}>{fmtK(p[2])}</text>
         </g>
@@ -71,7 +77,7 @@ function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: st
           <span style={{ width: larguraRot, flexShrink: 0, fontSize: alto ? 14 : (estreito ? 11.5 : 13), color: "var(--dash-muted)", textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontStyle: "italic" }}>{it.nome}</span>
           {/* trilho ocupa todo o espaço; a barra é proporcional à maior */}
           <div style={{ flex: 1, minWidth: 0, height: altura, borderRadius: 8, background: "var(--dash-track)", overflow: "hidden" }}>
-            <div style={{ height: "100%", borderRadius: 8, background: it.cor, width: `${Math.max(5, (it.valor / max) * 100)}%`, boxShadow: `0 0 18px -3px ${it.cor}aa` }} />
+            <div className="dash-bar-fill" style={{ height: "100%", borderRadius: 8, backgroundImage: `linear-gradient(90deg, ${it.cor}, ${it.cor}77, ${it.cor})`, backgroundSize: "200% 100%", width: `${Math.max(5, (it.valor / max) * 100)}%`, boxShadow: `0 0 20px -2px ${it.cor}bb, inset 0 1px 0 rgba(255,255,255,.35)` }} />
           </div>
           <span className="oc-num" style={{ width: estreito ? 78 : 96, flexShrink: 0, textAlign: "right", fontSize: alto ? 15 : 13.5, fontWeight: 800, color: "var(--dash-num)", whiteSpace: "nowrap" }}>{fmtR(it.valor)}</span>
         </div>
@@ -82,7 +88,7 @@ function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: st
 
 function Painel({ titulo, badge, badgeCor, chart, children }: { titulo: string; badge?: string; badgeCor?: string; chart?: boolean; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "var(--dash-card)", border: "1px solid var(--dash-card-line)", borderRadius: 16, padding: 14, boxShadow: "var(--dash-shadow)" }}>
+    <div className="dash-panel" style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "var(--dash-card)", border: "1px solid var(--dash-card-line)", borderRadius: 16, padding: 14, boxShadow: "var(--dash-shadow)" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
         <b style={{ fontSize: 14.5, color: "var(--dash-title)", letterSpacing: "-.01em" }}>{titulo}</b>
         {badge && (
@@ -191,14 +197,14 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
           <LinhaChart meses={calc.meses} valores={calc.recMes} cor={AZUL} alto={full} />
         </Painel>
         <Painel titulo="Composição por canal"><Barras itens={calc.canais} alto={full} /></Painel>
-        {!full && <div aria-hidden style={{ gridColumn: "1 / -1", height: 1, background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 32%, transparent), transparent)" }} />}
+        {!full && <div aria-hidden className="dash-divider" style={{ gridColumn: "1 / -1", height: 2, borderRadius: 2, background: "linear-gradient(90deg, transparent, var(--brand), transparent)", boxShadow: "0 0 16px -1px color-mix(in srgb, var(--brand) 60%, transparent)" }} />}
         <Painel titulo="Despesas mês a mês" badge={fmtR(calc.totCus)} badgeCor={VERMELHO} chart>
           <LinhaChart meses={calc.meses} valores={calc.cusMes} cor={VERMELHO} alto={full} />
         </Painel>
         <Painel titulo="Composição dos custos"><Barras itens={calc.custos.slice(0, 6)} alto={full} /></Painel>
       </div>
 
-      {!full && <div aria-hidden style={{ height: 1, margin: "4px 0", background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 32%, transparent), transparent)" }} />}
+      {!full && <div aria-hidden className="dash-divider" style={{ height: 2, borderRadius: 2, margin: "4px 0", background: "linear-gradient(90deg, transparent, var(--brand), transparent)", boxShadow: "0 0 16px -1px color-mix(in srgb, var(--brand) 60%, transparent)" }} />}
 
       {/* resumo receita x custo */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
