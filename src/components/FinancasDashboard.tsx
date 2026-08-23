@@ -159,7 +159,7 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
 
   // conteúdo do dashboard (reaproveitado em tela cheia)
   const conteudo = (
-    <div style={{ display: "flex", flexDirection: "column", gap: full ? 16 : 14, height: full ? "100%" : "auto", ...(full ? { width: "min(100vw, calc(100vh * 16 / 9))", maxHeight: "100vh", margin: "0 auto" } : {}) }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: full ? 16 : 14, height: full ? "100%" : "auto", ...(full ? { width: "min(100%, calc(100vh * 16 / 9))", maxWidth: "100%", maxHeight: "100vh", margin: "0 auto" } : {}) }}>
       {/* seletor de meses + expandir */}
       <div className="mesbar" style={full ? undefined : { marginBottom: 56 }}>
         {setAno && <span className="mesbar-ano"><SeletorAno ano={ano} setAno={setAno} escuro /></span>}
