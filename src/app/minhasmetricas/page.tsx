@@ -1034,7 +1034,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
   // Dashboard e Relatórios saíram das abas: agora são abertos pelos 2 cards da Home.
   const abas: { key: typeof aba; label: string; sub: string; Icon: typeof LayoutDashboard }[] = [
     { key: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
-    { key: "estrutura", label: "Painel financeiro", sub: "Receitas, custos e resultado", Icon: Layers },
+    { key: "estrutura", label: "Painel", sub: "Se preferir, preencha por aqui!", Icon: Layers },
   ];
   // Dashboard/Relatório/Folha abrem como tela própria: sem cabeçalho/abas do Finanças, só um "Voltar".
   const ehAtalhoHome = aba === "dashboard" || aba === "relatorios" || aba === "folha";

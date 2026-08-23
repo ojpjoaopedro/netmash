@@ -1024,7 +1024,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
 
   // larguras FIXAS iguais nas três tabelas: é isso que alinha Jan..Dez de ponta
   // a ponta entre Receitas, Custos e Resultado
-  const W_ROT = estreito ? 132 : 224, W_MES = estreito ? 82 : 116, W_TOT = estreito ? 92 : 128;
+  const W_ROT = estreito ? 132 : 256, W_MES = estreito ? 82 : 116, W_TOT = estreito ? 92 : 128;
   const larguraMin = W_ROT + mesesVis.length * W_MES + W_TOT;
   const cols = { W_ROT, W_MES, W_TOT, meses: mesesVis };
 
@@ -1716,7 +1716,7 @@ function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, 
         ) : (
           <>
             {/* nome + lápis logo ao lado; o resto da linha é área de clique para expandir */}
-            <span onClick={onToggle} style={{ cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "70%" }}>
+            <span onClick={onToggle} title={valor || undefined} style={{ cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
               {valor || <span style={{ color: "var(--muted)", fontWeight: 400 }}>Novo grupo</span>}
             </span>
             {protegido && (
