@@ -814,10 +814,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
             <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, maxWidth: "50%" }}>
-            {ATALHOS_HOME.map((c) => (
-              <CardAtalho key={c.aba} label={c.label} Icon={c.Icon} cor={c.cor} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }} />
-            ))}
+          <div style={{ maxWidth: 440 }}>
+            <CalendarioRecebimento ano={Number(anoSel)} />
           </div>
           </>
         )}
@@ -826,8 +824,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <div style={{ marginTop: 44 }}>
               <PainelCobrancas ano={Number(anoSel)} semTitulo />
             </div>
-            <div className="cal-promo" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.05fr)", gap: 16, alignItems: "start" }}>
-              <CalendarioRecebimento ano={Number(anoSel)} />
+            <div style={{ marginTop: 16 }}>
               <PromoParaVoce />
             </div>
           </div>

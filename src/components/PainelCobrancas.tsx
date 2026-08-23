@@ -284,7 +284,7 @@ function ListaLados({ lados }: { lados: Lado[] }) {
 /** Modo card: faturamento por canal (lista com barra de participação). */
 function CanalLista({ canal }: { canal: Canal[] }) {
   const total = canal.reduce((s, c) => s + c.valor, 0);
-  if (!total) return <p className="sub" style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 600 }}>Comece preenchendo pelo Calendário ou Painel financeiro.</p>;
+  if (!total) return <p className="sub" style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 600 }}>Comece preenchendo pelo Calendário ou Painel.</p>;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
       {canal.map((c, i) => (
@@ -306,7 +306,7 @@ function CanalLista({ canal }: { canal: Canal[] }) {
 }
 
 /** Modo gráfico: pizza de várias fatias (SVG), com % em cada fatia. */
-function PizzaCanal({ canal, vazio = "Comece preenchendo pelo Calendário ou Painel financeiro." }: { canal: Canal[]; vazio?: string }) {
+function PizzaCanal({ canal, vazio = "Comece preenchendo pelo Calendário ou Painel." }: { canal: Canal[]; vazio?: string }) {
   const dados = canal.filter((c) => c.valor > 0.005);
   const total = dados.reduce((s, c) => s + c.valor, 0);
   if (total <= 0) return (

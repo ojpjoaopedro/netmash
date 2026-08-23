@@ -1720,8 +1720,8 @@ function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, 
               {valor || <span style={{ color: "var(--muted)", fontWeight: 400 }}>Novo grupo</span>}
             </span>
             {protegido && (
-              <span title="Usado no cálculo do EBITDA. Não pode ser excluído (você pode zerar os valores)." style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--muted)", fontSize: 9.5, fontWeight: 800, letterSpacing: ".02em", opacity: .75 }}>
-                <Lock size={10} /> EBITDA
+              <span title="Usado no cálculo do EBITDA. Não pode ser excluído (você pode zerar os valores)." style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", color: "var(--muted)", opacity: .7 }}>
+                <Lock size={11} />
               </span>
             )}
             {aberto && (
@@ -1738,7 +1738,7 @@ function GrupoCel({ cor, valor, aberto, onToggle, onChange, onSalvo, onRemover, 
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = ".3")}>A–Z</button>
             )}
-            <span onClick={onToggle} style={{ flex: 1, alignSelf: "stretch", cursor: "pointer" }} />
+            <span onClick={onToggle} style={{ width: 8, flexShrink: 0, alignSelf: "stretch", cursor: "pointer" }} />
           </>
         )}
       </span>
