@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pencil, Trash2, Plus, X, Check, ChevronDown, ChevronRight } from "lucide-react";
+import { Pencil, Trash2, Plus, X, Check, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 import BarraMeses from "./BarraMeses";
 import { AnimNum } from "./AnimNum";
 import { carregarEstrutura, salvarEstrutura, Bloco, Freq, datasDaDespesa, ocConfirmada, valorDaOcorrencia } from "@/app/minhasmetricas/financas-estrutura";
@@ -279,14 +279,14 @@ const ym = (ano: number, mes: number) => ano * 12 + mes;   // índice absoluto a
 
 type Ocor = { d: Despesa; venc: Date; mesGer: number; iso: string; confirmado: boolean; valor: number };
 
-export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagamentos" }: { anoInicial?: number; tipo?: TipoCal }) {
+export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagamentos", compacto = false }: { anoInicial?: number; tipo?: TipoCal; compacto?: boolean }) {
   const ambos = tipo === "ambos";
   // no modo unificado usamos rótulos por linha (cfgDe); o cfg "base" serve de fallback.
   const cfg = CFG[ambos ? "pagamentos" : tipo];
   const cfgDe = (o?: Despesa["origem"]) => CFG[o === "receita" ? "recebimentos" : "pagamentos"];
   const [ano, setAno] = useState(ANOS.includes(anoInicial) ? anoInicial : 2026);
   // padrão igual ao Painel financeiro: mês atual + os 2 meses seguintes
-  const [sel, setSel] = useState<Set<number>>(() => { const m = new Date().getMonth(); return new Set([m, m + 1, m + 2].filter((x) => x <= 11)); });
+  const [sel, setSel] = useState<Set<number>>(() => { const m = new Date().getMonth(); return compacto ? new Set([m]) : new Set([m, m + 1, m + 2].filter((x) => x <= 11)); });
   const [desps, setDesps] = useState<Despesa[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [modal, setModal] = useState<{ mes: number; dia: number } | null>(null);
@@ -483,17 +483,22 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
   return (
     <div>
       {/* mesma barra do Painel financeiro (ano + meses + ações + ocultar) */}
+      {!compacto && (
       <div style={{ marginBottom: 12 }}>
         <BarraMeses ano={ano} setAno={(a) => setAno(a)} sel={sel} setSel={setSel} />
       </div>
+      )}
 
       {/* meses (só os selecionados) — 4 por linha no desktop, responsivo no celular */}
-      <div className="meses-grid">
+      <div className="meses-grid" style={compacto ? { gridTemplateColumns: "1fr", maxWidth: "100%" } : undefined}>
         {MES_NOME.map((nome, m) => sel.has(m) && (
           <div key={m} className="card" style={{ padding: 12 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
-              <b style={{ fontSize: 13.5 }}>{nome}</b>
-              {ambos ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
+              {compacto && <button className="iconbtn" onClick={() => setSel(new Set([Math.max(0, m - 1)]))} disabled={m === 0} title="Mês anterior"><ChevronLeft size={18} /></button>}
+              <b style={{ fontSize: compacto ? 14 : 13.5, ...(compacto ? { flex: 1, textAlign: "center" as const } : {}) }}>{compacto ? `${nome} ${ano}` : nome}</b>
+              {compacto ? (
+                <button className="iconbtn" onClick={() => setSel(new Set([Math.min(11, m + 1)]))} disabled={m === 11} title="Próximo mês"><ChevronRight size={18} /></button>
+              ) : (ambos ? (
                 (somaMes(m, false, false) > 0 || somaMes(m, true, false) > 0) ? (
                   <div style={{ display: "flex", gap: 14, textAlign: "right" }}>
                     <div style={{ lineHeight: 1.15 }}>
@@ -517,7 +522,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                     <span style={{ fontSize: 8.5, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".03em" }}>{cfg.realizadoLabel}</span>
                   </div>
                 </div>
-              ) : <span style={{ fontSize: 13, fontWeight: 800, color: "var(--muted)" }} className="oc-num">–</span>}
+              ) : <span style={{ fontSize: 13, fontWeight: 800, color: "var(--muted)" }} className="oc-num">–</span>)}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
               {SEM.map((s, i) => <div key={i} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "var(--muted-2)", paddingBottom: 4 }}>{s}</div>)}
@@ -556,6 +561,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       </div>
 
       {/* legenda (abaixo do calendário) */}
+      {!compacto && (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 18, fontSize: 12, color: "var(--muted)", flexWrap: "wrap", marginTop: 14 }}>
         {ambos && <>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: VERMELHO, display: "inline-block" }} /> Despesa</span>
@@ -563,6 +569,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
         </>}
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: 99, background: AMBAR, display: "inline-block" }} /> Feriado nacional</span>
       </div>
+      )}
 
       {/* modal do dia */}
       {modal && (() => {
@@ -709,13 +716,15 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                       </span>
                       <b className="oc-num" style={{ whiteSpace: "nowrap", color: o.confirmado ? "#fff" : "#94a3b8", fontWeight: o.confirmado ? 700 : 500 }}>{fmtR(o.valor)}</b>
                     </div>
-                    {o.confirmado
-                      ? <span style={{ justifySelf: "start", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#34d399", background: "rgba(16,185,129,.18)", padding: "3px 10px", borderRadius: 99 }}><Check size={12} /> {c.pago}</span>
-                      : <button onClick={() => abrirPagar(o)} style={{ justifySelf: "stretch", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12, padding: "6px 12px", borderRadius: 8, border: 0, background: "#10B981", color: "#fff" }}><Check size={15} /> {c.acaoPagar}</button>}
-                    <button onClick={() => { setHover(null); o.d.recorrente ? setAExcluir({ d: o.d, venym: ym(ano, o.mesGer), iso: o.iso, porMes: (o.d.freq || "mensal") === "mensal" }) : excluir(o.d.id); }}
-                      style={{ justifySelf: "stretch", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 11.5, padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(239,68,68,.5)", background: "transparent", color: "#f87171" }}>
-                      <Trash2 size={13} /> Remover
-                    </button>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      {o.confirmado
+                        ? <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#34d399", background: "rgba(16,185,129,.18)", padding: "5px 10px", borderRadius: 99 }}><Check size={12} /> {c.pago}</span>
+                        : <button onClick={() => abrirPagar(o)} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12, padding: "6px 12px", borderRadius: 8, border: 0, background: "#10B981", color: "#fff" }}><Check size={15} /> {c.acaoPagar}</button>}
+                      <button onClick={() => { setHover(null); o.d.recorrente ? setAExcluir({ d: o.d, venym: ym(ano, o.mesGer), iso: o.iso, porMes: (o.d.freq || "mensal") === "mensal" }) : excluir(o.d.id); }}
+                        style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 11.5, padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(239,68,68,.5)", background: "transparent", color: "#f87171" }}>
+                        <Trash2 size={13} /> Remover
+                      </button>
+                    </div>
                   </div>
                   );
                 })}

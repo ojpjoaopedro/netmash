@@ -75,13 +75,8 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
   ].filter((l) => l.valor > 0).map((l) => ({ ...l, desc: nomes ? [...new Set(nomes[l.rotulo])].filter(Boolean).join(", ") : "" })) : [];
 
   return (
-    <div className="card" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
-
-      {/* legenda */}
-      <div style={{ display: "flex", gap: 18, marginBottom: 10, flexWrap: "wrap" }}>
-        <Legenda cor={REC} texto="Faturamento" aberto={info === "rec"} onClick={() => setInfo(info === "rec" ? null : "rec")} dica="Faturamento a receber e já recebido." />
-        <Legenda cor={PAG} texto="Despesas" aberto={info === "pag"} onClick={() => setInfo(info === "pag" ? null : "pag")} dica="Contas a pagar e já pagas." />
-      </div>
+    <div className="card" style={{ padding: 16, display: "flex", flexDirection: "column" }}>
+      <b style={{ fontSize: 15, marginBottom: 12 }}>Conferência do dia</b>
 
       {/* navegação de mês */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
@@ -102,7 +97,7 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
           const sel = diaSel === di;
           return (
             <button key={d} onClick={() => setDiaSel(sel ? null : di)}
-              style={{ position: "relative", height: 58, borderRadius: 11, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 600,
+              style={{ position: "relative", height: 42, borderRadius: 10, border: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 14.5, fontWeight: 600,
                 background: sel ? "var(--brand)" : "transparent", color: sel ? "var(--brand-ct,#fff)" : "var(--txt)", display: "grid", placeItems: "center", transition: ".12s" }}
               onMouseEnter={(e) => { if (!sel) e.currentTarget.style.background = "var(--bg-2)"; }}
               onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = "transparent"; }}>
@@ -140,6 +135,12 @@ export default function CalendarioRecebimento({ ano }: { ano: number }) {
           ) : <p className="sub" style={{ fontSize: 12.5 }}>Nenhum lançamento neste dia.</p>}
         </div>
       )}
+
+      {/* legenda das cores (embaixo, como referência) */}
+      <div style={{ display: "flex", gap: 18, justifyContent: "center", flexWrap: "wrap", marginTop: 14 }}>
+        <Legenda cor={REC} texto="Faturamento" aberto={info === "rec"} onClick={() => setInfo(info === "rec" ? null : "rec")} dica="Faturamento a receber e já recebido." />
+        <Legenda cor={PAG} texto="Despesas" aberto={info === "pag"} onClick={() => setInfo(info === "pag" ? null : "pag")} dica="Contas a pagar e já pagas." />
+      </div>
     </div>
   );
 }

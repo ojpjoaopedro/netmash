@@ -814,8 +814,22 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
             <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
           </div>
-          <div>
-            <CalendarioPagamentos anoInicial={Number(anoSel)} tipo="ambos" />
+          <div style={{ maxWidth: "70%", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 14, alignItems: "start" }}>
+            <div>
+              <CalendarioPagamentos anoInicial={Number(anoSel)} tipo="ambos" compacto />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <button onClick={() => { playTick(); navegar({ view: "financas", aba: "calendario" }); }}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 22px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
+                <CalendarDays size={22} color="#F59E0B" style={{ flexShrink: 0 }} /> Abrir calendário completo
+                <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
+              </button>
+              <button onClick={() => { playTick(); navegar({ view: "financas", aba: "estrutura" }); }}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 22px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
+                <Layers size={22} color="#1AADE2" style={{ flexShrink: 0 }} /> Abrir painel de lançamento
+                <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
+              </button>
+            </div>
           </div>
           </>
         )}
@@ -1062,10 +1076,10 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
       {/* título — escondido no celular (o cabeçalho azul já mostra "Finanças") */}
       {!estreito && !ehAtalhoHome && (
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", background: "linear-gradient(150deg,var(--brand),var(--brand-dark))", color: "#fff", flexShrink: 0 }}>
-          <DollarSign size={22} />
-        </span>
-        <h2 style={{ margin: 0, fontSize: "clamp(21px, 6vw, 27px)", fontWeight: 800, letterSpacing: "-.6px" }}>Finanças</h2>
+        <button onClick={() => { playTick(); navegar({ view: "dashboard" }); }} title="Voltar para a Home"
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, border: "1px solid var(--line-2)", background: "transparent", color: "var(--muted)" }}>
+          <ArrowLeft size={18} /> Voltar
+        </button>
         <button onClick={() => setTutFin(true)} title="Fazer o tutorial guiado"
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--brand)", background: "color-mix(in srgb, var(--brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--brand) 28%, transparent)", padding: "6px 12px", borderRadius: 99 }}>
           <Sparkles size={16} /> Tutorial
