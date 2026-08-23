@@ -31,6 +31,18 @@
   --amber:#F59E0B; --amber-bg:rgba(245,158,11,.13);
   --violet:#8b5cf6;
   --radius:16px;
+
+  /* Dashboard financeiro (segue o tema: escuro por padrão) */
+  --dash-bg:linear-gradient(165deg,#0d1526,#080d18);
+  --dash-line:rgba(148,163,184,.12);
+  --dash-card:linear-gradient(160deg,rgba(30,41,59,.6),rgba(15,23,42,.35));
+  --dash-card-line:rgba(148,163,184,.14);
+  --dash-shadow:0 20px 50px -30px rgba(0,0,0,.7);
+  --dash-title:#f8fafc;
+  --dash-num:#eef2f7;
+  --dash-muted:#94a3b8;
+  --dash-track:rgba(148,163,184,.10);
+  --dash-dot-stroke:#0b1220;
 }
 
 body.theme-light{
@@ -38,6 +50,17 @@ body.theme-light{
   --txt:#18181b; --txt-2:#27272a; --muted:#52525b; --muted-2:#71717a;
   --line:rgba(0,0,0,.08); --line-2:rgba(0,0,0,.12);
   /* sidebar permanece escura mesmo no claro (igual ao Hub) */
+  /* dashboard financeiro no tema claro */
+  --dash-bg:linear-gradient(165deg,#ffffff,#eef2f8);
+  --dash-line:#e5e7eb;
+  --dash-card:#ffffff;
+  --dash-card-line:#e6e9ef;
+  --dash-shadow:0 12px 34px -22px rgba(15,23,42,.22);
+  --dash-title:#0f172a;
+  --dash-num:#0f172a;
+  --dash-muted:#64748b;
+  --dash-track:rgba(15,23,42,.07);
+  --dash-dot-stroke:#ffffff;
 }
 
 *{box-sizing:border-box}
