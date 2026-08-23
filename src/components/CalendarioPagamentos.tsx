@@ -493,7 +493,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
       {/* meses (só os selecionados) — 4 por linha no desktop, responsivo no celular */}
       <div className="meses-grid" style={compacto ? { gridTemplateColumns: "1fr", maxWidth: "100%" } : undefined}>
         {MES_NOME.map((nome, m) => sel.has(m) && (
-          <div key={m} className="card" style={compacto ? { padding: 16, background: "linear-gradient(160deg, rgba(26,173,226,.12), rgba(129,140,248,.07) 55%, var(--card))" } : { padding: 12 }}>
+          <div key={m} className="card" style={compacto ? { padding: 16, background: "linear-gradient(160deg, color-mix(in srgb, var(--brand) 16%, var(--card)), color-mix(in srgb, var(--brand-light) 9%, var(--card)) 55%, var(--card))" } : { padding: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
               {compacto && <button className="iconbtn" onClick={() => setSel(new Set([Math.max(0, m - 1)]))} disabled={m === 0} title="Mês anterior"><ChevronLeft size={18} /></button>}
               <b style={{ fontSize: compacto ? 14 : 13.5, ...(compacto ? { flex: 1, textAlign: "center" as const } : {}) }}>{compacto ? `${nome} ${ano}` : nome}</b>
@@ -545,7 +545,9 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                       ...(compacto ? { height: 42, borderRadius: 10, fontSize: 14.5 } : { aspectRatio: "1", borderRadius: "50%", fontSize: 11.5 }),
                       background: temDesp
                         ? (compacto
-                            ? (soPendente ? "linear-gradient(145deg, rgba(147,197,253,.32), rgba(147,197,253,.12))" : "linear-gradient(145deg, rgba(26,173,226,.32), rgba(129,140,248,.16))")
+                            ? (soPendente
+                                ? "linear-gradient(145deg, color-mix(in srgb, var(--brand-light) 30%, transparent), color-mix(in srgb, var(--brand-light) 12%, transparent))"
+                                : "linear-gradient(145deg, color-mix(in srgb, var(--brand) 34%, transparent), color-mix(in srgb, var(--brand-light) 18%, transparent))")
                             : (soPendente ? "rgba(147,197,253,.22)" : "rgba(26,173,226,.16)"))
                         : "transparent",
                       color: "var(--txt)", fontWeight: ehHoje || temDesp ? 700 : 500 }}>

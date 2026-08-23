@@ -80,8 +80,8 @@ const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard 
 const CONFIG_CARDS = ["dados", "equipe"];
 // atalhos da Home (mesmos no web e no celular, cor fixa)
 const ATALHOS_HOME: { aba: string; label: string; Icon: typeof Layers; cor: string }[] = [
-  { aba: "calendario", label: "Calendário", Icon: CalendarDays, cor: "#F59E0B" },
-  { aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "#1AADE2" },
+  { aba: "calendario", label: "Calendário", Icon: CalendarDays, cor: "var(--brand)" },
+  { aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "var(--brand)" },
 ];
 // Sub-abas (pílulas) — Empresa e Equipe
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }];
@@ -821,12 +821,12 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <button onClick={() => { playTick(); navegar({ view: "financas", aba: "calendario" }); }}
                 style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 22px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
-                <CalendarDays size={22} color="#F59E0B" style={{ flexShrink: 0 }} /> Abrir calendário completo
+                <CalendarDays size={22} color="var(--brand)" style={{ flexShrink: 0 }} /> Abrir calendário completo
                 <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
               </button>
               <button onClick={() => { playTick(); navegar({ view: "financas", aba: "estrutura" }); }}
                 style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 22px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
-                <Layers size={22} color="#1AADE2" style={{ flexShrink: 0 }} /> Abrir painel de lançamento
+                <Layers size={22} color="var(--brand)" style={{ flexShrink: 0 }} /> Abrir painel de lançamento
                 <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
               </button>
             </div>
