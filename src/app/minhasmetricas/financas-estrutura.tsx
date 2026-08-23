@@ -13,7 +13,6 @@ import { SeletorCusto } from "@/components/CalendarioPagamentos";
 import { folhaTotais, categoriaDoItem } from "@/lib/folha-totais";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { supabase, supabaseReady } from "@/lib/supabase";
-import { ehSuperadmin } from "@/lib/superadmin";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { empresaAtualId } from "@/lib/empresa-atual";
 import { createPortal } from "react-dom";
@@ -571,7 +570,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   const pularSalvar = useRef(false);   // evita gravar os dados de um ano na chave de outro ao trocar
   const [sel, setSel] = useState<Set<number>>(new Set()); // meses exibidos (vazio só antes de carregar)
   const [estreito, setEstreito] = useState(false);        // tela de celular: colunas mais compactas
-  const [ehSuper, setEhSuper] = useState(false);          // só superadmin vê o "Restaurar padrão"
+  const [ehSuper, setEhSuper] = useState(false);          // "Restaurar padrão" aparece só na empresa Minhas Métricas
   const [confReset, setConfReset] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
@@ -582,7 +581,7 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   useEffect(() => {
     (async () => {
       if (!supabaseReady || !supabase) return;
-      try { const { data } = await supabase.auth.getUser(); setEhSuper(ehSuperadmin(data.user?.email)); } catch { /* ignore */ }
+      try { const { data } = await supabase.auth.getUser(); setEhSuper((data.user?.email || "").toLowerCase() === "minhasmetricas@gmail.com"); } catch { /* ignore */ }
     })();
   }, []);
   // Restaura a empresa ao modelo padrão de empresa nova: zera valores/lançamentos e volta grupos/itens.

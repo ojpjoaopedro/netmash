@@ -765,10 +765,10 @@ body:not(.theme-light) .dash-panel:hover{box-shadow:0 30px 66px -22px rgba(0,0,0
 .dash-chart-hue{animation:dashChartHue 6s ease-in-out infinite}
 @keyframes dashChartHue{0%,100%{filter:hue-rotate(-8deg)}50%{filter:hue-rotate(12deg)}}
 /* Cartões ultramodernos: fio fino no topo + brilho de degradê em loop imperceptível */
-.dash-panel{position:relative;overflow:hidden}
+.dash-panel{position:relative}
 .dash-panel::after{content:"";position:absolute;top:0;left:14px;right:14px;height:1px;pointer-events:none;z-index:1;
   background:linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 55%, transparent), transparent)}
-.dash-panel::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;
+.dash-panel::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;overflow:hidden;
   background:linear-gradient(115deg, transparent 34%, color-mix(in srgb, var(--brand) 6%, transparent) 50%, transparent 66%);
   background-size:260% 100%;animation:dashSheen 11s ease-in-out infinite}
 @keyframes dashSheen{0%{background-position:130% 0}100%{background-position:-30% 0}}

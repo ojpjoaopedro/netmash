@@ -5,6 +5,8 @@ import { MES, Dados, carregarEstruturaComPagamentos } from "@/app/minhasmetricas
 import SeletorAno from "./SeletorAno";
 
 const AZUL = "#38BDF8", VERMELHO = "#F43F5E";
+// troca o cinza sem graça por um tom mais bonito (mantém as demais cores)
+const corViva = (c?: string) => (!c || c.toLowerCase() === "#94a3b8") ? "#818cf8" : c;
 const fmtR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 const fmtK = (n: number) => (Math.abs(n) >= 1000 ? `R$ ${Math.round(n / 1000)}k` : `R$ ${Math.round(n)}`);
 const somaMes = (linhas: { v: number[] }[], m: number) => linhas.reduce((s, l) => s + (l.v[m] || 0), 0);
@@ -24,7 +26,7 @@ function useEstreito() {
 /** Gráfico de linha em SVG (faturamento/despesas). Escala a fonte pela largura via viewBox. */
 function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: number[]; cor: string; alto?: boolean }) {
   if (meses.length === 0) return <div style={{ display: "grid", placeItems: "center", width: "100%", minHeight: 120, color: "#64748b", fontSize: 13, fontStyle: "italic" }}>Sem dados no período</div>;
-  const W = 640, H = alto ? 360 : 250, pad = 40, padTop = 40, padBot = 32;
+  const W = alto ? 1040 : 640, H = alto ? 360 : 250, pad = 40, padTop = 40, padBot = 32;
   const n = meses.length;
   const px = (i: number) => pad + (n <= 1 ? (W - pad * 2) / 2 : (i * (W - pad * 2)) / (n - 1));
   // só os meses COM dado viram ponto/linha; os vazios ficam só com o nome no eixo
@@ -68,13 +70,13 @@ function LinhaChart({ meses, valores, cor, alto }: { meses: number[]; valores: n
 function Barras({ itens, alto }: { itens: { nome: string; valor: number; cor: string }[]; alto?: boolean }) {
   const max = Math.max(1, ...itens.map((i) => i.valor));
   const estreito = useEstreito();
-  const larguraRot = estreito ? 96 : (alto ? 260 : 220);
+  const larguraRot = estreito ? 96 : (alto ? 180 : 210);
   const altura = alto ? 30 : 24;
   return (
     <div style={{ display: "grid", gap: alto ? 14 : 16, alignContent: "center", height: "100%", width: "100%", minWidth: 0 }}>
       {itens.map((it) => (
         <div key={it.nome} style={{ display: "flex", alignItems: "center", gap: estreito ? 8 : 12 }}>
-          <span style={{ width: larguraRot, flexShrink: 0, fontSize: alto ? 14 : (estreito ? 11.5 : 13), color: "var(--dash-muted)", textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontStyle: "italic" }}>{it.nome}</span>
+          <span style={{ width: larguraRot, flexShrink: 0, fontSize: alto ? 14 : (estreito ? 11.5 : 13), color: "var(--dash-muted)", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontStyle: "italic" }}>{it.nome}</span>
           {/* trilho ocupa todo o espaço; a barra é proporcional à maior */}
           <div style={{ flex: 1, minWidth: 0, height: altura, borderRadius: 8, background: "var(--dash-track)", overflow: "hidden" }}>
             <div className="dash-bar-fill" style={{ height: "100%", borderRadius: 8, backgroundImage: `linear-gradient(90deg, ${it.cor}, ${it.cor}77, ${it.cor})`, backgroundSize: "200% 100%", width: `${Math.max(5, (it.valor / max) * 100)}%`, boxShadow: `0 0 20px -2px ${it.cor}bb, inset 0 1px 0 rgba(255,255,255,.35)` }} />
@@ -146,8 +148,8 @@ export default function FinancasDashboard({ ano = 2026, setAno }: { ano?: number
     const recMes = meses.map((m) => somaMes(data.receitas, m));
     const cusMes = meses.map((m) => somaMes(itens, m));
     const somaSel = (linhas: { v: number[] }[]) => meses.reduce((s, m) => s + somaMes(linhas, m), 0);
-    const canais = data.receitas.map((r) => ({ nome: r.nome, valor: somaSel([r]), cor: r.cor || AZUL })).filter((x) => x.valor > 0).sort((a, b) => b.valor - a.valor);
-    const custos = grupos.map((g) => ({ nome: g.nome, valor: somaSel(g.itens), cor: g.cor })).filter((x) => x.valor > 0).sort((a, b) => b.valor - a.valor);
+    const canais = data.receitas.map((r) => ({ nome: r.nome, valor: somaSel([r]), cor: r.cor ? corViva(r.cor) : AZUL })).filter((x) => x.valor > 0).sort((a, b) => b.valor - a.valor);
+    const custos = grupos.map((g) => ({ nome: g.nome, valor: somaSel(g.itens), cor: corViva(g.cor) })).filter((x) => x.valor > 0).sort((a, b) => b.valor - a.valor);
     return { meses, recMes, cusMes, totRec: recMes.reduce((s, x) => s + x, 0), totCus: cusMes.reduce((s, x) => s + x, 0), canais, custos };
   }, [data, sel]);
 
