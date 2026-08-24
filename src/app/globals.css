@@ -464,6 +464,12 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
     --txt:#eaf0ff;--txt-2:#c4d0f2;--muted:#9db0ea;--muted-2:#6f80bd;
     --line:rgba(150,180,255,.14);--line-2:rgba(150,180,255,.26);
     background:linear-gradient(180deg,#182a72 0%,#0c1338 300px,#080c22 660px)}
+  /* tema CLARO: o app mobile inteiro fica claro (paleta neutra do web), não o azul-neon */
+  body.theme-light .main{
+    --card:#FFFFFF;--card-2:#FAFAFA;--bg-2:#F5F5F5;
+    --txt:#18181b;--txt-2:#27272a;--muted:#52525b;--muted-2:#71717a;
+    --line:rgba(0,0,0,.08);--line-2:rgba(0,0,0,.12);
+    color:#18181b;background:linear-gradient(180deg,#eef2fb 0%,#f6f8fc 300px,#ffffff 660px)}
   /* Home */
   /* a Home do app segue o TEMA do app: preto (escuro) ou branco (claro). */
   /* Home mobile IGUAL À WEB: usa a paleta neutra do tema (não o azul-neon do resto do app mobile) */

@@ -647,6 +647,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
               </div>
             </div>
 
+            {/* card de ativar notificações (topo da Home, some depois de ativado) */}
+            <div style={{ padding: "16px 16px 0" }}><AtivarNotificacoes como="card" /></div>
+
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "26px 16px 0" }}>
               <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
               <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
@@ -668,9 +671,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
               </button>
             </div>
-
-            {/* card de ativar notificações no celular (some depois de ativado) */}
-            <div style={{ padding: "30px 16px 0" }}><AtivarNotificacoes como="card" /></div>
 
             <div className="mhome-gray" style={{ marginTop: 32 }}>
               <div style={{ marginTop: 4 }}><PainelCobrancas ano={Number(anoSel)} semTitulo /></div>
