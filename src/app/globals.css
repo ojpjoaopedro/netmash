@@ -466,7 +466,15 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
     background:linear-gradient(180deg,#182a72 0%,#0c1338 300px,#080c22 660px)}
   /* Home */
   /* a Home do app segue o TEMA do app: preto (escuro) ou branco (claro). */
-  .mhome{width:100%;max-width:100%;overflow-x:clip;padding-bottom:96px;min-height:100dvh;color:var(--txt);background:var(--bg)}
+  /* Home mobile IGUAL À WEB: usa a paleta neutra do tema (não o azul-neon do resto do app mobile) */
+  .mhome{width:100%;max-width:100%;overflow-x:clip;padding-bottom:96px;min-height:100dvh;color:var(--txt);background:var(--bg);
+    --card:#121212;--card-2:#161616;--bg-2:#0D0D0D;
+    --txt:#FAFAFA;--txt-2:#e4e4e7;--muted:#a1a1aa;--muted-2:#71717a;
+    --line:rgba(255,255,255,.06);--line-2:rgba(255,255,255,.10)}
+  body.theme-light .mhome{
+    --card:#FFFFFF;--card-2:#FAFAFA;--bg-2:#F5F5F5;
+    --txt:#18181b;--txt-2:#27272a;--muted:#52525b;--muted-2:#71717a;
+    --line:rgba(0,0,0,.08);--line-2:rgba(0,0,0,.12)}
   .main{overflow-x:clip}
   .mhome-top{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 8px;background:transparent}
   .mhome-top button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);cursor:pointer;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;transition:background .15s,transform .1s}
