@@ -13,7 +13,7 @@ import {
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   ArrowLeft, ArrowUpCircle, ChevronRight, ChevronLeft, Trash2,
-  Bell, Wallet, Lock, Check, Home as HomeIcon,
+  Bell, Wallet, Lock, Check, Home as HomeIcon, MessageCircle,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -51,7 +51,6 @@ import TermosDeUso from "@/components/TermosDeUso";
 import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
 import { temPlano } from "@/lib/planos";
-import SuporteWhatsApp from "@/components/SuporteWhatsApp";
 
 type View =
   | "dashboard" | "painel" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
@@ -78,6 +77,8 @@ const METRICAS = [
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
 // Cards de Configurações (mobile): só os itens de cadastro.
 const CONFIG_CARDS = ["dados", "equipe"];
+// Suporte via WhatsApp (item do menu) — (62) 99479-7664
+const WPP_SUPORTE = "https://wa.me/5562994797664?text=" + encodeURIComponent("Olá! Preciso de ajuda com o Minhas Métricas.");
 // Sub-abas (pílulas) — Empresa e Equipe
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
@@ -444,7 +445,6 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
   return (
     <div className="app">
-      <SuporteWhatsApp />
 
 
       {/* Drawer (mobile) */}
@@ -489,6 +489,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
                     <Icon size={16} color={corDe(key)} /> {label}
                   </button>
                 ); })}
+                <button onClick={() => { playTick(); window.open(WPP_SUPORTE, "_blank", "noopener,noreferrer"); setMenuAberto(false); }}>
+                  <MessageCircle size={16} color="#25D366" /> Suporte
+                </button>
               </nav>
             </div>
             <div className="side-foot">
@@ -553,6 +556,9 @@ export default function Home({ secao }: { secao?: string } = {}) {
                 <Icon size={16} color={corDe(key)} /> {label}
               </button>
             ); })}
+            <button onClick={() => { playTick(); window.open(WPP_SUPORTE, "_blank", "noopener,noreferrer"); }}>
+              <MessageCircle size={16} color="#25D366" /> Suporte
+            </button>
           </nav>
         </div>
 
