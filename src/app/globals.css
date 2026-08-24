@@ -602,6 +602,37 @@ input:not(.mba-scope *):focus,select:not(.mba-scope *):focus,textarea:not(.mba-s
   33%{box-shadow:0 0 30px -10px rgba(16,185,129,.5)}
   66%{box-shadow:0 0 30px -10px rgba(139,92,246,.5)}}
 @media(prefers-reduced-motion:reduce){.auth-wrap::before,.auth-card,.auth-card::before,.auth-card::after{animation:none}}
+
+/* ===== Cartão/botão premium: borda fina animada com brilho + glow sutil (padrão tecnológico) ===== */
+.premium{position:relative;isolation:isolate;animation:premiumGlow 9s ease-in-out infinite}
+.premium::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:3;
+  background:conic-gradient(from var(--ang,0deg),
+    var(--brand),
+    color-mix(in srgb, var(--brand) 55%, #8b5cf6),
+    var(--brand-light),
+    color-mix(in srgb, var(--brand) 60%, #38bdf8),
+    var(--brand));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:.85;animation:authBorderSpin 9s linear infinite}
+/* brilho que corre por dentro da borda (linha viva) */
+.premium::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:2;
+  background:conic-gradient(from var(--ang,0deg), transparent 0deg, transparent 300deg, var(--brand-light) 340deg, #fff 352deg, var(--brand-light) 356deg, transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  filter:blur(1px);opacity:.9;animation:authBorderSpin 9s linear infinite}
+@keyframes premiumGlow{
+  0%,100%{box-shadow:0 0 22px -14px color-mix(in srgb, var(--brand) 70%, transparent)}
+  50%{box-shadow:0 0 26px -11px color-mix(in srgb, var(--brand) 90%, transparent)}}
+/* no tema claro, ainda mais leve e sutil sobre o branco */
+body.theme-light .premium::before{opacity:.6}
+body.theme-light .premium::after{opacity:.7}
+body.theme-light .premium{animation-name:premiumGlowLight}
+@keyframes premiumGlowLight{
+  0%,100%{box-shadow:0 6px 22px -16px color-mix(in srgb, var(--brand) 55%, transparent)}
+  50%{box-shadow:0 6px 24px -14px color-mix(in srgb, var(--brand) 70%, transparent)}}
+@media(prefers-reduced-motion:reduce){.premium,.premium::before,.premium::after{animation:none}}
+
 .auth-card .brand{justify-content:center;margin-bottom:6px}
 .auth-card h1{text-align:center;font-size:22px;margin:14px 0 4px}
 .auth-card .muted{text-align:center;color:var(--muted);font-size:14px;margin-bottom:20px}

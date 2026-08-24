@@ -50,7 +50,6 @@ import CalendarioPagamentos from "@/components/CalendarioPagamentos";
 import TermosDeUso from "@/components/TermosDeUso";
 import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
-import CardAtalho from "@/components/CardAtalho";
 import { temPlano } from "@/lib/planos";
 
 type View =
@@ -78,11 +77,6 @@ const METRICAS = [
 const METRICAS_MAIS: { key: string; label: string; Icon: typeof LayoutDashboard }[] = [];
 // Cards de Configurações (mobile): só os itens de cadastro.
 const CONFIG_CARDS = ["dados", "equipe"];
-// atalhos da Home (mesmos no web e no celular, cor fixa)
-const ATALHOS_HOME: { aba: string; label: string; Icon: typeof Layers; cor: string }[] = [
-  { aba: "calendario", label: "Calendário", Icon: CalendarDays, cor: "var(--brand)" },
-  { aba: "estrutura", label: "Painel financeiro", Icon: Layers, cor: "var(--brand)" },
-];
 // Sub-abas (pílulas) — Empresa e Equipe
 const PILL_EQ: { key: View; label: string }[] = [{ key: "empresa", label: "Dados da empresa" }, { key: "equipe", label: "Equipe" }];
 const SUBTABS: Record<string, { key: View; label: string }[]> = {
@@ -141,7 +135,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const [tutMobile, setTutMobile] = useState(false);
   // marca como visto no navegador E no banco (não reabre nem em janela anônima)
   const marcarTutVisto = () => { try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } salvarEstadoRemoto("me_tut_financas", "1"); };
-  useEffect(() => { try { if (estreito && localStorage.getItem("me_tut_financas") !== "1") { setTutMobile(true); marcarTutVisto(); } } catch { /* ignore */ } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [estreito]);
+  // tutorial NÃO abre mais sozinho ao entrar no app (só marca como visto)
+  useEffect(() => { try { marcarTutVisto(); } catch { /* ignore */ } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [estreito]);
   const fecharTutMobile = () => { setTutMobile(false); marcarTutVisto(); };
   // popup de upgrade da Folha de pagamento (abre antes de levar aos Planos)
   const [folhaPromo, setFolhaPromo] = useState(false);
@@ -660,11 +655,18 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <div style={{ padding: "16px 16px 0" }}>
               <CalendarioPagamentos anoInicial={Number(anoSel)} tipo="ambos" compacto />
             </div>
-            {/* capa do app: atalhos com os mesmos ícones */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "18px 26px 0" }}>
-              {ATALHOS_HOME.map((c) => (
-                <CardAtalho key={c.aba} label={c.label} Icon={c.Icon} cor={c.cor} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }} />
-              ))}
+            {/* botões (igual à web): abrir calendário completo / painel de lançamento */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "18px 16px 0" }}>
+              <button className="premium" onClick={() => { playTick(); navegar({ view: "financas", aba: "calendario" }); }}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 20px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid transparent", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
+                <CalendarDays size={22} color="var(--brand)" style={{ flexShrink: 0 }} /> Abrir calendário completo
+                <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
+              </button>
+              <button className="premium" onClick={() => { playTick(); navegar({ view: "financas", aba: "estrutura" }); }}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 20px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid transparent", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
+                <Layers size={22} color="var(--brand)" style={{ flexShrink: 0 }} /> Abrir painel de lançamento
+                <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
+              </button>
             </div>
 
             {/* card de ativar notificações no celular (some depois de ativado) */}
@@ -824,13 +826,13 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <CalendarioPagamentos anoInicial={Number(anoSel)} tipo="ambos" compacto />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <button onClick={() => { playTick(); navegar({ view: "financas", aba: "calendario" }); }}
-                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 22px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
+              <button className="premium" onClick={() => { playTick(); navegar({ view: "financas", aba: "calendario" }); }}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 22px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid transparent", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
                 <CalendarDays size={22} color="var(--brand)" style={{ flexShrink: 0 }} /> Abrir calendário completo
                 <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
               </button>
-              <button onClick={() => { playTick(); navegar({ view: "financas", aba: "estrutura" }); }}
-                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 22px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
+              <button className="premium" onClick={() => { playTick(); navegar({ view: "financas", aba: "estrutura" }); }}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "18px 22px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", textAlign: "left", border: "1px solid transparent", background: "var(--card)", color: "var(--txt)", fontWeight: 700, fontSize: 15 }}>
                 <Layers size={22} color="var(--brand)" style={{ flexShrink: 0 }} /> Abrir painel de lançamento
                 <ChevronRight size={18} style={{ marginLeft: "auto", color: "var(--muted)", flexShrink: 0 }} />
               </button>
