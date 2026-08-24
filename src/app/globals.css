@@ -647,17 +647,22 @@ body.theme-light .premium{animation-name:premiumGlowLight}
   50%{box-shadow:0 6px 24px -14px color-mix(in srgb, var(--brand) 70%, transparent)}}
 @media(prefers-reduced-motion:reduce){.premium,.premium::before,.premium::after{animation:none}}
 
-/* ===== Botão flutuante de suporte no WhatsApp ===== */
-.suporte-wpp{position:fixed;right:22px;bottom:22px;z-index:130;display:inline-flex;align-items:center;gap:9px;
-  background:#25D366;color:#fff;padding:12px 18px;border-radius:999px;font-family:inherit;font-weight:800;font-size:14.5px;
-  text-decoration:none;box-shadow:0 12px 30px -8px rgba(37,211,102,.55),0 4px 10px -4px rgba(0,0,0,.3);
-  transition:transform .15s ease,box-shadow .15s ease}
-.suporte-wpp:hover{transform:translateY(-2px);box-shadow:0 16px 36px -8px rgba(37,211,102,.7),0 6px 14px -4px rgba(0,0,0,.35)}
-.suporte-wpp:active{transform:scale(.97)}
+/* ===== Botão flutuante de suporte no WhatsApp (discreto) ===== */
+.suporte-wpp{position:fixed;right:20px;bottom:20px;z-index:120;display:inline-flex;align-items:center;gap:8px;
+  background:var(--card);color:#25D366;padding:9px 14px;border-radius:999px;font-family:inherit;font-weight:700;font-size:12.5px;
+  text-decoration:none;border:1px solid color-mix(in srgb,#25D366 28%,var(--line-2));
+  box-shadow:0 8px 20px -12px rgba(0,0,0,.35);opacity:.85;
+  transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease,border-color .15s ease}
+.suporte-wpp span{color:var(--muted)}
 .suporte-wpp svg{flex-shrink:0}
+.suporte-wpp:hover{opacity:1;transform:translateY(-1px);box-shadow:0 12px 26px -12px rgba(0,0,0,.42);border-color:color-mix(in srgb,#25D366 55%,transparent)}
+.suporte-wpp:active{transform:scale(.97)}
+/* no app mobile: só o ícone, pequeno e translúcido, pra ficar bem discreto */
 @media(max-width:900px){
-  .suporte-wpp{bottom:calc(92px + env(safe-area-inset-bottom));right:16px;padding:13px}
+  .suporte-wpp{bottom:calc(92px + env(safe-area-inset-bottom));right:14px;padding:0;width:40px;height:40px;justify-content:center;
+    opacity:.62;background:color-mix(in srgb,var(--card) 80%,transparent);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
   .suporte-wpp span{display:none}
+  .suporte-wpp:active{opacity:1}
 }
 
 .auth-card .brand{justify-content:center;margin-bottom:6px}
