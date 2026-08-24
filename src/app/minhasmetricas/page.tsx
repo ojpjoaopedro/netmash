@@ -656,7 +656,12 @@ export default function Home({ secao }: { secao?: string } = {}) {
               <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
               <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "14px 26px 0" }}>
+            {/* calendário do mês (mesmo da versão web: formato de conferência + degradê da marca) */}
+            <div style={{ padding: "16px 16px 0" }}>
+              <CalendarioPagamentos anoInicial={Number(anoSel)} tipo="ambos" compacto />
+            </div>
+            {/* capa do app: atalhos com os mesmos ícones */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "18px 26px 0" }}>
               {ATALHOS_HOME.map((c) => (
                 <CardAtalho key={c.aba} label={c.label} Icon={c.Icon} cor={c.cor} onClick={() => { playTick(); navegar({ view: "financas", aba: c.aba }); }} />
               ))}
