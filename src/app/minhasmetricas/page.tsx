@@ -51,6 +51,7 @@ import TermosDeUso from "@/components/TermosDeUso";
 import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
 import { temPlano } from "@/lib/planos";
+import SuporteWhatsApp from "@/components/SuporteWhatsApp";
 
 type View =
   | "dashboard" | "painel" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
@@ -443,6 +444,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
   return (
     <div className="app">
+      <SuporteWhatsApp />
 
 
       {/* Drawer (mobile) */}

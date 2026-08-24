@@ -647,6 +647,19 @@ body.theme-light .premium{animation-name:premiumGlowLight}
   50%{box-shadow:0 6px 24px -14px color-mix(in srgb, var(--brand) 70%, transparent)}}
 @media(prefers-reduced-motion:reduce){.premium,.premium::before,.premium::after{animation:none}}
 
+/* ===== Botão flutuante de suporte no WhatsApp ===== */
+.suporte-wpp{position:fixed;right:22px;bottom:22px;z-index:130;display:inline-flex;align-items:center;gap:9px;
+  background:#25D366;color:#fff;padding:12px 18px;border-radius:999px;font-family:inherit;font-weight:800;font-size:14.5px;
+  text-decoration:none;box-shadow:0 12px 30px -8px rgba(37,211,102,.55),0 4px 10px -4px rgba(0,0,0,.3);
+  transition:transform .15s ease,box-shadow .15s ease}
+.suporte-wpp:hover{transform:translateY(-2px);box-shadow:0 16px 36px -8px rgba(37,211,102,.7),0 6px 14px -4px rgba(0,0,0,.35)}
+.suporte-wpp:active{transform:scale(.97)}
+.suporte-wpp svg{flex-shrink:0}
+@media(max-width:900px){
+  .suporte-wpp{bottom:calc(92px + env(safe-area-inset-bottom));right:16px;padding:13px}
+  .suporte-wpp span{display:none}
+}
+
 .auth-card .brand{justify-content:center;margin-bottom:6px}
 .auth-card h1{text-align:center;font-size:22px;margin:14px 0 4px}
 .auth-card .muted{text-align:center;color:var(--muted);font-size:14px;margin-bottom:20px}
