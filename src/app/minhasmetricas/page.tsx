@@ -13,7 +13,7 @@ import {
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
   ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
   ArrowLeft, ArrowUpCircle, ChevronRight, ChevronLeft, Trash2,
-  Bell, Wallet, Lock, Check, Home as HomeIcon, MessageCircle,
+  Bell, Wallet, Lock, Check, Home as HomeIcon, MessageCircle, PlayCircle,
 } from "lucide-react";
 import { playTick, setSom, somLigado } from "@/lib/ui-sound";
 import GuiaConfiguracao from "@/components/GuiaConfiguracao";
@@ -51,6 +51,7 @@ import TermosDeUso from "@/components/TermosDeUso";
 import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
 import { temPlano } from "@/lib/planos";
+import TutorialCalendario from "@/components/TutorialCalendario";
 
 type View =
   | "dashboard" | "painel" | "financas" | "marketing" | "planejamento" | "clientes" | "config"
@@ -135,6 +136,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const [notifAberto, setNotifAberto] = useState(false);
   // tutorial guiado dos 3 cards na home do celular (mesmo do desktop)
   const [tutMobile, setTutMobile] = useState(false);
+  const [tutCal, setTutCal] = useState(false);   // tutorial do calendário (modal)
   // marca como visto no navegador E no banco (não reabre nem em janela anônima)
   const marcarTutVisto = () => { try { localStorage.setItem("me_tut_financas", "1"); } catch { /* ignore */ } salvarEstadoRemoto("me_tut_financas", "1"); };
   // tutorial NÃO abre mais sozinho ao entrar no app (só marca como visto)
@@ -445,6 +447,7 @@ export default function Home({ secao }: { secao?: string } = {}) {
 
   return (
     <div className="app">
+      {tutCal && <TutorialCalendario onFim={() => setTutCal(false)} />}
 
 
       {/* Drawer (mobile) */}
@@ -661,6 +664,10 @@ export default function Home({ secao }: { secao?: string } = {}) {
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "26px 16px 0" }}>
               <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
               <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
+              <button onClick={() => { playTick(); setTutCal(true); }} title="Ver o tutorial do calendário"
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, background: "color-mix(in srgb, var(--brand) 12%, transparent)", color: "var(--brand)", border: "1px solid color-mix(in srgb, var(--brand) 30%, transparent)", borderRadius: 99, padding: "6px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                <PlayCircle size={14} /> Tutorial
+              </button>
             </div>
             {/* calendário do mês (mesmo da versão web: formato de conferência + degradê da marca) */}
             <div style={{ padding: "16px 16px 0" }}>
@@ -828,6 +835,10 @@ export default function Home({ secao }: { secao?: string } = {}) {
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, marginBottom: 18 }}>
             <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", flexShrink: 0 }}>Preencha seus dados</span>
             <span style={{ flex: 1, height: 2, borderRadius: 2, background: "linear-gradient(90deg, var(--brand), transparent)" }} />
+            <button onClick={() => { playTick(); setTutCal(true); }} title="Ver o tutorial do calendário"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, background: "color-mix(in srgb, var(--brand) 12%, transparent)", color: "var(--brand)", border: "1px solid color-mix(in srgb, var(--brand) 30%, transparent)", borderRadius: 99, padding: "6px 13px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              <PlayCircle size={15} /> Ver tutorial
+            </button>
           </div>
           <div style={{ maxWidth: "70%", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 14, alignItems: "start" }}>
             <div>

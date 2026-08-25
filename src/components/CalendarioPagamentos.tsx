@@ -496,7 +496,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
           <div key={m} className={compacto ? "card premium" : "card"} style={{ padding: compacto ? 16 : 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
               {compacto && <button className="iconbtn" onClick={() => setSel(new Set([Math.max(0, m - 1)]))} disabled={m === 0} title="Mês anterior"><ChevronLeft size={18} /></button>}
-              <b style={{ fontSize: compacto ? 14 : 13.5, ...(compacto ? { flex: 1, textAlign: "center" as const } : {}) }}>{compacto ? `${nome} ${ano}` : nome}</b>
+              <b style={{ fontSize: compacto ? 15 : 13.5, ...(compacto ? { flex: 1, textAlign: "center" as const, background: "linear-gradient(90deg, var(--brand), var(--brand-light))", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", WebkitTextFillColor: "transparent", letterSpacing: ".01em" } : {}) }}>{compacto ? `${nome} ${ano}` : nome}</b>
               {compacto ? (
                 <button className="iconbtn" onClick={() => setSel(new Set([Math.min(11, m + 1)]))} disabled={m === 11} title="Próximo mês"><ChevronRight size={18} /></button>
               ) : (ambos ? (
@@ -526,10 +526,11 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
               ) : <span style={{ fontSize: 13, fontWeight: 800, color: "var(--muted)" }} className="oc-num">–</span>)}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
-              {(compacto ? SEM_FULL : SEM).map((s, i) => <div key={i} style={{ textAlign: "center", fontSize: compacto ? 12 : 10, fontWeight: 700, color: compacto ? "var(--muted)" : "var(--muted-2)", paddingBottom: compacto ? 6 : 4 }}>{s}</div>)}
+              {(compacto ? SEM_FULL : SEM).map((s, i) => <div key={i} style={{ textAlign: "center", fontSize: compacto ? 12 : 10, fontWeight: 800, color: compacto ? (i === 0 ? "#F43F5E" : i === 6 ? "var(--brand)" : "var(--brand-dark)") : "var(--muted-2)", paddingBottom: compacto ? 6 : 4, textTransform: compacto ? "uppercase" : "none", letterSpacing: compacto ? ".02em" : undefined }}>{s}</div>)}
               {Array.from({ length: new Date(ano, m, 1).getDay() }).map((_, i) => <div key={`b${i}`} />)}
               {Array.from({ length: new Date(ano, m + 1, 0).getDate() }, (_, i) => i + 1).map((dia) => {
                 const dt = new Date(ano, m, dia);
+                const dow = dt.getDay();
                 const fer = nomeFeriado(dt);
                 const ocs = doDia(m, dia);
                 const temDesp = ocs.length > 0;
@@ -543,15 +544,19 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                     onMouseLeave={() => { fecharHoverT.current = window.setTimeout(() => setHover(null), 420); }}
                     style={{ position: "relative", display: "grid", placeItems: "center", cursor: "pointer", border: 0, fontFamily: "inherit",
                       ...(compacto ? { height: 42, borderRadius: 10, fontSize: 14.5 } : { aspectRatio: "1", borderRadius: "50%", fontSize: 11.5 }),
-                      background: temDesp
+                      background: ehHoje && compacto
+                        ? "linear-gradient(145deg, var(--brand), var(--brand-dark))"
+                        : temDesp
                         ? (compacto
                             ? (soPendente
                                 ? "linear-gradient(145deg, color-mix(in srgb, var(--brand-light) 20%, transparent), color-mix(in srgb, var(--brand-light) 8%, transparent))"
                                 : "linear-gradient(145deg, color-mix(in srgb, var(--brand) 22%, transparent), color-mix(in srgb, var(--brand-light) 11%, transparent))")
                             : (soPendente ? "rgba(147,197,253,.22)" : "rgba(26,173,226,.16)"))
                         : "transparent",
-                      color: "var(--txt)", fontWeight: ehHoje || temDesp ? 700 : 500 }}>
-                    {ehHoje ? <span style={{ borderBottom: "2px solid var(--muted-2)", paddingBottom: 1, lineHeight: 1 }}>{dia}</span> : dia}
+                      boxShadow: ehHoje && compacto ? "0 4px 12px -4px color-mix(in srgb, var(--brand) 75%, transparent)" : undefined,
+                      color: ehHoje && compacto ? "var(--brand-ct,#fff)" : (compacto && !temDesp && dow === 0 ? "#F43F5E" : "var(--txt)"),
+                      fontWeight: ehHoje || temDesp ? 700 : 500 }}>
+                    {ehHoje && !compacto ? <span style={{ borderBottom: "2px solid var(--muted-2)", paddingBottom: 1, lineHeight: 1 }}>{dia}</span> : dia}
                     {fer && <i style={{ position: "absolute", top: 3, right: 6, width: 5, height: 5, borderRadius: 99, background: AMBAR }} />}
                     {ambos
                       ? (temDesp && <span style={{ position: "absolute", bottom: compacto ? 6 : 2, display: "flex", gap: compacto ? 4 : 3 }}>
