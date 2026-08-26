@@ -89,7 +89,7 @@ function lerCfg(id?: string | null): Config {
 
 // ---- variáveis do mês (comissão, descontos etc.), por empresa/mês/pessoa ----
 // base = salário base do mês; vt = vale transporte do mês (R$). Cada mês é um snapshot próprio (começa vazio).
-type VarsMes = { base?: number; vt?: number; comissao: number; horaExtra: number; gratificacao: number; sindicato: number; planoSaude: number; mensalidade: number; adiantamento: number; extra?: Record<string, number> };
+type VarsMes = { base?: number; vt?: number; comissao: number; horaExtra: number; gratificacao: number; sindicato: number; planoSaude: number; mensalidade: number; adiantamento: number; faltas?: string[]; extra?: Record<string, number> };
 const VARS_ZERO: VarsMes = { comissao: 0, horaExtra: 0, gratificacao: 0, sindicato: 0, planoSaude: 0, mensalidade: 0, adiantamento: 0 };
 
 // ---- colunas personalizadas (proventos/descontos extras), por empresa ----
@@ -107,6 +107,59 @@ function salvarCols(id: string | null | undefined, c: ColsFolha) {
 }
 function novoIdCol(): string { return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
+// ---- Desconto de faltas + perda do DSR (Lei 605/1949 e Decreto 27.048/1949) ----
+// Domingo de Páscoa (algoritmo de Meeus/Butcher) — base dos feriados móveis.
+function pascoa(ano: number): Date {
+  const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4,
+    f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+    i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, mm = Math.floor((a + 11 * h + 22 * l) / 451),
+    mes = Math.floor((h + l - 7 * mm + 114) / 31), dia = ((h + l - 7 * mm + 114) % 31) + 1;
+  return new Date(ano, mes - 1, dia);
+}
+const _p2 = (n: number) => String(n).padStart(2, "0");
+const isoDe = (d: Date) => `${d.getFullYear()}-${_p2(d.getMonth() + 1)}-${_p2(d.getDate())}`;
+/** Feriados nacionais obrigatórios do ano (fixos + Sexta-feira Santa), em ISO. */
+function feriadosNac(ano: number): Set<string> {
+  const s = new Set<string>([`${ano}-01-01`, `${ano}-04-21`, `${ano}-05-01`, `${ano}-09-07`, `${ano}-10-12`, `${ano}-11-02`, `${ano}-11-15`, `${ano}-11-20`, `${ano}-12-25`]);
+  const p = pascoa(ano); const ss = new Date(p); ss.setDate(p.getDate() - 2); s.add(isoDe(ss)); // Sexta-feira Santa
+  return s;
+}
+/**
+ * Dias descontados por faltas injustificadas. Base legal: Lei 605/1949 e
+ * Decreto 27.048/1949 (art. 11): quem falta sem justificativa numa semana perde
+ * o repouso remunerado daquela semana. Considerando jornada de segunda a sexta,
+ * o repouso da semana são o SÁBADO, o DOMINGO e os FERIADOS nacionais que caem
+ * naquela semana (segunda a domingo). Cada dia vale salário ÷ 30.
+ */
+function diasDescontadosFaltas(faltas: string[] | undefined): { faltas: string[]; repousos: string[]; total: number } {
+  const lista = [...new Set((faltas || []).filter(Boolean))];
+  if (!lista.length) return { faltas: [], repousos: [], total: 0 };
+  const setFalta = new Set(lista);
+  const setRepouso = new Set<string>();
+  const semanas = new Set<string>();
+  for (const f of lista) {
+    const [y, m, d] = f.split("-").map(Number);
+    const dia = new Date(y, m - 1, d);
+    const dow = dia.getDay();                       // 0=dom .. 6=sáb
+    const seg = new Date(dia); seg.setDate(dia.getDate() + (dow === 0 ? -6 : 1 - dow)); // segunda da semana
+    const chave = isoDe(seg);
+    if (semanas.has(chave)) continue;
+    semanas.add(chave);
+    for (let k = 0; k < 7; k++) {
+      const dd = new Date(seg); dd.setDate(seg.getDate() + k);
+      const ddi = isoDe(dd); const ddow = dd.getDay();
+      const feriado = feriadosNac(dd.getFullYear()).has(ddi);
+      if ((ddow === 0 || ddow === 6 || feriado) && !setFalta.has(ddi)) setRepouso.add(ddi);
+    }
+  }
+  return { faltas: [...setFalta], repousos: [...setRepouso], total: setFalta.size + setRepouso.size };
+}
+function calcFaltas(base: number, faltas: string[] | undefined) {
+  const { total, faltas: fs, repousos } = diasDescontadosFaltas(faltas);
+  const valorDia = base > 0 ? base / 30 : 0;
+  return { dias: total, faltasDias: fs.length, repousosDias: repousos.length, valorDia: round2(valorDia), valor: round2(total * valorDia), datasFalta: fs, datasRepouso: repousos };
+}
+
 /** Cálculo da folha mensal de uma pessoa (snapshot do mês: base + vt + variáveis). */
 function calcLinhaMes(v: VarsMes, cols: ColsFolha) {
   const base = v.base || 0;
@@ -116,10 +169,86 @@ function calcLinhaMes(v: VarsMes, cols: ColsFolha) {
   const proventos = round2(base + v.comissao + v.horaExtra + v.gratificacao + provExtra);
   const inss = calcINSS(proventos);
   const irrf = calcIRRF(proventos, inss);
-  const descManual = round2(v.sindicato + v.planoSaude + v.adiantamento + descExtra);
+  const ft = calcFaltas(base, v.faltas);
+  const descManual = round2(v.sindicato + v.planoSaude + v.adiantamento + descExtra + ft.valor);
   const totalDesc = round2(inss + irrf + descManual);
   const liquido = round2(proventos - totalDesc);
-  return { base, proventos, inss, irrf, descManual, totalDesc, liquido };
+  return { base, proventos, inss, irrf, descManual, totalDesc, liquido, faltaDesc: ft.valor, faltaDias: ft.dias };
+}
+
+/** Modal para marcar as datas de falta do mês (calendário) e ver o desconto na hora. */
+function FaltasModal({ nome, base, ym, faltas, onSalvar, onFechar }: { nome: string; base: number; ym: string; faltas: string[]; onSalvar: (d: string[]) => void; onFechar: () => void }) {
+  const [ay, am] = ym.split("-").map(Number);         // am = 1..12
+  const [sel, setSel] = useState<Set<string>>(new Set(faltas));
+  const fer = feriadosNac(ay);
+  const primeiro = new Date(ay, am - 1, 1).getDay();
+  const totalDias = new Date(ay, am, 0).getDate();
+  const SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const r = calcFaltas(base, [...sel]);
+  const repousoSet = new Set(r.datasRepouso);
+  const toggle = (iso: string, bloq: boolean) => { if (bloq) return; setSel((p) => { const n = new Set(p); if (n.has(iso)) n.delete(iso); else n.add(iso); return n; }); };
+  return (
+    <div onClick={onFechar} className="no-print" style={{ position: "fixed", inset: 0, zIndex: 130, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 18, overflow: "auto" }}>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 420, padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
+          <div>
+            <b style={{ fontSize: 16 }}>Faltas de {nome}</b>
+            <div className="sub" style={{ fontSize: 12 }}>{MESES[am - 1]} de {ay} · clique nos dias que faltou</div>
+          </div>
+          <button onClick={onFechar} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, marginTop: 14 }}>
+          {SEM.map((s, i) => <div key={s} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 800, color: i === 0 ? "#F43F5E" : "var(--muted-2)", paddingBottom: 4 }}>{s}</div>)}
+          {Array.from({ length: primeiro }).map((_, i) => <div key={`b${i}`} />)}
+          {Array.from({ length: totalDias }, (_, i) => i + 1).map((d) => {
+            const iso = `${ay}-${_p2(am)}-${_p2(d)}`;
+            const dow = new Date(ay, am - 1, d).getDay();
+            const feriado = fer.has(iso);
+            const bloq = dow === 0 || dow === 6 || feriado;         // não se "falta" em descanso/feriado
+            const isFalta = sel.has(iso);
+            const perdido = repousoSet.has(iso);                     // repouso perdido por causa da falta
+            return (
+              <button key={d} onClick={() => toggle(iso, bloq)} title={feriado ? "Feriado nacional" : bloq ? "Descanso semanal" : (isFalta ? "Falta lançada" : "Marcar falta")}
+                style={{ position: "relative", height: 40, borderRadius: 9, border: 0, cursor: bloq ? "default" : "pointer", fontFamily: "inherit", fontSize: 13,
+                  fontWeight: isFalta ? 800 : 600,
+                  background: isFalta ? "#EF4444" : perdido ? "rgba(239,68,68,.16)" : "transparent",
+                  color: isFalta ? "#fff" : bloq ? "var(--muted-2)" : "var(--txt)",
+                  outline: perdido && !isFalta ? "1px dashed rgba(239,68,68,.5)" : undefined, outlineOffset: -3 }}>
+                {d}
+                {feriado && <i style={{ position: "absolute", top: 4, right: 5, width: 5, height: 5, borderRadius: 99, background: "#F59E0B" }} />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* legenda */}
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", marginTop: 12, fontSize: 11, color: "var(--muted)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><i style={{ width: 11, height: 11, borderRadius: 4, background: "#EF4444" }} /> Falta</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><i style={{ width: 11, height: 11, borderRadius: 4, background: "rgba(239,68,68,.16)", outline: "1px dashed rgba(239,68,68,.5)", outlineOffset: -2 }} /> Repouso perdido</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><i style={{ width: 6, height: 6, borderRadius: 99, background: "#F59E0B" }} /> Feriado</span>
+        </div>
+
+        {/* resumo do cálculo */}
+        <div style={{ marginTop: 14, background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}><span>Faltas marcadas</span><b>{r.faltasDias}</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}><span>Repousos perdidos (sáb/dom/feriado)</span><b>{r.repousosDias}</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}><span>Total de dias descontados</span><b>{r.dias}</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--muted)", marginBottom: 8 }}><span>Valor do dia (salário ÷ 30)</span><span>{brl(r.valorDia)}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--line)", paddingTop: 8 }}>
+            <b style={{ fontSize: 13 }}>Desconto</b><b style={{ fontSize: 16, color: "#EF4444" }}>{brl(r.valor)}</b>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
+          {sel.size > 0 && <button className="btn ghost sm" onClick={() => setSel(new Set())} style={{ color: "#EF4444" }}><Trash2 size={14} /> Limpar</button>}
+          <div style={{ flex: 1 }} />
+          <button className="btn ghost sm" onClick={onFechar}>Cancelar</button>
+          <button className="btn sm" onClick={() => { onSalvar([...sel]); onFechar(); }}>Salvar</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 const chaveMes = (id: string | null | undefined, ym: string) => `me_folha_mensal:${id || "default"}:${ym}`;
 function lerMes(id: string | null | undefined, ym: string): Record<string, VarsMes> {
@@ -296,6 +425,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [cols, setCols] = useState<ColsFolha>({ prov: [], desc: [] });
   const [infoInss, setInfoInss] = useState(false);
   const [infoIrrf, setInfoIrrf] = useState(false);
+  const [infoFaltas, setInfoFaltas] = useState(false);
   const [confirmCol, setConfirmCol] = useState<{ grupo: "prov" | "desc" | "benef"; id: string; nome: string } | null>(null);
   const [avisoCol, setAvisoCol] = useState<{ titulo: string; texto: string } | null>(null);
   const [colFoco, setColFoco] = useState<string | null>(null);
@@ -317,6 +447,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const [infoPuxar, setInfoPuxar] = useState(false);
   const [pessoaCard, setPessoaCard] = useState<Funcionario | null>(null);   // card da pessoa em popup
   const BtnInfoInss = () => <BtnInfo onClick={() => setInfoInss(true)} titulo="Como o INSS é calculado" />;
+  const BtnInfoFaltas = () => <BtnInfo onClick={() => setInfoFaltas(true)} titulo="Como o desconto de faltas é calculado" />;
   const BtnInfoIrrf = () => <BtnInfo onClick={() => setInfoIrrf(true)} titulo="Como o IRRF é calculado" />;
   const BtnInfoFgts = () => <BtnInfo onClick={() => setInfoFgts(true)} titulo="O que é o FGTS" />;
   const BtnInfoRescisao = () => <BtnInfo onClick={() => setInfoRescisao(true)} titulo="O que é a provisão para rescisão" />;
@@ -518,6 +649,10 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   const setVar = (id: string, campo: keyof VarsMes, valor: number) => {
     setDadosMes((prev) => { const next = { ...prev, [id]: { ...VARS_ZERO, ...(prev[id] || {}), [campo]: valor } }; salvarMes(empresa?.id, ym, next); return next; });
   };
+  const setFaltas = (id: string, datas: string[]) => {
+    setDadosMes((prev) => { const next = { ...prev, [id]: { ...VARS_ZERO, ...(prev[id] || {}), faltas: datas } }; salvarMes(empresa?.id, ym, next); return next; });
+  };
+  const [faltasModal, setFaltasModal] = useState<{ id: string; nome: string; base: number; faltas: string[] } | null>(null);
 
   // busca + ordenação por coluna (padrão da Equipe)
   const [busca, setBusca] = useState("");
@@ -613,6 +748,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   }
   const totM = linhasMes.reduce((a, l) => ({ proventos: a.proventos + l.proventos, inss: a.inss + l.inss, irrf: a.irrf + l.irrf, totalDesc: a.totalDesc + l.totalDesc, liquido: a.liquido + l.liquido }), { proventos: 0, inss: 0, irrf: 0, totalDesc: 0, liquido: 0 });
   // encargos do mês (sobre o salário base): FGTS, provisão 13º+férias e provisão de rescisão
+  const totMfaltas = round2(linhasMes.reduce((s, l) => s + (l.faltaDesc || 0), 0));
   const totMfgts = round2(linhasMes.reduce((s, l) => s + round2((l.base || 0) * (cfg.fgtsPct / 100)), 0));
   const totMprov = round2(linhasMes.reduce((s, l) => s + round2((l.base || 0) / 12 + ((l.base || 0) + (l.base || 0) / 3) / 12), 0));
   const totMresc = round2(linhasMes.reduce((s, l) => s + round2(round2((l.base || 0) * (cfg.fgtsPct / 100)) * 0.40), 0));
@@ -632,6 +768,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     { h: "Sindicato", get: (l) => l.v.sindicato || 0 },
     { h: "Plano saúde", get: (l) => l.v.planoSaude || 0 },
     { h: "Adiantamento", get: (l) => l.v.adiantamento || 0 },
+    { h: "Faltas", get: (l) => l.faltaDesc || 0 },
     ...cols.desc.map((c) => ({ h: c.nome, get: (l: LinhaMes) => l.extra?.[c.id] || 0 })),
     { h: "Descontos", get: (l) => l.totalDesc, b: true },
     { h: "Líquido", get: (l) => l.liquido, b: true },
@@ -742,7 +879,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   // larguras fixas por coluna (table-layout: fixed) — evita colunas com input esticarem
   const wGeral = [150, 116, 100, 104, 104, ...benefCols.map(() => 92), 42, 90, 84, 104, 106, 94, 84, 104];
   const somaGeral = wGeral.reduce((a, b) => a + b, 0);
-  const wMensal = [150, 100, 96, 90, 92, ...cols.prov.map(() => 92), 42, 104, 90, 84, 90, 92, 94, ...cols.desc.map(() => 92), 42, 104, 100, 94, 84, 104];
+  const wMensal = [150, 100, 96, 90, 92, ...cols.prov.map(() => 92), 42, 104, 90, 84, 90, 92, 94, 104, ...cols.desc.map(() => 92), 42, 104, 100, 94, 84, 104];
   const somaMensal = wMensal.reduce((a, b) => a + b, 0);
   const wPl = [160, 120, ...cols.prov.map(() => 96), 42, 110, ...cols.desc.map(() => 96), 42, 110];
   const somaPl = wPl.reduce((a, b) => a + b, 0);
@@ -927,7 +1064,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                 <tr>
                   <th className="eq-th eq-fix" style={{ background: "var(--card)" }} />
                   <th colSpan={6 + cols.prov.length} style={{ textAlign: "center", padding: "6px 8px", fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "#10B981", background: "rgba(16,185,129,.10)", borderBottom: "1px solid var(--line)" }}>Proventos</th>
-                  <th colSpan={7 + cols.desc.length} style={{ textAlign: "center", padding: "6px 8px", fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "#EF4444", background: "rgba(239,68,68,.08)", borderBottom: "1px solid var(--line)" }}>Descontos</th>
+                  <th colSpan={8 + cols.desc.length} style={{ textAlign: "center", padding: "6px 8px", fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "#EF4444", background: "rgba(239,68,68,.08)", borderBottom: "1px solid var(--line)" }}>Descontos</th>
                   <th style={{ background: "#fff", borderBottom: "1px solid var(--line)" }} />
                   <th colSpan={3} style={{ textAlign: "center", padding: "6px 8px", fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)", background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>Encargos da empresa</th>
                 </tr>
@@ -945,6 +1082,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}>Sindicato</th>
                   <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}><Rot t="Plano saúde" /></th>
                   <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}><>Adianta-<br />mento</></th>
+                  <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}>Faltas <BtnInfoFaltas /></th>
                   {thsCol("desc")}
                   {thMais("desc")}
                   <th className="eq-th" style={{ textAlign: "right", cursor: "default" }}>Descontos</th>
@@ -955,7 +1093,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                 </tr>
               </thead>
               <tbody>
-                {mesView.map(({ f, v, extra, base, proventos, inss, irrf, totalDesc, liquido, provisaoM, fgtsM, rescisaoM }, i) => (
+                {mesView.map(({ f, v, extra, base, proventos, inss, irrf, faltaDesc, faltaDias, totalDesc, liquido, provisaoM, fgtsM, rescisaoM }, i) => (
                   <tr key={`${ym}-${f.id}`} className="eq-row">
                     <td className="eq-fix">{celNome(f, i + 1)}</td>
                     <td style={{ fontWeight: 700 }}><CampoMoeda valor={base} onSalvar={(n) => setVar(f.id, "base", n)} /></td>
@@ -970,6 +1108,14 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                     <td><CampoMoeda valor={v.sindicato} onSalvar={(n) => setVar(f.id, "sindicato", n)} /></td>
                     <td><CampoMoeda valor={v.planoSaude} onSalvar={(n) => setVar(f.id, "planoSaude", n)} /></td>
                     <td><CampoMoeda valor={v.adiantamento} onSalvar={(n) => setVar(f.id, "adiantamento", n)} /></td>
+                    <td>
+                      <button onClick={() => setFaltasModal({ id: f.id, nome: f.nome || "—", base, faltas: v.faltas || [] })} title="Cadastrar as datas das faltas"
+                        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", color: faltaDesc > 0 ? "#EF4444" : "var(--muted)", fontWeight: faltaDesc > 0 ? 700 : 500, fontSize: 13 }}>
+                        {faltaDesc > 0
+                          ? <>{zbrl(faltaDesc)} <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#EF4444", borderRadius: 99, padding: "1px 6px" }}>{faltaDias}d</span></>
+                          : <><Plus size={13} /> lançar</>}
+                      </button>
+                    </td>
                     {tdsCol("desc", f.id, extra)}
                     <td />
                     <td style={{ textAlign: "right", color: "#EF4444", fontWeight: 600 }}>{zbrl(totalDesc)}</td>
@@ -979,8 +1125,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                     <td style={{ textAlign: "right", color: "var(--muted)" }}>{zbrl(rescisaoM)}</td>
                   </tr>
                 ))}
-                {mesView.length === 0 && <tr><td colSpan={16 + cols.prov.length + cols.desc.length + 2} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
-                {linhaCadastrar(16 + cols.prov.length + cols.desc.length + 2)}
+                {mesView.length === 0 && <tr><td colSpan={17 + cols.prov.length + cols.desc.length + 2} style={{ textAlign: "center", padding: 24, color: "var(--muted)" }}>Nenhum resultado para “{busca}”.</td></tr>}
+                {linhaCadastrar(17 + cols.prov.length + cols.desc.length + 2)}
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 800 }}>
@@ -991,6 +1137,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
                   <td style={{ textAlign: "right" }}>{brl(totM.inss)}</td>
                   <td style={{ textAlign: "right" }}>{brl(totM.irrf)}</td>
                   <td /><td /><td />
+                  <td style={{ textAlign: "right", color: "#EF4444" }}>{pv(totMfaltas)}</td>
                   {tdsVazias("desc")}
                   <td style={{ textAlign: "right", color: "#EF4444" }}>{brl(totM.totalDesc)}</td>
                   <td style={{ textAlign: "right", color: "#10B981" }}>{brl(totM.liquido)}</td>
@@ -1078,6 +1225,51 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
       )}
 
       {/* pop-up: como o INSS é calculado (tabela oficial 2026) */}
+      {faltasModal && (
+        <FaltasModal nome={faltasModal.nome} base={faltasModal.base} ym={ym} faltas={faltasModal.faltas}
+          onSalvar={(d) => setFaltas(faltasModal.id, d)} onFechar={() => setFaltasModal(null)} />
+      )}
+
+      {infoFaltas && (
+        <div onClick={() => setInfoFaltas(false)} className="no-print"
+          style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 560, padding: 22, maxHeight: "88vh", overflow: "auto" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--brand) 14%, transparent)", color: "var(--brand)" }}><Info size={18} /></span>
+                <b style={{ fontSize: 16 }}>Como o desconto de faltas é calculado</b>
+              </div>
+              <button onClick={() => setInfoFaltas(false)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+            </div>
+            <p className="sub" style={{ margin: "4px 0 14px", lineHeight: 1.6, fontSize: 12.5 }}>
+              Pela lei, faltar <b>sem justificativa</b> não desconta só o dia: o funcionário também <b>perde o descanso remunerado da semana</b> (o DSR). Por isso uma única falta costuma custar <b>mais de um dia</b>. Base legal: <b>Lei nº 605/1949</b> e <b>Decreto nº 27.048/1949</b> (art. 11).
+            </p>
+            <div style={{ display: "grid", gap: 9 }}>
+              {[
+                <>O <b>valor de cada dia</b> é o salário base dividido por <b>30</b>.</>,
+                <>Cada <b>falta</b> desconta o próprio dia.</>,
+                <>Faltar sem justificativa em qualquer dia faz <b>perder o repouso daquela semana</b>. Considerando jornada de <b>segunda a sexta</b>, entram como repouso o <b>sábado</b>, o <b>domingo</b> e os <b>feriados nacionais</b> daquela semana.</>,
+                <>Se houver <b>feriado</b> na mesma semana da falta, ele também é perdido (soma mais um dia).</>,
+              ].map((t, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}>
+                  <span style={{ color: "#EF4444", fontWeight: 800 }}>•</span><span>{t}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 14, background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px", fontSize: 12.5, lineHeight: 1.6 }}>
+              <b>Exemplo:</b> salário de <b>R$ 3.000</b> → cada dia vale <b>R$ 100</b> (3.000 ÷ 30).<br />
+              Faltou numa <b>sexta-feira</b> (sem feriado na semana): perde sexta + sábado + domingo = <b>3 dias</b> = <b style={{ color: "#EF4444" }}>R$ 300</b> de desconto.
+            </div>
+            <p className="sub" style={{ margin: "12px 0 0", fontSize: 11.5, lineHeight: 1.5 }}>
+              Observação: o cálculo assume jornada de <b>segunda a sexta</b> (sábado e domingo como descanso). Se a sua empresa trabalha aos sábados, me avise para ajustar a regra.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
+              <button className="btn" onClick={() => setInfoFaltas(false)}>Entendi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {infoInss && (
         <div onClick={() => setInfoInss(false)} className="no-print"
           style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
