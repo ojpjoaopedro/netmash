@@ -126,42 +126,43 @@ function feriadosNac(ano: number): Set<string> {
 }
 /**
  * Dias descontados por faltas injustificadas. Base legal: Lei 605/1949 e
- * Decreto 27.048/1949 (art. 11): quem falta sem justificativa numa semana perde
- * o repouso remunerado daquela semana. Considerando jornada de segunda a sexta,
- * o repouso da semana são o SÁBADO, o DOMINGO e os FERIADOS nacionais que caem
- * naquela semana (segunda a domingo). Cada dia vale salário ÷ 30.
+ * Decreto 27.048/1949 (art. 11): a falta injustificada faz perder o repouso
+ * remunerado. Na prática, quando a falta cai LOGO ANTES de um descanso (sexta
+ * antes do fim de semana, ou véspera de feriado), perdem-se também os dias não
+ * úteis EM SEQUÊNCIA (sábado, domingo e/ou feriado) até o próximo dia útil.
+ * Uma falta no meio da semana (ex.: terça), seguida de dia útil, desconta só o dia.
+ * Cada dia vale salário ÷ 30. "trabalhaSabado" = sábado é dia útil (não é repouso).
  */
-function diasDescontadosFaltas(faltas: string[] | undefined): { faltas: string[]; repousos: string[]; total: number } {
+function diasDescontadosFaltas(faltas: string[] | undefined, trabalhaSabado = false): { faltas: string[]; repousos: string[]; total: number } {
   const lista = [...new Set((faltas || []).filter(Boolean))];
   if (!lista.length) return { faltas: [], repousos: [], total: 0 };
   const setFalta = new Set(lista);
   const setRepouso = new Set<string>();
-  const semanas = new Set<string>();
+  const ehNaoUtil = (d: Date) => {
+    const dow = d.getDay();
+    return dow === 0 || (dow === 6 && !trabalhaSabado) || feriadosNac(d.getFullYear()).has(isoDe(d));
+  };
   for (const f of lista) {
     const [y, m, d] = f.split("-").map(Number);
-    const dia = new Date(y, m - 1, d);
-    const dow = dia.getDay();                       // 0=dom .. 6=sáb
-    const seg = new Date(dia); seg.setDate(dia.getDate() + (dow === 0 ? -6 : 1 - dow)); // segunda da semana
-    const chave = isoDe(seg);
-    if (semanas.has(chave)) continue;
-    semanas.add(chave);
-    for (let k = 0; k < 7; k++) {
-      const dd = new Date(seg); dd.setDate(seg.getDate() + k);
-      const ddi = isoDe(dd); const ddow = dd.getDay();
-      const feriado = feriadosNac(dd.getFullYear()).has(ddi);
-      if ((ddow === 0 || ddow === 6 || feriado) && !setFalta.has(ddi)) setRepouso.add(ddi);
+    let cur = new Date(y, m - 1, d + 1);            // dia seguinte à falta
+    let guard = 0;
+    while (ehNaoUtil(cur) && guard < 15) {          // avança pelos dias não úteis em sequência
+      const ci = isoDe(cur);
+      if (!setFalta.has(ci)) setRepouso.add(ci);
+      cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
+      guard++;
     }
   }
   return { faltas: [...setFalta], repousos: [...setRepouso], total: setFalta.size + setRepouso.size };
 }
-function calcFaltas(base: number, faltas: string[] | undefined) {
-  const { total, faltas: fs, repousos } = diasDescontadosFaltas(faltas);
+function calcFaltas(base: number, faltas: string[] | undefined, trabalhaSabado = false) {
+  const { total, faltas: fs, repousos } = diasDescontadosFaltas(faltas, trabalhaSabado);
   const valorDia = base > 0 ? base / 30 : 0;
   return { dias: total, faltasDias: fs.length, repousosDias: repousos.length, valorDia: round2(valorDia), valor: round2(total * valorDia), datasFalta: fs, datasRepouso: repousos };
 }
 
 /** Cálculo da folha mensal de uma pessoa (snapshot do mês: base + vt + variáveis). */
-function calcLinhaMes(v: VarsMes, cols: ColsFolha) {
+function calcLinhaMes(v: VarsMes, cols: ColsFolha, trabalhaSabado = false) {
   const base = v.base || 0;
   const extra = v.extra || {};
   const provExtra = cols.prov.reduce((s, c) => s + (extra[c.id] || 0), 0);
@@ -169,7 +170,7 @@ function calcLinhaMes(v: VarsMes, cols: ColsFolha) {
   const proventos = round2(base + v.comissao + v.horaExtra + v.gratificacao + provExtra);
   const inss = calcINSS(proventos);
   const irrf = calcIRRF(proventos, inss);
-  const ft = calcFaltas(base, v.faltas);
+  const ft = calcFaltas(base, v.faltas, trabalhaSabado);
   const descManual = round2(v.sindicato + v.planoSaude + v.adiantamento + descExtra + ft.valor);
   const totalDesc = round2(inss + irrf + descManual);
   const liquido = round2(proventos - totalDesc);
@@ -177,14 +178,15 @@ function calcLinhaMes(v: VarsMes, cols: ColsFolha) {
 }
 
 /** Modal para marcar as datas de falta do mês (calendário) e ver o desconto na hora. */
-function FaltasModal({ nome, base, ym, faltas, onSalvar, onFechar }: { nome: string; base: number; ym: string; faltas: string[]; onSalvar: (d: string[]) => void; onFechar: () => void }) {
+function FaltasModal({ nome, base, ym, faltas, trabalhaSabado, onSalvar, onFechar }: { nome: string; base: number; ym: string; faltas: string[]; trabalhaSabado: boolean; onSalvar: (d: string[], sab: boolean) => void; onFechar: () => void }) {
   const [ay, am] = ym.split("-").map(Number);         // am = 1..12
   const [sel, setSel] = useState<Set<string>>(new Set(faltas));
+  const [sab, setSab] = useState(trabalhaSabado);     // trabalha aos sábados?
   const fer = feriadosNac(ay);
   const primeiro = new Date(ay, am - 1, 1).getDay();
   const totalDias = new Date(ay, am, 0).getDate();
   const SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const r = calcFaltas(base, [...sel]);
+  const r = calcFaltas(base, [...sel], sab);
   const repousoSet = new Set(r.datasRepouso);
   const toggle = (iso: string, bloq: boolean) => { if (bloq) return; setSel((p) => { const n = new Set(p); if (n.has(iso)) n.delete(iso); else n.add(iso); return n; }); };
   return (
@@ -205,7 +207,7 @@ function FaltasModal({ nome, base, ym, faltas, onSalvar, onFechar }: { nome: str
             const iso = `${ay}-${_p2(am)}-${_p2(d)}`;
             const dow = new Date(ay, am - 1, d).getDay();
             const feriado = fer.has(iso);
-            const bloq = dow === 0 || dow === 6 || feriado;         // não se "falta" em descanso/feriado
+            const bloq = dow === 0 || (dow === 6 && !sab) || feriado;   // sábado só é bloqueado se NÃO trabalha aos sábados
             const isFalta = sel.has(iso);
             const perdido = repousoSet.has(iso);                     // repouso perdido por causa da falta
             return (
@@ -229,8 +231,17 @@ function FaltasModal({ nome, base, ym, faltas, onSalvar, onFechar }: { nome: str
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><i style={{ width: 6, height: 6, borderRadius: 99, background: "#F59E0B" }} /> Feriado</span>
         </div>
 
+        {/* trabalha aos sábados? (por funcionário) */}
+        <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, cursor: "pointer", userSelect: "none" }}>
+          <input type="checkbox" checked={sab} onChange={(e) => setSab(e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--brand)", flexShrink: 0 }} />
+          <span style={{ fontSize: 12.5, lineHeight: 1.4 }}>
+            <b>Trabalha aos sábados</b>
+            <span className="sub" style={{ display: "block", fontSize: 11 }}>Se marcado, o sábado é dia útil: não entra como repouso perdido (e pode ser marcado como falta).</span>
+          </span>
+        </label>
+
         {/* resumo do cálculo */}
-        <div style={{ marginTop: 14, background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px" }}>
+        <div style={{ marginTop: 12, background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}><span>Faltas marcadas</span><b>{r.faltasDias}</b></div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}><span>Repousos perdidos (sáb/dom/feriado)</span><b>{r.repousosDias}</b></div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}><span>Total de dias descontados</span><b>{r.dias}</b></div>
@@ -244,7 +255,7 @@ function FaltasModal({ nome, base, ym, faltas, onSalvar, onFechar }: { nome: str
           {sel.size > 0 && <button className="btn ghost sm" onClick={() => setSel(new Set())} style={{ color: "#EF4444" }}><Trash2 size={14} /> Limpar</button>}
           <div style={{ flex: 1 }} />
           <button className="btn ghost sm" onClick={onFechar}>Cancelar</button>
-          <button className="btn sm" onClick={() => { onSalvar([...sel]); onFechar(); }}>Salvar</button>
+          <button className="btn sm" onClick={() => { onSalvar([...sel], sab); onFechar(); }}>Salvar</button>
         </div>
       </div>
     </div>
@@ -278,6 +289,16 @@ function efetivoModo(modo: Modo, valor: number, salario: number): number {
   return modo === "pct" ? round2(salario * valor / 100) : round2(valor);
 }
 // modo (% ou R$) por coluna de benefício, por empresa (chaves: "vt", "va", ou id da coluna extra)
+// quem trabalha aos sábados (por funcionário) — muda o cálculo do desconto de faltas (sábado vira dia útil)
+const chaveSabado = (id: string | null | undefined) => `me_folha_trabalha_sabado:${id || "default"}`;
+function lerSabado(id: string | null | undefined): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(chaveSabado(id)) || "{}") || {}; } catch { return {}; }
+}
+function salvarSabado(id: string | null | undefined, m: Record<string, boolean>) {
+  if (typeof window === "undefined") return;
+  const cru = JSON.stringify(m); localStorage.setItem(chaveSabado(id), cru); salvarEstadoRemoto(chaveSabado(id), cru);
+}
 const chaveBenefModos = (id: string | null | undefined) => `me_folha_benef_modos:${id || "default"}`;
 function lerBenefModos(id: string | null | undefined): Record<string, Modo> {
   if (typeof window === "undefined") return {};
@@ -560,6 +581,13 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   // modo (% ou R$) por coluna de benefício (nível da coluna, não por pessoa)
   const [benefModos, setBenefModos] = useState<Record<string, Modo>>({});
   useEffect(() => { setBenefModos(lerBenefModos(empresa?.id)); }, [empresa?.id, hidratado]);
+  // quem trabalha aos sábados (por funcionário) — usado no desconto de faltas
+  const [sabados, setSabados] = useState<Record<string, boolean>>({});
+  useEffect(() => { setSabados(lerSabado(empresa?.id)); }, [empresa?.id, hidratado]);
+  const trabalhaSabadoDe = (id: string) => !!sabados[id];
+  const setTrabalhaSabado = (id: string, v: boolean) => {
+    setSabados((prev) => { const next = { ...prev, [id]: v }; salvarSabado(empresa?.id, next); return next; });
+  };
   const modoDe = (key: string): Modo => benefModos[key] || "fixo";
   const setBenefModo = (key: string, m: Modo) => setBenefModos((prev) => { const n = { ...prev, [key]: m }; salvarBenefModos(empresa?.id, n); return n; });
   // troca % <-> R$ CONVERTENDO o número de cada pessoa (preserva o R$ efetivo). Totais/líquido acompanham.
@@ -711,12 +739,12 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   // ---- linhas da visão MENSAL (com variáveis do mês) ----
   const linhasMes = useMemo(() => funcsFolha.map((f) => {
     const v = { ...VARS_ZERO, ...(dadosMes[f.id] || {}) };
-    const r = calcLinhaMes(v, cols);
+    const r = calcLinhaMes(v, cols, !!sabados[f.id]);
     const fgtsM = round2((r.base || 0) * (cfg.fgtsPct / 100));
     const provisaoM = round2((r.base || 0) / 12 + ((r.base || 0) + (r.base || 0) / 3) / 12);
     const rescisaoM = round2(fgtsM * 0.40);
     return { f, v, extra: v.extra || {}, ...r, fgtsM, provisaoM, rescisaoM };
-  }), [funcsFolha, dadosMes, cols, cfg]);
+  }), [funcsFolha, dadosMes, cols, cfg, sabados]);
   // ---- pró-labore dos sócios (regra própria: só salário base e INSS 11%; sem 13º/férias/FGTS) ----
   const linhasSocio = useMemo(() => socios.map((f) => {
     const v = { ...VARS_ZERO, ...(dadosMes[f.id] || {}) };
@@ -1226,8 +1254,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
 
       {/* pop-up: como o INSS é calculado (tabela oficial 2026) */}
       {faltasModal && (
-        <FaltasModal nome={faltasModal.nome} base={faltasModal.base} ym={ym} faltas={faltasModal.faltas}
-          onSalvar={(d) => setFaltas(faltasModal.id, d)} onFechar={() => setFaltasModal(null)} />
+        <FaltasModal nome={faltasModal.nome} base={faltasModal.base} ym={ym} faltas={faltasModal.faltas} trabalhaSabado={trabalhaSabadoDe(faltasModal.id)}
+          onSalvar={(d, sab) => { setFaltas(faltasModal.id, d); setTrabalhaSabado(faltasModal.id, sab); }} onFechar={() => setFaltasModal(null)} />
       )}
 
       {infoFaltas && (
@@ -1248,8 +1276,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               {[
                 <>O <b>valor de cada dia</b> é o salário base dividido por <b>30</b>.</>,
                 <>Cada <b>falta</b> desconta o próprio dia.</>,
-                <>Faltar sem justificativa em qualquer dia faz <b>perder o repouso daquela semana</b>. Considerando jornada de <b>segunda a sexta</b>, entram como repouso o <b>sábado</b>, o <b>domingo</b> e os <b>feriados nacionais</b> daquela semana.</>,
-                <>Se houver <b>feriado</b> na mesma semana da falta, ele também é perdido (soma mais um dia).</>,
+                <>Quando a falta cai <b>logo antes de um descanso</b> (sexta antes do fim de semana, ou véspera de feriado), perdem-se também os <b>dias não úteis em sequência</b> (sábado, domingo e/ou feriado) até o próximo dia útil.</>,
+                <>Falta no <b>meio da semana</b> (ex.: terça), seguida de dia útil, desconta <b>só o dia</b> (não perde repouso).</>,
               ].map((t, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}>
                   <span style={{ color: "#EF4444", fontWeight: 800 }}>•</span><span>{t}</span>
@@ -1261,7 +1289,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               Faltou numa <b>sexta-feira</b> (sem feriado na semana): perde sexta + sábado + domingo = <b>3 dias</b> = <b style={{ color: "#EF4444" }}>R$ 300</b> de desconto.
             </div>
             <p className="sub" style={{ margin: "12px 0 0", fontSize: 11.5, lineHeight: 1.5 }}>
-              Observação: o cálculo assume jornada de <b>segunda a sexta</b> (sábado e domingo como descanso). Se a sua empresa trabalha aos sábados, me avise para ajustar a regra.
+              Observação: por padrão o sábado é descanso. Se a pessoa <b>trabalha aos sábados</b>, marque a opção dentro da janela de faltas (é por funcionário): aí o sábado passa a ser dia útil e não é descontado como repouso.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
               <button className="btn" onClick={() => setInfoFaltas(false)}>Entendi</button>
