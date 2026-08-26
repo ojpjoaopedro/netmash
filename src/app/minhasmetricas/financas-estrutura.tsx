@@ -12,6 +12,7 @@ import { AnimNum } from "@/components/AnimNum";
 import { SeletorCusto } from "@/components/CalendarioPagamentos";
 import { folhaTotais, categoriaDoItem } from "@/lib/folha-totais";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
+import { preencherDemonstracao } from "@/lib/seed-demo";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
 import { empresaAtualId } from "@/lib/empresa-atual";
@@ -572,6 +573,13 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
   const [estreito, setEstreito] = useState(false);        // tela de celular: colunas mais compactas
   const [ehSuper, setEhSuper] = useState(false);          // "Restaurar padrão" aparece só na empresa Minhas Métricas
   const [confReset, setConfReset] = useState(false);
+  const [confSeed, setConfSeed] = useState(false);       // "Preencher demonstração" (só Minhas Métricas)
+  const [preenchendo, setPreenchendo] = useState(false);
+  const rodarSeed = async () => {
+    setPreenchendo(true);
+    try { await preencherDemonstracao(); window.location.reload(); }
+    catch { setPreenchendo(false); setConfSeed(false); }
+  };
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
     const upd = () => setEstreito(mq.matches);
@@ -1067,6 +1075,10 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {ehSuper && (
+            <button onClick={() => setConfSeed(true)} title="Preencher a empresa com dados de demonstração (2026, Jan a Ago)"
+              style={{ padding: "6px 11px", borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid color-mix(in srgb,var(--brand) 32%,transparent)", background: "color-mix(in srgb,var(--brand) 10%,transparent)", color: "var(--brand)" }}>Preencher demonstração</button>
+          )}
+          {ehSuper && (
             <button onClick={() => setConfReset(true)} title="Restaurar a estrutura padrão de empresa nova (apaga os valores)"
               style={{ padding: "6px 11px", borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid color-mix(in srgb,#ef4444 30%,transparent)", background: "color-mix(in srgb,#ef4444 8%,transparent)", color: "#ef4444" }}>Restaurar padrão</button>
           )}
@@ -1087,6 +1099,24 @@ export default function EstruturaFinancas({ ano = 2026, setAno }: { ano?: number
             <div style={{ display: "flex", gap: 8, marginTop: 20, justifyContent: "flex-end" }}>
               <button className="btn ghost" onClick={() => setConfReset(false)}>Cancelar</button>
               <button className="btn" style={{ background: "#ef4444" }} onClick={restaurarPadrao}>Restaurar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confSeed && (
+        <div onClick={() => !preenchendo && setConfSeed(false)} style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 460, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, display: "grid", placeItems: "center", background: "color-mix(in srgb,var(--brand) 14%,transparent)", color: "var(--brand)" }}><TrendingUp size={20} /></span>
+              <div>
+                <b style={{ fontSize: 16 }}>Preencher dados de demonstração?</b>
+                <p className="sub" style={{ marginTop: 6, lineHeight: 1.5 }}>Preenche <b>2026 (Janeiro a Agosto)</b> com canais de receita, custos e uma equipe de exemplo, simulando uma empresa real. <b>Substitui os funcionários atuais</b> e os valores de 2026. Ideal para gravar a tela.</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 20, justifyContent: "flex-end" }}>
+              <button className="btn ghost" disabled={preenchendo} onClick={() => setConfSeed(false)}>Cancelar</button>
+              <button className="btn" disabled={preenchendo} onClick={rodarSeed}>{preenchendo ? "Preenchendo…" : "Preencher"}</button>
             </div>
           </div>
         </div>
