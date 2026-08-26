@@ -125,44 +125,45 @@ function feriadosNac(ano: number): Set<string> {
   return s;
 }
 /**
- * Dias descontados por faltas injustificadas. Base legal: Lei 605/1949 e
- * Decreto 27.048/1949 (art. 11): a falta injustificada faz perder o repouso
- * remunerado. Na prática, quando a falta cai LOGO ANTES de um descanso (sexta
- * antes do fim de semana, ou véspera de feriado), perdem-se também os dias não
- * úteis EM SEQUÊNCIA (sábado, domingo e/ou feriado) até o próximo dia útil.
- * Uma falta no meio da semana (ex.: terça), seguida de dia útil, desconta só o dia.
- * Cada dia vale salário ÷ 30. "trabalhaSabado" = sábado é dia útil (não é repouso).
+ * Dias descontados por faltas injustificadas — modelo legal (Lei 605/1949, art. 6
+ * e Decreto 27.048/1949, art. 11): a falta injustificada em qualquer dia da semana
+ * faz PERDER O REPOUSO daquela semana. O repouso remunerado é o DOMINGO (DSR) e os
+ * FERIADOS nacionais da mesma semana. O DSR é perdido UMA vez por semana, mesmo com
+ * várias faltas. O SÁBADO (numa jornada seg–sex) NÃO é descontado — o "3 dias por
+ * faltar na sexta" é mito para mensalistas. Cada dia vale salário ÷ 30.
  */
-function diasDescontadosFaltas(faltas: string[] | undefined, trabalhaSabado = false): { faltas: string[]; repousos: string[]; total: number } {
+function diasDescontadosFaltas(faltas: string[] | undefined): { faltas: string[]; repousos: string[]; total: number } {
   const lista = [...new Set((faltas || []).filter(Boolean))];
   if (!lista.length) return { faltas: [], repousos: [], total: 0 };
   const setFalta = new Set(lista);
   const setRepouso = new Set<string>();
-  const ehNaoUtil = (d: Date) => {
-    const dow = d.getDay();
-    return dow === 0 || (dow === 6 && !trabalhaSabado) || feriadosNac(d.getFullYear()).has(isoDe(d));
-  };
+  const semanas = new Set<string>();
   for (const f of lista) {
     const [y, m, d] = f.split("-").map(Number);
-    let cur = new Date(y, m - 1, d + 1);            // dia seguinte à falta
-    let guard = 0;
-    while (ehNaoUtil(cur) && guard < 15) {          // avança pelos dias não úteis em sequência
-      const ci = isoDe(cur);
-      if (!setFalta.has(ci)) setRepouso.add(ci);
-      cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
-      guard++;
+    const dia = new Date(y, m - 1, d);
+    const dow = dia.getDay();                       // 0=dom .. 6=sáb
+    const seg = new Date(dia); seg.setDate(dia.getDate() + (dow === 0 ? -6 : 1 - dow)); // segunda da semana
+    const chave = isoDe(seg);
+    if (semanas.has(chave)) continue;
+    semanas.add(chave);
+    for (let k = 0; k < 7; k++) {
+      const dd = new Date(seg); dd.setDate(seg.getDate() + k);
+      const ddi = isoDe(dd); const ddow = dd.getDay();
+      const feriado = feriadosNac(dd.getFullYear()).has(ddi);
+      // repouso remunerado da semana: domingo (DSR) e feriados. Sábado NÃO entra.
+      if ((ddow === 0 || feriado) && !setFalta.has(ddi)) setRepouso.add(ddi);
     }
   }
   return { faltas: [...setFalta], repousos: [...setRepouso], total: setFalta.size + setRepouso.size };
 }
-function calcFaltas(base: number, faltas: string[] | undefined, trabalhaSabado = false) {
-  const { total, faltas: fs, repousos } = diasDescontadosFaltas(faltas, trabalhaSabado);
+function calcFaltas(base: number, faltas: string[] | undefined) {
+  const { total, faltas: fs, repousos } = diasDescontadosFaltas(faltas);
   const valorDia = base > 0 ? base / 30 : 0;
   return { dias: total, faltasDias: fs.length, repousosDias: repousos.length, valorDia: round2(valorDia), valor: round2(total * valorDia), datasFalta: fs, datasRepouso: repousos };
 }
 
 /** Cálculo da folha mensal de uma pessoa (snapshot do mês: base + vt + variáveis). */
-function calcLinhaMes(v: VarsMes, cols: ColsFolha, trabalhaSabado = false) {
+function calcLinhaMes(v: VarsMes, cols: ColsFolha) {
   const base = v.base || 0;
   const extra = v.extra || {};
   const provExtra = cols.prov.reduce((s, c) => s + (extra[c.id] || 0), 0);
@@ -170,7 +171,7 @@ function calcLinhaMes(v: VarsMes, cols: ColsFolha, trabalhaSabado = false) {
   const proventos = round2(base + v.comissao + v.horaExtra + v.gratificacao + provExtra);
   const inss = calcINSS(proventos);
   const irrf = calcIRRF(proventos, inss);
-  const ft = calcFaltas(base, v.faltas, trabalhaSabado);
+  const ft = calcFaltas(base, v.faltas);
   const descManual = round2(v.sindicato + v.planoSaude + v.adiantamento + descExtra + ft.valor);
   const totalDesc = round2(inss + irrf + descManual);
   const liquido = round2(proventos - totalDesc);
@@ -186,7 +187,7 @@ function FaltasModal({ nome, base, ym, faltas, trabalhaSabado, onSalvar, onFecha
   const primeiro = new Date(ay, am - 1, 1).getDay();
   const totalDias = new Date(ay, am, 0).getDate();
   const SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const r = calcFaltas(base, [...sel], sab);
+  const r = calcFaltas(base, [...sel]);
   const repousoSet = new Set(r.datasRepouso);
   const toggle = (iso: string, bloq: boolean) => { if (bloq) return; setSel((p) => { const n = new Set(p); if (n.has(iso)) n.delete(iso); else n.add(iso); return n; }); };
   return (
@@ -236,7 +237,7 @@ function FaltasModal({ nome, base, ym, faltas, trabalhaSabado, onSalvar, onFecha
           <input type="checkbox" checked={sab} onChange={(e) => setSab(e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--brand)", flexShrink: 0 }} />
           <span style={{ fontSize: 12.5, lineHeight: 1.4 }}>
             <b>Trabalha aos sábados</b>
-            <span className="sub" style={{ display: "block", fontSize: 11 }}>Se marcado, o sábado é dia útil: não entra como repouso perdido (e pode ser marcado como falta).</span>
+            <span className="sub" style={{ display: "block", fontSize: 11 }}>Para escala 6x1: o sábado vira dia útil e pode ser lançado como falta (o descanso remunerado continua sendo o domingo).</span>
           </span>
         </label>
 
@@ -739,12 +740,12 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
   // ---- linhas da visão MENSAL (com variáveis do mês) ----
   const linhasMes = useMemo(() => funcsFolha.map((f) => {
     const v = { ...VARS_ZERO, ...(dadosMes[f.id] || {}) };
-    const r = calcLinhaMes(v, cols, !!sabados[f.id]);
+    const r = calcLinhaMes(v, cols);
     const fgtsM = round2((r.base || 0) * (cfg.fgtsPct / 100));
     const provisaoM = round2((r.base || 0) / 12 + ((r.base || 0) + (r.base || 0) / 3) / 12);
     const rescisaoM = round2(fgtsM * 0.40);
     return { f, v, extra: v.extra || {}, ...r, fgtsM, provisaoM, rescisaoM };
-  }), [funcsFolha, dadosMes, cols, cfg, sabados]);
+  }), [funcsFolha, dadosMes, cols, cfg]);
   // ---- pró-labore dos sócios (regra própria: só salário base e INSS 11%; sem 13º/férias/FGTS) ----
   const linhasSocio = useMemo(() => socios.map((f) => {
     const v = { ...VARS_ZERO, ...(dadosMes[f.id] || {}) };
@@ -1276,8 +1277,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               {[
                 <>O <b>valor de cada dia</b> é o salário base dividido por <b>30</b>.</>,
                 <>Cada <b>falta</b> desconta o próprio dia.</>,
-                <>Quando a falta cai <b>logo antes de um descanso</b> (sexta antes do fim de semana, ou véspera de feriado), perdem-se também os <b>dias não úteis em sequência</b> (sábado, domingo e/ou feriado) até o próximo dia útil.</>,
-                <>Falta no <b>meio da semana</b> (ex.: terça), seguida de dia útil, desconta <b>só o dia</b> (não perde repouso).</>,
+                <>Uma falta injustificada em <b>qualquer dia</b> da semana (segunda, quarta, sexta…) faz <b>perder o descanso remunerado (DSR)</b> daquela semana, que é o <b>domingo</b>. Por isso a conta padrão é <b>2 dias</b> por falta.</>,
+                <>O DSR é perdido <b>uma vez por semana</b>, mesmo com várias faltas. <b>Feriados</b> nacionais na mesma semana também são perdidos. O <b>sábado não é descontado</b> (numa jornada seg–sex).</>,
               ].map((t, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}>
                   <span style={{ color: "#EF4444", fontWeight: 800 }}>•</span><span>{t}</span>
@@ -1286,10 +1287,10 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
             </div>
             <div style={{ marginTop: 14, background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px", fontSize: 12.5, lineHeight: 1.6 }}>
               <b>Exemplo:</b> salário de <b>R$ 3.000</b> → cada dia vale <b>R$ 100</b> (3.000 ÷ 30).<br />
-              Faltou numa <b>sexta-feira</b> (sem feriado na semana): perde sexta + sábado + domingo = <b>3 dias</b> = <b style={{ color: "#EF4444" }}>R$ 300</b> de desconto.
+              Faltou <b>um dia</b> (segunda, quarta ou sexta): perde o dia + o <b>domingo (DSR)</b> = <b>2 dias</b> = <b style={{ color: "#EF4444" }}>R$ 200</b> de desconto.
             </div>
             <p className="sub" style={{ margin: "12px 0 0", fontSize: 11.5, lineHeight: 1.5 }}>
-              Observação: por padrão o sábado é descanso. Se a pessoa <b>trabalha aos sábados</b>, marque a opção dentro da janela de faltas (é por funcionário): aí o sábado passa a ser dia útil e não é descontado como repouso.
+              Observação: numa escala <b>6x1</b> (trabalha aos sábados), marque a opção na janela de faltas (por funcionário) para poder lançar faltas no sábado. O descanso remunerado continua sendo o domingo. Faltas <b>justificadas</b> (atestado etc.) não descontam e não devem ser lançadas aqui.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
               <button className="btn" onClick={() => setInfoFaltas(false)}>Entendi</button>
