@@ -274,6 +274,9 @@ function salvarMes(id: string | null | undefined, ym: string, dados: Record<stri
 
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+// Aviso padrão (tela + impressos): os valores da folha são ilustrativos.
+const AVISO_FOLHA = "Os cálculos e valores desta folha são ilustrativos e servem como base para entender e ter um diagnóstico geral da empresa. Os valores efetivamente pagos aos funcionários devem seguir as orientações da contabilidade.";
+
 // ---- benefícios por pessoa (vale transporte / vale alimentação), por empresa ----
 // Cada benefício pode ser em % do salário ou valor fixo. Ausente = zerado.
 type Modo = "pct" | "fixo";
@@ -836,7 +839,7 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
     const cidade = (empresa && "cidade" in empresa ? (empresa as { cidade?: string }).cidade : "") || "";
     let resp = ""; try { const s = JSON.parse(localStorage.getItem("me_diretores") || "null"); resp = s?.sup?.nome || ""; } catch { /* ignore */ }
 
-    type Papel = "titulo" | "kv" | "vazio" | "th" | "data" | "total" | "secao";
+    type Papel = "titulo" | "kv" | "vazio" | "th" | "data" | "total" | "secao" | "aviso";
     const aoa: (string | number)[][] = [];
     const papeis: Papel[] = [];
     const push = (row: (string | number)[], p: Papel) => { aoa.push(row); papeis.push(p); };
@@ -861,12 +864,15 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
       push([`Total (${linhasSocio.length})`, ...colsPrintPl.map((c) => somaCol(linhasSocio, c.get))], "total");
     }
 
+    push([], "vazio");
+    push([AVISO_FOLHA], "aviso");
+
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!merges"] = [];
     const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
     for (let R = range.s.r; R <= range.e.r; R++) {
       const papel = papeis[R];
-      if (papel === "titulo" || papel === "secao") ws["!merges"]!.push({ s: { r: R, c: 0 }, e: { r: R, c: ncols - 1 } });
+      if (papel === "titulo" || papel === "secao" || papel === "aviso") ws["!merges"]!.push({ s: { r: R, c: 0 }, e: { r: R, c: ncols - 1 } });
       for (let C = range.s.c; C <= range.e.c; C++) {
         const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
         if (!cell) continue;
@@ -874,13 +880,14 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
         if (papel === "titulo") { s.font = { bold: true, sz: 14, color: { rgb: "FFFFFFFF" } }; s.fill = { fgColor: { rgb: brandHex } }; s.alignment = { vertical: "center" }; }
         else if (papel === "kv") { if (C === 0) s.font = { bold: true, color: { rgb: "FF334155" } }; }
         else if (papel === "secao") { s.font = { bold: true, color: { rgb: "FF0F172A" } }; s.fill = { fgColor: { rgb: "FFCBD9EC" } }; }
+        else if (papel === "aviso") { s.font = { italic: true, sz: 9, color: { rgb: "FF64748B" } }; s.alignment = { wrapText: true, vertical: "top", horizontal: "left" }; }
         else if (papel === "th") { s.font = { bold: true, color: { rgb: "FF0F172A" } }; s.fill = { fgColor: { rgb: "FFE2E8F0" } }; s.alignment = { horizontal: C === 0 ? "left" : "right", vertical: "center" }; }
         else { s.font = { bold: papel === "total" }; s.alignment = { horizontal: C >= 1 ? "right" : "left" }; }
         if (C >= 1 && (papel === "data" || papel === "total") && typeof cell.v === "number") cell.z = 'R$ #,##0.00';
         cell.s = s;
       }
     }
-    ws["!rows"] = papeis.map((p) => ({ hpt: p === "titulo" ? 24 : p === "th" || p === "secao" ? 18 : 15 }));
+    ws["!rows"] = papeis.map((p) => ({ hpt: p === "titulo" ? 24 : p === "aviso" ? 44 : p === "th" || p === "secao" ? 18 : 15 }));
     ws["!cols"] = [{ wch: 24 }, ...colsPrint.map(() => ({ wch: 13 }))];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `${MES[mesAtualIdx]} ${ano}`);
@@ -927,6 +934,12 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--txt)", background: "transparent", border: 0, padding: "7px 14px" }}><Printer size={15} /> Imprimir / PDF</button>
           </div>
         </div>
+      </div>
+
+      {/* aviso: valores ilustrativos (tela) */}
+      <div className="no-print" style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 14, padding: "9px 13px", borderRadius: 10, background: "color-mix(in srgb, #F59E0B 10%, transparent)", border: "1px solid color-mix(in srgb, #F59E0B 30%, transparent)", fontSize: 12, lineHeight: 1.45, color: "var(--txt)" }}>
+        <Info size={15} style={{ color: "#F59E0B", flexShrink: 0, marginTop: 1 }} />
+        <span>{AVISO_FOLHA}</span>
       </div>
 
       {/* barra de ano + meses (estilo Dashboard): seleciona 1 mês */}
@@ -1715,6 +1728,8 @@ export default function FolhaPagamento({ empresa = null }: { empresa?: Empresa |
               <div key={c.t}><div style={{ textTransform: "uppercase", fontWeight: 700, color: "#666", fontSize: 8.5 }}>{c.t}</div><div style={{ fontWeight: 800, fontSize: 12 }}>{brl(c.v)}</div></div>
             ))}
           </div>
+
+          <div style={{ fontSize: 9, fontStyle: "italic", color: "#555", border: "1px solid #d4d4d8", borderRadius: 6, padding: "6px 9px", marginBottom: 12, lineHeight: 1.4 }}>{AVISO_FOLHA}</div>
 
           <table className="folha-print-tab" style={{ width: "100%", borderCollapse: "collapse", fontSize: 7 }}>
             <thead>
