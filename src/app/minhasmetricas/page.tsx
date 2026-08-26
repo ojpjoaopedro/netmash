@@ -110,6 +110,8 @@ export default function Home({ secao }: { secao?: string } = {}) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [metrs, setMetrs] = useState<Metrica[]>([]);
   const [view, setView] = useState<View>((secao && SEG_VIEW[secao]) || "dashboard");
+  // ao atualizar a página (F5), sempre volta para a Home, em vez de recarregar a tela onde estava
+  useEffect(() => { setView("dashboard"); }, []);
   // ===== App mobile (estilo Asaas): detecção de celular, frase do dia, ocultar =====
   const [estreito, setEstreito] = useState(false);
   useEffect(() => {
