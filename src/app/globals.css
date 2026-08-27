@@ -65,7 +65,7 @@ body.theme-light{
 
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-html,body{padding:0;margin:0;overflow-x:clip;max-width:100%;overscroll-behavior-x:none}
+html,body{padding:0;margin:0;overflow-x:clip;max-width:100%;overscroll-behavior:none}
 body{
   font-family:"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   color:var(--txt);
