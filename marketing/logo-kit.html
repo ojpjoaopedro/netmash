@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo — Minhas Métricas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--cyan:#1AADE2;--green:#10B981;}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
+  body{background:#15171c;color:#fff;padding:40px}
+  h1{font-size:22px;margin-bottom:6px}
+  p.lead{color:#a1a1aa;font-size:14px;margin-bottom:28px;max-width:760px;line-height:1.5}
+  .grid{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+  .item{display:flex;flex-direction:column;gap:10px}
+  .cap{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
+  .sub{font-size:11.5px;color:#a1a1aa}
+  /* preview card: fundo neutro só pra visualizar (NÃO entra no PNG, que sai transparente) */
+  .card{background:#0b0b0d;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;display:inline-flex}
+  .card.light{background:#e9ebee}
+  /* cada .logo-art é o que vira PNG (fundo transparente) */
+  .logo-art{background:transparent;display:flex;align-items:center;justify-content:center}
+  .wm{font-weight:800;letter-spacing:-.02em;white-space:nowrap;line-height:1}
+  .wm .g{background:linear-gradient(90deg,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* caixas se ajustam ao conteúdo (sem cortar o texto) */
+  /* V1 — horizontal (ícone + texto), claro (p/ boné escuro) */
+  #v1{padding:70px 90px;gap:64px;transform-origin:top left}
+  #v1 svg{width:380px;height:380px;flex:none}
+  #v1 .wm{font-size:260px}
+  #v1 .wm .w1{color:#fff}
+
+  /* V2 — empilhado */
+  #v2{flex-direction:column;padding:80px;gap:56px;transform-origin:top left}
+  #v2 svg{width:560px;height:560px;flex:none}
+  #v2 .wm{font-size:220px}
+  #v2 .wm .w1{color:#fff}
+
+  /* V3 — só o ícone */
+  #v3{padding:50px;transform-origin:top left}
+  #v3 svg{width:840px;height:840px;flex:none}
+
+  /* V4 — horizontal TODO BRANCO (bom p/ bordado/1 cor) */
+  #v4{padding:70px 90px;gap:64px;transform-origin:top left}
+  #v4 svg{width:380px;height:380px;flex:none}
+  #v4 .wm{font-size:260px;color:#fff}
+
+  /* prévia reduzida */
+  .scale-32{transform:scale(.32)}
+  .scale-22{transform:scale(.22)}
+  .scale-30{transform:scale(.30)}
+  .box32{width:704px;height:198px}
+  .box22{width:330px;height:356px}
+  .box30{width:300px;height:300px}
+  .box32b{width:704px;height:198px}
+</style>
+</head>
+<body>
+  <h1>Logo — Minhas Métricas (para estampa / boné)</h1>
+  <p class="lead">Cada arte abaixo é exportada em <b>PNG com fundo transparente</b> e alta resolução, em <code>marketing/logo/</code>. Use a <b>V1</b> (horizontal clara) ou <b>V4</b> (branca) na frente do boné preto. A <b>V3</b> (só o ícone) serve pra lugares pequenos. Fundo cinza/claro aqui é só pra visualizar; no arquivo final não existe fundo.</p>
+
+  <div class="grid">
+
+    <!-- V1 -->
+    <div class="item">
+      <span class="cap">V1 · Horizontal (colorida)</span>
+      <span class="sub">Ideal p/ frente do boné preto · 2200×620</span>
+      <div class="card">
+        <div class="box32b"><div id="v1" class="logo-art scale-32" data-logo="logo-horizontal">
+          <svg viewBox="0 0 120 120" fill="none"><defs><linearGradient id="g1" x1="10" y1="100" x2="105" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#1AADE2"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs>
+            <polyline points="16,92 46,60 66,76 102,30" stroke="url(#g1)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="80,30 102,30 102,52" stroke="url(#g1)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="46" cy="60" r="8" fill="#1AADE2"/>
+          </svg>
+          <div class="wm"><span class="w1">Minhas</span> <span class="g">Métricas</span></div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- V4 -->
+    <div class="item">
+      <span class="cap">V4 · Horizontal (toda branca)</span>
+      <span class="sub">P/ bordado ou estampa 1 cor · 2200×620</span>
+      <div class="card">
+        <div class="box32b"><div id="v4" class="logo-art scale-32" data-logo="logo-horizontal-branca">
+          <svg viewBox="0 0 120 120" fill="none">
+            <polyline points="16,92 46,60 66,76 102,30" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="80,30 102,30 102,52" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="46" cy="60" r="8" fill="#fff"/>
+          </svg>
+          <div class="wm">Minhas Métricas</div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- V2 -->
+    <div class="item">
+      <span class="cap">V2 · Empilhada (colorida)</span>
+      <span class="sub">Ícone em cima, nome embaixo · 1500×1620</span>
+      <div class="card">
+        <div class="box22"><div id="v2" class="logo-art scale-22" data-logo="logo-empilhada">
+          <svg viewBox="0 0 120 120" fill="none"><defs><linearGradient id="g2" x1="10" y1="100" x2="105" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#1AADE2"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs>
+            <polyline points="16,92 46,60 66,76 102,30" stroke="url(#g2)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="80,30 102,30 102,52" stroke="url(#g2)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="46" cy="60" r="8" fill="#1AADE2"/>
+          </svg>
+          <div class="wm"><span class="w1">Minhas</span> <span class="g">Métricas</span></div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- V3 -->
+    <div class="item">
+      <span class="cap">V3 · Só o ícone (colorido)</span>
+      <span class="sub">P/ lateral do boné / espaços pequenos · 1000×1000</span>
+      <div class="card">
+        <div class="box30"><div id="v3" class="logo-art scale-30" data-logo="icone">
+          <svg viewBox="0 0 120 120" fill="none"><defs><linearGradient id="g3" x1="10" y1="100" x2="105" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#1AADE2"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs>
+            <polyline points="16,92 46,60 66,76 102,30" stroke="url(#g3)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="80,30 102,30 102,52" stroke="url(#g3)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="46" cy="60" r="8" fill="#1AADE2"/>
+          </svg>
+        </div></div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
