@@ -1279,7 +1279,7 @@ function TelaConfig({ empresa, funcs, reload, brand, saveBrand, loginEmail, ehDo
 /** Tela ainda sem conteúdo definido — placeholder padrão de "em construção". */
 /** Tela de módulo bloqueado: convida a fazer upgrade e leva ao Plano. */
 function TelaUpgrade({ Icon, titulo, texto, chave }: { Icon: typeof Compass; titulo: string; texto: string; chave: string }) {
-  // O preço mostrado aqui é o do produto na Wiven (mesma fonte do checkout),
+  // O preço mostrado aqui é o da oferta na Cakto (mesma fonte do checkout),
   // para nunca prometer um valor diferente do que o cliente vai pagar.
   const [preco, setPreco] = useState<{ preco: number; primeiraCobranca: number | null } | null>(null);
   useEffect(() => {

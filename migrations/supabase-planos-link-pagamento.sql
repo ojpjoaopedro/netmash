@@ -3,6 +3,8 @@
 -- Adiciona a coluna e já preenche os links atuais.
 -- Rodar UMA vez no SQL Editor do Supabase (projeto gaormginkujgisardsjk).
 -- ============================================================================
+-- NOTA (troca de gateway): os links abaixo são da Wiven e ficaram como
+-- histórico. Quem manda hoje é `supabase-cakto.sql`, rodado depois deste.
 alter table public.planos_catalogo
   add column if not exists link_pagamento text;
 

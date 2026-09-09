@@ -46,9 +46,9 @@ manual. Portanto: **rode `npm run build` antes de subir** e evite quebrar a `mai
   - **Área interna** (equipe Minhas Métricas / superadmin), rota **`/admin`** (`src/app/admin/page.tsx`):
     cadastro e gestão das empresas clientes e planos. O cliente NÃO acessa isso.
   - **Compra (público)**, rotas **`/assinar`** e **`/obrigado`**: a empresa contrata o plano,
-    paga no checkout da **Wiven** e a conta nasce sozinha quando o webhook
-    (`/api/webhooks/wiven`) confirma o pagamento. As regras ficam em `src/lib/vendas.ts` e
-    `src/lib/wiven.ts`; o acompanhamento é a aba **Vendas** do `/admin`.
+    paga no checkout da **Cakto** e a conta nasce sozinha quando o webhook
+    (`/api/webhooks/cakto`) confirma o pagamento. As regras ficam em `src/lib/vendas.ts` e
+    `src/lib/cakto.ts`; o acompanhamento é a aba **Vendas** do `/admin`.
 - `src/lib/` concentra a lógica sem UI: `db.ts` (dados), `calc.ts` (cálculos), `indicadores.ts`,
   `brand.ts` (marca white-label), `estado-remoto.ts`, `apresentacao.ts`, etc.
 - **Modo demonstração:** sem as chaves do Supabase, o app roda com dados de exemplo no

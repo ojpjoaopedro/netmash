@@ -141,39 +141,53 @@ quando o pagamento é confirmado.
 | Página de retorno do checkout (espera a confirmação) | `src/app/obrigado/` |
 | Cria a venda e devolve o link de pagamento | `src/app/api/checkout/route.ts` |
 | Status da venda (usado pela página de retorno) | `src/app/api/checkout/status/route.ts` |
-| Recebe os avisos da Wiven e libera o acesso | `src/app/api/webhooks/wiven/route.ts` |
+| Recebe os avisos da Cakto e libera o acesso | `src/app/api/webhooks/cakto/route.ts` |
 | Regras de venda (criar empresa, ligar módulo) | `src/lib/vendas.ts` |
-| Cliente da API da Wiven | `src/lib/wiven.ts` |
+| Cliente da API da Cakto | `src/lib/cakto.ts` |
+| Preço das ofertas na Cakto | `src/lib/cakto-catalogo.ts` |
 | Vendas no Admin | aba **Vendas** em `src/app/admin/page.tsx` + `src/app/api/vendas-admin/route.ts` |
 
 Fluxo: `/assinar` → venda **pendente** no banco (com a senha cifrada) → checkout
-da Wiven → webhook `TRANSACTION_PAID` → cria a empresa e o acesso (ou liga o
+da Cakto → webhook `purchase_approved` → cria a empresa e o acesso (ou liga o
 módulo, se o e-mail já é cliente) → o cliente entra em `/login` com a senha que
-escolheu. Reembolso e chargeback marcam a venda como "precisa de atenção" no
-Admin; o corte de acesso continua manual.
+escolheu. Reembolso, chargeback e cancelamento de assinatura marcam a venda como
+"precisa de atenção" no Admin; o corte de acesso continua manual.
 
-**Preços:** quem manda é o produto cadastrado na **Wiven**. O app lê o preço (e a
-promoção da 1ª cobrança) da página do link de checkout de cada produto, em
-`src/lib/wiven-catalogo.ts`, com cache de 10 minutos; o valor guardado no banco
-(`planos_catalogo.preco` / `config_app.preco_superadmin`) só entra como reserva
-se a leitura falhar. A API da Wiven não tem rota para listar produtos, por isso a
-leitura é feita pela página pública do checkout. O preço que está valendo aparece
-na coluna **Preço na Wiven** da aba Produtos do Admin.
+**Como a venda é reconhecida:** o app manda o próprio id da venda no parâmetro
+`sck` do link de checkout (campo livre de rastreio da Cakto), e ele volta inteiro
+no webhook. Se faltar, o app ainda tenta pelo id do pedido e pelo e-mail do
+comprador, nessa ordem.
 
-**Por que o link vem antes da API:** os produtos na Wiven já estão configurados
-como assinatura mensal (com promoção na 1ª cobrança e itens adicionais). O
-`POST /gateway/checkout` da API monta uma oferta avulsa, sem campos de
-recorrência, então o app usa o link cadastrado sempre que existir e só recorre à
-API quando o produto não tem link.
+**Preços:** quem manda é a oferta cadastrada na **Cakto**, achada pelo id que
+está no fim do link de checkout (`https://pay.cakto.com.br/<oferta>`). Em
+`src/lib/cakto-catalogo.ts`, com cache de 10 minutos, o app tenta dois caminhos:
+`GET /public_api/offers/` (escopo `offers`), que dá o preço exato da oferta; e,
+quando esse escopo falta, os produtos e seus checkouts (escopo `products`), que
+dizem de que produto é a oferta, com o preço do produto. O valor guardado no
+banco (`planos_catalogo.preco` / `config_app.preco_superadmin`) entra como
+reserva quando nenhum dos dois responde. O preço que está valendo aparece na
+coluna **Preço na Cakto** da aba Produtos do Admin.
+
+> A chave de API em uso hoje tem os escopos `read products payments subscriptions
+> webhooks`. Liberar `offers` (preço promocional da oferta) e `orders` (conferir
+> o pedido quando o webhook chega) é só gerar uma chave nova no painel da Cakto
+> com esses escopos: o código já usa os dois quando estão disponíveis.
+
+**Por que o checkout é sempre por link:** na Cakto não existe rota de "criar
+checkout" (o checkout e o link nascem junto com o produto). O app monta o link da
+oferta com os dados do cliente e o id da venda, e é para lá que manda o comprador.
+Para onde o cliente volta depois de pagar é ajuste do produto **dentro da Cakto**
+(a URL de retorno não vai no link); quem confirma a compra do lado do app é o
+webhook, não o retorno do navegador.
 
 **Configuração:** o link de checkout de cada produto cadastrado no Admin (aba
-Produtos), `WIVEN_WEBHOOK_TOKEN` e `CHECKOUT_SECRET` (ver `.env.example`; também
-aceitam ficar na tabela `app_kv`), a migration
-`migrations/supabase-vendas-checkout.sql` e o webhook apontando para
-`https://SEU-DOMINIO/api/webhooks/wiven` no painel da Wiven. As chaves
-`WIVEN_PUBLIC_KEY` / `WIVEN_SECRET_KEY` são opcionais: servem para conferir a
-transação ao receber o webhook e para criar checkout pela API quando um produto
-não tiver link.
+Produtos), `CAKTO_WEBHOOK_SECRET` e `CHECKOUT_SECRET` (ver `.env.example`; também
+aceitam ficar na tabela `app_kv`), as migrations
+`migrations/supabase-vendas-checkout.sql` e `migrations/supabase-cakto.sql`, e o
+webhook apontando para `https://SEU-DOMINIO/api/webhooks/cakto` no painel da
+Cakto (Integrações > Webhooks) com os eventos de compra e de assinatura. As
+credenciais `CAKTO_CLIENT_ID` / `CAKTO_CLIENT_SECRET` servem para ler o preço das
+ofertas e conferir o pedido quando o webhook chega.
 
 ---
 

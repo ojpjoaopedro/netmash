@@ -1,6 +1,6 @@
 // Vendas do Métricas para a tela do Admin (aba Vendas).
 // Só super admin lê. As vendas nascem em /api/checkout e mudam de status pelo
-// webhook da Wiven (/api/webhooks/wiven).
+// webhook da Cakto (/api/webhooks/cakto).
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { SUPERADMINS as SUPERS } from "@/lib/superadmin";
@@ -22,7 +22,7 @@ type Linha = {
   nome: string | null; empresa: string | null; email: string; telefone: string | null;
   plano_chave: string; plano_nome: string | null; valor: number | string;
   status: string; origem: string | null; alerta: boolean; erro: string | null;
-  empresa_id: string | null; user_id: string | null; wiven_transaction_id: string | null;
+  empresa_id: string | null; user_id: string | null; cakto_order_id: string | null;
 };
 
 export async function GET(req: NextRequest) {
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   if (!(await ehSuper(req, s))) return NextResponse.json({ error: "Acesso restrito." }, { status: 403 });
 
   const { data, error } = await s.from("vendas")
-    .select("id,identifier,criado_em,pago_em,nome,empresa,email,telefone,plano_chave,plano_nome,valor,status,origem,alerta,erro,empresa_id,user_id,wiven_transaction_id")
+    .select("id,identifier,criado_em,pago_em,nome,empresa,email,telefone,plano_chave,plano_nome,valor,status,origem,alerta,erro,empresa_id,user_id,cakto_order_id")
     .order("criado_em", { ascending: false }).limit(500);
   // A tabela pode ainda não existir (migration não rodada): responde vazio em vez de quebrar a tela.
   if (error) return NextResponse.json({ vendas: [], totais: vazio(), aviso: "Rode a migration migrations/supabase-vendas-checkout.sql." });

@@ -4,7 +4,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import { PRECO_SUPERADMIN } from "@/lib/precos";
 import { decifrar, segredoCheckout } from "@/lib/segredo";
-import { lerOfertaDoLink } from "@/lib/wiven-catalogo";
+import { lerOfertaDoLink } from "@/lib/cakto-catalogo";
 import { FEATURES, quantidadeDoPlano, type PlanosEmpresa } from "@/lib/planos";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,14 +24,14 @@ export type PlanoVenda = {
   chave: string;
   nome: string;
   descricao: string | null;
-  preco: number;            // mensalidade (vem da Wiven quando há link cadastrado)
+  preco: number;            // mensalidade (vem da Cakto quando há link cadastrado)
   imagem: string | null;
   link: string | null;      // link de checkout cadastrado no Admin
   base: boolean;            // true = plano principal (cria a empresa)
   selo: string | null;      // etiqueta que aparece no painel (ex.: "Novo")
   primeiraCobranca: number | null;  // valor promocional da 1ª cobrança, se houver
-  precoDaWiven: boolean;    // false = caiu no preço guardado no banco
-  produtoWiven: string | null;      // nome do produto lá na Wiven (conferência)
+  precoDaCakto: boolean;    // false = caiu no preço guardado no banco
+  produtoCakto: string | null;      // nome do produto lá na Cakto (conferência)
 };
 
 export function slugify(s: string): string {
@@ -65,8 +65,8 @@ export async function listarPlanos(s: SupabaseClient | null): Promise<PlanoVenda
     base: true,
     selo: null,
     primeiraCobranca: null,
-    precoDaWiven: false,
-    produtoWiven: null,
+    precoDaCakto: false,
+    produtoCakto: null,
   };
   if (!s) return [base];
 
@@ -86,21 +86,22 @@ export async function listarPlanos(s: SupabaseClient | null): Promise<PlanoVenda
       .map((c) => ({
         chave: c.chave, nome: c.nome, descricao: c.descricao, preco: Number(c.preco || 0),
         imagem: c.imagem, link: c.link_pagamento, base: false, selo: c.selo ?? null,
-        primeiraCobranca: null, precoDaWiven: false, produtoWiven: null,
+        primeiraCobranca: null, precoDaCakto: false, produtoCakto: null,
       }));
-    return comPrecoDaWiven([base, ...modulos]);
+    return comPrecoDaCakto(s, [base, ...modulos]);
   } catch {
     return [base];
   }
 }
 
 /**
- * Quem manda no preço é a Wiven: para cada plano com link de checkout, lê o
- * valor do produto lá e usa esse. O preço guardado no banco vira reserva, para
- * o caso de a leitura falhar (rede fora, link errado, produto desativado).
+ * Quem manda no preço é a Cakto: para cada plano com link de checkout, lê o
+ * valor da oferta lá e usa esse. O preço guardado no banco vira reserva, para
+ * o caso de a leitura falhar (rede fora, link errado, oferta desativada, ou a
+ * chave de API sem o escopo `offers`).
  */
-async function comPrecoDaWiven(planos: PlanoVenda[]): Promise<PlanoVenda[]> {
-  const ofertas = await Promise.all(planos.map((p) => (p.link ? lerOfertaDoLink(p.link) : Promise.resolve(null))));
+async function comPrecoDaCakto(s: SupabaseClient, planos: PlanoVenda[]): Promise<PlanoVenda[]> {
+  const ofertas = await Promise.all(planos.map((p) => (p.link ? lerOfertaDoLink(s, p.link) : Promise.resolve(null))));
   return planos.map((p, i) => {
     const o = ofertas[i];
     if (!o) return p;
@@ -108,8 +109,8 @@ async function comPrecoDaWiven(planos: PlanoVenda[]): Promise<PlanoVenda[]> {
       ...p,
       preco: o.preco,
       primeiraCobranca: o.primeiraCobranca,
-      precoDaWiven: true,
-      produtoWiven: o.produtoNome,
+      precoDaCakto: true,
+      produtoCakto: o.produtoNome,
     };
   });
 }

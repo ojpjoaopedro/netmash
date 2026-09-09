@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
 /**
  * Confirma a venda à mão. Existe só para desenvolvimento (sem gateway ligado):
- * em produção a confirmação vem sempre pelo webhook da Wiven.
+ * em produção a confirmação vem sempre pelo webhook da Cakto.
  */
 export async function POST(req: NextRequest) {
   if (ehProducao) return NextResponse.json({ error: "Indisponível." }, { status: 404 });

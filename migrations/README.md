@@ -15,7 +15,7 @@ São rodados **manualmente** no SQL Editor do Supabase (o app não os importa em
 - `supabase-painel-estado.sql` — tabela `painel_estado` + RLS.
 - `supabase-planos-catalogo.sql` — tabela `planos_catalogo` + seed inicial.
 - `supabase-push-subscriptions.sql` — tabela `push_subscriptions` + RLS.
-- `supabase-vendas-checkout.sql` — tabela `vendas` (compras da landing `/assinar`) e `vendas_eventos` (o que a Wiven avisou), sem policy: só o servidor lê.
+- `supabase-vendas-checkout.sql` — tabela `vendas` (compras da landing `/assinar`) e `vendas_eventos` (o que o gateway avisou), sem policy: só o servidor lê.
 
 ## Ajustes aplicados depois (ALTER / policies / índices / seeds)
 - `supabase-empresas-planos.sql` — coluna `planos` (jsonb) em empresas.
@@ -28,4 +28,5 @@ São rodados **manualmente** no SQL Editor do Supabase (o app não os importa em
 - `supabase-indices-performance.sql` — índices de performance.
 - `supabase-rls.sql` — RLS + função `meu_empresa_id()` + policies principais.
 - `supabase-rls-parte2.sql` — RLS em vendas/produtos/cupons/config_app.
+- `supabase-cakto.sql` — troca do gateway Wiven -> Cakto: renomeia `vendas.wiven_*` para `cakto_order_id`/`cakto_subscription_id`, troca os links de pagamento pelos da Cakto, acerta os preços de reserva e tira o "2º acesso" do catálogo. **Rodar depois de `supabase-vendas-checkout.sql`.**
 - `supabase-rls-fix-p0.sql` — hotfix: recria `meu_empresa_id()` e reajusta policies.

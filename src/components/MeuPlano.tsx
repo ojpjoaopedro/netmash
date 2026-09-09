@@ -51,7 +51,7 @@ export default function MeuPlano({ empresa }: { empresa?: { planos?: Record<stri
     return () => window.removeEventListener("me:diretores", ler);
   }, []);
 
-  // Os preços são os dos produtos cadastrados na Wiven: /api/checkout lê de lá
+  // Os preços são os das ofertas cadastradas na Cakto: /api/checkout lê de lá
   // (com o valor do banco como reserva) e devolve o catálogo já pronto.
   useEffect(() => {
     let vivo = true;

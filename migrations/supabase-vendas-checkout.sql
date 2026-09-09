@@ -1,5 +1,9 @@
 -- ============================================================================
--- Vendas / checkout (Wiven)
+-- Vendas / checkout
+-- NOTA (troca de gateway): este script nasceu na época da Wiven e ficou como
+-- histórico, por isso ainda fala dela e cria as colunas `wiven_*`. Rode
+-- `supabase-cakto.sql` na sequência: é ele que renomeia as colunas e deixa
+-- tudo apontando para a Cakto.
 -- ----------------------------------------------------------------------------
 -- Guarda as compras feitas na landing de assinatura (/assinar). O fluxo é:
 --   1. o visitante preenche os dados e a senha  -> nasce uma venda "pendente"

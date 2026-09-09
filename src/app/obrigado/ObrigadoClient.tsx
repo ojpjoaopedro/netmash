@@ -1,7 +1,7 @@
 "use client";
 /**
  * Página para onde o cliente volta depois do checkout. Fica consultando o
- * status da venda até o webhook da Wiven confirmar o pagamento (PIX e boleto
+ * status da venda até o webhook da Cakto confirmar o pagamento (PIX e boleto
  * podem demorar). Quando confirma, a conta já existe e ele entra direto.
  */
 import { Suspense, useCallback, useEffect, useState } from "react";

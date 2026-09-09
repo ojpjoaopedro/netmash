@@ -1,8 +1,8 @@
 // Checkout da assinatura: monta a venda (ainda pendente) e devolve para onde
-// mandar o cliente pagar. Quem confirma o pagamento é /api/webhooks/wiven.
+// mandar o cliente pagar. Quem confirma o pagamento é /api/webhooks/cakto.
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { credenciais, criarCheckout } from "@/lib/wiven";
+import { montarLinkCheckout } from "@/lib/cakto";
 import { cifrar, segredoCheckout } from "@/lib/segredo";
 import { escaparLike, listarPlanos, perfilPorEmail, svc, PLANO_BASE, soDigitos } from "@/lib/vendas";
 
@@ -14,8 +14,8 @@ const ehProducao = process.env.NODE_ENV === "production";
 /** Planos à venda (usado pela landing /assinar). */
 export async function GET() {
   const s = svc();
-  const planos = (await listarPlanos(s)).map(({ chave, nome, descricao, preco, imagem, base, selo, primeiraCobranca, precoDaWiven }) =>
-    ({ chave, nome, descricao, preco, imagem, base, selo, primeiraCobranca, precoDaWiven }));
+  const planos = (await listarPlanos(s)).map(({ chave, nome, descricao, preco, imagem, base, selo, primeiraCobranca, precoDaCakto }) =>
+    ({ chave, nome, descricao, preco, imagem, base, selo, primeiraCobranca, precoDaCakto }));
   return NextResponse.json({ planos, configurado: !!s });
 }
 
@@ -89,41 +89,14 @@ export async function POST(req: NextRequest) {
   const origin = (process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin).replace(/\/+$/, "");
   const obrigado = `${origin}/obrigado?venda=${identifier}`;
 
-  // 1ª opção: o link do produto cadastrado no Admin, com os dados já na URL.
-  // É o caminho preferido porque o produto na Wiven já vem configurado como
-  // assinatura mensal (com a promoção da 1ª cobrança e os itens adicionais).
+  // O caminho é sempre o link do produto cadastrado no Admin, com os dados do
+  // cliente e o nosso id da venda (em `sck`) já na URL. Na Cakto não existe
+  // rota para criar checkout: o checkout nasce junto com o produto, e o link
+  // (https://pay.cakto.com.br/<oferta>) já vem com a recorrência configurada.
   if (plano.link) {
-    const u = new URL(plano.link);
-    u.searchParams.set("name", nome);
-    u.searchParams.set("email", email);
-    u.searchParams.set("phone", telefone);
-    u.searchParams.set("document", documento);
-    u.searchParams.set("external_id", identifier);
-    const link = u.toString();
+    const link = montarLinkCheckout(plano.link, { identifier, nome, email, telefone, documento });
     await s.from("vendas").update({ checkout_url: link, origem: "link", atualizado_em: new Date().toISOString() }).eq("identifier", identifier);
     return NextResponse.json({ checkoutUrl: link, identifier });
-  }
-
-  // 2ª opção: criar um checkout pela API. Atenção: essa rota monta uma oferta
-  // avulsa, sem os campos de recorrência, então serve para cobrança única ou
-  // enquanto o produto não tem link cadastrado.
-  const cred = await credenciais(s);
-  if (cred) {
-    const r = await criarCheckout(cred, {
-      identifier,
-      planoChave: plano.chave,
-      planoNome: plano.nome,
-      preco: plano.primeiraCobranca ?? plano.preco,
-      assinatura: true,
-      thankYouPage: obrigado,
-      foto: plano.imagem,
-      cliente: { nome, email, telefone, documento },
-    });
-    if (r.ok && r.dados?.checkoutUrl) {
-      await s.from("vendas").update({ checkout_url: r.dados.checkoutUrl, origem: "api", atualizado_em: new Date().toISOString() }).eq("identifier", identifier);
-      return NextResponse.json({ checkoutUrl: r.dados.checkoutUrl, identifier });
-    }
-    console.warn("[checkout] não consegui criar o checkout pela API da Wiven:", r.ok ? "resposta sem checkoutUrl" : r.erro);
   }
 
   // Fora de produção, dá para seguir o fluxo sem gateway nenhum (venda simulada).
@@ -132,6 +105,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ checkoutUrl: `${obrigado}&simulado=1`, identifier, simulado: true });
   }
 
-  await s.from("vendas").update({ status: "falhou", erro: "Sem link de pagamento cadastrado e sem credenciais da Wiven.", alerta: true }).eq("identifier", identifier);
+  await s.from("vendas").update({ status: "falhou", erro: "Plano sem link de pagamento da Cakto cadastrado.", alerta: true }).eq("identifier", identifier);
   return NextResponse.json({ error: "Pagamento indisponível no momento. Fale com o suporte." }, { status: 503 });
 }

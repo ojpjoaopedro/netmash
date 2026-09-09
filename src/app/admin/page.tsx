@@ -28,7 +28,7 @@ type Empresa = {
   logo_url: string | null; cor: string | null;
   planos: Record<string, boolean> | null;   // módulos ativos por empresa (folha, acesso2, planejamento)
 };
-type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null; notificacoes?: Record<string, boolean>; precosWiven?: Record<string, { preco: number; primeiraCobranca: number | null; produto: string | null }> };
+type Resp = { empresas: Empresa[]; totais: { empresas: number; usuarios: number; faturamento: number; ativos: number }; precos?: { superadmin: number; acesso: number }; lgpd?: LgpdRow[]; catalogo?: Plano[]; imagemSuperadmin?: string | null; linkSuperadmin?: string | null; notificacoes?: Record<string, boolean>; precosCakto?: Record<string, { preco: number; primeiraCobranca: number | null; produto: string | null }> };
 type Form = { editId: string | null; nomeEmpresa: string; responsavel: string; email: string; senha: string; cnpj: string; cpf: string; segmento: string; saldoInicial: string; qtdSuperadmins: string; qtdAcessos: string; logo: string; slug: string };
 
 // catálogo de produtos (planos). Vem do banco (planos_catalogo); estes são o
@@ -58,7 +58,7 @@ type VendaAdm = {
   nome: string | null; empresa: string | null; email: string; telefone: string | null;
   plano_chave: string; plano_nome: string | null; valor: number;
   status: string; origem: string | null; alerta: boolean; erro: string | null;
-  empresa_id: string | null; user_id: string | null; wiven_transaction_id: string | null;
+  empresa_id: string | null; user_id: string | null; cakto_order_id: string | null;
 };
 type TotaisVendas = { recebido: number; vendas: number; pendentes: number; reembolsos: number; chargebacks: number; clientes: number; alertas: number };
 type VendasResp = { vendas: VendaAdm[]; totais: TotaisVendas; aviso?: string };
@@ -84,9 +84,9 @@ const DEMO_RESP: Resp = {
 // Vendas de exemplo (só aparecem no modo demonstração, sem Supabase).
 const DEMO_VENDAS: VendasResp = {
   vendas: [
-    { id: "v1", identifier: "mm_demo1", criado_em: "2026-08-16T14:20:00Z", pago_em: "2026-08-16T14:23:00Z", nome: "João Pedro", empresa: "JP Contabilidade", email: "jp@gmail.com", telefone: "(62) 99999-0001", plano_chave: "superadmin", plano_nome: "Minhas Métricas", valor: 79.9, status: "pago", origem: "api", alerta: false, erro: null, empresa_id: "demo-jp", user_id: "d3", wiven_transaction_id: "tx_demo1" },
-    { id: "v2", identifier: "mm_demo2", criado_em: "2026-08-16T10:02:00Z", pago_em: null, nome: "Marina Alves", empresa: "Studio Marina", email: "marina@studio.com.br", telefone: "(11) 98888-0002", plano_chave: "superadmin", plano_nome: "Minhas Métricas", valor: 79.9, status: "pendente", origem: "link", alerta: false, erro: null, empresa_id: null, user_id: null, wiven_transaction_id: null },
-    { id: "v3", identifier: "mm_demo3", criado_em: "2026-08-14T09:40:00Z", pago_em: "2026-08-14T09:41:00Z", nome: "Pedro Walk", empresa: "Walk Store", email: "pedro@gmail.com", telefone: "(11) 97777-0003", plano_chave: "folha", plano_nome: "Folha de pagamento", valor: 39.9, status: "reembolsado", origem: "api", alerta: true, erro: null, empresa_id: "demo-walk", user_id: "d4", wiven_transaction_id: "tx_demo3" },
+    { id: "v1", identifier: "mm_demo1", criado_em: "2026-08-16T14:20:00Z", pago_em: "2026-08-16T14:23:00Z", nome: "João Pedro", empresa: "JP Contabilidade", email: "jp@gmail.com", telefone: "(62) 99999-0001", plano_chave: "superadmin", plano_nome: "Minhas Métricas", valor: 79.9, status: "pago", origem: "api", alerta: false, erro: null, empresa_id: "demo-jp", user_id: "d3", cakto_order_id: "ped_demo1" },
+    { id: "v2", identifier: "mm_demo2", criado_em: "2026-08-16T10:02:00Z", pago_em: null, nome: "Marina Alves", empresa: "Studio Marina", email: "marina@studio.com.br", telefone: "(11) 98888-0002", plano_chave: "superadmin", plano_nome: "Minhas Métricas", valor: 79.9, status: "pendente", origem: "link", alerta: false, erro: null, empresa_id: null, user_id: null, cakto_order_id: null },
+    { id: "v3", identifier: "mm_demo3", criado_em: "2026-08-14T09:40:00Z", pago_em: "2026-08-14T09:41:00Z", nome: "Pedro Walk", empresa: "Walk Store", email: "pedro@gmail.com", telefone: "(11) 97777-0003", plano_chave: "folha", plano_nome: "Folha de pagamento", valor: 39.9, status: "reembolsado", origem: "api", alerta: true, erro: null, empresa_id: "demo-walk", user_id: "d4", cakto_order_id: "ped_demo3" },
   ],
   totais: { recebido: 79.9, vendas: 1, pendentes: 1, reembolsos: 1, chargebacks: 0, clientes: 1, alertas: 1 },
 };
@@ -133,7 +133,7 @@ export default function Admin() {
   const [logErro, setLogErro] = useState("");
   const [logBusy, setLogBusy] = useState(false);
   const [logVer, setLogVer] = useState(false);
-  // Vendas (aba Vendas): compras feitas na landing /assinar, confirmadas pelo webhook da Wiven.
+  // Vendas (aba Vendas): compras feitas na landing /assinar, confirmadas pelo webhook da Cakto.
   const [vendas, setVendas] = useState<VendasResp | null>(null);
   const [vendaBusy, setVendaBusy] = useState<string | null>(null);
   const [filtroVenda, setFiltroVenda] = useState<FiltroVenda>("todas");
@@ -762,9 +762,9 @@ export default function Admin() {
                 </div>
               );
             };
-            // Preço que vale é o do produto cadastrado na Wiven (lido do link).
+            // Preço que vale é o da oferta cadastrada na Cakto (lida do link).
             const celulaPreco = (chave: string) => {
-              const p = data?.precosWiven?.[chave];
+              const p = data?.precosCakto?.[chave];
               if (!p) return <span className="adm-sub">—</span>;
               return (
                 <div style={{ whiteSpace: "nowrap" }}>
@@ -782,7 +782,7 @@ export default function Admin() {
               </div>
               <div className="adm-tablewrap" style={{ marginTop: 16 }}>
                 <table className="adm-table">
-                  <thead><tr><th style={{ width: 64 }}>Imagem</th><th>Produto</th><th>Descrição</th><th>Link de pagamento</th><th>Preço na Wiven</th><th>Acessos ativos</th><th></th></tr></thead>
+                  <thead><tr><th style={{ width: 64 }}>Imagem</th><th>Produto</th><th>Descrição</th><th>Link de pagamento</th><th>Preço na Cakto</th><th>Acessos ativos</th><th></th></tr></thead>
                   <tbody>
                     <tr>
                       <td>
@@ -953,7 +953,7 @@ export default function Admin() {
                 </table>
               </div>
               <p className="adm-sub" style={{ marginTop: 12, fontSize: 12.5 }}>
-                As vendas entram pela página <b>/assinar</b> e são confirmadas pelo webhook da Wiven. Reembolso e chargeback aparecem aqui como aviso: o corte de acesso continua sendo feito à mão, na aba Empresas.
+                As vendas entram pela página <b>/assinar</b> e são confirmadas pelo webhook da Cakto. Reembolso e chargeback aparecem aqui como aviso: o corte de acesso continua sendo feito à mão, na aba Empresas.
               </p>
             </>
             );

@@ -2,7 +2,7 @@
 //
 // A fonte é a coluna `empresas.planos` (jsonb), do tipo { "folha": true,
 // "acesso2": true }. Ela é ligada de dois jeitos:
-//   • sozinha, quando o webhook da Wiven confirma a compra (lib/vendas.ts)
+//   • sozinha, quando o webhook da Cakto confirma a compra (lib/vendas.ts)
 //   • à mão, pelos toggles da aba Empresas do Admin
 //
 // Este arquivo é a fonte única de "quem pode o quê". Vale para os dois lados:

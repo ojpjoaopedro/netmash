@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { SUPERADMINS as SUPERS } from "@/lib/superadmin";
 import { PRECO_SUPERADMIN, PRECO_ACESSO } from "@/lib/precos";
-import { lerOfertaDoLink } from "@/lib/wiven-catalogo";
+import { lerOfertaDoLink } from "@/lib/cakto-catalogo";
 import { FEATURES, quantidadeDoPlano, type PlanosEmpresa } from "@/lib/planos";
 import crypto from "crypto";
 
@@ -143,17 +143,17 @@ export async function GET(req: NextRequest) {
   const imagemSuperadmin = kvMap.get("imagem_superadmin") ?? null;
   const linkSuperadmin = kvMap.get("link_superadmin") ?? null;
 
-  // Preço que está valendo na Wiven para cada produto (lido do link de checkout).
+  // Preço que está valendo na Cakto para cada produto (lido do link de checkout).
   // Serve para a equipe conferir se o valor do banco bate com o do gateway.
   const links: { chave: string; link: string | null }[] = [
     { chave: "superadmin", link: linkSuperadmin },
     ...catalogo.map((c) => ({ chave: c.chave, link: c.link_pagamento })),
   ];
-  const ofertas = await Promise.all(links.map((l) => (l.link ? lerOfertaDoLink(l.link) : Promise.resolve(null))));
-  const precosWiven: Record<string, { preco: number; primeiraCobranca: number | null; produto: string | null }> = {};
+  const ofertas = await Promise.all(links.map((l) => (l.link ? lerOfertaDoLink(s, l.link) : Promise.resolve(null))));
+  const precosCakto: Record<string, { preco: number; primeiraCobranca: number | null; produto: string | null }> = {};
   links.forEach((l, i) => {
     const o = ofertas[i];
-    if (o) precosWiven[l.chave] = { preco: o.preco, primeiraCobranca: o.primeiraCobranca, produto: o.produtoNome };
+    if (o) precosCakto[l.chave] = { preco: o.preco, primeiraCobranca: o.primeiraCobranca, produto: o.produtoNome };
   });
 
   // configuração das notificações do cliente (liga/desliga por tipo)
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
   const notificacoes: Record<string, boolean> = {};
   ((notifRes.data as { chave: string; ligado: boolean }[] | null) ?? []).forEach((r) => { notificacoes[r.chave] = r.ligado; });
 
-  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin, linkSuperadmin, precosWiven, notificacoes });
+  return NextResponse.json({ empresas: lista, totais: { empresas: lista.length, usuarios: perfis.length, faturamento, ativos }, precos, lgpd, catalogo, imagemSuperadmin, linkSuperadmin, precosCakto, notificacoes });
 }
 
 export async function POST(req: NextRequest) {

@@ -1,7 +1,7 @@
 "use client";
 /**
  * Landing de assinatura: o visitante escolhe o plano, preenche os dados da
- * empresa e vai para o checkout da Wiven. A conta só é criada quando o
+ * empresa e vai para o checkout da Cakto. A conta só é criada quando o
  * pagamento é confirmado (pelo webhook), e aí ele já entra com a senha daqui.
  */
 import { Suspense, useEffect, useState } from "react";
@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
 
-type Plano = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null; base: boolean; primeiraCobranca: number | null; precoDaWiven?: boolean };
+type Plano = { chave: string; nome: string; descricao: string | null; preco: number; imagem: string | null; base: boolean; primeiraCobranca: number | null; precoDaCakto?: boolean };
 
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -155,7 +155,7 @@ function Formulario() {
         </button>
 
         <ul className="as-seguro">
-          <li><Lock size={13} /> Pagamento processado pela Wiven</li>
+          <li><Lock size={13} /> Pagamento processado pela Cakto</li>
           <li><ShieldCheck size={13} /> Sua conta é criada assim que o pagamento é aprovado</li>
           <li><Check size={13} /> Cancele quando quiser</li>
         </ul>
