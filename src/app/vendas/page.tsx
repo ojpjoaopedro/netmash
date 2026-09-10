@@ -9,7 +9,7 @@ import {
    TROQUE AQUI (sem mexer no resto do código):
    ============================================================ */
 const MARCA = "Minhas Métricas";            // nome que aparece na página
-const PRECO = "49,99";                        // valor da MENSALIDADE (R$/mês)
+const PRECO = "49,90";                        // valor da MENSALIDADE (R$/mês)
 const PRECO_DE = "97";                         // preço "cheio" (âncora, riscado)
 // Página de compra: pega os dados da empresa, leva ao checkout da Cakto e cria
 // a conta sozinha quando o pagamento é confirmado. Para voltar ao link direto do
@@ -22,7 +22,7 @@ const PIXEL_ID = "574774374290188";         // Pixel da Meta (Facebook/Instagram
 export const metadata: Metadata = {
   title: `${MARCA} — O painel que mostra o lucro real da sua empresa`,
   description:
-    "Faturamento, lucro, fluxo de caixa, projeção, clientes e equipe num só painel. Pare de decidir pelo saldo do banco e saiba exatamente quanto sua empresa lucra. R$ 49,99/mês, cancele quando quiser.",
+    "Faturamento, lucro, fluxo de caixa, projeção, clientes e equipe num só painel. Pare de decidir pelo saldo do banco e saiba exatamente quanto sua empresa lucra. R$ 49,90/mês, cancele quando quiser.",
 };
 
 const FEATURES = [

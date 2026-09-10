@@ -7,7 +7,7 @@ const PIXEL_ID = "574774374290188"; // Pixel da Meta (Facebook/Instagram)
 export const metadata: Metadata = {
   title: "Minhas Métricas — O painel que mostra o lucro real da sua empresa",
   description:
-    "Faturamento, custos, lucro e projeção num painel que se monta sozinho. Pare de decidir no achismo e veja o número real do seu negócio. R$ 49,99/mês, cancele quando quiser.",
+    "Faturamento, custos, lucro e projeção num painel que se monta sozinho. Pare de decidir no achismo e veja o número real do seu negócio. R$ 49,90/mês, cancele quando quiser.",
 };
 
 export default function AppPage() {

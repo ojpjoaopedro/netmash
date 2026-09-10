@@ -15,7 +15,7 @@ import {
 
 const ENTRAR_URL = "/login";
 const MARCA = "Minhas Métricas";
-const PRECO = "49,99";      // mensalidade (R$/mês)
+const PRECO = "49,90";      // mensalidade (R$/mês)
 const PRECO_DE = "97";       // preço "cheio" (âncora)
 // Página de compra: pega os dados da empresa, leva ao checkout da Cakto e cria
 // a conta sozinha quando o pagamento é confirmado. Para voltar ao link direto do
