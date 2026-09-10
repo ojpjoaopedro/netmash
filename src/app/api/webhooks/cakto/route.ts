@@ -24,6 +24,7 @@ import {
   type EventoCakto,
 } from "@/lib/cakto";
 import { escaparLike, liberarVenda, listarPlanos, svc, PLANO_BASE, type Venda } from "@/lib/vendas";
+import { enviarPurchaseCapi } from "@/lib/meta-capi";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -148,6 +149,15 @@ export async function POST(req: NextRequest) {
       if (r.empresaId) patch.empresa_id = r.empresaId;
       if (r.userId) patch.user_id = r.userId;
     }
+    // Rastreia a compra na Meta pela Conversions API (server-side, confiável).
+    // Best-effort: se não houver pixel/token configurado, apenas ignora.
+    const valorCompra = Number(pedido?.amount ?? venda.valor ?? 0);
+    await enviarPurchaseCapi(s, {
+      valor: valorCompra,
+      email: pedido?.customer?.email || venda.email,
+      telefone: pedido?.customer?.phone || venda.telefone,
+      eventId: `cakto_${pedidoId || venda.identifier}`,
+    });
   }
 
   await s.from("vendas").update(patch).eq("id", venda.id);

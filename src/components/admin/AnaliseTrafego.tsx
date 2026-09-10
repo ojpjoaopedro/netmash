@@ -1,18 +1,24 @@
 "use client";
 /**
  * Análise de Tráfego Pago (admin/superadmin) — inspirada no módulo do Hub da Dynamis.
- * Funil de marketing (3 etapas) + Análise mês a mês (KPIs, meta de CPL, imposto 13,83%,
- * análise escrita automática, gráfico de evolução e tabela). Dados preenchidos à mão por
- * mês e salvos no navegador (localStorage "me_trafego"). Sem backend.
+ * Funil de marketing (3 etapas) + Análise mês a mês (KPIs, meta de CPL, imposto,
+ * análise escrita automática, gráfico de evolução e tabela). Os dados ficam no
+ * Supabase (tabela trafego_mensal) via /api/marketing/trafego: dá pra digitar à
+ * mão E puxar direto da Meta (Facebook). Configurações (pixel, token/conta da
+ * Meta, meta de CPL, imposto) ficam em app_kv.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import {
-  Megaphone, Wallet, Users, Target, CalendarRange, TrendingUp, TrendingDown, Minus,
-  Eye, MousePointerClick, DollarSign,
+  Megaphone, Users, Target, CalendarRange, TrendingUp, TrendingDown, Minus,
+  DollarSign, Download, Save, Trash2, RefreshCw, Settings2, Check,
 } from "lucide-react";
 
-type DadosMes = { investido: number; leads: number; impressoes: number; cliques: number; vendas: number; campanhas: number };
-type Store = Record<string, Partial<DadosMes>>;   // "YYYY-MM" -> dados
+type DadosMes = { investido: number; leads: number; impressoes: number; cliques: number; vendas: number; campanhas: number; origem?: string };
+type LinhaApi = DadosMes & { mes: string };
+type Config = { metaAdAccount: string; metaToken: string; metaCpl: string; imposto: string; pixelId: string };
+type Store = Record<string, DadosMes>;
+
 const CAMPOS: { key: keyof DadosMes; label: string; prefixo?: string }[] = [
   { key: "investido", label: "Investido (mídia)", prefixo: "R$" },
   { key: "leads", label: "Leads" },
@@ -42,16 +48,15 @@ function calcular(store: Store): Linha[] {
   }).sort();
   const linhas: Linha[] = [];
   chaves.forEach((mes, i) => {
-    const d = store[mes] || {};
-    const investido = Number(d.investido) || 0, leads = Number(d.leads) || 0, impressoes = Number(d.impressoes) || 0;
-    const cliques = Number(d.cliques) || 0, vendas = Number(d.vendas) || 0, campanhas = Number(d.campanhas) || 0;
+    const d = store[mes];
+    const { investido, leads, impressoes, cliques, vendas, campanhas } = d;
     const cpl = div(investido, leads), cpc = div(investido, cliques), cpm = div(investido * 1000, impressoes);
     const ctr = impressoes > 0 ? (cliques / impressoes) * 100 : null;
     const convLP = cliques > 0 ? (leads / cliques) * 100 : null;
     const ant = i > 0 ? linhas[i - 1] : null;
     const [y, m] = mes.split("-").map(Number);
     linhas.push({
-      mes, label: `${MES3[m - 1]}/${String(y).slice(2)}`, investido, leads, impressoes, cliques, vendas, campanhas,
+      mes, label: `${MES3[m - 1]}/${String(y).slice(2)}`, investido, leads, impressoes, cliques, vendas, campanhas, origem: d.origem,
       cpl, cpc, ctr, cpm, convLP,
       varInv: ant ? pctVar(investido, ant.investido) : null,
       varLeads: ant ? pctVar(leads, ant.leads) : null,
@@ -90,44 +95,113 @@ function analisar(hist: Linha[]): { tom: "bom" | "ruim" | "neutro"; titulo: stri
 const CARD: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 16, padding: 20 };
 const SUB: React.CSSProperties = { background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 12, padding: 14 };
 const LBL: React.CSSProperties = { fontSize: 11, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--muted)" };
+const INP: React.CSSProperties = { width: "100%", border: "1px solid var(--line)", background: "var(--bg-2)", color: "var(--txt)", fontSize: 15, fontWeight: 700, padding: "11px 12px", borderRadius: 10, outline: "none" };
+const emptyMes = (): DadosMes => ({ investido: 0, leads: 0, impressoes: 0, cliques: 0, vendas: 0, campanhas: 0 });
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = supabase ? (await supabase.auth.getSession()).data.session?.access_token : undefined;
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` };
+}
 
 export default function AnaliseTrafego() {
   const [store, setStore] = useState<Store>({});
-  const [metaCpl, setMetaCpl] = useState<string>("");
-  const [imposto, setImposto] = useState<string>("13.83");
+  const [config, setConfig] = useState<Config>({ metaAdAccount: "", metaToken: "", metaCpl: "", imposto: "13.83", pixelId: "" });
   const [comImposto, setComImposto] = useState(true);
   const [ano, setAno] = useState(2026);
   const [mes, setMes] = useState(new Date().getMonth());   // 0-11
-
-  useEffect(() => {
-    try {
-      const s = localStorage.getItem("me_trafego"); if (s) setStore(JSON.parse(s));
-      const mc = localStorage.getItem("me_trafego_meta"); if (mc) setMetaCpl(mc);
-      const im = localStorage.getItem("me_trafego_imposto"); if (im) setImposto(im);
-    } catch { /* ignore */ }
-  }, []);
+  const [rascunho, setRascunho] = useState<DadosMes>(emptyMes());
+  const [carregando, setCarregando] = useState(true);
+  const [msg, setMsg] = useState<{ tipo: "ok" | "erro"; txt: string } | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [puxando, setPuxando] = useState(false);
+  const [abrirConfig, setAbrirConfig] = useState(false);
 
   const chave = `${ano}-${String(mes + 1).padStart(2, "0")}`;
-  const setCampo = (k: keyof DadosMes, v: string) => {
-    setStore((s) => {
-      const n = { ...s, [chave]: { ...(s[chave] || {}), [k]: v === "" ? undefined : Number(v.replace(",", ".")) } };
-      try { localStorage.setItem("me_trafego", JSON.stringify(n)); } catch { /* ignore */ }
-      return n;
-    });
+
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    try {
+      const r = await fetch("/api/marketing/trafego", { headers: await authHeaders() });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Erro ao carregar.");
+      const st: Store = {};
+      (j.meses as LinhaApi[]).forEach((l) => {
+        st[l.mes] = { investido: Number(l.investido) || 0, leads: l.leads || 0, impressoes: Number(l.impressoes) || 0, cliques: l.cliques || 0, vendas: l.vendas || 0, campanhas: l.campanhas || 0, origem: l.origem };
+      });
+      setStore(st);
+      setConfig((c) => ({ ...c, ...j.config }));
+    } catch (e) {
+      setMsg({ tipo: "erro", txt: (e as Error).message });
+    } finally {
+      setCarregando(false);
+    }
+  }, []);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  // Ao trocar de mês (ou quando os dados chegam), carrega o rascunho com o salvo.
+  useEffect(() => { setRascunho(store[chave] ? { ...store[chave] } : emptyMes()); }, [chave, store]);
+
+  const flash = (tipo: "ok" | "erro", txt: string) => { setMsg({ tipo, txt }); setTimeout(() => setMsg(null), 4000); };
+
+  const salvarMes = async () => {
+    setSalvando(true);
+    try {
+      const r = await fetch("/api/marketing/trafego", { method: "POST", headers: await authHeaders(), body: JSON.stringify({ action: "salvar-mes", mes: chave, ...rascunho }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Erro ao salvar.");
+      setStore((s) => ({ ...s, [chave]: { ...rascunho, origem: "manual" } }));
+      flash("ok", `${MES3[mes]}/${ano} salvo.`);
+    } catch (e) { flash("erro", (e as Error).message); } finally { setSalvando(false); }
   };
-  const salvarMeta = () => { try { localStorage.setItem("me_trafego_meta", metaCpl); } catch { /* ignore */ } };
-  const salvarImposto = () => { try { localStorage.setItem("me_trafego_imposto", imposto); } catch { /* ignore */ } };
+
+  const puxarMeta = async () => {
+    setPuxando(true);
+    try {
+      const r = await fetch("/api/marketing/trafego", { method: "POST", headers: await authHeaders(), body: JSON.stringify({ action: "sync-meta", mes: chave }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Erro ao puxar da Meta.");
+      const m = j.mes as LinhaApi;
+      const dados: DadosMes = { investido: Number(m.investido) || 0, leads: m.leads || 0, impressoes: Number(m.impressoes) || 0, cliques: m.cliques || 0, vendas: m.vendas || 0, campanhas: m.campanhas || 0, origem: "meta" };
+      setStore((s) => ({ ...s, [chave]: dados }));
+      setRascunho(dados);
+      flash("ok", `${MES3[mes]}/${ano} puxado da Meta (${j.campanhas} campanhas).`);
+    } catch (e) { flash("erro", (e as Error).message); } finally { setPuxando(false); }
+  };
+
+  const apagarMes = async () => {
+    if (!store[chave]) return;
+    if (!confirm(`Apagar os dados de ${MES3[mes]}/${ano}?`)) return;
+    try {
+      await fetch("/api/marketing/trafego", { method: "POST", headers: await authHeaders(), body: JSON.stringify({ action: "apagar-mes", mes: chave }) });
+      setStore((s) => { const n = { ...s }; delete n[chave]; return n; });
+      setRascunho(emptyMes());
+      flash("ok", "Mês apagado.");
+    } catch (e) { flash("erro", (e as Error).message); }
+  };
+
+  const salvarConfig = async () => {
+    setSalvando(true);
+    try {
+      const r = await fetch("/api/marketing/trafego", { method: "POST", headers: await authHeaders(), body: JSON.stringify({ action: "salvar-config", config }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Erro ao salvar.");
+      flash("ok", "Configurações salvas.");
+    } catch (e) { flash("erro", (e as Error).message); } finally { setSalvando(false); }
+  };
 
   const hist = useMemo(() => calcular(store), [store]);
   const totais = useMemo(() => {
     const inv = hist.reduce((a, l) => a + l.investido, 0), leads = hist.reduce((a, l) => a + l.leads, 0);
     return { meses: hist.length, investimento: inv, leads, cpl: div(inv, leads) };
   }, [hist]);
-  const fator = 1 + (Number(imposto.replace(",", ".")) || 0) / 100;
+  const fator = 1 + (Number(config.imposto.replace(",", ".")) || 0) / 100;
   const mult = comImposto ? fator : 1;
-  const meta = Number(metaCpl.replace(",", ".")) || 0;
+  const meta = Number(config.metaCpl.replace(",", ".")) || 0;
   const linhaMes = hist.find((l) => l.mes === chave) || null;
   const analise = analisar(hist);
+  const setC = (k: keyof Config, v: string) => setConfig((c) => ({ ...c, [k]: v }));
+  const setR = (k: keyof DadosMes, v: string) => setRascunho((d) => ({ ...d, [k]: v === "" ? 0 : Number(v.replace(",", ".")) || 0 }));
+  const dirty = JSON.stringify({ ...(store[chave] ?? emptyMes()), origem: undefined }) !== JSON.stringify({ ...rascunho, origem: undefined });
 
   const statusCpl = (v: number | null) => {
     if (v == null || meta <= 0) return { cor: "var(--muted)", txt: "defina a meta" };
@@ -154,15 +228,38 @@ export default function AnaliseTrafego() {
             <p style={{ color: "var(--muted)", fontSize: 14, margin: "2px 0 0" }}>Funil, investimento, leads e custo por lead, mês a mês.</p>
           </div>
         </div>
-        <button onClick={() => setComImposto((v) => !v)} style={{ cursor: "pointer", fontSize: 13, fontWeight: 700, border: "1px solid rgba(245,158,11,.4)", background: "rgba(245,158,11,.12)", color: "#F59E0B", borderRadius: 99, padding: "9px 16px" }}>
-          {comImposto ? `✓ Valores com imposto (${imposto}%)` : "Só a mídia (sem imposto)"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => setComImposto((v) => !v)} style={{ cursor: "pointer", fontSize: 13, fontWeight: 700, border: "1px solid rgba(245,158,11,.4)", background: "rgba(245,158,11,.12)", color: "#F59E0B", borderRadius: 99, padding: "9px 16px" }}>
+            {comImposto ? `✓ Com imposto (${config.imposto}%)` : "Só a mídia"}
+          </button>
+          <button onClick={() => setAbrirConfig((v) => !v)} style={{ cursor: "pointer", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", borderRadius: 99, padding: "9px 16px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Settings2 size={15} /> Configurações
+          </button>
+        </div>
       </div>
+
+      {msg && <div style={{ ...SUB, borderColor: msg.tipo === "ok" ? "rgba(16,185,129,.4)" : "rgba(239,68,68,.4)", color: msg.tipo === "ok" ? "#10B981" : "#EF4444", fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><Check size={16} />{msg.txt}</div>}
+
+      {/* Configurações (pixel + Meta + meta CPL + imposto) */}
+      {abrirConfig && (
+        <div style={{ ...CARD, display: "grid", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Settings2 size={16} color="#1AADE2" /><b style={{ fontSize: 15 }}>Configurações</b></div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+            <label><div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 5 }}>ID do Pixel da Meta</div><input value={config.pixelId} onChange={(e) => setC("pixelId", e.target.value)} placeholder="Ex.: 574774374290188" style={INP} /></label>
+            <label><div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 5 }}>ID da conta de anúncios</div><input value={config.metaAdAccount} onChange={(e) => setC("metaAdAccount", e.target.value)} placeholder="Ex.: 1234567890" style={INP} /></label>
+            <label><div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 5 }}>Meta de CPL (R$)</div><input value={config.metaCpl} onChange={(e) => setC("metaCpl", e.target.value)} placeholder="Ex.: 5,00" style={INP} /></label>
+            <label><div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 5 }}>Imposto sobre o tráfego (%)</div><input value={config.imposto} onChange={(e) => setC("imposto", e.target.value)} placeholder="13,83" style={INP} /></label>
+          </div>
+          <label><div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 5 }}>Token de acesso da Meta (Graph API)</div><input value={config.metaToken} onChange={(e) => setC("metaToken", e.target.value)} placeholder="Cole aqui o token da conta de anúncios (fica só no servidor)" style={INP} type="password" /></label>
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>O token e a conta de anúncios são usados só pelo servidor pra puxar os números da Meta. O ID do Pixel passa a carregar automaticamente nas páginas de venda (site, /app, /vendas, /assinar, /obrigado).</p>
+          <div><button onClick={salvarConfig} disabled={salvando} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "11px 22px", fontWeight: 700, color: "#fff", background: "#1AADE2", display: "inline-flex", alignItems: "center", gap: 8 }}><Save size={16} />{salvando ? "Salvando..." : "Salvar configurações"}</button></div>
+        </div>
+      )}
 
       {/* Entrada de dados do mês */}
       <div style={CARD}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-          <span style={LBL}>Dados do mês</span>
+          <span style={LBL}>Dados do mês {store[chave]?.origem === "meta" && <span style={{ marginLeft: 6, color: "#1AADE2", fontSize: 10 }}>· via Meta</span>}</span>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             {[2026, 2027].map((y) => (
               <button key={y} onClick={() => setAno(y)} style={{ cursor: "pointer", border: 0, borderRadius: 8, padding: "5px 12px", fontSize: 13, fontWeight: 700, background: ano === y ? "#1AADE2" : "var(--bg-2)", color: ano === y ? "#fff" : "var(--muted)" }}>{y}</button>
@@ -179,13 +276,19 @@ export default function AnaliseTrafego() {
               <div style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 600, marginBottom: 4 }}>{c.label}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 10, padding: "0 10px" }}>
                 {c.prefixo && <span style={{ color: "var(--muted)", fontSize: 13 }}>{c.prefixo}</span>}
-                <input inputMode="decimal" value={store[chave]?.[c.key] ?? ""} onChange={(e) => setCampo(c.key, e.target.value)} placeholder="0"
+                <input inputMode="decimal" value={(rascunho[c.key] as number) || ""} onChange={(e) => setR(c.key, e.target.value)} placeholder="0"
                   style={{ width: "100%", border: 0, background: "transparent", color: "var(--txt)", fontSize: 15, fontWeight: 700, padding: "10px 0", outline: "none" }} />
               </div>
             </label>
           ))}
         </div>
-        <p style={{ fontSize: 12, color: "var(--muted)", margin: "12px 0 0", fontStyle: "italic" }}>Digite os números do Facebook (o valor gasto não inclui imposto). O funil e a análise se montam sozinhos.</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14, alignItems: "center" }}>
+          <button onClick={salvarMes} disabled={salvando || !dirty} style={{ cursor: dirty ? "pointer" : "default", border: 0, borderRadius: 10, padding: "11px 22px", fontWeight: 700, color: "#fff", background: dirty ? "#10B981" : "var(--muted-2)", display: "inline-flex", alignItems: "center", gap: 8, opacity: dirty ? 1 : .6 }}><Save size={16} />{salvando ? "Salvando..." : dirty ? "Salvar mês" : "Salvo"}</button>
+          <button onClick={puxarMeta} disabled={puxando} style={{ cursor: "pointer", border: "1px solid #1AADE2", borderRadius: 10, padding: "11px 20px", fontWeight: 700, color: "#1AADE2", background: "rgba(26,173,226,.10)", display: "inline-flex", alignItems: "center", gap: 8 }}>{puxando ? <RefreshCw size={16} className="spin" /> : <Download size={16} />}{puxando ? "Puxando..." : "Puxar da Meta"}</button>
+          {store[chave] && <button onClick={apagarMes} style={{ cursor: "pointer", border: "1px solid var(--line-2)", borderRadius: 10, padding: "11px 16px", fontWeight: 700, color: "#EF4444", background: "transparent", display: "inline-flex", alignItems: "center", gap: 6 }}><Trash2 size={15} />Apagar</button>}
+          {carregando && <span style={{ color: "var(--muted)", fontSize: 13 }}>Carregando...</span>}
+        </div>
+        <p style={{ fontSize: 12, color: "var(--muted)", margin: "12px 0 0", fontStyle: "italic" }}>Digite os números do mês e clique em Salvar, ou use Puxar da Meta pra trazer investido/impressões/cliques/leads direto do Facebook. As vendas você preenche à mão.</p>
       </div>
 
       {/* Funil do mês */}
@@ -233,38 +336,15 @@ export default function AnaliseTrafego() {
         ))}
       </div>
 
-      {/* Meta de CPL */}
+      {/* Meta de CPL + imposto */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
-        <div style={CARD}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}><Target size={16} color="#EC4899" /><b style={{ fontSize: 15 }}>Meta de custo por lead</b></div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 10, padding: "0 12px" }}>
-              <span style={{ color: "var(--muted)" }}>R$</span>
-              <input inputMode="decimal" value={metaCpl} onChange={(e) => setMetaCpl(e.target.value)} placeholder="Ex.: 5,00" style={{ width: "100%", border: 0, background: "transparent", color: "var(--txt)", fontSize: 15, fontWeight: 700, padding: "11px 0", outline: "none" }} />
-            </div>
-            <button onClick={salvarMeta} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "0 18px", fontWeight: 700, color: "#fff", background: "#EC4899" }}>Salvar</button>
-          </div>
-        </div>
         {(() => { const s = statusCpl(linhaMes?.cpl != null ? linhaMes.cpl * mult : null); return (
           <div style={SUB}><div style={LBL}>CPL do mês ({MES3[mes]})</div><div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{brl(linhaMes?.cpl != null ? linhaMes.cpl * mult : null)}</div><div style={{ fontSize: 12.5, fontWeight: 700, color: s.cor, marginTop: 4 }}>{s.txt}</div></div>
         ); })()}
         {(() => { const s = statusCpl(totais.cpl != null ? totais.cpl * mult : null); return (
           <div style={SUB}><div style={LBL}>CPL médio da conta</div><div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{brl(totais.cpl != null ? totais.cpl * mult : null)}</div><div style={{ fontSize: 12.5, fontWeight: 700, color: s.cor, marginTop: 4 }}>{s.txt}</div></div>
         ); })()}
-      </div>
-
-      {/* Imposto */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
-        <div style={CARD}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}><span style={{ color: "#F59E0B", fontWeight: 800 }}>%</span><b style={{ fontSize: 15 }}>Imposto sobre o tráfego</b></div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input inputMode="decimal" value={imposto} onChange={(e) => setImposto(e.target.value)} placeholder="Ex.: 13,83" style={{ flex: 1, border: "1px solid var(--line)", background: "var(--bg-2)", color: "var(--txt)", fontSize: 15, fontWeight: 700, padding: "11px 12px", borderRadius: 10, outline: "none" }} />
-            <button onClick={salvarImposto} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "0 18px", fontWeight: 700, color: "#fff", background: "#F59E0B" }}>Salvar</button>
-          </div>
-          <p style={{ fontSize: 12, color: "var(--muted)", margin: "10px 0 0" }}>O valor gasto no Facebook não inclui imposto. Aqui você vê o custo real.</p>
-        </div>
-        <div style={SUB}><div style={{ ...LBL, color: "#F59E0B" }}>Investido real (c/ imposto)</div><div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{brl(totais.investimento * fator)}</div><div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>mídia: {brl(totais.investimento)} + {imposto}%</div></div>
-        <div style={SUB}><div style={{ ...LBL, color: "#F59E0B" }}>CPL real (c/ imposto)</div><div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{brl(totais.cpl != null ? totais.cpl * fator : null)}</div><div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>sem imposto: {brl(totais.cpl)}</div></div>
+        <div style={SUB}><div style={{ ...LBL, color: "#F59E0B" }}>Investido real (c/ imposto)</div><div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{brl(totais.investimento * fator)}</div><div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>mídia: {brl(totais.investimento)} + {config.imposto}%</div></div>
       </div>
 
       {/* Análise escrita */}
@@ -306,11 +386,12 @@ export default function AnaliseTrafego() {
         </div>
       )}
 
-      {hist.length === 0 && (
+      {hist.length === 0 && !carregando && (
         <div style={{ ...CARD, textAlign: "center", padding: 40, color: "var(--muted)" }}>
-          Ainda sem dados. Preencha os números do mês acima que o funil, os KPIs e o gráfico se montam sozinhos.
+          Ainda sem dados. Preencha o mês acima e clique em Salvar, ou use Puxar da Meta.
         </div>
       )}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite}`}</style>
     </div>
   );
 }

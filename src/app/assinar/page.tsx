@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import AssinarClient from "./AssinarClient";
+import MetaPixel from "@/components/MetaPixel";
+import { getPixelId } from "@/lib/config-publica";
 
 export const metadata: Metadata = {
   title: "Assinar o Minhas Métricas",
@@ -7,6 +9,15 @@ export const metadata: Metadata = {
   robots: { index: false },   // página de compra, não precisa aparecer na busca
 };
 
-export default function AssinarPage() {
-  return <AssinarClient />;
+// Revalida a cada 5 min pra o Pixel editado no /admin refletir sem novo deploy.
+export const revalidate = 300;
+
+export default async function AssinarPage() {
+  const pixelId = await getPixelId();
+  return (
+    <>
+      <MetaPixel pixelId={pixelId} />
+      <AssinarClient />
+    </>
+  );
 }

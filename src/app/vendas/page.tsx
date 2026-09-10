@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Script from "next/script";
+import MetaPixel from "@/components/MetaPixel";
+import { getPixelId } from "@/lib/config-publica";
 import {
   LineChart, Wallet, Sparkles, Users, Megaphone, Contact, FileText, ShieldCheck,
   Upload, Check, ArrowRight, TrendingUp, Clock, Smartphone, Star, Zap, BellRing,
@@ -16,7 +17,6 @@ const PRECO_DE = "97";                         // preço "cheio" (âncora, risca
 // coleta de dados antes do checkout, troque de volta por "/assinar".
 const CHECKOUT_URL = "https://pay.cakto.com.br/jgyw3d8_1080979";
 const ENTRAR_URL = "/login";                // login do app
-const PIXEL_ID = "574774374290188";         // Pixel da Meta (Facebook/Instagram)
 /* ============================================================ */
 
 export const metadata: Metadata = {
@@ -69,23 +69,16 @@ const FAQ = [
   { q: "Posso cancelar?", a: "Pode, a qualquer momento, direto com a gente. E ainda tem 7 dias de garantia: se não gostar, devolvemos o valor." },
 ];
 
-export default function Vendas() {
+// Revalida a cada 5 min pra o Pixel editado no /admin refletir sem novo deploy.
+export const revalidate = 300;
+
+export default async function Vendas() {
+  const pixelId = await getPixelId();
   return (
     <main className="lp">
       <style>{CSS}</style>
 
-      {/* Meta Pixel: PageView + InitiateCheckout (clique em Assinar) */}
-      <Script id="meta-pixel" strategy="afterInteractive">{`
-        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,
-        'script','https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init','${PIXEL_ID}');fbq('track','PageView');
-        document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('a[href*="pay.cakto.com.br"],a[href*="pay.kiwify.com.br"],a[href*="buy.stripe.com"],a[data-checkout]');if(t&&window.fbq)fbq('track','InitiateCheckout');});
-      `}</Script>
-      <noscript><img height="1" width="1" style={{ display: "none" }} alt=""
-        src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`} /></noscript>
+      <MetaPixel pixelId={pixelId} />
 
       {/* NAV */}
       <header className="lp-nav">
