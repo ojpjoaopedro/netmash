@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { SUPERADMINS as SUPERS } from "@/lib/superadmin";
+import { extrairLeads, listaSemanas, weekRange, type Resultado } from "@/lib/trafego";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -13,8 +14,7 @@ function svc(): SupabaseClient | null {
   return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/** Valida o token do chamador e exige e-mail na lista de super admins. */
-async function superDoCaller(req: NextRequest, s: SupabaseClient): Promise<boolean> {
+async function ehSuper(req: NextRequest, s: SupabaseClient): Promise<boolean> {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) return false;
   const { data } = await s.auth.getUser(token);
@@ -22,126 +22,134 @@ async function superDoCaller(req: NextRequest, s: SupabaseClient): Promise<boole
   return !!email && SUPERS.includes(email);
 }
 
-const CHAVES_KV = ["meta_access_token", "meta_ad_account_id", "trafego_meta_cpl", "trafego_imposto", "pixel_id"] as const;
+const CHAVES = ["meta_access_token", "meta_ad_account_id", "trafego_meta_cpl", "trafego_imposto", "pixel_id", "trafego_meta_leads"] as const;
 
 async function lerConfig(s: SupabaseClient) {
-  const { data } = await s.from("app_kv").select("chave,valor").in("chave", CHAVES_KV as unknown as string[]);
+  const { data } = await s.from("app_kv").select("chave,valor").in("chave", CHAVES as unknown as string[]);
   const m = new Map((data ?? []).map((r: { chave: string; valor: string | null }) => [r.chave, r.valor]));
+  let metasLeads: Record<string, number> = {};
+  try { metasLeads = JSON.parse(m.get("trafego_meta_leads") || "{}"); } catch { metasLeads = {}; }
   return {
     metaAdAccount: m.get("meta_ad_account_id") ?? "",
     metaToken: m.get("meta_access_token") ?? "",
     metaCpl: m.get("trafego_meta_cpl") ?? "",
     imposto: m.get("trafego_imposto") ?? "13.83",
     pixelId: m.get("pixel_id") ?? "",
+    metasLeads,
   };
 }
 
-// GET: meses salvos + configuração (pixel, credenciais da Meta, meta de CPL, imposto).
+const n = (v: unknown) => Number(String(v ?? "").replace(",", ".")) || 0;
+
 export async function GET(req: NextRequest) {
   const s = svc();
   if (!s) return NextResponse.json({ error: "Servidor sem chave configurada." }, { status: 500 });
-  if (!(await superDoCaller(req, s))) return NextResponse.json({ error: "Acesso restrito (Super Admin)." }, { status: 403 });
-
-  const { data: meses } = await s.from("trafego_mensal").select("*").order("mes", { ascending: true });
+  if (!(await ehSuper(req, s))) return NextResponse.json({ error: "Acesso restrito (Super Admin)." }, { status: 403 });
+  const { data: rows } = await s.from("trafego_resultados").select("*").order("mes", { ascending: true }).order("semana", { ascending: true }).order("posicao", { ascending: true });
   const config = await lerConfig(s);
-  return NextResponse.json({ meses: meses ?? [], config });
+  return NextResponse.json({ rows: rows ?? [], config });
 }
 
-// POST: salvar mês, salvar configuração, ou puxar da Meta.
 export async function POST(req: NextRequest) {
   const s = svc();
   if (!s) return NextResponse.json({ error: "Servidor sem chave configurada." }, { status: 500 });
-  if (!(await superDoCaller(req, s))) return NextResponse.json({ error: "Acesso restrito (Super Admin)." }, { status: 403 });
+  if (!(await ehSuper(req, s))) return NextResponse.json({ error: "Acesso restrito (Super Admin)." }, { status: 403 });
 
-  const body = (await req.json()) as {
-    action?: string; mes?: string;
-    investido?: number | string; leads?: number | string; impressoes?: number | string;
-    cliques?: number | string; vendas?: number | string; campanhas?: number | string;
-    config?: Partial<Record<(typeof CHAVES_KV)[number], string>>;
-  };
-  const n = (v: unknown) => Number(String(v ?? "").replace(",", ".")) || 0;
+  const body = await req.json();
+  const action = body.action as string;
 
-  // Salva/edita um mês na mão.
-  if (body.action === "salvar-mes" && body.mes) {
+  // ── salvar/editar uma campanha de uma semana ──────────────────────────────
+  if (action === "salvar-campanha") {
     const linha = {
-      mes: body.mes,
-      investido: n(body.investido), leads: Math.round(n(body.leads)), impressoes: Math.round(n(body.impressoes)),
-      cliques: Math.round(n(body.cliques)), vendas: Math.round(n(body.vendas)), campanhas: Math.round(n(body.campanhas)),
+      mes: body.mes, semana: Number(body.semana) || 1, campanha: (body.campanha || "").trim() || "Campanha",
+      investido: n(body.investido), impressoes: Math.round(n(body.impressoes)), cliques: Math.round(n(body.cliques)),
+      leads: Math.round(n(body.leads)), leads_plataforma: Math.round(n(body.leads_plataforma)), leads_planilha: Math.round(n(body.leads_planilha)),
       origem: "manual", atualizado_em: new Date().toISOString(),
     };
-    const { error } = await s.from("trafego_mensal").upsert(linha);
+    const { error } = await s.from("trafego_resultados").upsert(linha, { onConflict: "mes,semana,campanha" });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, mes: linha });
-  }
-
-  // Apaga um mês.
-  if (body.action === "apagar-mes" && body.mes) {
-    await s.from("trafego_mensal").delete().eq("mes", body.mes);
     return NextResponse.json({ ok: true });
   }
 
-  // Salva a configuração (pixel, token/conta da Meta, meta de CPL, imposto).
-  if (body.action === "salvar-config" && body.config) {
-    const rows = Object.entries(body.config)
-      .filter(([k]) => (CHAVES_KV as readonly string[]).includes(k))
-      .map(([chave, valor]) => ({ chave, valor: (valor ?? "").toString().trim() || null }));
-    if (rows.length) {
-      const { error } = await s.from("app_kv").upsert(rows);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+  // ── apagar uma campanha ───────────────────────────────────────────────────
+  if (action === "apagar-campanha") {
+    if (body.id) await s.from("trafego_resultados").delete().eq("id", body.id);
+    else await s.from("trafego_resultados").delete().eq("mes", body.mes).eq("semana", Number(body.semana)).eq("campanha", body.campanha);
     return NextResponse.json({ ok: true });
   }
 
-  // Puxa os números do mês direto da Meta (Facebook) e salva.
-  if (body.action === "sync-meta" && body.mes) {
+  // ── salvar configuração (pixel, Meta, meta CPL, imposto) ──────────────────
+  if (action === "salvar-config" && body.config) {
+    const c = body.config as Record<string, string>;
+    const rows = (["pixel_id", "meta_ad_account_id", "meta_access_token", "trafego_meta_cpl", "trafego_imposto"] as const)
+      .map((chave) => ({ chave, campo: { pixel_id: "pixelId", meta_ad_account_id: "metaAdAccount", meta_access_token: "metaToken", trafego_meta_cpl: "metaCpl", trafego_imposto: "imposto" }[chave] }))
+      .filter(({ campo }) => c[campo] !== undefined)
+      .map(({ chave, campo }) => ({ chave, valor: (c[campo] ?? "").toString().trim() || null }));
+    if (rows.length) { const { error } = await s.from("app_kv").upsert(rows); if (error) return NextResponse.json({ error: error.message }, { status: 500 }); }
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── meta de leads do mês (guardada num JSON em app_kv) ─────────────────────
+  if (action === "salvar-meta-leads" && body.mes) {
+    const { data } = await s.from("app_kv").select("valor").eq("chave", "trafego_meta_leads").maybeSingle();
+    let mapa: Record<string, number> = {};
+    try { mapa = JSON.parse((data as { valor?: string } | null)?.valor || "{}"); } catch { mapa = {}; }
+    mapa[body.mes] = Math.round(n(body.valor));
+    await s.from("app_kv").upsert({ chave: "trafego_meta_leads", valor: JSON.stringify(mapa) });
+    return NextResponse.json({ ok: true, metasLeads: mapa });
+  }
+
+  // ── puxar da Meta (por semana) ────────────────────────────────────────────
+  if (action === "sync-meta" && body.mes) {
     const cfg = await lerConfig(s);
     const token = cfg.metaToken.trim();
     let acct = cfg.metaAdAccount.trim();
     if (!token || !acct) return NextResponse.json({ error: "Configure o token e o ID da conta de anúncios da Meta primeiro." }, { status: 400 });
     if (!acct.startsWith("act_")) acct = "act_" + acct.replace(/^act_/, "");
 
-    // Intervalo do mês (o fim não passa de hoje, senão a Meta reclama).
-    const [y, mo] = body.mes.split("-").map(Number);
-    const primeiro = `${body.mes}-01`;
-    const ultimoDia = new Date(y, mo, 0).getDate();
+    const semanas: number[] = body.mesInteiro ? listaSemanas(body.mes) : [Number(body.semana) || 1];
     const hoje = new Date();
-    const fimData = new Date(Math.min(new Date(y, mo - 1, ultimoDia).getTime(), hoje.getTime()));
-    const until = `${fimData.getFullYear()}-${String(fimData.getMonth() + 1).padStart(2, "0")}-${String(fimData.getDate()).padStart(2, "0")}`;
+    let criadas = 0, campanhasTotal = 0;
+    const erros: string[] = [];
 
-    const params = new URLSearchParams({
-      level: "campaign",
-      time_range: JSON.stringify({ since: primeiro, until }),
-      fields: "spend,impressions,clicks,actions",
-      limit: "500",
-      access_token: token,
-    });
-    try {
-      const r = await fetch(`https://graph.facebook.com/v21.0/${acct}/insights?${params.toString()}`, { cache: "no-store" });
-      const j = await r.json();
-      if (!r.ok || j.error) return NextResponse.json({ error: j.error?.message || "Erro ao consultar a Meta." }, { status: 502 });
-      const linhas: { spend?: string; impressions?: string; clicks?: string; actions?: { action_type: string; value: string }[] }[] = j.data ?? [];
-      let investido = 0, impressoes = 0, cliques = 0, leads = 0;
-      for (const l of linhas) {
-        investido += Number(l.spend) || 0;
-        impressoes += Number(l.impressions) || 0;
-        cliques += Number(l.clicks) || 0;
-        for (const a of l.actions ?? []) if (/lead/i.test(a.action_type)) leads += Number(a.value) || 0;
-      }
-      const linha = {
-        mes: body.mes, investido: Math.round(investido * 100) / 100, impressoes: Math.round(impressoes),
-        cliques: Math.round(cliques), leads: Math.round(leads), campanhas: linhas.length,
-        vendas: 0, origem: "meta", atualizado_em: new Date().toISOString(),
-      };
-      // Preserva vendas já digitadas à mão (a Meta não sabe das vendas fechadas).
-      const { data: atual } = await s.from("trafego_mensal").select("vendas").eq("mes", body.mes).maybeSingle();
-      if (atual && (atual as { vendas?: number }).vendas) linha.vendas = (atual as { vendas: number }).vendas;
-      const { error } = await s.from("trafego_mensal").upsert(linha);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ ok: true, mes: linha, campanhas: linhas.length });
-    } catch (e) {
-      return NextResponse.json({ error: (e as Error).message || "Falha ao conectar na Meta." }, { status: 502 });
+    for (const semana of semanas) {
+      const { since, until: untilRaw } = weekRange(body.mes, semana);
+      // não pede período no futuro (a Meta recusa)
+      const until = new Date(untilRaw) > hoje ? `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}` : untilRaw;
+      if (new Date(since) > hoje) continue;   // semana ainda não começou
+      const params = new URLSearchParams({
+        level: "campaign",
+        time_range: JSON.stringify({ since, until }),
+        fields: "campaign_name,spend,impressions,inline_link_clicks,clicks,actions",
+        limit: "300", access_token: token,
+      });
+      try {
+        const r = await fetch(`https://graph.facebook.com/v21.0/${acct}/insights?${params}`, { cache: "no-store" });
+        const j = await r.json();
+        if (!r.ok || j.error) { erros.push(`S${semana}: ${j.error?.message || r.status}`); continue; }
+        const linhas: { campaign_name?: string; spend?: string; impressions?: string; inline_link_clicks?: string; clicks?: string; actions?: { action_type: string; value: string }[] }[] = j.data ?? [];
+        let pos = 0;
+        for (const l of linhas) {
+          const campanha = (l.campaign_name || "Campanha").trim();
+          const registro = {
+            mes: body.mes, semana, campanha,
+            investido: Math.round((Number(l.spend) || 0) * 100) / 100,
+            impressoes: Math.round(Number(l.impressions) || 0),
+            cliques: Math.round(Number(l.inline_link_clicks) || Number(l.clicks) || 0),
+            leads: extrairLeads(l.actions),
+            origem: "meta", posicao: pos++, atualizado_em: new Date().toISOString(),
+          };
+          // upsert sem tocar em leads_plataforma/leads_planilha (ficam manuais)
+          const { error } = await s.from("trafego_resultados").upsert(registro, { onConflict: "mes,semana,campanha" });
+          if (!error) { criadas++; campanhasTotal++; }
+        }
+      } catch (e) { erros.push(`S${semana}: ${(e as Error).message}`); }
     }
+    if (campanhasTotal === 0 && erros.length) return NextResponse.json({ error: erros.join(" · ") }, { status: 502 });
+    return NextResponse.json({ ok: true, campanhas: campanhasTotal, semanas: semanas.length, avisos: erros });
   }
 
   return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 }
+
+export type { Resultado };
