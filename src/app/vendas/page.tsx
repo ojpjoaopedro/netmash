@@ -11,10 +11,10 @@ import {
 const MARCA = "Minhas Métricas";            // nome que aparece na página
 const PRECO = "49,90";                        // valor da MENSALIDADE (R$/mês)
 const PRECO_DE = "97";                         // preço "cheio" (âncora, riscado)
-// Página de compra: pega os dados da empresa, leva ao checkout da Cakto e cria
-// a conta sozinha quando o pagamento é confirmado. Para voltar ao link direto do
-// checkout, é só trocar esta constante pela URL da Cakto.
-const CHECKOUT_URL = "/assinar";
+// Link direto do checkout da Cakto (R$ 49,90/mês). O acesso é criado sozinho
+// pelo webhook do Cakto quando o pagamento é confirmado. Para usar o fluxo com
+// coleta de dados antes do checkout, troque de volta por "/assinar".
+const CHECKOUT_URL = "https://pay.cakto.com.br/jgyw3d8_1080979";
 const ENTRAR_URL = "/login";                // login do app
 const PIXEL_ID = "574774374290188";         // Pixel da Meta (Facebook/Instagram)
 /* ============================================================ */
