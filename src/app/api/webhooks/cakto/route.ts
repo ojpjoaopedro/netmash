@@ -43,9 +43,11 @@ export async function POST(req: NextRequest) {
   if (!aceitos.length) return NextResponse.json({ error: "Webhook sem segredo configurado no servidor." }, { status: 503 });
   const assinatura = (req.headers.get("x-cakto-signature") || "").trim();
   const timestamp = (req.headers.get("x-cakto-timestamp") || "").trim();
-  const autentico = aceitos.some((esperado) => assinatura && timestamp
-    ? assinaturaConfere(corpoCru, timestamp, assinatura, esperado)
-    : segredosIguais((ev.secret || "").trim(), esperado));
+  // Vale a assinatura OU o `secret` do corpo (a Cakto documenta os dois e manda
+  // os dois). Só a assinatura recusava aviso com o segredo certo no corpo.
+  const autentico = aceitos.some((esperado) =>
+    (assinatura && timestamp && assinaturaConfere(corpoCru, timestamp, assinatura, esperado))
+    || segredosIguais((ev.secret || "").trim(), esperado));
   if (!autentico) return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
 
   const evento = (ev.event || "").trim().toLowerCase();
