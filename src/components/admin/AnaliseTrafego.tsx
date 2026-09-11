@@ -7,12 +7,13 @@
  * semana. Configurações (pixel, token/conta da Meta, meta de CPL, imposto) em app_kv.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Megaphone, Settings2, Download, RefreshCw, Save, Check, Image as ImageIcon } from "lucide-react";
+import { Megaphone, Settings2, Download, RefreshCw, Save, Check } from "lucide-react";
 import { authHeaders, CARD, INP } from "./trafego/shared";
-import { MESES, mesLabel, type Resultado } from "@/lib/trafego";
+import { MESES, mesLabel, type Resultado, type Criativo } from "@/lib/trafego";
 import Funil from "./trafego/Funil";
 import Resultados from "./trafego/Resultados";
 import Analise from "./trafego/Analise";
+import GestaoAVista from "./trafego/GestaoAVista";
 
 type Config = { metaAdAccount: string; metaToken: string; metaCpl: string; imposto: string; pixelId: string; metasLeads: Record<string, number> };
 type Aba = "funil" | "gestao" | "resultados" | "analise";
@@ -24,6 +25,7 @@ const cfgVazia: Config = { metaAdAccount: "", metaToken: "", metaCpl: "", impost
 
 export default function AnaliseTrafego() {
   const [rows, setRows] = useState<Resultado[]>([]);
+  const [criativos, setCriativos] = useState<Criativo[]>([]);
   const [config, setConfig] = useState<Config>(cfgVazia);
   const [aba, setAba] = useState<Aba>("funil");
   const hoje = new Date();
@@ -43,6 +45,7 @@ export default function AnaliseTrafego() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Erro ao carregar.");
       setRows(j.rows || []);
+      setCriativos(j.criativos || []);
       setConfig({ ...cfgVazia, ...j.config });
     } catch (e) { flash("erro", (e as Error).message); } finally { setCarregando(false); }
   }, []);
@@ -131,13 +134,7 @@ export default function AnaliseTrafego() {
           {aba === "funil" && <Funil rows={rows} mes={mes} />}
           {aba === "resultados" && <Resultados rows={rows} mes={mes} metasLeads={config.metasLeads} reload={carregar} />}
           {aba === "analise" && <Analise rows={rows} imposto={config.imposto} metaCpl={config.metaCpl} mesAtual={mes} />}
-          {aba === "gestao" && (
-            <div style={{ ...CARD, textAlign: "center", padding: 48, color: "var(--muted)" }}>
-              <span style={{ width: 52, height: 52, borderRadius: 14, display: "inline-grid", placeItems: "center", background: "var(--bg-2)", color: "#1AADE2", marginBottom: 14 }}><ImageIcon size={26} /></span>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--txt)" }}>Galeria de criativos</div>
-              <p style={{ fontSize: 14, maxWidth: 460, margin: "8px auto 0" }}>Cada anúncio como um card com imagem/vídeo, a copy e o resultado, com ranking do mês. Estou construindo essa parte (Etapa 2).</p>
-            </div>
-          )}
+          {aba === "gestao" && <GestaoAVista criativos={criativos} mes={mes} reload={carregar} />}
         </>
       )}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite}`}</style>

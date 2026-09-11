@@ -104,6 +104,32 @@ export function porMes(rows: Resultado[]): MesAgg[] {
   return out;
 }
 
+// ── criativos (Gestão à Vista) ───────────────────────────────────────────────
+export type Criativo = {
+  id?: string; mes: string; semana: number;
+  tema?: string | null; titulo?: string | null; copy?: string | null;
+  midia_url?: string | null; midia_tipo?: string; poster_url?: string | null;
+  meta_ad_id?: string | null; origem?: string;
+  investido: number; cliques: number; cliques_todos: number; impressoes: number; leads: number; posicao?: number;
+};
+export const cCpl = (c: Criativo) => (c.leads > 0 ? c.investido / c.leads : null);
+export const cCpc = (c: Criativo) => (c.cliques > 0 ? c.investido / c.cliques : null);
+export const cCtr = (c: Criativo) => (c.impressoes > 0 ? (c.cliques_todos / c.impressoes) * 100 : null);
+export const cCpm = (c: Criativo) => (c.impressoes > 0 ? (c.investido / c.impressoes) * 1000 : null);
+
+/** Agrega criativos do mês por anúncio (soma as semanas), pro ranking. */
+export function agregarCriativosMes(criativos: Criativo[]): Criativo[] {
+  const map = new Map<string, Criativo>();
+  for (const c of criativos) {
+    const chave = (c.meta_ad_id || c.titulo || c.id || Math.random().toString()).toString();
+    const cur = map.get(chave);
+    if (!cur) { map.set(chave, { ...c }); continue; }
+    cur.investido += c.investido; cur.cliques += c.cliques; cur.cliques_todos += c.cliques_todos;
+    cur.impressoes += c.impressoes; cur.leads += c.leads;
+  }
+  return [...map.values()].sort((a, b) => b.leads - a.leads || b.investido - a.investido);
+}
+
 // ── formatadores ─────────────────────────────────────────────────────────────
 export const brl = (n: number | null | undefined, dec = 2) =>
   n == null ? "—" : "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
