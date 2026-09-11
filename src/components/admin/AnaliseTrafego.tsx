@@ -7,9 +7,10 @@
  * semana. Configurações (pixel, token/conta da Meta, meta de CPL, imposto) em app_kv.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Megaphone, Settings2, Download, RefreshCw, Save, Check } from "lucide-react";
+import { Megaphone, Settings2, Download, RefreshCw, Save, Check, FileText } from "lucide-react";
 import { authHeaders, CARD, INP } from "./trafego/shared";
 import { MESES, mesLabel, type Resultado, type Criativo } from "@/lib/trafego";
+import { gerarApresentacao } from "./trafego/apresentacao";
 import Funil from "./trafego/Funil";
 import Resultados from "./trafego/Resultados";
 import Analise from "./trafego/Analise";
@@ -86,6 +87,7 @@ export default function AnaliseTrafego() {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={puxarMeta} disabled={puxando} style={{ cursor: "pointer", border: "1px solid #1877F2", borderRadius: 10, padding: "9px 16px", fontWeight: 700, color: "#fff", background: "#1877F2", display: "inline-flex", alignItems: "center", gap: 7 }}>{puxando ? <RefreshCw size={15} className="spin" /> : <Download size={15} />}{puxando ? "Puxando..." : "Puxar da Meta"}</button>
+          <button onClick={() => gerarApresentacao(rows, criativos, mes, config.imposto)} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "9px 16px", fontWeight: 700, color: "#fff", background: "linear-gradient(135deg,#8b5cf6,#d946ef)", display: "inline-flex", alignItems: "center", gap: 7 }}><FileText size={15} /> Gerar apresentação</button>
           <button onClick={() => setAbrirConfig((v) => !v)} style={{ cursor: "pointer", fontSize: 13, fontWeight: 700, border: "1px solid var(--line-2)", background: "var(--card)", color: "var(--txt)", borderRadius: 10, padding: "9px 16px", display: "inline-flex", alignItems: "center", gap: 6 }}><Settings2 size={15} /> Configurações</button>
         </div>
       </div>
