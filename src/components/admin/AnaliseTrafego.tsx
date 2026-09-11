@@ -74,6 +74,17 @@ export default function AnaliseTrafego() {
   };
   const setC = (k: keyof Config, v: string) => setConfig((c) => ({ ...c, [k]: v }));
 
+  const testarMeta = async () => {
+    setSalvando(true);
+    try {
+      await fetch("/api/marketing/trafego", { method: "POST", headers: await authHeaders(), body: JSON.stringify({ action: "salvar-config", config }) });
+      const r = await fetch("/api/marketing/trafego", { method: "POST", headers: await authHeaders(), body: JSON.stringify({ action: "testar-meta" }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Falha no teste.");
+      flash("ok", j.aviso || "Conectado à Meta.");
+    } catch (e) { flash("erro", (e as Error).message); } finally { setSalvando(false); }
+  };
+
   return (
     <div style={{ display: "grid", gap: 18 }}>
       {/* Cabeçalho */}
@@ -122,7 +133,10 @@ export default function AnaliseTrafego() {
             <span><b style={{ fontSize: 13.5 }}>Registrar a compra pela Conversions API (servidor)</b><div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>Deixe DESLIGADO se o Purchase já está configurado na Cakto (senão a Meta conta a compra duas vezes). Ligue só se você tirar o pixel da Cakto.</div></span>
           </label>
           <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Token e conta são usados só pelo servidor pra puxar da Meta. O ID do Pixel carrega automaticamente nas páginas de venda (site, /app, /vendas, /assinar, /obrigado).</p>
-          <div><button onClick={salvarConfig} disabled={salvando} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "11px 22px", fontWeight: 700, color: "#fff", background: "#1AADE2", display: "inline-flex", alignItems: "center", gap: 8 }}><Save size={16} />{salvando ? "Salvando..." : "Salvar configurações"}</button></div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={salvarConfig} disabled={salvando} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "11px 22px", fontWeight: 700, color: "#fff", background: "#1AADE2", display: "inline-flex", alignItems: "center", gap: 8 }}><Save size={16} />{salvando ? "Salvando..." : "Salvar configurações"}</button>
+            <button onClick={testarMeta} disabled={salvando} style={{ cursor: "pointer", border: "1px solid var(--line-2)", background: "var(--bg-2)", color: "var(--txt)", borderRadius: 10, padding: "11px 18px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 7 }}><Check size={16} />Testar conexão</button>
+          </div>
         </div>
       )}
 

@@ -102,6 +102,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, metasLeads: mapa });
   }
 
+  // ── testar conexão com a Meta (token + conta de anúncios) ─────────────────
+  if (action === "testar-meta") {
+    const cfg = await lerConfig(s);
+    const token = cfg.metaToken.trim();
+    let acct = cfg.metaAdAccount.trim();
+    if (!token) return NextResponse.json({ error: "Cole o token da Meta primeiro." }, { status: 400 });
+    try {
+      const rMe = await fetch(`https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${encodeURIComponent(token)}`, { cache: "no-store" });
+      const jMe = await rMe.json();
+      if (!rMe.ok || jMe.error) return NextResponse.json({ error: `Token inválido: ${jMe.error?.message || rMe.status}` }, { status: 400 });
+      if (!acct) return NextResponse.json({ ok: true, aviso: `Token OK (${jMe.name || jMe.id}), mas falta o ID da conta de anúncios.` });
+      if (!acct.startsWith("act_")) acct = "act_" + acct.replace(/^act_/, "");
+      const rAc = await fetch(`https://graph.facebook.com/v21.0/${acct}?fields=name,account_status&access_token=${encodeURIComponent(token)}`, { cache: "no-store" });
+      const jAc = await rAc.json();
+      if (!rAc.ok || jAc.error) return NextResponse.json({ error: `Token OK, mas a conta de anúncios falhou: ${jAc.error?.message || rAc.status}` }, { status: 400 });
+      return NextResponse.json({ ok: true, aviso: `Conectado: ${jMe.name || jMe.id} · conta "${jAc.name}".` });
+    } catch (e) { return NextResponse.json({ error: (e as Error).message }, { status: 502 }); }
+  }
+
   // ── puxar da Meta (por semana) ────────────────────────────────────────────
   if (action === "sync-meta" && body.mes) {
     const cfg = await lerConfig(s);
