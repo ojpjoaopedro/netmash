@@ -16,13 +16,13 @@ import Resultados from "./trafego/Resultados";
 import Analise from "./trafego/Analise";
 import GestaoAVista from "./trafego/GestaoAVista";
 
-type Config = { metaAdAccount: string; metaToken: string; metaCpl: string; imposto: string; pixelId: string; metasLeads: Record<string, number> };
+type Config = { metaAdAccount: string; metaToken: string; metaCpl: string; imposto: string; pixelId: string; capiPurchase: boolean; metasLeads: Record<string, number> };
 type Aba = "funil" | "gestao" | "resultados" | "analise";
 const ABAS: { k: Aba; label: string }[] = [
   { k: "funil", label: "Funil" }, { k: "gestao", label: "Gestão à Vista" },
   { k: "resultados", label: "Resultados" }, { k: "analise", label: "Análise" },
 ];
-const cfgVazia: Config = { metaAdAccount: "", metaToken: "", metaCpl: "", imposto: "13.83", pixelId: "", metasLeads: {} };
+const cfgVazia: Config = { metaAdAccount: "", metaToken: "", metaCpl: "", imposto: "13.83", pixelId: "", capiPurchase: false, metasLeads: {} };
 
 export default function AnaliseTrafego() {
   const [rows, setRows] = useState<Resultado[]>([]);
@@ -117,6 +117,10 @@ export default function AnaliseTrafego() {
             <label><div style={cfgLbl}>Imposto sobre o tráfego (%)</div><input value={config.imposto} onChange={(e) => setC("imposto", e.target.value)} placeholder="13,83" style={INP} /></label>
           </div>
           <label><div style={cfgLbl}>Token de acesso da Meta (Graph API)</div><input value={config.metaToken} onChange={(e) => setC("metaToken", e.target.value)} placeholder="Cole o token da conta de anúncios (fica só no servidor)" style={INP} type="password" /></label>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 10, padding: 12 }}>
+            <input type="checkbox" checked={config.capiPurchase} onChange={(e) => setConfig((c) => ({ ...c, capiPurchase: e.target.checked }))} style={{ marginTop: 3, width: 16, height: 16 }} />
+            <span><b style={{ fontSize: 13.5 }}>Registrar a compra pela Conversions API (servidor)</b><div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>Deixe DESLIGADO se o Purchase já está configurado na Cakto (senão a Meta conta a compra duas vezes). Ligue só se você tirar o pixel da Cakto.</div></span>
+          </label>
           <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Token e conta são usados só pelo servidor pra puxar da Meta. O ID do Pixel carrega automaticamente nas páginas de venda (site, /app, /vendas, /assinar, /obrigado).</p>
           <div><button onClick={salvarConfig} disabled={salvando} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "11px 22px", fontWeight: 700, color: "#fff", background: "#1AADE2", display: "inline-flex", alignItems: "center", gap: 8 }}><Save size={16} />{salvando ? "Salvando..." : "Salvar configurações"}</button></div>
         </div>

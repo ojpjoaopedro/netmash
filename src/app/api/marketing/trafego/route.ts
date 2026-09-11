@@ -22,7 +22,7 @@ async function ehSuper(req: NextRequest, s: SupabaseClient): Promise<boolean> {
   return !!email && SUPERS.includes(email);
 }
 
-const CHAVES = ["meta_access_token", "meta_ad_account_id", "trafego_meta_cpl", "trafego_imposto", "pixel_id", "trafego_meta_leads"] as const;
+const CHAVES = ["meta_access_token", "meta_ad_account_id", "trafego_meta_cpl", "trafego_imposto", "pixel_id", "trafego_meta_leads", "trafego_capi_purchase"] as const;
 
 async function lerConfig(s: SupabaseClient) {
   const { data } = await s.from("app_kv").select("chave,valor").in("chave", CHAVES as unknown as string[]);
@@ -35,6 +35,7 @@ async function lerConfig(s: SupabaseClient) {
     metaCpl: m.get("trafego_meta_cpl") ?? "",
     imposto: m.get("trafego_imposto") ?? "13.83",
     pixelId: m.get("pixel_id") ?? "",
+    capiPurchase: (m.get("trafego_capi_purchase") ?? "") === "on",
     metasLeads,
   };
 }
@@ -81,11 +82,12 @@ export async function POST(req: NextRequest) {
 
   // ── salvar configuração (pixel, Meta, meta CPL, imposto) ──────────────────
   if (action === "salvar-config" && body.config) {
-    const c = body.config as Record<string, string>;
+    const c = body.config as Record<string, string | boolean>;
     const rows = (["pixel_id", "meta_ad_account_id", "meta_access_token", "trafego_meta_cpl", "trafego_imposto"] as const)
       .map((chave) => ({ chave, campo: { pixel_id: "pixelId", meta_ad_account_id: "metaAdAccount", meta_access_token: "metaToken", trafego_meta_cpl: "metaCpl", trafego_imposto: "imposto" }[chave] }))
       .filter(({ campo }) => c[campo] !== undefined)
-      .map(({ chave, campo }) => ({ chave, valor: (c[campo] ?? "").toString().trim() || null }));
+      .map(({ chave, campo }) => ({ chave: chave as string, valor: (c[campo] ?? "").toString().trim() || null }));
+    if (c.capiPurchase !== undefined) rows.push({ chave: "trafego_capi_purchase", valor: c.capiPurchase ? "on" : null });
     if (rows.length) { const { error } = await s.from("app_kv").upsert(rows); if (error) return NextResponse.json({ error: error.message }, { status: 500 }); }
     return NextResponse.json({ ok: true });
   }

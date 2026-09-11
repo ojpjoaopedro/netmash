@@ -16,8 +16,11 @@ export async function enviarPurchaseCapi(
   dados: { valor: number; email?: string | null; telefone?: string | null; eventId: string },
 ): Promise<{ ok: boolean; motivo?: string }> {
   try {
-    const { data } = await s.from("app_kv").select("chave,valor").in("chave", ["pixel_id", "meta_access_token"]);
+    const { data } = await s.from("app_kv").select("chave,valor").in("chave", ["pixel_id", "meta_access_token", "trafego_capi_purchase"]);
     const m = new Map((data ?? []).map((r: { chave: string; valor: string | null }) => [r.chave, r.valor]));
+    // Desligado por padrão: só dispara se o admin ligar explicitamente. Evita
+    // contar em dobro quando o Purchase já é disparado pelo pixel (ex.: Cakto).
+    if ((m.get("trafego_capi_purchase") || "").trim() !== "on") return { ok: false, motivo: "capi purchase desligado" };
     const pixel = (m.get("pixel_id") || "").trim();
     const token = (m.get("meta_access_token") || "").trim();
     if (!pixel || !token) return { ok: false, motivo: "sem pixel/token configurado" };
