@@ -183,6 +183,33 @@ function valorDoModulo(atuais: Record<string, boolean | number>, chave: string):
   return quantidadeDoPlano(atuais, chave) + 1;
 }
 
+/** Preenche a empresa recém-criada com os dados da venda (nome, slug, plano, documento). */
+async function prepararEmpresa(s: SupabaseClient, empresaId: string, nomeEmpresa: string, venda: Venda, ehBase: boolean): Promise<void> {
+  const doc = soDigitos(venda.documento);
+  const patch: Record<string, unknown> = {
+    nome: nomeEmpresa,
+    slug: await slugLivre(s, nomeEmpresa),
+    responsavel: venda.nome || null,
+    plano: "1 Super Admin",
+    valor: Number(venda.valor || 0),
+    ...(doc.length === 14 ? { cnpj: venda.documento } : {}),
+    ...(doc.length === 11 ? { responsavel_cpf: venda.documento } : {}),
+    ...(ehBase ? {} : { planos: { [venda.plano_chave]: valorDoModulo({}, venda.plano_chave) } }),
+  };
+  await s.from("empresas").update(patch).eq("id", empresaId);
+}
+
+/** Manda o e-mail de "criar senha" (fluxo de recuperação do Supabase, cai no /senha). */
+async function mandarCriarSenha(email: string): Promise<boolean> {
+  if (!url || !anonKey) return false;
+  try {
+    const site = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
+    const pub = createClient(url, anonKey, { auth: { persistSession: false } });
+    await pub.auth.resetPasswordForEmail(email, site ? { redirectTo: `${site}/senha` } : undefined);
+  } catch { /* best-effort: o cliente sempre pode usar "esqueci a senha" */ }
+  return true;
+}
+
 export type ResultadoLiberacao = {
   ok: boolean;
   empresaId?: string | null;
@@ -207,9 +234,31 @@ export async function liberarVenda(s: SupabaseClient, venda: Venda): Promise<Res
 
   // ── cliente que já tem conta: só liga o módulo ────────────────────────────
   const existente = await perfilPorEmail(s, email);
-  if (existente) {
-    if (existente.empresa_id && !ehBase) await ligarModulo(s, existente.empresa_id, venda.plano_chave);
+  if (existente?.empresa_id) {
+    if (!ehBase) await ligarModulo(s, existente.empresa_id, venda.plano_chave);
     return { ok: true, empresaId: existente.empresa_id, userId: existente.id, criouConta: false };
+  }
+
+  // ── login que sobrou sem empresa (ex.: empresa apagada no Admin) ─────────
+  // O gatilho do banco só monta empresa+perfil ao CRIAR o login, então aqui
+  // montamos na mão; senão o cliente paga, entra e volta direto pro login.
+  if (existente) {
+    const userId = existente.id;
+    const nomeEmpresa = (venda.empresa || venda.nome || email.split("@")[0]).trim();
+    const { data: nova, error: erroEmp } = await s.from("empresas")
+      .insert({ nome: nomeEmpresa, dono_id: userId }).select("id").maybeSingle();
+    const empresaId = (nova as { id?: string } | null)?.id ?? null;
+    if (erroEmp || !empresaId) return { ok: false, erro: erroEmp?.message || "Não consegui criar a empresa." };
+    const { error: erroPerfil } = await s.from("perfis").upsert({
+      id: userId, empresa_id: empresaId, nome: venda.nome || email.split("@")[0], email, papel: "dono",
+    });
+    if (erroPerfil) return { ok: false, erro: erroPerfil.message };
+    await prepararEmpresa(s, empresaId, nomeEmpresa, venda, ehBase);
+    const precisaDefinirSenha = await mandarCriarSenha(email);
+    await s.from("vendas").update({
+      empresa_id: empresaId, user_id: userId, senha_cifrada: null, atualizado_em: new Date().toISOString(),
+    }).eq("id", venda.id);
+    return { ok: true, empresaId, userId, criouConta: true, precisaDefinirSenha };
   }
 
   // ── cliente novo: cria o acesso ───────────────────────────────────────────
@@ -231,33 +280,12 @@ export async function liberarVenda(s: SupabaseClient, venda: Venda): Promise<Res
   const { data: emp } = await s.from("empresas").select("id").eq("dono_id", userId).order("criado_em", { ascending: false }).limit(1).maybeSingle();
   const empresaId = (emp as { id?: string } | null)?.id ?? null;
 
-  if (empresaId) {
-    const doc = soDigitos(venda.documento);
-    const patch: Record<string, unknown> = {
-      nome: nomeEmpresa,
-      slug: await slugLivre(s, nomeEmpresa),
-      responsavel: venda.nome || null,
-      plano: "1 Super Admin",
-      valor: Number(venda.valor || 0),
-      ...(doc.length === 14 ? { cnpj: venda.documento } : {}),
-      ...(doc.length === 11 ? { responsavel_cpf: venda.documento } : {}),
-      ...(ehBase ? {} : { planos: { [venda.plano_chave]: valorDoModulo({}, venda.plano_chave) } }),
-    };
-    await s.from("empresas").update(patch).eq("id", empresaId);
-  }
+  if (empresaId) await prepararEmpresa(s, empresaId, nomeEmpresa, venda, ehBase);
   await s.from("perfis").update({ nome: venda.nome || null, email }).eq("id", userId);
 
   // Sem a senha escolhida (chave de cifra trocada, ou compra por link fixo, sem
   // cadastro prévio), mandamos o e-mail para o cliente criar a própria senha.
-  let precisaDefinirSenha = false;
-  if (!senhaEscolhida && url && anonKey) {
-    precisaDefinirSenha = true;
-    try {
-      const site = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
-      const pub = createClient(url, anonKey, { auth: { persistSession: false } });
-      await pub.auth.resetPasswordForEmail(email, site ? { redirectTo: `${site}/senha` } : undefined);
-    } catch { /* best-effort: o cliente sempre pode usar "esqueci a senha" */ }
-  }
+  const precisaDefinirSenha = senhaEscolhida ? false : await mandarCriarSenha(email);
 
   await s.from("vendas").update({
     empresa_id: empresaId, user_id: userId, senha_cifrada: null, atualizado_em: new Date().toISOString(),

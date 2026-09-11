@@ -19,7 +19,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import {
   assinaturaConfere, assinaturaDoPedido, consultarPedido, credenciais,
-  identificadorDaVenda, pedidoPrincipal, segredoWebhook, segredosIguais,
+  identificadorDaVenda, pedidoPrincipal, segredosWebhook, segredosIguais,
   EVENTOS_DE_ALERTA, EVENTOS_DE_ASSINATURA, STATUS_POR_EVENTO,
   type EventoCakto,
 } from "@/lib/cakto";
@@ -39,13 +39,13 @@ export async function POST(req: NextRequest) {
   try { ev = JSON.parse(corpoCru) as EventoCakto; } catch { return NextResponse.json({ error: "Corpo inválido." }, { status: 400 }); }
 
   // ── autenticidade ────────────────────────────────────────────────────────
-  const esperado = await segredoWebhook(s);
-  if (!esperado) return NextResponse.json({ error: "Webhook sem segredo configurado no servidor." }, { status: 503 });
+  const aceitos = await segredosWebhook(s);
+  if (!aceitos.length) return NextResponse.json({ error: "Webhook sem segredo configurado no servidor." }, { status: 503 });
   const assinatura = (req.headers.get("x-cakto-signature") || "").trim();
   const timestamp = (req.headers.get("x-cakto-timestamp") || "").trim();
-  const autentico = assinatura && timestamp
+  const autentico = aceitos.some((esperado) => assinatura && timestamp
     ? assinaturaConfere(corpoCru, timestamp, assinatura, esperado)
-    : segredosIguais((ev.secret || "").trim(), esperado);
+    : segredosIguais((ev.secret || "").trim(), esperado));
   if (!autentico) return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
 
   const evento = (ev.event || "").trim().toLowerCase();

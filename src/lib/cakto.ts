@@ -40,8 +40,13 @@ export async function credenciais(s?: SupabaseClient | null): Promise<Credenciai
 }
 
 /** Segredo que a Cakto manda no webhook, para provarmos que o aviso é dela. */
-export async function segredoWebhook(s?: SupabaseClient | null): Promise<string> {
-  return (process.env.CAKTO_WEBHOOK_SECRET || "").trim() || (await doKv(s, "cakto_webhook_secret"));
+/**
+ * Todos os segredos aceitos (ambiente e app_kv). Vale qualquer um: assim trocar
+ * o segredo no banco funciona mesmo se houver um antigo esquecido no ambiente.
+ */
+export async function segredosWebhook(s?: SupabaseClient | null): Promise<string[]> {
+  const lista = [(process.env.CAKTO_WEBHOOK_SECRET || "").trim(), await doKv(s, "cakto_webhook_secret")];
+  return [...new Set(lista.filter(Boolean))];
 }
 
 // ── Token ──────────────────────────────────────────────────────────────────
