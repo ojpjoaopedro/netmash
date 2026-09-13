@@ -119,10 +119,15 @@ function FormBoleto({ onSalvo }: { onSalvo: () => void }) {
   const aplicarLinha = (txt: string) => {
     setLinha(txt);
     const info = parseLinhaDigitavel(txt);
-    if (!info.valido) { if (txt.replace(/\D/g, "").length >= 40) setAviso("Não reconheci esse código. Confira ou preencha na mão."); return; }
-    setAviso(info.vencimento ? "" : "Peguei o valor. O vencimento não vem no código, confira a data.");
-    if (info.valor != null) setValor(String(info.valor.toFixed(2)).replace(".", ","));
+    if (!info.valido) { if (txt.replace(/\D/g, "").length >= 40 || /pix/i.test(txt)) setAviso("Não reconheci esse código. Confira ou preencha na mão."); return; }
+    if (info.valor != null) setValor(info.valor.toFixed(2).replace(".", ","));
     if (info.vencimento) setVenc(info.vencimento);
+    if (info.beneficiario && !descricao.trim()) setDescricao(info.beneficiario);
+    const notas: string[] = [];
+    if (info.banco) notas.push(info.banco);
+    if (info.beneficiario) notas.push(info.beneficiario);
+    if (!info.vencimento) notas.push("confira a data (não vem no código)");
+    setAviso(notas.join(" · "));
   };
 
   const toggleLembrar = (d: number) => setLembrar((l) => (l.includes(d) ? l.filter((x) => x !== d) : [...l, d].sort((a, b) => b - a)));

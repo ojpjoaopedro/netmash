@@ -304,7 +304,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
     return () => { document.body.style.overflow = b; document.documentElement.style.overflow = h; };
   }, [modal]);
   const [form, setForm] = useState<{ editId?: string; descricao: string; valor: string; recorrente: boolean; freq: Freq; grupo: string; item: string; origem?: "despesa" | "receita" } | null>(null);
-  const [formBol, setFormBol] = useState<{ descricao: string; valor: string; linha: string; lembrar: number[] } | null>(null);
+  const [formBol, setFormBol] = useState<{ descricao: string; valor: string; linha: string; venc: string; lembrar: number[] } | null>(null);
   const [hover, setHover] = useState<{ mes: number; dia: number; x: number; y: number } | null>(null);
   const fecharHoverT = useRef<number | undefined>(undefined);   // atraso para o tooltip não sumir ao levar o mouse até ele
   const [aExcluir, setAExcluir] = useState<{ d: Despesa; venym: number; iso: string; porMes: boolean } | null>(null);
@@ -650,14 +650,17 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
               {formBol ? (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
                   <div style={{ marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 800, color: "var(--brand)", background: "rgba(26,173,226,.14)", padding: "5px 12px", borderRadius: 99 }}>
-                    <Plus size={13} /> Novo boleto · vence dia {modal.dia}
+                    <Plus size={13} /> Novo boleto
                   </div>
-                  <div className="field"><label className="f">Linha digitável (opcional)</label>
-                    <input value={formBol.linha} inputMode="numeric" placeholder="Cole o número do boleto"
-                      onChange={(e) => { const txt = e.target.value; const info = parseLinhaDigitavel(txt); setFormBol({ ...formBol, linha: txt, valor: info.valor != null ? info.valor.toFixed(2).replace(".", ",") : formBol.valor }); }} />
+                  <div className="field"><label className="f">Linha digitável ou QR (Pix)</label>
+                    <input value={formBol.linha} placeholder="Cole o número do boleto ou o código do QR"
+                      onChange={(e) => { const txt = e.target.value; const info = parseLinhaDigitavel(txt); setFormBol({ ...formBol, linha: txt, valor: info.valor != null ? info.valor.toFixed(2).replace(".", ",") : formBol.valor, venc: info.vencimento || formBol.venc, descricao: formBol.descricao || info.beneficiario || "" }); }} />
                   </div>
                   <div className="field"><label className="f">Descrição</label><input value={formBol.descricao} onChange={(e) => setFormBol({ ...formBol, descricao: e.target.value })} placeholder="Ex: Fornecedor, energia..." /></div>
-                  <div className="field"><label className="f">Valor (R$)</label><input value={formBol.valor} onChange={(e) => setFormBol({ ...formBol, valor: mascaraMoeda(e.target.value) })} placeholder="0,00" inputMode="decimal" /></div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <div className="field" style={{ flex: 1 }}><label className="f">Vencimento</label><input type="date" value={formBol.venc} onChange={(e) => setFormBol({ ...formBol, venc: e.target.value })} /></div>
+                    <div className="field" style={{ flex: 1 }}><label className="f">Valor (R$)</label><input value={formBol.valor} onChange={(e) => setFormBol({ ...formBol, valor: mascaraMoeda(e.target.value) })} placeholder="0,00" inputMode="decimal" /></div>
+                  </div>
                   <div className="field"><label className="f">Me lembrar antes de vencer</label>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {[7, 3, 1].map((d) => { const on = formBol.lembrar.includes(d); return (
@@ -669,8 +672,9 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                   <button className="btn" style={{ width: "100%", justifyContent: "center" }}
                     onClick={() => {
                       const v = Number(formBol.valor.replace(/\./g, "").replace(",", ".")) || 0;
-                      if (v <= 0) return;
-                      const novo: Despesa = { id: "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), descricao: formBol.descricao.trim() || "Boleto", valor: v, dia: modal.dia, mes: modal.mes, ano, recorrente: false, freq: "unica", origem: "despesa", boleto: true, linha: formBol.linha.replace(/\D/g, "") || undefined, lembrar: formBol.lembrar, confirmadosDia: [] };
+                      if (v <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(formBol.venc)) return;
+                      const [y, m, dd] = formBol.venc.split("-").map(Number);
+                      const novo: Despesa = { id: "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), descricao: formBol.descricao.trim() || "Boleto", valor: v, dia: dd, mes: m - 1, ano: y, recorrente: false, freq: "unica", origem: "despesa", boleto: true, linha: formBol.linha.replace(/\D/g, "") || undefined, lembrar: formBol.lembrar, confirmadosDia: [] };
                       setDesps((xs) => [...xs, novo]); setModal(null); setFormBol(null);
                     }}>+ Cadastrar boleto</button>
                 </div>
@@ -722,7 +726,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                       <Plus size={16} /> Receita
                     </button>
                   </div>
-                  <button onClick={() => setFormBol({ descricao: "", valor: "", linha: "", lembrar: [7, 3] })}
+                  <button onClick={() => setFormBol({ descricao: "", valor: "", linha: "", venc: `${ano}-${String(modal.mes + 1).padStart(2, "0")}-${String(modal.dia).padStart(2, "0")}`, lembrar: [7, 3] })}
                     style={{ width: "100%", marginTop: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 13, padding: "11px", borderRadius: 10, border: "2px dashed var(--brand)", background: "rgba(26,173,226,.10)", color: "var(--brand)" }}>
                     <Plus size={16} /> Boleto
                   </button>
