@@ -690,8 +690,7 @@ export default function VendaClient() {
       {/* HERO */}
       <section style={{ ...container, position: "relative", padding: "clamp(40px,7vw,80px) 20px", display: "grid", gridTemplateColumns: "1.1fr .9fr", gap: 40, alignItems: "center" }} className="site-hero">
         <Reveal>
-          <span style={chip}>Para pequenas e médias empresas</span>
-          <h1 style={{ fontSize: "clamp(34px,6vw,58px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, margin: "18px 0 0" }}>
+          <h1 style={{ fontSize: "clamp(34px,6vw,58px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, margin: 0 }}>
             Sua empresa não pode viver <span className="dark-light" style={{ color: C.cyan }}>no escuro.</span>
           </h1>
           <p style={{ color: "rgba(240,244,250,.92)", fontSize: "clamp(14px,3.2vw,19px)", lineHeight: 1.55, margin: "16px 0 0", maxWidth: 460 }}>
