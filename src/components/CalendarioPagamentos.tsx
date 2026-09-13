@@ -6,6 +6,7 @@ import { AnimNum } from "./AnimNum";
 import { carregarEstrutura, salvarEstrutura, Bloco, Freq, datasDaDespesa, ocConfirmada, valorDaOcorrencia } from "@/app/minhasmetricas/financas-estrutura";
 import { isoParaBR, mascararDataBR, brParaISO } from "@/lib/format";
 import { salvarEstadoRemoto } from "@/lib/estado-remoto";
+import { parseLinhaDigitavel } from "@/lib/boleto";
 
 /** Dropdown em árvore igual à Estrutura de Custos: blocos, grupos (bolinha + seta) e itens, com cadastrar. */
 export function SeletorCusto({ blocos, grupo, item, onSelecionar, onRenomear, onNovoGrupo, onRenomearGrupo }: { blocos: Bloco[]; grupo: string; item: string; onSelecionar: (g: string, i: string) => void; onRenomear?: (grupo: string, antigo: string, novo: string) => void; onNovoGrupo?: (bloco: string, nome: string) => void; onRenomearGrupo?: (bloco: string, antigo: string, novo: string) => void }) {
@@ -263,7 +264,10 @@ type Despesa = { id: string; descricao: string; valor: number; dia: number; mes:
   confirmadosDia?: string[]; valoresDia?: Record<string, number>; pagoEmDia?: Record<string, string>;
   // usado só no modo unificado (calendário único): diz se a linha é uma despesa ou uma receita.
   // Não é gravado nas gavetas (cada tipo já vai pra sua gaveta separada).
-  origem?: "despesa" | "receita" };
+  origem?: "despesa" | "receita";
+  // Boleto (adicionado pelo calendário ou pela aba Boletos): marca a origem, guarda
+  // a linha digitável e os dias de antecedência do lembrete (ex.: [7,3]).
+  boleto?: boolean; linha?: string; lembrar?: number[] };
 const isoDia = (ano: number, mes: number, dia: number) => `${ano}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 const CLARO = "#93c5fd";   // azul bem claro para ocorrências pendentes (a confirmar)
 type TipoCal = "pagamentos" | "recebimentos" | "ambos";
@@ -300,6 +304,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
     return () => { document.body.style.overflow = b; document.documentElement.style.overflow = h; };
   }, [modal]);
   const [form, setForm] = useState<{ editId?: string; descricao: string; valor: string; recorrente: boolean; freq: Freq; grupo: string; item: string; origem?: "despesa" | "receita" } | null>(null);
+  const [formBol, setFormBol] = useState<{ descricao: string; valor: string; linha: string; lembrar: number[] } | null>(null);
   const [hover, setHover] = useState<{ mes: number; dia: number; x: number; y: number } | null>(null);
   const fecharHoverT = useRef<number | undefined>(undefined);   // atraso para o tooltip não sumir ao levar o mouse até ele
   const [aExcluir, setAExcluir] = useState<{ d: Despesa; venym: number; iso: string; porMes: boolean } | null>(null);
@@ -538,7 +543,7 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                 const soPendente = temDesp && !temConfirmado;   // dia só com pagamentos a confirmar
                 const ehHoje = ano === HOJE.getFullYear() && m === HOJE.getMonth() && dia === HOJE.getDate();
                 return (
-                  <button key={dia} onClick={() => { setForm(null); setHover(null); setModal({ mes: m, dia }); }} title={ehHoje ? "Hoje" : (temDesp ? undefined : (fer || undefined))}
+                  <button key={dia} onClick={() => { setForm(null); setFormBol(null); setHover(null); setModal({ mes: m, dia }); }} title={ehHoje ? "Hoje" : (temDesp ? undefined : (fer || undefined))}
                     onMouseEnter={(e) => { if (temDesp) { window.clearTimeout(fecharHoverT.current); const r = e.currentTarget.getBoundingClientRect(); setHover({ mes: m, dia, x: r.left + r.width / 2, y: r.top }); } }}
                     onMouseMove={(e) => { if (temDesp) { window.clearTimeout(fecharHoverT.current); if (!hover || hover.mes !== m || hover.dia !== dia) { const r = e.currentTarget.getBoundingClientRect(); setHover({ mes: m, dia, x: r.left + r.width / 2, y: r.top }); } } }}
                     onMouseLeave={() => { fecharHoverT.current = window.setTimeout(() => setHover(null), 420); }}
@@ -589,14 +594,14 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
         const fer = nomeFeriado(new Date(ano, modal.mes, modal.dia));
         const total = ocs.reduce((s, o) => s + (o.confirmado ? o.valor : 0), 0);   // total = só confirmados
         return (
-          <div onClick={() => { setModal(null); setForm(null); }} style={{ position: "fixed", inset: 0, zIndex: 90, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
+          <div onClick={() => { setModal(null); setForm(null); setFormBol(null); }} style={{ position: "fixed", inset: 0, zIndex: 90, display: "grid", placeItems: "center", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)", padding: 20 }}>
             <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 400, padding: 22, maxHeight: "calc(100dvh - 40px)", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
                 <div>
                   <b style={{ fontSize: 17 }}>{modal.dia} de {MES_NOME[modal.mes]} · {ano}</b>
                   {fer && <div style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: AMBAR }}><i style={{ width: 6, height: 6, borderRadius: 99, background: AMBAR }} /> {fer}</div>}
                 </div>
-                <button onClick={() => { setModal(null); setForm(null); }} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+                <button onClick={() => { setModal(null); setForm(null); setFormBol(null); }} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
               </div>
 
               <div style={{ display: "grid", gap: 8 }}>
@@ -641,8 +646,35 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                 </div>
               )}
 
-              {/* formulário de nova conta / edição */}
-              {form ? (() => {
+              {/* boleto rápido (adicionado direto no calendário) */}
+              {formBol ? (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+                  <div style={{ marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 800, color: "var(--brand)", background: "rgba(26,173,226,.14)", padding: "5px 12px", borderRadius: 99 }}>
+                    <Plus size={13} /> Novo boleto · vence dia {modal.dia}
+                  </div>
+                  <div className="field"><label className="f">Linha digitável (opcional)</label>
+                    <input value={formBol.linha} inputMode="numeric" placeholder="Cole o número do boleto"
+                      onChange={(e) => { const txt = e.target.value; const info = parseLinhaDigitavel(txt); setFormBol({ ...formBol, linha: txt, valor: info.valor != null ? info.valor.toFixed(2).replace(".", ",") : formBol.valor }); }} />
+                  </div>
+                  <div className="field"><label className="f">Descrição</label><input value={formBol.descricao} onChange={(e) => setFormBol({ ...formBol, descricao: e.target.value })} placeholder="Ex: Fornecedor, energia..." /></div>
+                  <div className="field"><label className="f">Valor (R$)</label><input value={formBol.valor} onChange={(e) => setFormBol({ ...formBol, valor: mascaraMoeda(e.target.value) })} placeholder="0,00" inputMode="decimal" /></div>
+                  <div className="field"><label className="f">Me lembrar antes de vencer</label>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {[7, 3, 1].map((d) => { const on = formBol.lembrar.includes(d); return (
+                        <button key={d} type="button" onClick={() => setFormBol({ ...formBol, lembrar: on ? formBol.lembrar.filter((x) => x !== d) : [...formBol.lembrar, d] })}
+                          style={{ cursor: "pointer", border: `1px solid ${on ? "var(--brand)" : "var(--line)"}`, background: on ? "rgba(26,173,226,.12)" : "var(--bg-2)", color: on ? "var(--brand)" : "var(--muted)", borderRadius: 99, padding: "7px 14px", fontSize: 12.5, fontWeight: 700 }}>{d} {d === 1 ? "dia" : "dias"} antes</button>
+                      ); })}
+                    </div>
+                  </div>
+                  <button className="btn" style={{ width: "100%", justifyContent: "center" }}
+                    onClick={() => {
+                      const v = Number(formBol.valor.replace(/\./g, "").replace(",", ".")) || 0;
+                      if (v <= 0) return;
+                      const novo: Despesa = { id: "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), descricao: formBol.descricao.trim() || "Boleto", valor: v, dia: modal.dia, mes: modal.mes, ano, recorrente: false, freq: "unica", origem: "despesa", boleto: true, linha: formBol.linha.replace(/\D/g, "") || undefined, lembrar: formBol.lembrar, confirmadosDia: [] };
+                      setDesps((xs) => [...xs, novo]); setModal(null); setFormBol(null);
+                    }}>+ Cadastrar boleto</button>
+                </div>
+              ) : /* formulário de nova conta / edição */ form ? (() => {
                 const ehDesp = ambos ? form.origem !== "receita" : tipo === "pagamentos";
                 const fc = ambos ? cfgDe(ehDesp ? "despesa" : "receita") : cfg;
                 return (
@@ -690,6 +722,10 @@ export default function CalendarioPagamentos({ anoInicial = 2026, tipo = "pagame
                       <Plus size={16} /> Receita
                     </button>
                   </div>
+                  <button onClick={() => setFormBol({ descricao: "", valor: "", linha: "", lembrar: [7, 3] })}
+                    style={{ width: "100%", marginTop: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 13, padding: "11px", borderRadius: 10, border: "2px dashed var(--brand)", background: "rgba(26,173,226,.10)", color: "var(--brand)" }}>
+                    <Plus size={16} /> Boleto
+                  </button>
                 </div>
               ) : (
                 <button onClick={() => setForm({ descricao: "", valor: "", recorrente: true, freq: "mensal", grupo: "", item: "" })}
