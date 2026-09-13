@@ -11,7 +11,7 @@ import {
   LayoutDashboard, DollarSign, Compass, Settings,
   Users, Building2, LogOut, Sun, Moon, X,
   Menu, Sparkles, Volume2, VolumeX, ChevronDown, Image as ImageIcon, HardHat,
-  ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3,
+  ChevronsLeft, ChevronsRight, User, Camera, Layers, CalendarDays, FileText, BarChart3, ScanLine,
   ArrowLeft, ArrowUpCircle, ChevronRight, ChevronLeft, Trash2,
   Bell, Wallet, Lock, Check, Home as HomeIcon, MessageCircle, PlayCircle,
 } from "lucide-react";
@@ -47,6 +47,7 @@ import RelatoriosFinancas from "@/components/RelatoriosFinancas";
 import FolhaPagamento from "@/components/FolhaPagamento";
 import FinancasDashboard from "@/components/FinancasDashboard";
 import CalendarioPagamentos from "@/components/CalendarioPagamentos";
+import Boletos from "@/components/Boletos";
 import TermosDeUso from "@/components/TermosDeUso";
 import MeusBeneficios from "@/components/MeusBeneficios";
 import MeuPlano from "@/components/MeuPlano";
@@ -1007,7 +1008,7 @@ function TutorialFinancas({ onFim }: { onFim: () => void }) {
  * Pagamentos). Cada aba abre "em construção" por enquanto.
  */
 function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel, onAba }: { empresa: Empresa | null; brand: React.ComponentProps<typeof Config>["brand"]; ano: number; setAno: (a: number) => void; reload: () => Promise<void>; voltarRef?: React.MutableRefObject<(() => boolean) | null>; onNivel?: (label: string) => void; onAba?: (aba: string) => void }) {
-  const [aba, setAba] = useState<"dashboard" | "estrutura" | "folha" | "calendario" | "relatorios" | "importar">("estrutura");
+  const [aba, setAba] = useState<"dashboard" | "estrutura" | "folha" | "calendario" | "boletos" | "relatorios" | "importar">("estrutura");
   // dentro do Calendário: escolha entre pagamentos e recebimentos (null = mostra as 2 opções)
   const [calSub, setCalSub] = useState<"pagamentos" | "recebimentos" | "financeiro" | null>(null);
   // no celular, Finanças abre num menu de CARDS; ao tocar num card, "entra" na seção
@@ -1060,7 +1061,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
   const fecharTutFin = () => { setTutFin(false); marcarTutVistoFin(); };
   const rotulos: Record<typeof aba, string> = {
     dashboard: "Dashboard", estrutura: "Painel financeiro", folha: "Folha de pagamento",
-    calendario: "Calendário", relatorios: "Análises financeiras", importar: "Importar planilha",
+    calendario: "Calendário", boletos: "Boletos", relatorios: "Análises financeiras", importar: "Importar planilha",
   };
   // aba em barra (estilo print2): ícone + rótulo, ativo em azul com sublinhado
   const tab = (ativo: boolean): React.CSSProperties => ({
@@ -1074,6 +1075,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
   // Dashboard e Relatórios saíram das abas: agora são abertos pelos 2 cards da Home.
   const abas: { key: typeof aba; label: string; sub: string; Icon: typeof LayoutDashboard }[] = [
     { key: "calendario", label: "Calendário", sub: "Contas a pagar e a receber", Icon: CalendarDays },
+    { key: "boletos", label: "Boletos", sub: "Leia e não esqueça de pagar", Icon: ScanLine },
     { key: "estrutura", label: "Painel", sub: "Se preferir, preencha por aqui!", Icon: Layers },
   ];
   // Dashboard/Relatório/Folha abrem como tela própria: sem cabeçalho/abas do Finanças, só um "Voltar".
@@ -1145,6 +1147,7 @@ function TelaFinancas({ empresa, brand, ano, setAno, reload, voltarRef, onNivel,
             : <TelaUpgrade Icon={Wallet} chave="folha" titulo="Folha de pagamento" texto="Salários, benefícios, encargos e provisões da equipe, com tudo entrando automático nos custos e no DRE." />)
         : aba === "dashboard" ? <FinancasDashboard ano={ano} setAno={setAno} />
         : aba === "calendario" ? <CalendarioPagamentos anoInicial={ano} tipo="ambos" />
+        : aba === "boletos" ? <Boletos />
         : aba === "relatorios" ? <RelatoriosFinancas empresa={empresa} brand={brand} ano={ano} setAno={setAno} />
         : aba === "importar" ? <Importar reload={reload} empresa={empresa} brand={brand} />
         : <EmConstrucao titulo={rotulos[aba]} />}

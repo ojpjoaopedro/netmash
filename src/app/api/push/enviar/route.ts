@@ -9,12 +9,20 @@ export const maxDuration = 60;
 type Sub = { endpoint: string; p256dh: string; auth: string; empresa_id: string | null };
 type Lanc = { tipo: string | null; vencimento: string | null; pago: boolean | null };
 type Extras = Record<string, { nascimento?: string }>;
+type Boleto = { boleto?: boolean; descricao?: string; valor?: number; dia?: number; mes?: number; ano?: number; confirmadosDia?: string[]; lembrar?: number[] };
 
+const p2 = (n: number) => String(n).padStart(2, "0");
 // me_func_extra pode vir como texto (JSON string), jsonb (objeto) ou duplo-encode.
 function parseExtras(dados: unknown): Extras {
   let v = dados;
   for (let i = 0; i < 2 && typeof v === "string"; i++) { try { v = JSON.parse(v); } catch { break; } }
   return v && typeof v === "object" ? (v as Extras) : {};
+}
+// me_calendario_pagamentos pode vir como string (JSON) ou jsonb; devolve a lista.
+function parseLista(dados: unknown): Boleto[] {
+  let v = dados;
+  for (let i = 0; i < 2 && typeof v === "string"; i++) { try { v = JSON.parse(v); } catch { break; } }
+  return Array.isArray(v) ? (v as Boleto[]) : [];
 }
 
 // Rotina diária: avisa por push as contas a vencer HOJE e as vencidas (não pagas).
@@ -46,7 +54,8 @@ export async function POST(req: NextRequest) {
   const onVencer = cfg["contas_vencer"] ?? true;
   const onVencidas = cfg["contas_vencidas"] ?? true;
   const onAniversarios = cfg["aniversarios"] ?? true;
-  if (!onVencer && !onVencidas && !onAniversarios) return NextResponse.json({ ok: true, enviados: 0, motivo: "tipos desligados" });
+  const onBoletos = cfg["boletos_lembrete"] ?? true;
+  if (!onVencer && !onVencidas && !onAniversarios && !onBoletos) return NextResponse.json({ ok: true, enviados: 0, motivo: "tipos desligados" });
 
   // ── inscrições agrupadas por empresa ─────────────────────────────────────
   const { data: subsData } = await s.from("push_subscriptions").select("endpoint,p256dh,auth,empresa_id");
@@ -87,6 +96,24 @@ export async function POST(req: NextRequest) {
       if (niver.length > 0) {
         const nomes = niver.map((f) => (f.nome || "").split(" ")[0]).filter(Boolean).join(", ");
         msgs.push({ title: "🎂 Aniversário hoje!", body: niver.length === 1 ? `${nomes} faz aniversário hoje.` : `Aniversários hoje: ${nomes}.`, tag: "aniversarios", url: "/dashboard/home" });
+      }
+    }
+
+    // Boletos (feature "meus boletos") — guardados em painel_estado (me_calendario_pagamentos).
+    // Avisa na antecedência escolhida (lembrar, ex.: [7,3]) e no dia do vencimento.
+    if (onBoletos) {
+      const { data: peb } = await s.from("painel_estado").select("dados").eq("empresa_id", empresaId).eq("chave", "me_calendario_pagamentos").maybeSingle();
+      const pags = parseLista((peb as { dados?: unknown } | null)?.dados);
+      for (const p of pags) {
+        if (!p.boleto || p.valor == null || p.dia == null || p.mes == null || p.ano == null) continue;
+        const iso = `${p.ano}-${p2(p.mes + 1)}-${p2(p.dia)}`;
+        if ((p.confirmadosDia || []).includes(iso)) continue;   // já pago
+        const dias = Math.round((Date.parse(iso + "T00:00:00Z") - Date.parse(hoje + "T00:00:00Z")) / 86400000);
+        const lembrar = p.lembrar && p.lembrar.length ? p.lembrar : [7, 3];
+        if (!(dias === 0 || (dias > 0 && lembrar.includes(dias)))) continue;
+        const valorTxt = "R$ " + Number(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const quando = dias === 0 ? "vence hoje" : `vence em ${dias} ${dias === 1 ? "dia" : "dias"}`;
+        msgs.push({ title: dias === 0 ? "🔴 Boleto vence hoje" : "🔔 Boleto chegando", body: `${p.descricao || "Boleto"} ${quando}: ${valorTxt}.`, tag: "boleto_" + iso, url: "/dashboard/financas" });
       }
     }
 

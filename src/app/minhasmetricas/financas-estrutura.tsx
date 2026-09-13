@@ -151,7 +151,10 @@ export async function sincronizarEstrutura(ano: number): Promise<boolean> {
 export type Freq = "unica" | "mensal" | "semanal" | "diaria_uteis" | "diaria_todos";
 export type Pagamento = { id: string; descricao: string; valor: number; dia: number; mes: number; ano: number; recorrente: boolean; freq?: Freq; pulados?: number[]; ate?: number; puladosDia?: string[]; ateDia?: string; grupo?: string; item?: string;
   confirmados?: number[]; valores?: Record<number, number>; pagoEm?: Record<number, string>;
-  confirmadosDia?: string[]; valoresDia?: Record<string, number>; pagoEmDia?: Record<string, string> };
+  confirmadosDia?: string[]; valoresDia?: Record<string, number>; pagoEmDia?: Record<string, string>;
+  // Boletos (feature "meus boletos"): marca a origem, guarda a linha digitável e
+  // os dias de antecedência do lembrete (ex.: [7,3] = avisa 7 e 3 dias antes).
+  boleto?: boolean; linha?: string; lembrar?: number[] };
 const CHAVE_PAG = "me_calendario_pagamentos";
 const ymIdx = (ano: number, mes: number) => ano * 12 + mes;
 export const freqDe = (p: Pagamento): Freq => p.freq || (p.recorrente ? "mensal" : "unica");
