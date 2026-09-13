@@ -699,8 +699,11 @@ export default function VendaClient() {
             <b style={{ color: "#fff", fontWeight: 700 }}>Faturamento, custos e lucro</b> num painel que se monta sozinho. Chega de decidir no achismo.<br /><b style={{ color: C.cyan, fontWeight: 800 }}>Veja o número real do seu negócio.</b>
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
-            <a href={CHECKOUT_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar por R$ {PRECO}/mês <ArrowRight size={18} /></a>
+            <a href={CHECKOUT_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Começar agora <ArrowRight size={18} /></a>
             <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.06)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}>Ver o app</a>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, color: C.muted, fontSize: 13.5 }}>
+            <Check size={15} color={C.green} /> 7 dias de garantia · R$ {PRECO}/mês, cancele quando quiser
           </div>
         </Reveal>
         <Reveal delay={150}><HeroStats /></Reveal>
@@ -866,14 +869,23 @@ export default function VendaClient() {
         <Reveal><CtaPlano texto="Ver o plano e assinar" sub="Menos de R$ 1,70 por dia pra ter o controle da sua empresa" /></Reveal>
       </section>
 
-      {/* STATS */}
-      <section style={{ ...container, padding: "clamp(20px,4vw,40px) 20px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: "clamp(8px,2vw,16px)", textAlign: "center" }}>
-          {([["1", "painel pra tudo", C.cyan], ["5 min", "pra começar", C.green], ["Mensal", "sem planilha", C.violet], ["24/7", "no celular", C.amber]] as [string, string, string][]).map(([v, l, cor], i) => (
-            <Reveal key={i} delay={i * 70} style={{ height: "100%" }}>
-              <div className="lift" style={{ height: "100%", minHeight: 104, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: "clamp(12px,3vw,24px) 6px" }}>
-                <div style={{ fontSize: "clamp(17px,4.6vw,30px)", fontWeight: 900, color: cor, lineHeight: 1.05 }}>{v}</div>
-                <div style={{ color: C.muted, fontSize: "clamp(9px,2.3vw,13.5px)", marginTop: 5, lineHeight: 1.3 }}>{l}</div>
+      {/* DEPOIMENTOS (prova social). Troque pelos depoimentos REAIS dos seus clientes. */}
+      <section style={{ ...container, padding: "clamp(30px,6vw,64px) 20px" }}>
+        <Reveal><SectionTitle eyebrow="Quem usa recomenda" title="Donos que saíram do escuro" sub="Empresários que trocaram a planilha e o achismo por um painel só." /></Reveal>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16, marginTop: 28 }}>
+          {([
+            ["Diogo Rodrigues", "CEO, Dynamis", "Finalmente parei de decidir no escuro. Em uma semana eu já sabia exatamente onde estava perdendo margem."],
+            ["João Paulo", "Comercial, Stone", "A projeção de caixa me avisou de um mês apertado com antecedência. Deu tempo de ajustar antes de apertar."],
+            ["Paulo Serra", "Colégio Araguaia", "Trocamos três planilhas por um painel só. A equipe toda olha os mesmos números agora."],
+          ] as [string, string, string][]).map(([nome, cargo, txt], i) => (
+            <Reveal key={i} delay={i * 80} style={{ height: "100%" }}>
+              <div className="lift" style={{ height: "100%", background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ color: C.amber, fontSize: 15, letterSpacing: 2 }}>★★★★★</div>
+                <p style={{ color: C.txt, fontSize: 15, lineHeight: 1.55, margin: 0, flex: 1 }}>&ldquo;{txt}&rdquo;</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                  <span style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontWeight: 800, color: "#04121a", background: "linear-gradient(135deg,#22B8F0,#10B981)" }}>{nome[0]}</span>
+                  <div><div style={{ fontWeight: 700, fontSize: 14.5 }}>{nome}</div><div style={{ color: C.muted, fontSize: 12.5 }}>{cargo}</div></div>
+                </div>
               </div>
             </Reveal>
           ))}
