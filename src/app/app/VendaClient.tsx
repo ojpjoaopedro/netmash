@@ -17,10 +17,10 @@ const ENTRAR_URL = "/login";
 const MARCA = "Minhas Métricas";
 const PRECO = "49,90";      // mensalidade (R$/mês)
 const PRECO_DE = "97";       // preço "cheio" (âncora)
-// Link direto do checkout da Cakto (R$ 49,90/mês). O acesso é criado sozinho
-// pelo webhook do Cakto quando o pagamento é confirmado. Para usar o fluxo com
-// coleta de dados antes do checkout, troque de volta por "/assinar".
-const CHECKOUT_URL = "https://pay.cakto.com.br/jgyw3d8_1080979";
+// Página de captura leve (Nome + WhatsApp + E-mail): salva o lead no Admin e leva
+// pra Cakto já pré-preenchida. Assim ficamos com o contato de todo possível
+// comprador. Pra voltar ao checkout direto, troque por o link da Cakto.
+const CHECKOUT_URL = "/comecar";
 /* Quando tiver um screencast do app, coloque o caminho aqui (ex.: "/videos/app-demo.mp4")
    e a seção "Veja em ação" passa a tocar o vídeo real no lugar da demo animada. */
 const DEMO_VIDEO = "";
@@ -683,7 +683,7 @@ export default function VendaClient() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Link href={ENTRAR_URL} className="nav-entrar" style={{ fontSize: 14, fontWeight: 700, color: C.muted, padding: "9px 6px" }}>Entrar</Link>
-            <a href={CHECKOUT_URL} data-checkout className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "9px 18px", borderRadius: 99, boxShadow: "0 8px 20px -8px rgba(34,184,240,.6)" }}>Assinar <ArrowRight size={15} /></a>
+            <a href={CHECKOUT_URL}className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "9px 18px", borderRadius: 99, boxShadow: "0 8px 20px -8px rgba(34,184,240,.6)" }}>Assinar <ArrowRight size={15} /></a>
           </div>
         </div>
       </header>
@@ -945,7 +945,7 @@ export default function VendaClient() {
                 </div>
               ))}
             </div>
-            <a href={CHECKOUT_URL} data-checkout className="cta-shine" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "16px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar agora <ArrowRight size={18} /></a>
+            <a href={CHECKOUT_URL}className="cta-shine" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "16px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar agora <ArrowRight size={18} /></a>
             <p style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, color: C.muted, fontSize: 13, marginTop: 16, textAlign: "center" }}><Check size={14} color={C.green} /> Garantia de 7 dias — não gostou, devolvemos o seu dinheiro.</p>
           </div>
         </Reveal>
@@ -959,7 +959,7 @@ export default function VendaClient() {
             <h2 style={{ fontSize: "clamp(26px,5vw,42px)", fontWeight: 900, letterSpacing: "-.02em", margin: 0, lineHeight: 1.1 }}>Chega de gerir no escuro.</h2>
             <p style={{ color: "rgba(226,232,240,.8)", fontSize: 18, margin: "14px auto 0", maxWidth: 560, lineHeight: 1.6 }}>Comece hoje e veja o número real da sua empresa ainda esta semana.</p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 28 }}>
-              <a href={CHECKOUT_URL} data-checkout className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar por R$ {PRECO}/mês <ArrowRight size={18} /></a>
+              <a href={CHECKOUT_URL}className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar por R$ {PRECO}/mês <ArrowRight size={18} /></a>
               <Link href={ENTRAR_URL} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,.08)", border: `1px solid ${C.line}`, padding: "15px 30px", borderRadius: 99 }}>Já tenho conta</Link>
             </div>
           </div>
