@@ -707,6 +707,43 @@ export default function VendaClient() {
         <Reveal delay={150}><HeroStats /></Reveal>
       </section>
 
+      {/* DADOS DO MERCADO (movida pra logo após o hero) */}
+      <section style={{ ...container, padding: "clamp(30px,5vw,60px) 20px" }}>
+        <Reveal>
+          <div style={{ background: "linear-gradient(135deg, rgba(239,68,68,.12), rgba(245,158,11,.06))", border: "1px solid rgba(239,68,68,.22)", borderRadius: 24, padding: "clamp(28px,4vw,44px)", display: "grid", gridTemplateColumns: "auto 1fr", gap: "clamp(20px,4vw,44px)", alignItems: "center" }} className="cmp">
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "clamp(56px,11vw,96px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1, color: C.red }}><CountUp to={50} suffix="%" /></div>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: C.muted, marginTop: 6 }}>das empresas que abrem fecham em até 5 anos</div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>Fonte: Sebrae</div>
+            </div>
+            <div>
+              <span style={{ ...chip, color: C.amber, background: "rgba(245,158,11,.1)", borderColor: "rgba(245,158,11,.28)" }}><TriangleAlert size={13} style={{ verticalAlign: "-2px", marginRight: 6 }} />Dados do mercado</span>
+              <h2 style={{ fontSize: "clamp(22px,3.6vw,32px)", fontWeight: 900, letterSpacing: "-.02em", margin: "14px 0 0", lineHeight: 1.2 }}>Empresas não quebram por falta de lucro. <span style={{ color: C.cyan }}>Quebram por falta de gestão.</span></h2>
+              <p style={{ color: C.muted, fontSize: 16, lineHeight: 1.6, margin: "12px 0 0" }}>A má gestão financeira, a falta de planejamento e a mistura entre contas pessoais e da empresa criam um efeito bola de neve. É por isso que metade dos pequenos negócios não passa dos 5 anos.</p>
+            </div>
+          </div>
+        </Reveal>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 16, marginTop: 16 }}>
+          {([
+            { Icon: Coins, t: "Sem fluxo de caixa", d: "Não registrar o que entra e sai deixa a empresa sem capital de giro para pagar fornecedores e funcionários.", s: "Entradas, saídas e saldo sempre atualizados." },
+            { Icon: Shuffle, t: "Contas misturadas", d: "Tirar dinheiro do caixa da empresa para despesa pessoal mascara a lucratividade real do negócio.", s: "Você enxerga o resultado real, separado." },
+            { Icon: Compass, t: "Decisão no achismo", d: "Sem estudar mercado, concorrência e público, cada decisão vira um chute, não um plano.", s: "Indicadores e metas para decidir com dados." },
+          ]).map(({ Icon, t, d, s }, i) => (
+            <Reveal key={i} delay={i * 70}>
+              <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, height: "100%", textAlign: "left" }}>
+                <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(245,158,11,.12)", color: C.amber }}><Icon size={22} /></span>
+                <h3 style={{ fontSize: 17, fontWeight: 800, margin: "14px 0 6px" }}>{t}</h3>
+                <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.55, margin: 0 }}>{d}</p>
+                <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}`, fontSize: 13, color: C.txt }}>
+                  <Check size={15} color={C.green} style={{ flexShrink: 0, marginTop: 2 }} /><span><b style={{ color: C.green }}>No app:</b> {s}</span>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
       {/* PARCEIROS */}
       <section style={{ ...container, padding: "8px 20px 24px" }}>
         <Reveal>
@@ -735,43 +772,6 @@ export default function VendaClient() {
                 <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.12)", color: C.red }}><Icon size={22} /></span>
                 <h3 style={{ fontSize: 18, fontWeight: 800, margin: "14px 0 6px" }}>{t}</h3>
                 <p style={{ color: C.muted, fontSize: 14.5, lineHeight: 1.55, margin: 0 }}>{d}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* DADOS DO MERCADO */}
-      <section style={{ ...container, padding: "clamp(30px,5vw,60px) 20px" }}>
-        <Reveal>
-          <div style={{ background: "linear-gradient(135deg, rgba(239,68,68,.12), rgba(245,158,11,.06))", border: "1px solid rgba(239,68,68,.22)", borderRadius: 24, padding: "clamp(28px,4vw,44px)", display: "grid", gridTemplateColumns: "auto 1fr", gap: "clamp(20px,4vw,44px)", alignItems: "center" }} className="cmp">
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "clamp(56px,11vw,96px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1, color: C.red }}><CountUp to={50} suffix="%" /></div>
-              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: C.muted, marginTop: 6 }}>das empresas que abrem fecham em até 5 anos</div>
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>Fonte: Sebrae</div>
-            </div>
-            <div>
-              <span style={{ ...chip, color: C.amber, background: "rgba(245,158,11,.1)", borderColor: "rgba(245,158,11,.28)" }}><TriangleAlert size={13} style={{ verticalAlign: "-2px", marginRight: 6 }} />Dados do mercado</span>
-              <h2 style={{ fontSize: "clamp(22px,3.6vw,32px)", fontWeight: 900, letterSpacing: "-.02em", margin: "14px 0 0", lineHeight: 1.2 }}>Empresas não quebram por falta de lucro. <span style={{ color: C.cyan }}>Quebram por falta de gestão.</span></h2>
-              <p style={{ color: C.muted, fontSize: 16, lineHeight: 1.6, margin: "12px 0 0" }}>A má gestão financeira, a falta de planejamento e a mistura entre contas pessoais e da empresa criam um efeito bola de neve. É por isso que metade dos pequenos negócios não passa dos 5 anos.</p>
-            </div>
-          </div>
-        </Reveal>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 16, marginTop: 16 }}>
-          {([
-            { Icon: Coins, t: "Sem fluxo de caixa", d: "Não registrar o que entra e sai deixa a empresa sem capital de giro para pagar fornecedores e funcionários.", s: "Entradas, saídas e saldo sempre atualizados." },
-            { Icon: Shuffle, t: "Contas misturadas", d: "Tirar dinheiro do caixa da empresa para despesa pessoal mascara a lucratividade real do negócio.", s: "Você enxerga o resultado real, separado." },
-            { Icon: Compass, t: "Decisão no achismo", d: "Sem estudar mercado, concorrência e público, cada decisão vira um chute, não um plano.", s: "Indicadores e metas para decidir com dados." },
-          ]).map(({ Icon, t, d, s }, i) => (
-            <Reveal key={i} delay={i * 70}>
-              <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, height: "100%" }}>
-                <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(245,158,11,.12)", color: C.amber }}><Icon size={22} /></span>
-                <h3 style={{ fontSize: 17, fontWeight: 800, margin: "14px 0 6px" }}>{t}</h3>
-                <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.55, margin: 0 }}>{d}</p>
-                <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}`, fontSize: 13, color: C.txt }}>
-                  <Check size={15} color={C.green} style={{ flexShrink: 0, marginTop: 2 }} /><span><b style={{ color: C.green }}>No app:</b> {s}</span>
-                </div>
               </div>
             </Reveal>
           ))}
@@ -1022,7 +1022,7 @@ export default function VendaClient() {
         .range{ accent-color: #22b8f0; height: 6px; cursor: pointer; }
         html{ scroll-behavior: smooth; scroll-padding-top: 72px; }
         @media (max-width: 860px){ .site-hero{ grid-template-columns: 1fr !important; gap: 30px !important; } }
-        @media (max-width: 700px){ .cmp{ grid-template-columns: 1fr !important; } }
+        @media (max-width: 700px){ .cmp{ grid-template-columns: 1fr !important; text-align: center; gap: 18px !important; padding: 26px 18px !important; } }
         @media (max-width: 430px){ .nav-entrar{ display: none; } .nav-logo{ font-size: 15px; } }
         @media (prefers-reduced-motion: reduce){ *{animation:none !important} }
       `}</style>
