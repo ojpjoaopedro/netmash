@@ -51,13 +51,33 @@ function Reveal({ children, delay = 0, style }: { children: React.ReactNode; del
 /* ─── Celular ──────────────────────────────────────────────────────────── */
 function Phone({ children, float = false, tilt = 0, big = false, nav }: { children: React.ReactNode; float?: boolean; tilt?: number; big?: boolean; nav?: React.ReactNode }) {
   const w = big ? "min(288px, 82vw)" : "min(246px, 78vw)", h = big ? 528 : 452;
+  const btn = "linear-gradient(#3a3d47,#191a20)";
+  const bar = (bh: number) => <span style={{ width: 2.5, height: bh, borderRadius: 1, background: "rgba(255,255,255,.9)" }} />;
   return (
     <div style={{ width: w, flexShrink: 0, animation: float ? "floaty 6s ease-in-out infinite" : undefined, transform: `rotate(${tilt}deg)` }}>
-      <div style={{ borderRadius: big ? 40 : 34, padding: 9, background: "linear-gradient(160deg,#23252e,#0e0f14)", border: "1px solid rgba(255,255,255,.1)", boxShadow: "0 40px 80px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.03)" }}>
-        <div style={{ borderRadius: big ? 32 : 26, overflow: "hidden", background: C.bg, height: h, position: "relative" }}>
-          <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: 78, height: 18, borderRadius: 99, background: "#000", zIndex: 3 }} />
-          <div style={{ padding: "26px 12px", paddingBottom: nav ? 54 : 12, height: "100%" }}>{children}</div>
-          {nav && <div style={{ position: "absolute", left: 8, right: 8, bottom: 8, height: 42, borderRadius: 16, background: "rgba(18,19,26,.9)", backdropFilter: "blur(10px)", border: `1px solid ${C.line}`, display: "flex", justifyContent: "space-around", alignItems: "center", zIndex: 4, boxShadow: "0 8px 20px -8px rgba(0,0,0,.7)" }}>{nav}</div>}
+      <div style={{ position: "relative", borderRadius: big ? 44 : 36, padding: 10, background: "linear-gradient(150deg,#2b2e39 0%,#16171d 46%,#0b0c10 100%)", border: "1px solid rgba(255,255,255,.12)", boxShadow: "0 50px 90px -30px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.04), inset 0 1px 0 rgba(255,255,255,.09)" }}>
+        {/* botões laterais */}
+        <span style={{ position: "absolute", left: -2, top: 92, width: 3, height: 26, borderRadius: 3, background: btn }} />
+        <span style={{ position: "absolute", left: -2, top: 128, width: 3, height: 44, borderRadius: 3, background: btn }} />
+        <span style={{ position: "absolute", right: -2, top: 114, width: 3, height: 58, borderRadius: 3, background: btn }} />
+        <div style={{ borderRadius: big ? 34 : 28, overflow: "hidden", background: C.bg, height: h, position: "relative" }}>
+          {/* ilha dinâmica */}
+          <div style={{ position: "absolute", top: 9, left: "50%", transform: "translateX(-50%)", width: 84, height: 20, borderRadius: 99, background: "#000", zIndex: 4 }} />
+          {/* barra de status */}
+          <div style={{ position: "absolute", top: 12, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 3, color: "#fff" }}>
+            <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: ".02em" }}>9:41</span>
+            <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 4 }}>
+              <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 1.5 }}>{bar(4)}{bar(6)}{bar(8)}</span>
+              <span style={{ width: 15, height: 8, borderRadius: 2.5, border: "1px solid rgba(255,255,255,.7)", padding: 1, display: "inline-flex", position: "relative" }}>
+                <span style={{ flex: 1, borderRadius: 1, background: C.green }} />
+                <span style={{ position: "absolute", right: -2.5, top: 2, width: 1.5, height: 4, borderRadius: 1, background: "rgba(255,255,255,.7)" }} />
+              </span>
+            </span>
+          </div>
+          {/* reflexo de vidro */}
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5, background: "linear-gradient(135deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 34%)" }} />
+          <div style={{ padding: "30px 12px", paddingBottom: nav ? 54 : 12, height: "100%" }}>{children}</div>
+          {nav && <div style={{ position: "absolute", left: 8, right: 8, bottom: 8, height: 42, borderRadius: 16, background: "rgba(18,19,26,.92)", backdropFilter: "blur(10px)", border: `1px solid ${C.line}`, display: "flex", justifyContent: "space-around", alignItems: "center", zIndex: 6, boxShadow: "0 8px 20px -8px rgba(0,0,0,.7)" }}>{nav}</div>}
         </div>
       </div>
     </div>
