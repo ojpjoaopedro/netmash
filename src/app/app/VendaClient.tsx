@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight, LineChart, Wallet, Sparkles, Table2, BarChart3,
-  EyeOff, HelpCircle, FolderX, AlarmClock, Coins, FileWarning,
+  Coins,
   Check, Rocket, TrendingUp, Award, ChevronDown, X as XIcon,
   Home, Hand, Shuffle, Compass, TriangleAlert,
   Menu, Bell, Eye, Instagram, Layers, CalendarDays, Lock, LayoutDashboard, FileText, FileSpreadsheet,
@@ -410,14 +410,6 @@ function SectionTitle({ eyebrow, title, sub }: { eyebrow: string; title: string;
   );
 }
 
-const DORES = [
-  { Icon: EyeOff, t: "Não sabe o lucro real", d: "Olha o saldo do banco e acha que está tudo bem, mas o dinheiro ali já tem dono." },
-  { Icon: HelpCircle, t: "Decide no achismo", d: "Sem número na mão, cada decisão de preço, contratação ou corte é um chute." },
-  { Icon: FolderX, t: "Dados espalhados", d: "Uma planilha aqui, um caderno ali, o extrato no banco, e nada conversa entre si." },
-  { Icon: AlarmClock, t: "Descobre tarde demais", d: "O problema só aparece quando o caixa já está no vermelho e não dá mais pra reagir." },
-  { Icon: Coins, t: "Não sabe pra onde vai o dinheiro", d: "Custos invisíveis comendo a margem todo mês, sem ninguém perceber." },
-  { Icon: FileWarning, t: "Fechar o mês é um pesadelo", d: "Horas montando relatório na mão, e mesmo assim sem confiança no resultado." },
-];
 const FEATURES = [
   { Icon: LineChart, t: "Dashboard de verdade", d: "Faturamento, lucro, margem e clientes num painel que se monta sozinho." },
   { Icon: Wallet, t: "Finanças & DRE", d: "Entradas, saídas e resultado do mês. Saiba se sobrou ou faltou, sem planilha." },
@@ -675,7 +667,7 @@ export default function VendaClient() {
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", animation: "bgshift 16s ease-in-out infinite", background: "radial-gradient(1100px 620px at 100% -8%, rgba(34,184,240,.16), transparent 60%), radial-gradient(900px 620px at -10% 45%, rgba(139,92,246,.12), transparent 60%)" }} />
 
       {/* NAV */}
-      <header style={{ position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(16px)", background: "rgba(8,9,12,.7)", borderBottom: `1px solid ${C.line}` }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", background: "linear-gradient(180deg, rgba(8,9,12,.82) 0%, rgba(8,9,12,.30) 62%, rgba(8,9,12,0) 100%)", borderBottom: "none" }}>
         <div className="site-nav" style={{ ...container, display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
           <div className="nav-logo" style={{ display: "flex", alignItems: "center", gap: 9, fontWeight: 800, fontSize: 17 }}>
             <img src="/icon.svg" alt="" style={{ width: 28, height: 28, borderRadius: 8 }} />
@@ -707,7 +699,25 @@ export default function VendaClient() {
         <Reveal delay={150}><HeroStats /></Reveal>
       </section>
 
-      {/* DADOS DO MERCADO (movida pra logo após o hero) */}
+      {/* PARCEIROS (empresas que confiam) */}
+      <section style={{ ...container, padding: "8px 20px 24px" }}>
+        <Reveal>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: C.muted }}>
+              <Award size={15} color={C.amber} /> Empresas que confiam em nós
+            </div>
+            <div className="marquee" style={{ marginTop: 24 }}>
+              <div className="marquee-track">
+                {[...PARCEIROS, ...PARCEIROS, ...PARCEIROS, ...PARCEIROS].map((p, i) => (
+                  <img key={i} src={p.src} alt={p.alt} title={p.alt} className="parc" style={{ height: p.h, width: "auto", maxWidth: 190, objectFit: "contain", flexShrink: 0 }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* DADOS DO MERCADO */}
       <section style={{ ...container, padding: "clamp(30px,5vw,60px) 20px" }}>
         <Reveal>
           <div style={{ background: "linear-gradient(135deg, rgba(239,68,68,.12), rgba(245,158,11,.06))", border: "1px solid rgba(239,68,68,.22)", borderRadius: 24, padding: "clamp(28px,4vw,44px)", display: "grid", gridTemplateColumns: "auto 1fr", gap: "clamp(20px,4vw,44px)", alignItems: "center" }} className="cmp">
@@ -738,40 +748,6 @@ export default function VendaClient() {
                 <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}`, fontSize: 13, color: C.txt }}>
                   <Check size={15} color={C.green} style={{ flexShrink: 0, marginTop: 2 }} /><span><b style={{ color: C.green }}>No app:</b> {s}</span>
                 </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* PARCEIROS */}
-      <section style={{ ...container, padding: "8px 20px 24px" }}>
-        <Reveal>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: C.muted }}>
-              <Award size={15} color={C.amber} /> Empresas que confiam em nós
-            </div>
-            <div className="marquee" style={{ marginTop: 24 }}>
-              <div className="marquee-track">
-                {[...PARCEIROS, ...PARCEIROS, ...PARCEIROS, ...PARCEIROS].map((p, i) => (
-                  <img key={i} src={p.src} alt={p.alt} title={p.alt} className="parc" style={{ height: p.h, width: "auto", maxWidth: 190, objectFit: "contain", flexShrink: 0 }} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* DOR */}
-      <section style={{ ...container, padding: "clamp(40px,6vw,72px) 20px" }}>
-        <Reveal><SectionTitle eyebrow="O problema" title="A maioria dos empresários vive no escuro" sub="Trabalha muito, fatura, mas não sabe se lucra. Você se reconhece em alguma dessas?" /></Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: 16 }}>
-          {DORES.map(({ Icon, t, d }, i) => (
-            <Reveal key={i} delay={i * 70}>
-              <div className="lift" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: 22, height: "100%" }}>
-                <span style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(239,68,68,.12)", color: C.red }}><Icon size={22} /></span>
-                <h3 style={{ fontSize: 18, fontWeight: 800, margin: "14px 0 6px" }}>{t}</h3>
-                <p style={{ color: C.muted, fontSize: 14.5, lineHeight: 1.55, margin: 0 }}>{d}</p>
               </div>
             </Reveal>
           ))}
