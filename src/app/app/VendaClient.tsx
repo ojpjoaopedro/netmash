@@ -390,11 +390,11 @@ function DemoPhone({ big = false, float = false }: { big?: boolean; float?: bool
   );
 }
 
-/* Botão que rola suave até a seção do plano (#planos) */
+/* Botão de compra: leva pra captura /comecar (pega o lead antes do checkout) */
 function CtaPlano({ texto = "Assinar agora", sub }: { texto?: string; sub?: string }) {
   return (
     <div style={{ textAlign: "center", marginTop: 34 }}>
-      <a href="#planos" className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 32px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>{texto} <ArrowRight size={18} /></a>
+      <a href={CHECKOUT_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 32px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>{texto} <ArrowRight size={18} /></a>
       {sub && <div style={{ color: C.muted, fontSize: 13, marginTop: 10 }}>{sub}</div>}
     </div>
   );
@@ -699,7 +699,7 @@ export default function VendaClient() {
             <b style={{ color: "#fff", fontWeight: 700 }}>Faturamento, custos e lucro</b> num painel que se monta sozinho. Chega de decidir no achismo.<br /><b style={{ color: C.cyan, fontWeight: 800 }}>Veja o número real do seu negócio.</b>
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
-            <a href="#planos" className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar por R$ {PRECO}/mês <ArrowRight size={18} /></a>
+            <a href={CHECKOUT_URL} className="cta-shine" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#22b8f0,#0c6e9e)", padding: "15px 30px", borderRadius: 99, boxShadow: "0 14px 34px -12px rgba(34,184,240,.7)" }}>Assinar por R$ {PRECO}/mês <ArrowRight size={18} /></a>
             <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.06)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}>Ver o app</a>
           </div>
         </Reveal>
