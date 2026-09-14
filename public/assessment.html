@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Diagnóstico de Clareza · Minhas Métricas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Descubra em 2 minutos se você decide no achismo ou nos números e receba um plano prático pra enxergar a sua empresa.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+  /* ── Minhas Métricas: mundo dark-tech, cyan -> verde. Tema único, pintado explicitamente. ── */
+  :root{
+    --bg:#070D18; --bg-2:#0A1424; --surface:#101E34; --surface-2:#152742;
+    --ink:#EAF1FB; --ink-soft:#C3D2E8; --muted:#8298B6; --muted-2:#5E7290;
+    --line:rgba(150,182,224,.14); --line-2:rgba(150,182,224,.26);
+    --brand:#1AADE2; --brand-2:#2FD98C; --brand-ink:#5CC8EE;
+    --tension:#FF7A4D; --amber:#F5B23E; --green:#2FD98C;
+    --grad:linear-gradient(100deg,#1AADE2,#2FD98C);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans",-apple-system,system-ui,sans-serif; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(90% 45% at 82% -8%, rgba(26,173,226,.20), transparent 60%),
+      radial-gradient(80% 40% at 8% 108%, rgba(47,217,140,.14), transparent 60%);
+    background-attachment:fixed;
+  }
+  .wrap{max-width:600px; margin:0 auto; padding-block:clamp(22px,6vw,44px); padding-left:clamp(18px,5vw,28px); padding-right:clamp(18px,5vw,28px)}
+
+  .eyebrow{font-family:"IBM Plex Sans",sans-serif; font-size:.72rem; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--brand-ink); margin:0}
+
+  h1{font-family:"Sora",sans-serif; font-weight:800; letter-spacing:-.02em; line-height:1.05; margin:0; text-wrap:balance; font-size:clamp(1.9rem,7.5vw,2.9rem)}
+  h1 .g{background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lede{color:var(--ink-soft); font-size:1.05rem; margin:0; max-width:52ch}
+
+  .card{background:linear-gradient(165deg,var(--surface),var(--bg-2)); border:1px solid var(--line); border-radius:18px}
+
+  /* estatística de autoridade */
+  .stat{display:flex; align-items:center; gap:14px; padding:15px 17px}
+  .stat .n{font-family:"Sora",sans-serif; font-weight:800; font-size:2.1rem; line-height:1; color:var(--tension); font-variant-numeric:tabular-nums}
+  .stat .t{font-size:.88rem; color:var(--ink-soft); line-height:1.4}
+
+  .meta{display:flex; gap:18px; flex-wrap:wrap; font-family:"IBM Plex Sans",sans-serif; font-size:.92rem; font-weight:500; color:var(--ink-soft)}
+  .meta span{display:inline-flex; align-items:center; gap:6px}
+  .meta i{width:5px; height:5px; border-radius:99px; background:var(--brand-2); display:inline-block}
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:10px; width:100%;
+    font-family:"Sora",sans-serif; font-weight:700; font-size:1.02rem; letter-spacing:.01em;
+    padding:16px 22px; border-radius:14px; border:0; cursor:pointer;
+    background:var(--grad); color:#04121d; text-decoration:none;
+    box-shadow:0 14px 34px -14px rgba(26,173,226,.6);
+    transition:transform .14s ease, box-shadow .14s ease;
+  }
+  .btn:hover{transform:translateY(-2px); box-shadow:0 18px 40px -14px rgba(47,217,140,.6)}
+  .btn:active{transform:scale(.98)}
+  .btn.ghost{background:transparent; color:var(--ink-soft); border:1px solid var(--line-2); box-shadow:none; font-weight:600; font-size:.9rem; width:auto; padding:9px 15px}
+  .btn:focus-visible, .opt:focus-visible{outline:2px solid var(--brand-ink); outline-offset:3px}
+
+  /* ── layout de tela (intro / quiz / resultado) ── */
+  .screen{display:flex; flex-direction:column; gap:22px}
+  .intro-top{display:flex; flex-direction:column; gap:18px}
+
+  /* ── quiz ── */
+  .qhead{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .qcount{font-family:"IBM Plex Sans",sans-serif; font-size:.76rem; color:var(--muted); letter-spacing:.04em}
+  .bar{height:6px; border-radius:99px; background:var(--surface-2); overflow:hidden}
+  .bar>i{display:block; height:100%; width:0; border-radius:99px; background:var(--grad); transition:width .35s cubic-bezier(.4,0,.2,1)}
+  .qtext{font-family:"Sora",sans-serif; font-weight:700; font-size:clamp(1.3rem,5.2vw,1.6rem); line-height:1.25; margin:0; text-wrap:balance}
+  .opts{display:flex; flex-direction:column; gap:11px}
+  .opt{
+    display:flex; align-items:center; gap:13px; width:100%; text-align:left; cursor:pointer;
+    background:var(--surface); border:1px solid var(--line-2); border-radius:13px;
+    padding:15px 16px; color:var(--ink); font-family:inherit; font-size:1rem; line-height:1.35;
+    transition:border-color .14s, background .14s, transform .1s;
+  }
+  .opt:hover{border-color:var(--brand); background:var(--surface-2)}
+  .opt:active{transform:scale(.99)}
+  .opt .k{width:26px; height:26px; border-radius:8px; flex-shrink:0; display:grid; place-items:center; font-family:"IBM Plex Sans",sans-serif; font-weight:600; font-size:.82rem; background:var(--surface-2); color:var(--muted); border:1px solid var(--line-2)}
+  .opt.sel{border-color:var(--brand-2); background:color-mix(in srgb,var(--brand-2) 14%,var(--surface))}
+  .opt.sel .k{background:var(--grad); color:#04121d; border-color:transparent}
+
+  /* ── resultado ── */
+  .gauge{padding:20px 18px; text-align:center; display:flex; flex-direction:column; gap:6px; align-items:center}
+  .gauge .lvl{font-family:"IBM Plex Sans",sans-serif; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  .gauge .score{font-family:"Sora",sans-serif; font-weight:800; font-size:3.2rem; line-height:1; font-variant-numeric:tabular-nums}
+  .gauge .cap{font-family:"Sora",sans-serif; font-weight:700; font-size:1.25rem; text-wrap:balance}
+  .gtrack{width:100%; height:9px; border-radius:99px; background:var(--surface-2); overflow:hidden; margin-top:8px}
+  .gtrack>i{display:block; height:100%; border-radius:99px; transition:width .8s cubic-bezier(.3,0,.2,1)}
+
+  .sec-label{font-family:"IBM Plex Sans",sans-serif; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--brand-ink); margin:0}
+  .diag{font-size:1.02rem; color:var(--ink-soft); line-height:1.6; margin:0}
+
+  .insights{display:flex; flex-direction:column; gap:9px; list-style:none; margin:0; padding:0}
+  .insights li{display:flex; gap:11px; align-items:flex-start; background:var(--bg-2); border:1px solid var(--line); border-left:3px solid var(--tension); border-radius:11px; padding:12px 14px; font-size:.94rem; color:var(--ink-soft); line-height:1.45}
+  .insights li svg{flex-shrink:0; color:var(--tension); margin-top:1px}
+
+  .plan{display:flex; flex-direction:column; gap:12px; counter-reset:step; list-style:none; margin:0; padding:0}
+  .plan li{display:flex; gap:14px; align-items:flex-start}
+  .plan li::before{counter-increment:step; content:counter(step); flex-shrink:0; width:32px; height:32px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line-2); color:var(--brand-ink); font-family:"Sora",sans-serif; font-weight:800; display:grid; place-items:center; font-size:.95rem}
+  .plan li b{font-family:"Sora",sans-serif; font-weight:700; font-size:1rem; display:block; margin-bottom:2px}
+  .plan li span{font-size:.92rem; color:var(--muted); line-height:1.45}
+
+  /* oferta */
+  .offer{padding:22px 20px; border:1px solid var(--line-2); position:relative; overflow:hidden}
+  .offer::before{content:""; position:absolute; inset:0 0 auto 0; height:3px; background:var(--grad)}
+  .offer h3{font-family:"Sora",sans-serif; font-weight:800; font-size:1.35rem; margin:0 0 4px; text-wrap:balance}
+  .offer .sub{color:var(--muted); font-size:.92rem; margin:0 0 16px}
+  .feat{display:flex; flex-direction:column; gap:10px; margin:0 0 18px; padding:0; list-style:none}
+  .feat li{display:flex; gap:10px; align-items:flex-start; font-size:.96rem; color:var(--ink-soft); line-height:1.4}
+  .feat svg{flex-shrink:0; color:var(--brand-2); margin-top:2px}
+  .price{display:flex; align-items:baseline; gap:8px; margin:0 0 16px; flex-wrap:wrap}
+  .price .big{font-family:"Sora",sans-serif; font-weight:800; font-size:1.1rem; color:var(--ink)}
+  .price .tag{font-family:"IBM Plex Sans",sans-serif; font-size:.72rem; color:var(--brand-2); border:1px solid color-mix(in srgb,var(--brand-2) 40%,transparent); background:color-mix(in srgb,var(--brand-2) 12%,transparent); padding:3px 9px; border-radius:99px; letter-spacing:.04em}
+  .reassure{font-size:.82rem; color:var(--muted); text-align:center; margin:12px 0 0; line-height:1.5}
+
+  /* ── tela de captura (lead) com prévia bloqueada ── */
+  .lead-teaser{padding:24px 18px; text-align:center; display:flex; flex-direction:column; gap:10px; align-items:center}
+  .lead-teaser .lvl{font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  .teaser-score{position:relative; display:inline-grid; place-items:center; min-height:64px; padding:2px 8px}
+  .teaser-score .locked{font-family:"Sora",sans-serif; font-weight:800; font-size:3.4rem; line-height:1; color:var(--brand-2); filter:blur(13px); user-select:none; letter-spacing:.02em}
+  .teaser-score .lock{position:absolute; color:var(--ink); opacity:.92}
+  .teaser-line{font-family:"Sora",sans-serif; font-weight:600; font-size:1.06rem; color:var(--ink); margin:0; text-wrap:balance; max-width:34ch}
+  .form{display:flex; flex-direction:column; gap:13px}
+  .field{display:flex; flex-direction:column; gap:6px}
+  .field label{font-size:.82rem; font-weight:600; color:var(--ink-soft)}
+  .field input{width:100%; font-family:inherit; font-size:1rem; color:var(--ink); background:var(--surface); border:1px solid var(--line-2); border-radius:12px; padding:13px 15px; outline:none; transition:border-color .14s}
+  .field input::placeholder{color:var(--muted-2)}
+  .field input:focus{border-color:var(--brand)}
+  .form-err{color:var(--tension); font-size:.86rem; margin:2px 0 0; font-weight:500}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+</head>
+<body>
+
+<main class="wrap">
+
+  <!-- ═══ INTRO (estado em repouso) ═══ -->
+  <section class="screen" id="intro">
+    <div class="intro-top">
+      <h1>Você decide no <span class="g">achismo</span> ou nos números?</h1>
+      <p class="lede">Responda 7 perguntas rápidas e descubra o quanto você realmente enxerga a sua empresa. No final, você recebe um plano prático pra sair do escuro.</p>
+    </div>
+
+    <div class="card stat">
+      <span class="n">61%</span>
+      <span class="t">dos donos de empresa misturam o dinheiro pessoal com o da empresa (Sebrae). O resultado: ninguém sabe o lucro real.</span>
+    </div>
+
+    <button class="btn" id="start">Fazer meu diagnóstico
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+
+    <div class="meta">
+      <span><i></i>Leva 2 minutos</span>
+      <span><i></i>Resultado na hora</span>
+    </div>
+  </section>
+
+  <!-- ═══ QUIZ ═══ -->
+  <section class="screen" id="quiz" hidden>
+    <div>
+      <div class="qhead">
+        <span class="qcount" id="qcount">Pergunta 1 de 7</span>
+        <button class="btn ghost" id="back" hidden>Voltar</button>
+      </div>
+      <div class="bar" style="margin-top:10px"><i id="progress"></i></div>
+    </div>
+    <h2 class="qtext" id="qtext"></h2>
+    <div class="opts" id="opts"></div>
+  </section>
+
+  <!-- ═══ CAPTURA (lead) com prévia bloqueada ═══ -->
+  <section class="screen" id="lead" hidden>
+    <div class="card lead-teaser">
+      <span class="lvl">Seu diagnóstico está pronto</span>
+      <div class="teaser-score">
+        <span class="locked" id="tScore">00%</span>
+        <svg class="lock" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      </div>
+      <p class="teaser-line" id="tLine"></p>
+    </div>
+
+    <div>
+      <h2 class="qtext" style="font-size:clamp(1.3rem,5vw,1.55rem)">Pra onde enviamos o seu resultado?</h2>
+      <p class="diag" style="margin-top:8px">Preencha os dados e veja na hora a sua nota completa e o plano prático pra sair do achismo.</p>
+    </div>
+
+    <form id="leadForm" class="form" novalidate>
+      <div class="field"><label for="fEmpresa">Nome da empresa</label><input id="fEmpresa" name="empresa" type="text" autocomplete="organization"></div>
+      <div class="field"><label for="fResp">Seu nome</label><input id="fResp" name="responsavel" type="text" autocomplete="name"></div>
+      <div class="field"><label for="fEmail">E-mail</label><input id="fEmail" name="email" type="email" autocomplete="email" inputmode="email"></div>
+      <div class="field"><label for="fContato">WhatsApp</label><input id="fContato" name="contato" type="tel" autocomplete="tel" inputmode="tel" placeholder="(00) 00000-0000"></div>
+      <p class="form-err" id="formErr" hidden>Preencha todos os campos, com um e-mail válido.</p>
+      <button class="btn" type="submit">Baixar meu resultado completo
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+  </section>
+
+  <!-- ═══ RESULTADO ═══ -->
+  <section class="screen" id="result" hidden>
+    <div class="card gauge">
+      <span class="lvl" id="rLevelLabel">Seu nível de clareza</span>
+      <span class="score" id="rScore">0</span>
+      <div class="gtrack"><i id="rBar"></i></div>
+      <span class="cap" id="rCap"></span>
+    </div>
+
+    <div>
+      <p class="sec-label" id="rDiagLabel">O que isso quer dizer</p>
+      <p class="diag" id="rDiag" style="margin-top:8px"></p>
+    </div>
+
+    <div id="rInsightsWrap" hidden>
+      <p class="sec-label">O que apareceu no seu diagnóstico</p>
+      <ul class="insights" id="rInsights" style="margin-top:10px"></ul>
+    </div>
+
+    <div>
+      <p class="sec-label">Seu plano prático pra sair do achismo</p>
+      <ol class="plan" id="rPlan" style="margin-top:14px">
+        <li><b>Junte tudo num lugar só</b><span>Registre o que entra e o que sai, mesmo que hoje as contas ainda estejam misturadas. Sem planilha complicada.</span></li>
+        <li><b>Descubra seus números reais</b><span>Lucro do mês, custo de verdade de cada funcionário e qual canal te dá mais dinheiro.</span></li>
+        <li><b>Decida com dados, não no feeling</b><span>Veja a projeção do próximo mês e saiba, antes, se dá pra contratar, investir ou retirar.</span></li>
+      </ol>
+    </div>
+
+    <div class="card offer">
+      <h3>Faça isso em minutos com o Minhas Métricas</h3>
+      <p class="sub">Não é mais um sistema de gestão pra você controlar tudo. É o app que traduz o seu financeiro em números que você entende.</p>
+      <ul class="feat">
+        <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Faturamento, lucro e projeção</b> montados sozinhos, mês a mês.</span></li>
+        <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>O <b>custo real de cada funcionário</b> e o <b>canal que dá mais lucro</b>.</span></li>
+        <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Calendário de <b>contas a pagar e a receber</b>, no computador e no celular.</span></li>
+        <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Funciona <b>mesmo com as contas misturadas</b>. É feito pra isso.</span></li>
+      </ul>
+
+      <!-- CUSTOMIZE: preço e condição de lançamento -->
+      <div class="price">
+        <span class="big">Plano básico</span>
+        <span class="tag">condição de lançamento</span>
+      </div>
+
+      <a class="btn" id="cta" href="https://pay.cakto.com.br/jgyw3d8_1080979" target="_blank" rel="noopener">Quero enxergar meus números
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <p class="reassure">Cada mês no achismo é dinheiro que escapa sem você ver. Comece hoje e veja seus números ainda esta semana.</p>
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+(function(){
+  var CHECKOUT = "https://pay.cakto.com.br/jgyw3d8_1080979";
+
+  var QUESTIONS = [
+    { q:"Você tem uma conta bancária só da empresa, separada da sua conta pessoal?",
+      a:[["Tudo separado: empresa e pessoal",2],["Mais ou menos, às vezes misturo",1],["É tudo na mesma conta",0]],
+      insight:"Com as contas misturadas, é impossível saber o que é da empresa e o que é seu." },
+    { q:"Você sabe, agora, quanto sua empresa lucrou no último mês? Lucro de verdade, não o saldo.",
+      a:[["Sei o número exato",2],["Tenho uma ideia mais ou menos",1],["Não faço ideia",0]],
+      insight:"Sem saber o lucro real, toda decisão vira um chute." },
+    { q:"Como você tira o seu dinheiro da empresa?",
+      a:[["Pró-labore: um valor fixo definido",2],["Pego conforme a necessidade",1],["Uso o cartão ou a conta da empresa direto",0]],
+      insight:"Sem pró-labore definido, o caixa da empresa vira sua conta pessoal e some sem você ver." },
+    { q:"Você sabe qual produto ou canal de venda te dá mais lucro?",
+      a:[["Sei, com números",2],["Acho que sei",1],["Não sei",0]],
+      insight:"Você pode estar investindo energia e dinheiro no canal errado sem perceber." },
+    { q:"Quando precisa decidir algo importante (contratar, investir, comprar), você se baseia em:",
+      a:[["Números e relatórios",2],["No saldo da conta",1],["No feeling",0]],
+      insight:"Decisão no feeling custa caro quando erra, e você só descobre depois." },
+    { q:"Você sabe quanto cada funcionário custa de verdade, com impostos e encargos?",
+      a:[["Sei certinho",2],["Mais ou menos",1],["Não sei ou não controlo",0]],
+      insight:"O custo real de um funcionário costuma ser bem maior que o salário. Quem não mede, se assusta." },
+    { q:"Como você controla as finanças da empresa hoje?",
+      a:[["Um app ou sistema",2],["Planilha",1],["Caderno, anotações ou de cabeça",0]],
+      insight:"Anotações soltas mostram o passado, mas não mostram pra onde a empresa está indo." },
+    { q:"Qual o faturamento anual da sua empresa?", seg:true,
+      a:[["R$ 0 a R$ 100 mil"],["R$ 101 mil a R$ 500 mil"],["R$ 501 mil a R$ 1 milhão"],["R$ 1 milhão a R$ 5 milhões"],["R$ 5 milhões a R$ 20 milhões"],["Acima de R$ 20 milhões"]] },
+  ];
+
+  var TOTAL = QUESTIONS.length;
+  var MAXPTS = QUESTIONS.filter(function(x){ return !x.seg; }).length * 2;
+  var idx = 0, answers = new Array(TOTAL).fill(null);
+
+  var $ = function(id){ return document.getElementById(id); };
+  var intro=$("intro"), quiz=$("quiz"), lead=$("lead"), result=$("result");
+
+  function show(el){ [intro,quiz,lead,result].forEach(function(s){ s.hidden = (s!==el); }); window.scrollTo(0,0); }
+
+  $("start").addEventListener("click", function(){ idx=0; show(quiz); render(); });
+  $("back").addEventListener("click", function(){ if(idx>0){ idx--; render(); } });
+
+  function render(){
+    var item = QUESTIONS[idx];
+    $("qcount").textContent = "Pergunta "+(idx+1)+" de "+TOTAL;
+    $("progress").style.width = (idx/TOTAL*100)+"%";
+    $("back").hidden = idx===0;
+    $("qtext").textContent = item.q;
+    var opts = $("opts"); opts.innerHTML="";
+    var letters=["A","B","C","D","E","F"];
+    item.a.forEach(function(opt, i){
+      var b=document.createElement("button");
+      b.className="opt"+(answers[idx]===i?" sel":"");
+      b.type="button";
+      b.innerHTML='<span class="k">'+letters[i]+'</span><span>'+opt[0]+'</span>';
+      b.addEventListener("click", function(){ choose(i); });
+      opts.appendChild(b);
+    });
+  }
+
+  function choose(i){
+    answers[idx]=i;
+    var nodes=$("opts").querySelectorAll(".opt");
+    nodes.forEach(function(n,j){ n.classList.toggle("sel", j===i); });
+    var delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 240;
+    setTimeout(function(){
+      if(idx < TOTAL-1){ idx++; render(); }
+      else { finish(); }
+    }, delay);
+  }
+
+  var curPct = 0;
+
+  function finish(){
+    var pts = answers.reduce(function(s,ans,q){ if(QUESTIONS[q].seg || ans==null) return s; return s + QUESTIONS[q].a[ans][1]; }, 0);
+    curPct = Math.round(pts/MAXPTS*100);
+    $("progress").style.width="100%";
+    $("tScore").textContent = curPct+"%";
+    var line;
+    if(curPct<=45) line="Atenção: sua clareza está bem abaixo do ideal. Veja onde o dinheiro está escapando.";
+    else if(curPct<=75) line="Você está na média dos empreendedores, mas ainda decide muito no achismo.";
+    else line="Você está acima da maioria. Veja o que ainda falta pra chegar ao topo.";
+    $("tLine").textContent = line;
+    show(lead);
+  }
+
+  $("leadForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var empresa=$("fEmpresa").value.trim(), resp=$("fResp").value.trim(), email=$("fEmail").value.trim(), contato=$("fContato").value.trim();
+    var emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if(!empresa || !resp || !emailOk || !contato){ $("formErr").hidden=false; return; }
+    $("formErr").hidden=true;
+    var fat=""; for(var q=0;q<QUESTIONS.length;q++){ if(QUESTIONS[q].seg && answers[q]!=null) fat=QUESTIONS[q].a[answers[q]][0]; }
+    window.__lead = { empresa:empresa, responsavel:resp, email:email, contato:contato, faturamento:fat, nota:curPct };
+    renderResult(curPct);
+  });
+
+  function renderResult(pct){
+    show(result);
+    var lvl, cap, diag, color;
+    if(pct <= 45){
+      color="var(--tension)";
+      cap="Você está decidindo no escuro";
+      diag="Hoje a sua empresa funciona no achismo. Você trabalha muito, o dinheiro entra e sai, mas você não enxerga o que realmente sobra nem pra onde o negócio está indo. A boa notícia: isso muda rápido quando você começa a ver os números certos.";
+    } else if(pct <= 75){
+      color="var(--amber)";
+      cap="Você está meio no escuro";
+      diag="Você já organiza uma parte, mas ainda decide muita coisa no feeling. Faltam alguns números pra você ter certeza do lucro real e parar de ser pego de surpresa. Com pouca coisa, você fecha essas lacunas.";
+    } else {
+      color="var(--brand-2)";
+      cap="Você está no caminho certo";
+      diag="Você já é organizado e olha os seus números. O próximo passo é ganhar velocidade: ter tudo num lugar só, com projeção, pra decidir na frente e crescer com segurança em vez de reagir no fim do mês.";
+    }
+    $("rScore").textContent = pct+"%";
+    $("rScore").style.color = color;
+    $("rCap").textContent = cap;
+    var bar=$("rBar"); bar.style.background=color; requestAnimationFrame(function(){ bar.style.width=pct+"%"; });
+    $("rDiag").textContent = diag;
+
+    var ins=[];
+    answers.forEach(function(ans,q){ if(ans!=null && !QUESTIONS[q].seg && QUESTIONS[q].a[ans][1]===0) ins.push(QUESTIONS[q].insight); });
+    ins = ins.slice(0,3);
+    if(ins.length){
+      $("rInsightsWrap").hidden=false;
+      var ul=$("rInsights"); ul.innerHTML="";
+      ins.forEach(function(t){
+        var li=document.createElement("li");
+        li.innerHTML='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>'+t+'</span>';
+        ul.appendChild(li);
+      });
+    } else {
+      $("rInsightsWrap").hidden=true;
+    }
+    $("cta").href = CHECKOUT;
+  }
+})();
+</script>
+</body>
+</html>

@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       { source: "/gerarproposta", destination: "/gerarproposta.html" },
+      { source: "/assessment", destination: "/assessment.html" },
     ];
   },
   // Endereço fixo do painel: todos usam /dashboard/home (o /minhasmetricas antigo
