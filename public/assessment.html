@@ -166,7 +166,63 @@
   .badges svg{color:var(--brand-2); flex-shrink:0}
   .cta2{margin-top:14px}
 
-  @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+  /* ── animação por pergunta (mini motivo ligado ao tema) ── */
+  .qviz{height:66px; margin-top:30px; display:flex; align-items:center; justify-content:center}
+  .an{display:flex; align-items:center; justify-content:center; gap:10px; height:100%}
+
+  .anSplit{position:relative; width:150px; height:100%}
+  .anSplit b{position:absolute; top:50%; left:50%; width:46px; height:30px; margin:-15px 0 0 -23px; border-radius:8px; display:grid; place-items:center; font-family:"Sora",sans-serif; font-weight:800; font-size:.8rem; border:1px solid var(--line-2)}
+  .anSplit .pf{background:color-mix(in srgb,var(--brand) 18%,var(--surface)); color:var(--brand-ink); animation:splitL 2.4s ease-in-out infinite}
+  .anSplit .pj{background:color-mix(in srgb,var(--brand-2) 18%,var(--surface)); color:var(--brand-2); animation:splitR 2.4s ease-in-out infinite}
+  @keyframes splitL{0%,100%{transform:translateX(-6px)}50%{transform:translateX(-42px)}}
+  @keyframes splitR{0%,100%{transform:translateX(6px)}50%{transform:translateX(42px)}}
+
+  .anLine{width:150px; height:52px}
+  .anLine path{stroke:var(--brand-2); stroke-width:2.6; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:200; stroke-dashoffset:0; animation:draw 2.6s ease-in-out infinite}
+  .anLine circle{fill:#fff; animation:pulseDot 2.6s ease-in-out infinite}
+  @keyframes draw{0%{stroke-dashoffset:200}55%,100%{stroke-dashoffset:0}}
+  @keyframes pulseDot{0%,50%{opacity:0}68%{opacity:1}100%{opacity:.9}}
+
+  .anFlow{position:relative; width:184px; height:100%; justify-content:space-between}
+  .anFlow .box{font-size:.66rem; font-weight:700; color:var(--muted); border:1px solid var(--line-2); border-radius:7px; padding:5px 8px; background:var(--surface); align-self:center}
+  .anFlow .coin{position:absolute; top:50%; left:58px; width:13px; height:13px; margin-top:-6px; border-radius:50%; background:var(--grad); box-shadow:0 0 10px -3px var(--brand); animation:flow 1.9s ease-in-out infinite}
+  @keyframes flow{0%{left:58px; opacity:0}15%{opacity:1}85%{opacity:1}100%{left:120px; opacity:0}}
+
+  .anBars{display:flex; align-items:flex-end; gap:9px; height:48px}
+  .anBars i{width:16px; border-radius:4px 4px 2px 2px; background:var(--surface-2); transform-origin:bottom}
+  .anBars i:nth-child(1){height:42%}
+  .anBars i:nth-child(2){height:64%}
+  .anBars i:nth-child(3){height:100%; background:var(--grad); box-shadow:0 0 14px -4px var(--brand); animation:winPulse 1.5s ease-in-out infinite}
+  .anBars i:nth-child(4){height:54%}
+  @keyframes winPulse{0%,100%{opacity:.7; transform:scaleY(.92)}50%{opacity:1; transform:scaleY(1)}}
+
+  .anTarget{position:relative; width:54px; height:54px}
+  .anTarget span{position:absolute; inset:0; margin:auto; border-radius:50%; border:2px solid var(--brand-2)}
+  .anTarget span:nth-child(1){width:14px; height:14px; background:var(--brand-2); border:0}
+  .anTarget span:nth-child(2){width:32px; height:32px; opacity:.6; animation:ring 2s ease-out infinite}
+  .anTarget span:nth-child(3){width:50px; height:50px; opacity:.3; animation:ring 2s ease-out infinite .5s}
+  @keyframes ring{0%{transform:scale(.55); opacity:.6}100%{transform:scale(1.1); opacity:0}}
+
+  .anStack{display:flex; align-items:flex-end; gap:11px; height:50px}
+  .anStack .cost{display:flex; flex-direction:column-reverse; gap:3px; width:28px}
+  .anStack .cost i{height:11px; border-radius:3px; background:var(--grad); opacity:1; animation:stack 2.6s ease-in-out infinite}
+  .anStack .cost i:nth-child(2){animation-delay:.35s}
+  .anStack .cost i:nth-child(3){animation-delay:.7s}
+  @keyframes stack{0%,8%{opacity:0; transform:translateY(6px)}22%,82%{opacity:1; transform:none}100%{opacity:0}}
+  .anStack svg{color:var(--brand-ink); align-self:flex-end}
+
+  .anTools{display:flex; gap:8px; align-items:center}
+  .anTools span{font-size:.72rem; font-weight:700; padding:6px 10px; border-radius:8px; border:1px solid var(--line-2); color:var(--muted); background:var(--surface)}
+  .anTools .on{color:#04121d; background:var(--grad); border-color:transparent; animation:onGlow 1.7s ease-in-out infinite}
+  @keyframes onGlow{0%,100%{box-shadow:0 0 0 0 transparent; transform:translateY(0)}50%{box-shadow:0 0 16px -4px var(--brand); transform:translateY(-3px)}}
+
+  .anGauge{display:flex; align-items:center; gap:12px; width:180px}
+  .anGauge .track{flex:1; height:12px; border-radius:99px; background:var(--surface-2); overflow:hidden}
+  .anGauge .track i{display:block; height:100%; border-radius:99px; background:var(--grad); width:70%; animation:fill 2.8s ease-in-out infinite}
+  .anGauge b{font-family:"Sora",sans-serif; font-weight:800; color:var(--brand-2); font-size:.92rem}
+  @keyframes fill{0%{width:8%}60%,100%{width:100%}}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
 </style>
 </head>
 <body>
@@ -206,6 +262,7 @@
     </div>
     <h2 class="qtext" id="qtext"></h2>
     <div class="opts" id="opts"></div>
+    <div class="qviz" id="qviz" aria-hidden="true"></div>
   </section>
 
   <!-- ═══ CAPTURA (lead) com prévia bloqueada ═══ -->
@@ -356,6 +413,19 @@
       a:[["R$ 0 a R$ 100 mil"],["R$ 101 mil a R$ 500 mil"],["R$ 501 mil a R$ 1 milhão"],["R$ 1 milhão a R$ 5 milhões"],["R$ 5 milhões a R$ 20 milhões"],["Acima de R$ 20 milhões"]] },
   ];
 
+  // mini animação ligada ao tema de cada pergunta (na ordem das perguntas)
+  var ANIMS = {
+    split: '<div class="an anSplit"><b class="pf">PF</b><b class="pj">PJ</b></div>',
+    line:  '<svg class="an anLine" viewBox="0 0 120 48" fill="none"><path d="M6 40 L34 30 L58 34 L86 16 L114 6"/><circle cx="114" cy="6" r="3.4"/></svg>',
+    flow:  '<div class="an anFlow"><span class="box">Empresa</span><span class="coin"></span><span class="box">Você</span></div>',
+    bars:  '<div class="an anBars"><i></i><i></i><i></i><i></i></div>',
+    target:'<div class="an anTarget"><span></span><span></span><span></span></div>',
+    stack: '<div class="an anStack"><svg width="22" height="30" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8z"/></svg><div class="cost"><i></i><i></i><i></i></div></div>',
+    tools: '<div class="an anTools"><span>Caderno</span><span>Planilha</span><span class="on">App</span></div>',
+    gauge: '<div class="an anGauge"><div class="track"><i></i></div><b>R$</b></div>'
+  };
+  var ANIM_ORDER = ["split","line","flow","bars","target","stack","",""];
+
   var TOTAL = QUESTIONS.length;
   var MAXPTS = QUESTIONS.filter(function(x){ return !x.seg; }).length * 2;
   var idx = 0, answers = new Array(TOTAL).fill(null);
@@ -374,6 +444,7 @@
     $("progress").style.width = (idx/TOTAL*100)+"%";
     $("back").hidden = idx===0;
     $("qtext").textContent = item.q;
+    $("qviz").innerHTML = ANIMS[ANIM_ORDER[idx]] || "";
     var opts = $("opts"); opts.innerHTML="";
     var letters=["A","B","C","D","E","F"];
     item.a.forEach(function(opt, i){
