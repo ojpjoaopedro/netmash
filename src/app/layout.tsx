@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description:
     "A gestão da sua empresa num app: dashboards, fluxo de caixa, projeção, clientes, equipe e relatórios.",
   manifest: "/manifest.webmanifest",
+  verification: { other: { "facebook-domain-verification": "t5cwlv4jfx0kb92uxmvjr6xxkgvy5n" } },
   appleWebApp: { capable: true, title: "Métricas", statusBarStyle: "black-translucent" },
   icons: {
     icon: [
@@ -32,7 +33,6 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
-        <meta name="facebook-domain-verification" content="t5cwlv4jfx0kb92uxmvjr6xxkgvy5n" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
