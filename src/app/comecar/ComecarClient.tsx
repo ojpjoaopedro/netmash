@@ -6,7 +6,6 @@ import { Check, Lock, ShieldCheck, ArrowRight } from "lucide-react";
 
 declare global { interface Window { fbq?: (...args: unknown[]) => void } }
 
-const PRECO = "49,90";
 const BENEFICIOS = [
   "Faturamento, custos e lucro num painel só",
   "Projeção de caixa e assistente inteligente",
@@ -63,7 +62,7 @@ export default function ComecarClient() {
           </button>
         </form>
 
-        <div className="preco">Assinatura <b>R$ {PRECO}/mês</b> · cancele quando quiser</div>
+        <div className="preco">Sem fidelidade · cancele quando quiser</div>
         <div className="trust">
           <span><ShieldCheck size={14} /> 7 dias de garantia</span>
           <span><Lock size={14} /> Pagamento seguro</span>

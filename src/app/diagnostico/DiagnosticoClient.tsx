@@ -10,7 +10,6 @@ import { ArrowRight, ArrowLeft, Check, Lock, ShieldCheck, TrendingUp, AlertTrian
 
 declare global { interface Window { fbq?: (...args: unknown[]) => void } }
 
-const PRECO = "49,90";
 const brl = (n: number) => "R$ " + Math.round(n).toLocaleString("pt-BR");
 
 type Opt = { l: string; p?: number; v?: number; g?: string };
@@ -170,7 +169,7 @@ export default function DiagnosticoClient() {
                 {erro && <div className="erro">{erro}</div>}
                 <button type="submit" className="cta" disabled={enviando}>{enviando ? "Um instante..." : <>Quero destravar meu lucro <ArrowRight size={18} /></>}</button>
               </form>
-              <div className="preco">Assinatura <b>R$ {PRECO}/mês</b> · cancele quando quiser</div>
+              <div className="preco">Sem fidelidade · cancele quando quiser</div>
               <div className="trust"><span><ShieldCheck size={14} /> 7 dias de garantia</span><span><Check size={14} /> Pagamento seguro</span></div>
             </div>
           </div>

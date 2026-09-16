@@ -713,7 +713,7 @@ export default function VendaClient() {
             <a href="#acao" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700, color: C.txt, background: "rgba(255,255,255,.06)", border: `1px solid ${C.line}`, padding: "14px 26px", borderRadius: 99 }}>Ver o app</a>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, color: C.muted, fontSize: 13.5 }}>
-            <Check size={15} color={C.green} /> 7 dias de garantia · R$ {PRECO}/mês, cancele quando quiser
+            <Check size={15} color={C.green} /> 7 dias de garantia · cancele quando quiser
           </div>
         </Reveal>
         <Reveal delay={150}><HeroStats /></Reveal>
